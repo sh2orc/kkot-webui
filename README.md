@@ -140,9 +140,9 @@ korean-chat-interface/
 
 ## 🤝 지원 및 문의
 
-- **이슈 리포트**: [GitHub Issues](https://github.com/your-username/korean-chat-interface/issues)
-- **기능 요청**: [GitHub Discussions](https://github.com/your-username/korean-chat-interface/discussions)
-- **이메일**: your-email@example.com
+- **이슈 리포트**: [GitHub Issues](https://github.com/sh2orc/kkot-webui/issues)
+- **기능 요청**: [GitHub Discussions](https://github.com/sh2orc/kkot-webui)
+- **이메일**: sh2orc@gmail.com
 
 ## 🙏 감사의 말
 
