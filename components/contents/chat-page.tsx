@@ -79,6 +79,11 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       ]
 
       setMessages(dummyMessages)
+      
+      // 메시지 로드 후 즉시 맨 아래로 이동 (애니메이션 없이)
+      setTimeout(() => {
+        scrollToBottomInstant()
+      }, 0)
     }
   }, [chatId])
 
@@ -96,8 +101,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
 
       setMessages([newUserMessage])
       
-      // 초기 메시지 추가 후 스크롤
-      scrollToBottom()
+      // 초기 메시지 추가 후 즉시 맨 아래로 이동
+      setTimeout(() => scrollToBottomInstant(), 0)
 
       // AI 응답 시뮬레이션 (1초 후)
       setTimeout(() => {
@@ -109,42 +114,55 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         }
 
         setMessages((prev) => [...prev, newAssistantMessage])
-        // AI 응답 추가 후 스크롤
-        scrollToBottom()
+        // AI 응답 추가 후 부드러운 스크롤
+        setTimeout(() => scrollToBottomSmooth(), 100)
       }, 1000)
     }
   }, [searchParams])
 
-  // 메시지 추가 시 스크롤 맨 아래로 이동
+  // 메시지 변경 시 스크롤 처리 (채팅 ID 변경 시에는 동작하지 않도록)
+  const [isInitialLoad, setIsInitialLoad] = useState(true)
+  
   useEffect(() => {
-    scrollToBottom()
-  }, [messages])
-
-  // 컴포넌트 마운트 시에도 스크롤
-  useEffect(() => {
-    scrollToBottom()
-  }, [])
-
-  // 새 메시지 추가 후 즉시 스크롤
-  const scrollToBottom = () => {
-    const scrollToBottomImmediate = () => {
-      if (messagesContainerRef.current) {
-        const container = messagesContainerRef.current
-        container.scrollTop = container.scrollHeight
+    if (messages.length > 0) {
+      if (isInitialLoad) {
+        // 처음 로드 시에는 즉시 맨 아래로
+        setTimeout(() => scrollToBottomInstant(), 0)
+        setIsInitialLoad(false)
+      } else {
+        // 새 메시지 추가 시에는 부드러운 스크롤
+        setTimeout(() => scrollToBottomSmooth(), 100)
       }
     }
+  }, [messages, isInitialLoad])
+  
+  // chatId가 변경될 때 초기 로드 상태로 리셋
+  useEffect(() => {
+    setIsInitialLoad(true)
+  }, [chatId])
 
-    // 즉시 실행
-    scrollToBottomImmediate()
-    
-    // requestAnimationFrame을 사용하여 다음 렌더링 사이클에서 실행
-    requestAnimationFrame(() => {
-      scrollToBottomImmediate()
-      
-      // 한 번 더 지연 실행
-      setTimeout(scrollToBottomImmediate, 50)
-      setTimeout(scrollToBottomImmediate, 150)
-    })
+  // 컴포넌트 마운트 시에는 즉시 맨 아래로 이동
+  useEffect(() => {
+    setTimeout(() => scrollToBottomInstant(), 0)
+  }, [])
+
+  // 애니메이션 없이 즉시 맨 아래로 이동
+  const scrollToBottomInstant = () => {
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current
+      container.scrollTop = container.scrollHeight
+    }
+  }
+
+  // 부드러운 스크롤로 맨 아래로 이동
+  const scrollToBottomSmooth = () => {
+    if (messagesContainerRef.current) {
+      const container = messagesContainerRef.current
+      container.scrollTo({
+        top: container.scrollHeight,
+        behavior: 'smooth'
+      })
+    }
   }
 
   const adjustHeight = () => {
@@ -252,8 +270,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             timestamp: new Date(),
           }
           setMessages((prev) => [...prev, newAssistantMessage])
-          // 재생성된 응답 추가 후 스크롤
-          scrollToBottom()
+          // 재생성된 응답 추가 후 부드러운 스크롤
+          setTimeout(() => scrollToBottomSmooth(), 100)
         }, 1000)
       }
     }
@@ -272,8 +290,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       setMessages([...messages, newUserMessage])
       setInputValue("")
       
-      // 스크롤을 아래로 이동
-      scrollToBottom()
+      // 사용자 메시지 추가 후 부드러운 스크롤
+      setTimeout(() => scrollToBottomSmooth(), 100)
 
       // 텍스트 영역 높이 리셋
       if (textareaRef.current) {
@@ -292,8 +310,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         }
 
         setMessages((prev) => [...prev, newAssistantMessage])
-        // AI 응답 추가 후에도 스크롤
-        scrollToBottom()
+        // AI 응답 추가 후 부드러운 스크롤
+        setTimeout(() => scrollToBottomSmooth(), 100)
       }, 1000)
     }
   }
@@ -305,6 +323,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         <div 
           ref={messagesContainerRef}
           className="messages-container flex-1 overflow-y-auto p-4 pb-[140px]"
+          style={{ scrollBehavior: 'auto' }}
         >
           <div className="max-w-3xl mx-auto">
             {messages.map((message) => (
