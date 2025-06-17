@@ -145,6 +145,11 @@ export default function ImageSettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <Button className="bg-black text-white hover:bg-gray-800">저장</Button>
+        </div>
       </div>
     </AdminLayout>
   )

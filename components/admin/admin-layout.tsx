@@ -41,7 +41,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   return (
     <Layout>
-      <div className="flex h-full">
+      <div className="flex h-[calc(100%-5rem)]">
         {/* Sidebar */}
         <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
           <div className="p-4">
@@ -70,7 +70,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto">
-          <div className="p-6 max-w-6xl">
+          <div className="p-6 pt-6 max-w-6xl">
             {children}
           </div>
         </div>

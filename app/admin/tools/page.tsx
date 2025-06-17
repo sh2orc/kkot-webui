@@ -2,6 +2,7 @@ import AdminLayout from "../../../components/admin/admin-layout"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 
 export default function ToolsSettingsPage() {
   return (
@@ -27,6 +28,11 @@ export default function ToolsSettingsPage() {
             </div>
           </CardContent>
         </Card>
+
+        {/* Save Button */}
+        <div className="flex justify-end">
+          <Button className="bg-black text-white hover:bg-gray-800">저장</Button>
+        </div>
       </div>
     </AdminLayout>
   )

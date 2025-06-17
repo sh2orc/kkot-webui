@@ -6,7 +6,7 @@ import { Settings, Menu, ChevronDown, Search } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { Input } from "@/components/ui/input"
 import { useState, useRef, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { AccountMenu } from "@/components/ui/account-menu"
 
 interface NavbarProps {
@@ -20,6 +20,10 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
   const [isDropdownOpen, setIsDropdownOpen] = useState(false)
   const searchInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
+  const pathname = usePathname()
+
+  // /chat 페이지인지 확인
+  const isChatPage = pathname.startsWith("/chat")
 
   useEffect(() => {
     if (isDropdownOpen && searchInputRef.current) {
@@ -50,51 +54,53 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
           <Button variant="ghost" size="icon" className="h-8 w-8 md:hidden" onClick={onMobileMenuClick}>
             <Menu className="h-4 w-4" />
           </Button>
-          <DropdownMenu onOpenChange={setIsDropdownOpen}>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" className="text-sm font-semibold p-0 h-auto hover:bg-transparent">
-                {selectedModel}
-                <ChevronDown className="h-4 w-4 ml-2" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent className="w-80" align="start">
-              <div className="p-2">
-                <div className="relative">
-                  <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                  <Input
-                    ref={searchInputRef}
-                    placeholder="모델 검색..."
-                    className="pl-10"
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    autoFocus
-                  />
+          {isChatPage && (
+            <DropdownMenu onOpenChange={setIsDropdownOpen}>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="text-sm font-semibold p-0 h-auto hover:bg-transparent">
+                  {selectedModel}
+                  <ChevronDown className="h-4 w-4 ml-2" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-80" align="start">
+                <div className="p-2">
+                  <div className="relative">
+                    <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <Input
+                      ref={searchInputRef}
+                      placeholder="모델 검색..."
+                      className="pl-10"
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      autoFocus
+                    />
+                  </div>
                 </div>
-              </div>
-              <div className="max-h-60 overflow-y-auto">
-                {filteredModels.map((model) => (
-                  <DropdownMenuItem
-                    key={model.name}
-                    onClick={() => {
-                      setSelectedModel(model.name)
-                      setSearchQuery("")
-                    }}
-                    className={selectedModel === model.name ? "bg-blue-50 text-blue-700" : ""}
-                  >
-                    <div className="flex flex-col items-start">
-                      <div className="font-medium">{model.name}</div>
-                      {model.description && (
-                        <div className="text-xs text-gray-500 mt-0.5">{model.description}</div>
-                      )}
-                    </div>
-                  </DropdownMenuItem>
-                ))}
-                {filteredModels.length === 0 && (
-                  <div className="p-2 text-sm text-gray-500 text-center">검색 결과가 없습니다</div>
-                )}
-              </div>
-            </DropdownMenuContent>
-          </DropdownMenu>
+                <div className="max-h-60 overflow-y-auto">
+                  {filteredModels.map((model) => (
+                    <DropdownMenuItem
+                      key={model.name}
+                      onClick={() => {
+                        setSelectedModel(model.name)
+                        setSearchQuery("")
+                      }}
+                      className={selectedModel === model.name ? "bg-blue-50 text-blue-700" : ""}
+                    >
+                      <div className="flex flex-col items-start">
+                        <div className="font-medium">{model.name}</div>
+                        {model.description && (
+                          <div className="text-xs text-gray-500 mt-0.5">{model.description}</div>
+                        )}
+                      </div>
+                    </DropdownMenuItem>
+                  ))}
+                  {filteredModels.length === 0 && (
+                    <div className="p-2 text-sm text-gray-500 text-center">검색 결과가 없습니다</div>
+                  )}
+                </div>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          )}
         </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-2">
