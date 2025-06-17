@@ -1,20 +1,30 @@
-import type { Metadata } from 'next'
-import './globals.css'
+'use client'
 
-export const metadata: Metadata = {
-  title: 'kkot-webui',
-  description: 'kkot-webui is an open-source UI project designed to provide a seamless user interface for interacting with large language models (LLMs). Built with Next.js, our goal is to make powerful AI services like OpenAI, Gemini, and Ollama easily accessible to everyone. We aim to help more people experience and benefit from AI by offering an intuitive and user-friendly web interface.',
-  generator: 'Taeyoung Lee',
-}
+import './globals.css'
+import { useEffect } from 'react'
 
 export default function RootLayout({
   children,
 }: Readonly<{
   children: React.ReactNode
 }>) {
+  useEffect(() => {
+    // 클라이언트에서만 실행되는 코드
+    document.title = 'kkot-webui'
+    const metaDescription = document.querySelector('meta[name="description"]')
+    if (metaDescription) {
+      metaDescription.setAttribute('content', 'kkot-webui is an open-source UI project designed to provide a seamless user interface for interacting with large language models (LLMs). Built with Next.js, our goal is to make powerful AI services like OpenAI, Gemini, and Ollama easily accessible to everyone.')
+    } else {
+      const meta = document.createElement('meta')
+      meta.name = 'description'
+      meta.content = 'kkot-webui is an open-source UI project designed to provide a seamless user interface for interacting with large language models (LLMs). Built with Next.js, our goal is to make powerful AI services like OpenAI, Gemini, and Ollama easily accessible to everyone.'
+      document.head.appendChild(meta)
+    }
+  }, [])
+
   return (
-    <html lang="en">
-      <body>{children}</body>
+    <html lang="en" suppressHydrationWarning>
+      <body suppressHydrationWarning>{children}</body>
     </html>
   )
 }

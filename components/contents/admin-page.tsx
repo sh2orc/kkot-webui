@@ -186,6 +186,193 @@ export default function AdminPage() {
               </div>
             </div>
           </div>
+
+          <Separator />
+
+          {/* OAuth Authentication Providers */}
+          <div className="space-y-6">
+            <h4 className="text-base font-semibold">OAuth 인증</h4>
+            
+            {/* Google OAuth */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-medium">Google 인증</Label>
+                <Switch />
+              </div>
+
+              <div className="space-y-4 pl-4 border-l-2 border-gray-200">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="google-client-id">Client ID</Label>
+                    <Input id="google-client-id" placeholder="Google OAuth Client ID를 입력하세요" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="google-client-secret">Client Secret</Label>
+                    <div className="relative">
+                      <Input
+                        id="google-client-secret"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Google OAuth Client Secret을 입력하세요"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Microsoft OAuth */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-medium">Microsoft 인증</Label>
+                <Switch />
+              </div>
+
+              <div className="space-y-4 pl-4 border-l-2 border-gray-200">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="microsoft-client-id">Client ID</Label>
+                    <Input id="microsoft-client-id" placeholder="Microsoft OAuth Client ID를 입력하세요" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="microsoft-client-secret">Client Secret</Label>
+                    <div className="relative">
+                      <Input
+                        id="microsoft-client-secret"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Microsoft OAuth Client Secret을 입력하세요"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Kakao OAuth */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-medium">카카오 인증</Label>
+                <Switch />
+              </div>
+
+              <div className="space-y-4 pl-4 border-l-2 border-gray-200">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="kakao-client-id">Client ID (REST API 키)</Label>
+                    <Input id="kakao-client-id" placeholder="카카오 REST API 키를 입력하세요" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="kakao-client-secret">Client Secret</Label>
+                    <div className="relative">
+                      <Input
+                        id="kakao-client-secret"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="카카오 Client Secret을 입력하세요"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Naver OAuth */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-medium">네이버 인증</Label>
+                <Switch />
+              </div>
+
+              <div className="space-y-4 pl-4 border-l-2 border-gray-200">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="naver-client-id">Client ID</Label>
+                    <Input id="naver-client-id" placeholder="네이버 OAuth Client ID를 입력하세요" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="naver-client-secret">Client Secret</Label>
+                    <div className="relative">
+                      <Input
+                        id="naver-client-secret"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="네이버 OAuth Client Secret을 입력하세요"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* GitHub OAuth */}
+            <div className="space-y-4">
+              <div className="flex items-center justify-between">
+                <Label className="text-base font-medium">GitHub 인증</Label>
+                <Switch />
+              </div>
+
+              <div className="space-y-4 pl-4 border-l-2 border-gray-200">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="github-client-id">Client ID</Label>
+                    <Input id="github-client-id" placeholder="GitHub OAuth Client ID를 입력하세요" />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="github-client-secret">Client Secret</Label>
+                    <div className="relative">
+                      <Input
+                        id="github-client-secret"
+                        type={showPassword ? "text" : "password"}
+                        placeholder="GitHub OAuth Client Secret을 입력하세요"
+                      />
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
+                        onClick={() => setShowPassword(!showPassword)}
+                      >
+                        {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
         </CardContent>
       </Card>
     </div>
