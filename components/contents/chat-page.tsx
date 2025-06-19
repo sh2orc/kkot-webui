@@ -4,10 +4,10 @@ import type React from "react"
 
 import { useRef, useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
-import Layout from "../layout/layout"
-import { LlmResponse } from "../chat/llm-response"
-import { UserRequest } from "../chat/user-request"
-import { ChatInput } from "../chat/chat-input"
+import Layout from "@/components/layout/layout"
+import { LlmResponse } from "@/components/chat/llm-response"
+import { UserRequest } from "@/components/chat/user-request"
+import { ChatInput } from "@/components/chat/chat-input"
 
 interface Message {
   id: string

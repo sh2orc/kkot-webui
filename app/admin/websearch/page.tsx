@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import AdminLayout from "../../../components/admin/admin-layout"
+import AdminLayout from "@/components/admin/admin-layout"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"

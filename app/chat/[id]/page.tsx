@@ -1,5 +1,6 @@
-import ChatPage from "../../../components/contents/chat-page"
+import ChatPage from "@/components/contents/chat-page"
 
-export default function Page({ params }: { params: { id: string } }) {
-  return <ChatPage chatId={params.id} />
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params
+  return <ChatPage chatId={resolvedParams.id} />
 }

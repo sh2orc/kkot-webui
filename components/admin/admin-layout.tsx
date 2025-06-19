@@ -13,8 +13,9 @@ import {
   Volume2,
   GitBranch,
   Database,
+  Server,
 } from "lucide-react"
-import Layout from "../layout/layout"
+import Layout from "@/components/layout/layout"
 import { useRouter, usePathname } from "next/navigation"
 
 interface AdminLayoutProps {
@@ -29,6 +30,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { id: "general", label: "일반", icon: Settings, path: "/admin/general" },
     { id: "connection", label: "연결", icon: Link, path: "/admin/connection" },
     { id: "model", label: "모델", icon: Brain, path: "/admin/model" },
+    { id: "mcp", label: "MCP", icon: Server, path: "/admin/mcp" },
     { id: "evaluation", label: "평가", icon: BarChart3, path: "/admin/evaluation" },
     { id: "tools", label: "도구", icon: Wrench, path: "/admin/tools" },
     { id: "documents", label: "문서", icon: FileText, path: "/admin/documents" },

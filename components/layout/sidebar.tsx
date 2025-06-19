@@ -7,7 +7,7 @@ import { ChevronLeft, Search, Plus, Menu, Book } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { AccountMenu } from "@/components/ui/account-menu"
-import { ChatGroupComponent } from "../sidebar/chat-group"
+import { ChatGroupComponent } from "@/components/sidebar/chat-group"
 
 interface SidebarProps {
   currentPage?: "chat" | "content"

@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Heart, MessageCircle, Share, Bookmark, ChevronDown } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import Layout from "../layout/layout"
+import Layout from "@/components/layout/layout"
 
 export default function ContentPage() {
   const [selectedCategory, setSelectedCategory] = useState("전체")

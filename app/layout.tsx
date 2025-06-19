@@ -20,6 +20,18 @@ export default function RootLayout({
       meta.content = 'kkot-webui is an open-source UI project designed to provide a seamless user interface for interacting with large language models (LLMs). Built with Next.js, our goal is to make powerful AI services like OpenAI, Gemini, and Ollama easily accessible to everyone.'
       document.head.appendChild(meta)
     }
+
+    // favicon 설정
+    const existingFavicon = document.querySelector('link[rel="icon"]')
+    if (existingFavicon) {
+      existingFavicon.setAttribute('href', '/images/favicon.png')
+    } else {
+      const favicon = document.createElement('link')
+      favicon.rel = 'icon'
+      favicon.type = 'image/png'
+      favicon.href = '/images/favicon.png'
+      document.head.appendChild(favicon)
+    }
   }, [])
 
   return (

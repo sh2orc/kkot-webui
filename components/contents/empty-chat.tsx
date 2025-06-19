@@ -5,7 +5,7 @@ import type React from "react"
 import { Button } from "@/components/ui/button"
 import { Mic, Globe, Plus, FlaskRoundIcon as Flask, Zap, Send } from "lucide-react"
 import { useRef, useState, useEffect, useCallback } from "react"
-import Layout from "../layout/layout"
+import Layout from "@/components/layout/layout"
 import { useRouter } from "next/navigation"
 
 export default function Component() {

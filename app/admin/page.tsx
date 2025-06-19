@@ -1,4 +1,4 @@
-import AdminLayout from "../../components/admin/admin-layout"
+import AdminLayout from "@/components/admin/admin-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Settings,
@@ -12,6 +12,7 @@ import {
   Volume2,
   GitBranch,
   Database,
+  Server,
 } from "lucide-react"
 
 export default function AdminPage() {
@@ -19,6 +20,7 @@ export default function AdminPage() {
     { id: "general", label: "일반 설정", icon: Settings, path: "/admin/general", description: "기본 시스템 설정 및 JWT 관리" },
     { id: "connection", label: "연결 설정", icon: Link, path: "/admin/connection", description: "API 서버 연결 관리" },
     { id: "model", label: "모델 설정", icon: Brain, path: "/admin/model", description: "AI 모델 구성 및 관리" },
+    { id: "mcp", label: "MCP 설정", icon: Server, path: "/admin/mcp", description: "Model Context Protocol 서버 관리" },
     { id: "evaluation", label: "평가 설정", icon: BarChart3, path: "/admin/evaluation", description: "성능 평가 및 모니터링" },
     { id: "tools", label: "도구 설정", icon: Wrench, path: "/admin/tools", description: "외부 도구 및 플러그인" },
     { id: "documents", label: "문서 설정", icon: FileText, path: "/admin/documents", description: "문서 관리 및 인덱싱" },

@@ -13,7 +13,7 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { User, Bell, Shield, Globe, Upload } from "lucide-react"
-import Layout from "../layout/layout"
+import Layout from "@/components/layout/layout"
 
 export default function SettingsPage() {
   const [profileImage, setProfileImage] = useState<string | null>(null)
