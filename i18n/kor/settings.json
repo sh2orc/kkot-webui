@@ -1,5 +1,16 @@
 {
   "title": "설정",
+  "placeholders": {
+    "name": "홍길동",
+    "username": "username",
+    "email": "example@company.com",
+    "defaultName": "관리자",
+    "defaultUsername": "admin",
+    "defaultEmail": "admin@bccard.com"
+  },
+  "altTexts": {
+    "profileImage": "프로필 이미지"
+  },
   "tabs": {
     "profile": "프로필",
     "account": "계정",

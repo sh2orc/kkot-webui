@@ -1,0 +1,62 @@
+{
+  "categories": {
+    "all": "전체",
+    "marketing": "마케팅",
+    "data": "데이터",
+    "design": "디자인",
+    "technology": "기술",
+    "work": "업무",
+    "investment": "투자",
+    "ai": "AI"
+  },
+  "content": {
+    "item1": {
+      "title": "AI 기반 마케팅 전략",
+      "description": "인공지능을 활용한 효과적인 마케팅 방법론과 실제 적용 사례들을 살펴보겠습니다",
+      "category": "marketing",
+      "readTime": "5분"
+    },
+    "item2": {
+      "title": "데이터 분석 기초",
+      "description": "비즈니스 의사결정을 위한 데이터 분석의 기본 개념과 도구 활용법",
+      "category": "data",
+      "readTime": "8분"
+    },
+    "item3": {
+      "title": "UX/UI 디자인 트렌드 2024",
+      "description": "올해 주목해야 할 사용자 경험 디자인 트렌드와 실무 적용 방안을 소개합니다. 모바일 퍼스트 접근법부터 최신 개선까지 다양한 주제를 다룹니다.",
+      "category": "design",
+      "readTime": "12분"
+    },
+    "item4": {
+      "title": "블록체인 기술 이해하기",
+      "description": "블록체인의 기본 원리와 실제 적용 사례",
+      "category": "technology",
+      "readTime": "6분"
+    },
+    "item5": {
+      "title": "원격 근무 생산성 향상법",
+      "description": "재택근무 환경에서 효율성을 극대화하는 방법들",
+      "category": "work",
+      "readTime": "4분"
+    },
+    "item6": {
+      "title": "스타트업 투자 가이드",
+      "description": "초기 스타트업을 위한 투자 유치 전략과 투자사 선정법을 자세히 설명합니다. 엔젤 투자자부터 VC까지 다양한 투자 단계별 접근 방법을 알아보세요",
+      "category": "investment",
+      "readTime": "15분"
+    },
+    "item7": {
+      "title": "머신러닝 입문",
+      "description": "기계학습의 기본 개념과 학습 과제",
+      "category": "ai",
+      "readTime": "10분"
+    },
+    "item8": {
+      "title": "소셜미디어 마케팅",
+      "description": "SNS를 활용한 브랜드 마케팅 전략",
+      "category": "marketing",
+      "readTime": "7분"
+    }
+  }
+} 

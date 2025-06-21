@@ -8,13 +8,20 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Eye, EyeOff } from "lucide-react"
+import { Eye, EyeOff, Upload, X } from "lucide-react"
 import { useTranslation } from "@/lib/i18n"
 
 export default function GeneralSettingsPage() {
   const { lang } = useTranslation('admin.general')
   const [showAppPassword, setShowAppPassword] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
+  
+  // 브랜딩 설정 상태 관리
+  const [appName, setAppName] = useState("kkot-webui")
+  const [faviconFile, setFaviconFile] = useState<File | null>(null)
+  const [logoFile, setLogoFile] = useState<File | null>(null)
+  const [faviconPreview, setFaviconPreview] = useState<string>("")
+  const [logoPreview, setLogoPreview] = useState<string>("")
   
   // OAuth 제공자 활성화 상태 관리
   const [googleEnabled, setGoogleEnabled] = useState(false)
@@ -26,6 +33,41 @@ export default function GeneralSettingsPage() {
   // LDAP 활성화 상태 관리
   const [ldapEnabled, setLdapEnabled] = useState(false)
 
+  // 파일 업로드 핸들러
+  const handleFaviconUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setFaviconFile(file)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setFaviconPreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const handleLogoUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0]
+    if (file) {
+      setLogoFile(file)
+      const reader = new FileReader()
+      reader.onload = (e) => {
+        setLogoPreview(e.target?.result as string)
+      }
+      reader.readAsDataURL(file)
+    }
+  }
+
+  const removeFavicon = () => {
+    setFaviconFile(null)
+    setFaviconPreview("")
+  }
+
+  const removeLogo = () => {
+    setLogoFile(null)
+    setLogoPreview("")
+  }
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -33,6 +75,125 @@ export default function GeneralSettingsPage() {
           <h1 className="text-2xl font-bold">{lang('title')}</h1>
           <p className="text-gray-600 mt-1">{lang('description')}</p>
         </div>
+
+        {/* 브랜딩 설정 */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{lang('branding.title')}</CardTitle>
+            <CardDescription>{lang('branding.description')}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            {/* 애플리케이션 이름 */}
+            <div className="space-y-2">
+              <Label htmlFor="app-name">{lang('branding.appName.label')}</Label>
+              <Input 
+                id="app-name" 
+                value={appName}
+                onChange={(e) => setAppName(e.target.value)}
+                placeholder={lang('branding.appName.placeholder')}
+              />
+              <p className="text-xs text-gray-500">
+                {lang('branding.appName.description')}
+              </p>
+            </div>
+
+            <Separator />
+
+            {/* 파비콘 업로드 */}
+            <div className="space-y-2">
+              <Label>{lang('branding.favicon.label')}</Label>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    id="favicon-upload"
+                    accept=".png,.ico,.jpg,.jpeg"
+                    onChange={handleFaviconUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('favicon-upload')?.click()}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    {lang('branding.favicon.button')}
+                  </Button>
+                  {faviconFile && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={removeFavicon}
+                      className="flex items-center gap-1 text-red-600 hover:text-red-700"
+                    >
+                      <X className="h-3 w-3" />
+                      {lang('branding.favicon.remove')}
+                    </Button>
+                  )}
+                </div>
+                {faviconPreview && (
+                  <div className="flex items-center gap-2">
+                    <img src={faviconPreview} alt="Favicon preview" className="w-8 h-8 rounded" />
+                    <span className="text-sm text-gray-500">{faviconFile?.name}</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                {lang('branding.favicon.description')}
+              </p>
+            </div>
+
+            <Separator />
+
+            {/* 로고 업로드 */}
+            <div className="space-y-2">
+              <Label>{lang('branding.logo.label')}</Label>
+              <div className="flex items-center gap-4">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    id="logo-upload"
+                    accept=".png,.svg,.jpg,.jpeg"
+                    onChange={handleLogoUpload}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => document.getElementById('logo-upload')?.click()}
+                    className="flex items-center gap-2"
+                  >
+                    <Upload className="h-4 w-4" />
+                    {lang('branding.logo.button')}
+                  </Button>
+                  {logoFile && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={removeLogo}
+                      className="flex items-center gap-1 text-red-600 hover:text-red-700"
+                    >
+                      <X className="h-3 w-3" />
+                      {lang('branding.logo.remove')}
+                    </Button>
+                  )}
+                </div>
+                {logoPreview && (
+                  <div className="flex items-center gap-2">
+                    <img src={logoPreview} alt="Logo preview" className="w-12 h-12 rounded object-contain bg-gray-100" />
+                    <span className="text-sm text-gray-500">{logoFile?.name}</span>
+                  </div>
+                )}
+              </div>
+              <p className="text-xs text-gray-500">
+                {lang('branding.logo.description')}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>

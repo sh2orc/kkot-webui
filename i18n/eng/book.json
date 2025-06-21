@@ -1,0 +1,62 @@
+{
+  "categories": {
+    "all": "All",
+    "marketing": "Marketing",
+    "data": "Data",
+    "design": "Design",
+    "technology": "Technology",
+    "work": "Work",
+    "investment": "Investment",
+    "ai": "AI"
+  },
+  "content": {
+    "item1": {
+      "title": "AI-based Marketing Strategy",
+      "description": "We will explore effective marketing methodologies using artificial intelligence and actual application cases",
+      "category": "marketing",
+      "readTime": "5 min"
+    },
+    "item2": {
+      "title": "Data Analysis Basics",
+      "description": "Basic concepts of data analysis for business decision-making and tool utilization methods",
+      "category": "data",
+      "readTime": "8 min"
+    },
+    "item3": {
+      "title": "UX/UI Design Trends 2024",
+      "description": "We introduce user experience design trends to watch this year and practical application methods. Various topics are covered from mobile-first approach to latest improvements.",
+      "category": "design",
+      "readTime": "12 min"
+    },
+    "item4": {
+      "title": "Understanding Blockchain Technology",
+      "description": "Basic principles of blockchain and actual application cases",
+      "category": "technology",
+      "readTime": "6 min"
+    },
+    "item5": {
+      "title": "Remote Work Productivity Tips",
+      "description": "Methods to maximize efficiency in a remote work environment",
+      "category": "work",
+      "readTime": "4 min"
+    },
+    "item6": {
+      "title": "Startup Investment Guide",
+      "description": "Detailed explanation of investment attraction strategies and investor selection methods for early-stage startups. Learn various investment stage-specific approaches from angel investors to VCs",
+      "category": "investment",
+      "readTime": "15 min"
+    },
+    "item7": {
+      "title": "Introduction to Machine Learning",
+      "description": "Basic concepts of machine learning and learning tasks",
+      "category": "ai",
+      "readTime": "10 min"
+    },
+    "item8": {
+      "title": "Social Media Marketing",
+      "description": "Brand marketing strategies using social media",
+      "category": "marketing",
+      "readTime": "7 min"
+    }
+  }
+} 

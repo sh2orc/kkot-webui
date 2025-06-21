@@ -38,5 +38,15 @@
     "saveShortcut": "Save (Ctrl+Enter)",
     "cancelShortcut": "Cancel (Escape)",
     "editHint": "Ctrl+Enter to save, Escape to cancel"
-  }
+  },
+  "dummyData": {
+    "greeting": "Hello! Thank you for your question. How can I help you?",
+    "sample": {
+      "question1": "Hello! Please tell me about BC Card's payback service",
+      "answer1": "Hello! BC Card's payback service is a service that allows customers to receive a certain percentage of their payment amount back in cash. Here are the main features:\n\n1. Cash back at a certain percentage (usually 0.5~1%) of payment amount\n2. Accumulated amount is automatically deducted from next month's card bill\n3. Additional payback benefits are provided at specific merchants or during promotional periods\n4. Cards with annual fees apply higher payback rates\n\nIf you need more specific information, please let me know the specific BC Card product name or area of interest!",
+      "question2": "Is there a minimum payment amount to receive payback service?",
+      "answer2": "Yes! BC Card's payback service generally has minimum payment amount criteria. While it varies by card product, the following conditions apply in most cases:\n\n1. Payback benefits are generally applied when you spend 300,000 KRW or more per month.\n2. For some premium cards, you may need to spend 500,000 KRW or more per month to receive benefits.\n3. During special promotional periods, minimum payment amount criteria may be lowered or eliminated.\n\nSince the exact minimum payment amount varies depending on the BC Card product you hold, it's recommended to check through your card terms or BC Card customer service."
+    }
+  },
+  "saveButton": "Save"
 } 

@@ -89,7 +89,7 @@ export default function SettingsPage() {
                     <div className="flex flex-col items-center gap-4 p-2 mr-2">
                       <Avatar className="h-12 w-12">
                         {profileImage ? (
-                          <AvatarImage src={profileImage || "/placeholder.svg"} alt="프로필 이미지" />
+                          <AvatarImage src={profileImage || "/placeholder.svg"} alt={lang('altTexts.profileImage')} />
                         ) : (
                           <AvatarFallback className="bg-orange-500 text-white text-xl">A</AvatarFallback>
                         )}
@@ -116,11 +116,11 @@ export default function SettingsPage() {
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                           <Label htmlFor="name">{lang('profile.name')}</Label>
-                          <Input id="name" placeholder="홍길동" defaultValue="관리자" />
+                          <Input id="name" placeholder={lang('placeholders.name')} defaultValue={lang('placeholders.defaultName')} />
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="username">{lang('profile.username')}</Label>
-                          <Input id="username" placeholder="username" defaultValue="admin" />
+                          <Input id="username" placeholder={lang('placeholders.username')} defaultValue={lang('placeholders.defaultUsername')} />
                         </div>
                       </div>
                       <div className="space-y-2">
@@ -128,8 +128,8 @@ export default function SettingsPage() {
                         <Input
                           id="email"
                           type="email"
-                          placeholder="example@company.com"
-                          defaultValue="admin@bccard.com"
+                          placeholder={lang('placeholders.email')}
+                          defaultValue={lang('placeholders.defaultEmail')}
                         />
                       </div>
                       <div className="space-y-2">

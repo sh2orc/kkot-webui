@@ -1,6 +1,27 @@
 {
   "title": "일반 설정",
   "description": "시스템의 기본 동작을 설정합니다.",
+  "branding": {
+    "title": "브랜딩 설정",
+    "description": "로고, 이름 등 브랜드 요소를 설정합니다.",
+    "appName": {
+      "label": "애플리케이션 이름",
+      "description": "브라우저 탭과 UI에 표시될 이름입니다.",
+      "placeholder": "예: My Custom WebUI"
+    },
+    "favicon": {
+      "label": "파비콘",
+      "description": "브라우저 탭에 표시될 아이콘입니다. (PNG, ICO 파일 권장)",
+      "button": "파일 선택",
+      "remove": "제거"
+    },
+    "logo": {
+      "label": "로고 이미지",
+      "description": "사이드바에 표시될 로고입니다. (PNG, SVG 파일 권장)",
+      "button": "파일 선택",
+      "remove": "제거"
+    }
+  },
   "basicSystem": {
     "title": "기본 시스템 설정",
     "description": "시스템의 기본 동작을 설정합니다.",

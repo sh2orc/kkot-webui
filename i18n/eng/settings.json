@@ -1,5 +1,16 @@
 {
   "title": "Settings",
+  "placeholders": {
+    "name": "John Doe",
+    "username": "username",
+    "email": "example@company.com",
+    "defaultName": "Admin",
+    "defaultUsername": "admin",
+    "defaultEmail": "admin@bccard.com"
+  },
+  "altTexts": {
+    "profileImage": "Profile Image"
+  },
   "tabs": {
     "profile": "Profile",
     "account": "Account",

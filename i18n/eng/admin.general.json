@@ -1,9 +1,30 @@
 {
   "title": "General Settings",
-  "description": "Configure the basic behavior of the system.",
+  "description": "Configure basic system behavior.",
+  "branding": {
+    "title": "Branding Settings",
+    "description": "Customize logo, name and other brand elements.",
+    "appName": {
+      "label": "Application Name",
+      "description": "Name displayed in browser tab and UI.",
+      "placeholder": "e.g., My Custom WebUI"
+    },
+    "favicon": {
+      "label": "Favicon",
+      "description": "Icon displayed in browser tab. (PNG, ICO files recommended)",
+      "button": "Choose File",
+      "remove": "Remove"
+    },
+    "logo": {
+      "label": "Logo Image",
+      "description": "Logo displayed in sidebar. (PNG, SVG files recommended)",
+      "button": "Choose File",
+      "remove": "Remove"
+    }
+  },
   "basicSystem": {
     "title": "Basic System Settings",
-    "description": "Configure the basic behavior of the system.",
+    "description": "Configure basic system behavior.",
     "enableSignup": {
       "label": "Enable New User Registration",
       "description": "Allow new users to register."

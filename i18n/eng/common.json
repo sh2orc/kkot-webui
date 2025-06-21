@@ -1,4 +1,9 @@
 {
+  "app": {
+    "name": "kkot-webui",
+    "defaultTitle": "kkot-webui",
+    "logoAlt": "Logo"
+  },
   "sidebar": {
     "newChat": "New Chat",
     "search": "Search",
