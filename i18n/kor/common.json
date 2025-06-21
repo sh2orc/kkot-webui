@@ -1,0 +1,57 @@
+{
+  "sidebar": {
+    "newChat": "새로운 채팅",
+    "search": "검색",
+    "searchPlaceholder": "검색",
+    "book": "Book",
+    "admin": "admin",
+    "chatGroups": {
+      "today": "오늘",
+      "yesterday": "어제",
+      "previous7Days": "지난 7일",
+      "previous30Days": "이전 30일",
+      "january": "1월",
+      "february": "2월",
+      "march": "3월",
+      "april": "4월",
+      "may": "5월",
+      "june": "6월",
+      "july": "7월",
+      "august": "8월",
+      "september": "9월",
+      "october": "10월",
+      "november": "11월",
+      "december": "12월"
+    },
+    "chatActions": {
+      "rename": "이름 변경",
+      "archive": "보관하기",
+      "share": "공유하기",
+      "delete": "삭제하기"
+    }
+  },
+  "navbar": {
+    "models": {
+      "searchPlaceholder": "모델 검색...",
+      "noResults": "검색 결과가 없습니다",
+      "descriptions": {
+        "gemma3_27b-it-qat": "구글의 고성능 언어 모델",
+        "gpt-4o": "OpenAI의 최신 멀티모달 모델",
+        "claude-3-sonnet": "Anthropic의 균형잡힌 AI 모델",
+        "llama-3.1-70b": "Meta의 오픈소스 대형 언어 모델"
+      }
+    }
+  },
+  "account": {
+    "profile": "프로필",
+    "settings": "설정",
+    "admin": "관리자",
+    "logout": "로그아웃"
+  },
+  "accountContextMenu": {
+    "settings": "설정",
+    "archivedChats": "보관된 채팅",
+    "adminSettings": "관리자 설정",
+    "logout": "로그아웃"
+  }
+} 

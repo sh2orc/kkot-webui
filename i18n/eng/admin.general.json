@@ -1,0 +1,87 @@
+{
+  "title": "General Settings",
+  "description": "Configure the basic behavior of the system.",
+  "basicSystem": {
+    "title": "Basic System Settings",
+    "description": "Configure the basic behavior of the system.",
+    "enableSignup": {
+      "label": "Enable New User Registration",
+      "description": "Allow new users to register."
+    },
+    "enableApiKey": {
+      "label": "Enable API Key",
+      "description": "Allow access through API keys."
+    },
+    "limitApiKeyEndpoint": {
+      "label": "Limit API Key Endpoints",
+      "description": "Restrict API key usage to specific endpoints."
+    }
+  },
+  "jwt": {
+    "title": "JWT Settings",
+    "description": "Manage JSON Web Token related settings.",
+    "expiry": {
+      "label": "JWT Expiry Time (seconds)",
+      "description": "If the value is -1, it will not expire. Example: You can enter in formats like '3h', '2d', '1w'."
+    }
+  },
+  "authentication": {
+    "title": "Authentication",
+    "description": "Configure user authentication methods.",
+    "ldap": {
+      "label": "LDAP",
+      "labelField": "Label",
+      "host": "Host",
+      "port": "Port",
+      "applicationDn": "Application DN",
+      "applicationDnPlaceholder": "Enter Application DN",
+      "applicationDnPassword": "Application DN Password",
+      "applicationDnPasswordPlaceholder": "Enter Application DN Password",
+      "mailAttribute": "Attribute for Mail",
+      "usernameAttribute": "Attribute for Username",
+      "searchBase": "Search Base",
+      "searchBasePlaceholder": "Example: ou=users,dc=foo,dc=example",
+      "searchFilter": "Search Filter",
+      "searchFilterPlaceholder": "Example: (&(objectClass=inetOrgPerson)(uid=%s))"
+    },
+    "oauth": {
+      "title": "OAuth Authentication",
+      "google": {
+        "label": "Google Authentication",
+        "clientId": "Client ID",
+        "clientIdPlaceholder": "Enter Google OAuth Client ID",
+        "clientSecret": "Client Secret",
+        "clientSecretPlaceholder": "Enter Google OAuth Client Secret"
+      },
+      "microsoft": {
+        "label": "Microsoft Authentication",
+        "clientId": "Client ID",
+        "clientIdPlaceholder": "Enter Microsoft OAuth Client ID",
+        "clientSecret": "Client Secret",
+        "clientSecretPlaceholder": "Enter Microsoft OAuth Client Secret"
+      },
+      "kakao": {
+        "label": "Kakao Authentication",
+        "clientId": "Client ID (REST API Key)",
+        "clientIdPlaceholder": "Enter Kakao REST API Key",
+        "clientSecret": "Client Secret",
+        "clientSecretPlaceholder": "Enter Kakao Client Secret"
+      },
+      "naver": {
+        "label": "Naver Authentication",
+        "clientId": "Client ID",
+        "clientIdPlaceholder": "Enter Naver OAuth Client ID",
+        "clientSecret": "Client Secret",
+        "clientSecretPlaceholder": "Enter Naver OAuth Client Secret"
+      },
+      "github": {
+        "label": "GitHub Authentication",
+        "clientId": "Client ID",
+        "clientIdPlaceholder": "Enter GitHub OAuth Client ID",
+        "clientSecret": "Client Secret",
+        "clientSecretPlaceholder": "Enter GitHub OAuth Client Secret"
+      }
+    }
+  },
+  "saveButton": "Save"
+} 

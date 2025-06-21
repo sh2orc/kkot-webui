@@ -1,0 +1,78 @@
+{
+  "title": "관리자 설정",
+  "dashboard": {
+    "title": "관리자 대시보드",
+    "description": "시스템 설정 및 관리를 위한 대시보드입니다.",
+    "quickLinks": {
+      "general": {
+        "label": "일반 설정",
+        "description": "기본 시스템 설정 및 JWT 관리"
+      },
+      "connection": {
+        "label": "연결 설정",
+        "description": "API 서버 연결 관리"
+      },
+      "model": {
+        "label": "모델 설정",
+        "description": "AI 모델 구성 및 관리"
+      },
+      "mcp": {
+        "label": "MCP 설정",
+        "description": "Model Context Protocol 서버 관리"
+      },
+      "evaluation": {
+        "label": "평가 설정",
+        "description": "성능 평가 및 모니터링"
+      },
+      "tools": {
+        "label": "도구 설정",
+        "description": "외부 도구 및 플러그인"
+      },
+      "documents": {
+        "label": "문서 설정",
+        "description": "문서 관리 및 인덱싱"
+      },
+      "websearch": {
+        "label": "웹검색 설정",
+        "description": "실시간 인터넷 검색"
+      },
+      "image": {
+        "label": "이미지 설정",
+        "description": "이미지 생성 서비스"
+      },
+      "audio": {
+        "label": "오디오 설정",
+        "description": "음성 처리 및 생성"
+      },
+      "pipeline": {
+        "label": "파이프라인 설정",
+        "description": "워크플로 관리"
+      },
+      "database": {
+        "label": "데이터베이스 설정",
+        "description": "데이터베이스 구성"
+      }
+    },
+    "systemStatus": {
+      "title": "시스템 상태",
+      "description": "현재 시스템의 상태를 확인합니다",
+      "openai": "OpenAI API: 연결됨",
+      "ollama": "Ollama: 설정 필요",
+      "websearch": "웹검색 비활성화"
+    }
+  },
+  "menu": {
+    "general": "일반",
+    "connection": "연결",
+    "model": "모델",
+    "mcp": "MCP",
+    "evaluation": "평가",
+    "tools": "도구",
+    "documents": "문서",
+    "websearch": "웹검색",
+    "image": "이미지",
+    "audio": "오디오",
+    "pipeline": "파이프라인",
+    "database": "데이터베이스"
+  }
+} 

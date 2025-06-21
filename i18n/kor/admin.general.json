@@ -1,0 +1,87 @@
+{
+  "title": "일반 설정",
+  "description": "시스템의 기본 동작을 설정합니다.",
+  "basicSystem": {
+    "title": "기본 시스템 설정",
+    "description": "시스템의 기본 동작을 설정합니다.",
+    "enableSignup": {
+      "label": "새 회원가입 활성화",
+      "description": "새로운 사용자의 회원가입을 허용합니다."
+    },
+    "enableApiKey": {
+      "label": "API 키 활성화",
+      "description": "API 키를 통한 접근을 허용합니다."
+    },
+    "limitApiKeyEndpoint": {
+      "label": "API 키 엔드포인트 제한",
+      "description": "API 키 사용을 특정 엔드포인트로 제한합니다."
+    }
+  },
+  "jwt": {
+    "title": "JWT 설정",
+    "description": "JSON Web Token 관련 설정을 관리합니다.",
+    "expiry": {
+      "label": "JWT 만료 시간 (초)",
+      "description": "값이 -1이면 만료되지 않습니다. 예: '3h', '2d', '1w' 형식으로 입력할 수 있습니다."
+    }
+  },
+  "authentication": {
+    "title": "인증 설정",
+    "description": "사용자 인증 방법을 설정합니다.",
+    "ldap": {
+      "label": "LDAP",
+      "labelField": "라벨",
+      "host": "호스트",
+      "port": "포트",
+      "applicationDn": "Application DN",
+      "applicationDnPlaceholder": "Application DN을 입력하세요",
+      "applicationDnPassword": "Application DN 비밀번호",
+      "applicationDnPasswordPlaceholder": "Application DN 비밀번호를 입력하세요",
+      "mailAttribute": "메일 속성",
+      "usernameAttribute": "사용자명 속성",
+      "searchBase": "검색 베이스",
+      "searchBasePlaceholder": "예: ou=users,dc=foo,dc=example",
+      "searchFilter": "검색 필터",
+      "searchFilterPlaceholder": "예: (&(objectClass=inetOrgPerson)(uid=%s))"
+    },
+    "oauth": {
+      "title": "OAuth 인증",
+      "google": {
+        "label": "Google 인증",
+        "clientId": "Client ID",
+        "clientIdPlaceholder": "Google OAuth Client ID를 입력하세요",
+        "clientSecret": "Client Secret",
+        "clientSecretPlaceholder": "Google OAuth Client Secret을 입력하세요"
+      },
+      "microsoft": {
+        "label": "Microsoft 인증",
+        "clientId": "Client ID",
+        "clientIdPlaceholder": "Microsoft OAuth Client ID를 입력하세요",
+        "clientSecret": "Client Secret",
+        "clientSecretPlaceholder": "Microsoft OAuth Client Secret을 입력하세요"
+      },
+      "kakao": {
+        "label": "카카오 인증",
+        "clientId": "Client ID (REST API 키)",
+        "clientIdPlaceholder": "카카오 REST API 키를 입력하세요",
+        "clientSecret": "Client Secret",
+        "clientSecretPlaceholder": "카카오 Client Secret을 입력하세요"
+      },
+      "naver": {
+        "label": "네이버 인증",
+        "clientId": "Client ID",
+        "clientIdPlaceholder": "네이버 OAuth Client ID를 입력하세요",
+        "clientSecret": "Client Secret",
+        "clientSecretPlaceholder": "네이버 OAuth Client Secret을 입력하세요"
+      },
+      "github": {
+        "label": "GitHub 인증",
+        "clientId": "Client ID",
+        "clientIdPlaceholder": "GitHub OAuth Client ID를 입력하세요",
+        "clientSecret": "Client Secret",
+        "clientSecretPlaceholder": "GitHub OAuth Client Secret을 입력하세요"
+      }
+    }
+  },
+  "saveButton": "저장"
+} 

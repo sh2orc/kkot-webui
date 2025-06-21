@@ -1,0 +1,13 @@
+{
+  "title": "모델 설정",
+  "description": "AI 모델 설정 및 관리를 수행합니다.",
+  "modelManagement": {
+    "title": "모델 관리",
+    "description": "AI 모델 설정 및 관리를 수행합니다.",
+    "defaultModel": "기본 모델",
+    "selectModel": "모델 선택",
+    "maxTokens": "최대 토큰 수",
+    "temperature": "Temperature"
+  },
+  "saveButton": "저장"
+} 

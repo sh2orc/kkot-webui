@@ -1,0 +1,80 @@
+{
+  "title": "Settings",
+  "tabs": {
+    "profile": "Profile",
+    "account": "Account",
+    "notifications": "Notifications",
+    "preferences": "Preferences"
+  },
+  "profile": {
+    "title": "Profile Information",
+    "description": "Edit and manage your profile information.",
+    "uploadImage": "Upload Image",
+    "name": "Name",
+    "username": "Username",
+    "email": "Email",
+    "bio": "Bio",
+    "bioPlaceholder": "Enter a brief self-introduction",
+    "saveButton": "Save"
+  },
+  "account": {
+    "title": "Account Settings",
+    "description": "Manage your account security and access settings.",
+    "passwordChange": "Change Password",
+    "currentPassword": "Current Password",
+    "newPassword": "New Password",
+    "confirmPassword": "Confirm Password",
+    "accountSecurity": "Account Security",
+    "twoFactor": {
+      "title": "Two-Factor Authentication",
+      "description": "Additional security code required when logging in."
+    },
+    "saveButton": "Save"
+  },
+  "notifications": {
+    "title": "Notification Settings",
+    "description": "Set up how you receive notifications.",
+    "emailNotifications": "Email Notifications",
+    "newMessage": {
+      "title": "New Messages",
+      "description": "Receive notifications when new messages arrive."
+    },
+    "systemUpdates": {
+      "title": "System Updates",
+      "description": "Notify about system updates and changes."
+    },
+    "marketing": {
+      "title": "Marketing Information",
+      "description": "Receive information about new features and promotions."
+    },
+    "pushNotifications": "Push Notifications",
+    "chatNotifications": {
+      "title": "Chat Notifications",
+      "description": "Show desktop notifications for new chat messages."
+    },
+    "saveButton": "Save"
+  },
+  "preferences": {
+    "title": "User Preferences",
+    "description": "Customize your app experience.",
+    "appearance": "Appearance",
+    "theme": {
+      "title": "Theme",
+      "light": "Light",
+      "dark": "Dark",
+      "system": "System"
+    },
+    "language": {
+      "title": "Language",
+      "description": "Select your preferred language."
+    },
+    "accessibility": "Accessibility",
+    "fontSize": {
+      "title": "Font Size",
+      "small": "Small",
+      "medium": "Medium",
+      "large": "Large"
+    },
+    "saveButton": "Save"
+  }
+} 

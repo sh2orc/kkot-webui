@@ -1,0 +1,37 @@
+{
+  "title": "연결 설정",
+  "description": "API 서버 연결을 관리합니다.",
+  "openai": {
+    "title": "OpenAI API 서버",
+    "description": "OpenAI API 연결 설정을 관리합니다.",
+    "addServer": "서버 추가",
+    "serverName": "서버 이름",
+    "apiUrl": "API URL",
+    "apiUrlPlaceholder": "OpenAI API URL을 입력하세요",
+    "apiKey": "API 키",
+    "apiKeyPlaceholder": "OpenAI API 키를 입력하세요",
+    "enableConnection": "연결 활성화",
+    "enableConnectionDescription": "이 서버 연결을 활성화합니다."
+  },
+  "gemini": {
+    "title": "Gemini API",
+    "description": "Google Gemini API 연결 설정을 관리합니다.",
+    "apiKey": "API 키",
+    "apiKeyPlaceholder": "Gemini API 키를 입력하세요",
+    "enableConnection": "연결 활성화",
+    "enableConnectionDescription": "Gemini API 연결을 활성화합니다."
+  },
+  "ollama": {
+    "title": "Ollama API 서버",
+    "description": "Ollama API 연결 설정을 관리합니다.",
+    "addServer": "서버 추가",
+    "serverName": "서버 이름",
+    "apiUrl": "API URL",
+    "apiUrlPlaceholder": "Ollama API URL을 입력하세요",
+    "apiKey": "API 키",
+    "apiKeyPlaceholder": "Ollama API 키를 입력하세요",
+    "enableConnection": "연결 활성화",
+    "enableConnectionDescription": "이 서버 연결을 활성화합니다."
+  },
+  "saveButton": "저장"
+} 

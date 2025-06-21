@@ -5,6 +5,7 @@ import type React from "react"
 import { Button } from "@/components/ui/button"
 import { Mic, Globe, Plus, FlaskRoundIcon as Flask, Send } from "lucide-react"
 import type { RefObject } from "react"
+import { useTranslation } from "@/lib/i18n"
 
 interface ChatInputProps {
   inputValue: string
@@ -31,6 +32,7 @@ export function ChatInput({
   setIsGlobeActive,
   setIsFlaskActive,
 }: ChatInputProps) {
+  const { lang } = useTranslation("chat")
   return (
     <div className="absolute bottom-0 left-0 right-0 p-4 bg-white">
       <div className="max-w-3xl mx-auto">
@@ -40,7 +42,7 @@ export function ChatInput({
             <div className="relative flex items-end">
               <textarea
                 ref={textareaRef}
-                placeholder="메시지를 입력하세요..."
+                placeholder={lang("mobilePlaceholder")}
                 className="w-full rounded-lg border-0 p-2 pr-12 resize-none overflow-hidden focus:outline-none focus:ring-0 text-sm leading-6 h-[48px] min-h-[48px] max-h-[48px]"
                 value={inputValue}
                 onChange={handleInputChange}
@@ -88,7 +90,7 @@ export function ChatInput({
           </div>
         </div>
         <div className="text-xs text-center text-gray-400 mt-2">
-          LLM은 실수를 할 수 있습니다. 중요한 정보는 재차 확인하세요.
+          {lang("disclaimer")}
         </div>
       </div>
     </div>

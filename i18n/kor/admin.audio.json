@@ -1,0 +1,10 @@
+{
+  "title": "오디오 설정",
+  "description": "음성 처리 및 합성 설정입니다.",
+  "audioSettings": {
+    "title": "오디오 설정",
+    "description": "이 섹션의 설정은 개발 중입니다.",
+    "comingSoon": "곧 추가될 예정입니다."
+  },
+  "saveButton": "저장"
+} 

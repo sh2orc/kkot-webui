@@ -1,0 +1,10 @@
+{
+  "title": "Database Settings",
+  "description": "Database configuration settings.",
+  "saveButton": "Save",
+  "databaseSettings": {
+    "title": "Database Settings",
+    "description": "Settings for this section are under development.",
+    "comingSoon": "Coming soon."
+  }
+} 

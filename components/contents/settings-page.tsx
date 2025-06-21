@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -14,9 +14,21 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Separator } from "@/components/ui/separator"
 import { User, Bell, Shield, Globe, Upload } from "lucide-react"
 import Layout from "@/components/layout/layout"
+import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 
 export default function SettingsPage() {
+  const { lang, language } = useTranslation('settings')
+  const [isLoaded, setIsLoaded] = useState(false)
   const [profileImage, setProfileImage] = useState<string | null>(null)
+
+  // 번역 모듈 프리로드
+  useEffect(() => {
+    async function loadTranslations() {
+      await preloadTranslationModule(language, 'settings')
+      setIsLoaded(true)
+    }
+    loadTranslations()
+  }, [language])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -29,29 +41,39 @@ export default function SettingsPage() {
     }
   }
 
+  if (!isLoaded) {
+    return (
+      <Layout>
+        <div className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-gray-900"></div>
+        </div>
+      </Layout>
+    )
+  }
+
   return (
     <Layout>
       <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold mb-6">설정</h1>
+          <h1 className="text-2xl font-bold mb-6">{lang('title')}</h1>
 
           <Tabs defaultValue="profile" className="w-full">
             <TabsList className="grid grid-cols-4 mb-8 rounded-lg">
               <TabsTrigger value="profile" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
-                <span className="hidden sm:inline">프로필</span>
+                <span className="hidden sm:inline">{lang('tabs.profile')}</span>
               </TabsTrigger>
               <TabsTrigger value="account" className="flex items-center gap-2">
                 <Shield className="h-4 w-4" />
-                <span className="hidden sm:inline">계정</span>
+                <span className="hidden sm:inline">{lang('tabs.account')}</span>
               </TabsTrigger>
               <TabsTrigger value="notifications" className="flex items-center gap-2">
                 <Bell className="h-4 w-4" />
-                <span className="hidden sm:inline">알림</span>
+                <span className="hidden sm:inline">{lang('tabs.notifications')}</span>
               </TabsTrigger>
               <TabsTrigger value="preferences" className="flex items-center gap-2">
                 <Globe className="h-4 w-4" />
-                <span className="hidden sm:inline">환경설정</span>
+                <span className="hidden sm:inline">{lang('tabs.preferences')}</span>
               </TabsTrigger>
             </TabsList>
 
@@ -59,8 +81,8 @@ export default function SettingsPage() {
             <TabsContent value="profile">
               <Card className="border-0">
                 <CardHeader>
-                  <CardTitle>프로필 정보</CardTitle>
-                  <CardDescription>프로필 정보를 수정하고 관리하세요.</CardDescription>
+                  <CardTitle>{lang('profile.title')}</CardTitle>
+                  <CardDescription>{lang('profile.description')}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="flex flex-col md:flex-row gap-8 items-start">
@@ -85,7 +107,7 @@ export default function SettingsPage() {
                           className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md cursor-pointer text-sm"
                         >
                           <Upload className="h-4 w-4" />
-                          이미지 업로드
+                          {lang('profile.uploadImage')}
                         </Label>
                       </div>
                     </div>
@@ -93,16 +115,16 @@ export default function SettingsPage() {
                     <div className="flex-1 space-y-4 w-full max-w-md">
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
-                          <Label htmlFor="name">이름</Label>
+                          <Label htmlFor="name">{lang('profile.name')}</Label>
                           <Input id="name" placeholder="홍길동" defaultValue="관리자" />
                         </div>
                         <div className="space-y-2">
-                          <Label htmlFor="username">사용자 이름</Label>
+                          <Label htmlFor="username">{lang('profile.username')}</Label>
                           <Input id="username" placeholder="username" defaultValue="admin" />
                         </div>
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="email">이메일</Label>
+                        <Label htmlFor="email">{lang('profile.email')}</Label>
                         <Input
                           id="email"
                           type="email"
@@ -111,14 +133,14 @@ export default function SettingsPage() {
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="bio">자기소개</Label>
-                        <Input id="bio" placeholder="간단한 자기소개를 입력하세요" />
+                        <Label htmlFor="bio">{lang('profile.bio')}</Label>
+                        <Input id="bio" placeholder={lang('profile.bioPlaceholder')} />
                       </div>
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  <Button>저장하기</Button>
+                  <Button>{lang('profile.saveButton')}</Button>
                 </CardFooter>
               </Card>
             </TabsContent>
@@ -127,23 +149,23 @@ export default function SettingsPage() {
             <TabsContent value="account">
               <Card className="border-0">
                 <CardHeader>
-                  <CardTitle>계정 설정</CardTitle>
-                  <CardDescription>계정 보안 및 접근 설정을 관리하세요.</CardDescription>
+                  <CardTitle>{lang('account.title')}</CardTitle>
+                  <CardDescription>{lang('account.description')}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">비밀번호 변경</h3>
+                    <h3 className="text-lg font-medium">{lang('account.passwordChange')}</h3>
                     <div className="space-y-4">
                       <div className="space-y-2">
-                        <Label htmlFor="current-password">현재 비밀번호</Label>
+                        <Label htmlFor="current-password">{lang('account.currentPassword')}</Label>
                         <Input id="current-password" type="password" />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="new-password">새 비밀번호</Label>
+                        <Label htmlFor="new-password">{lang('account.newPassword')}</Label>
                         <Input id="new-password" type="password" />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="confirm-password">비밀번호 확인</Label>
+                        <Label htmlFor="confirm-password">{lang('account.confirmPassword')}</Label>
                         <Input id="confirm-password" type="password" />
                       </div>
                     </div>
@@ -152,18 +174,18 @@ export default function SettingsPage() {
                   <Separator />
 
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">계정 보안</h3>
+                    <h3 className="text-lg font-medium">{lang('account.accountSecurity')}</h3>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium">2단계 인증</p>
-                        <p className="text-sm text-gray-500">로그인 시 추가 보안 코드가 필요합니다.</p>
+                        <p className="font-medium">{lang('account.twoFactor.title')}</p>
+                        <p className="text-sm text-gray-500">{lang('account.twoFactor.description')}</p>
                       </div>
                       <Switch />
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  <Button>저장하기</Button>
+                  <Button>{lang('account.saveButton')}</Button>
                 </CardFooter>
               </Card>
             </TabsContent>
@@ -172,31 +194,31 @@ export default function SettingsPage() {
             <TabsContent value="notifications">
               <Card className="border-0">
                 <CardHeader>
-                  <CardTitle>알림 설정</CardTitle>
-                  <CardDescription>알림 수신 방법을 설정하세요.</CardDescription>
+                  <CardTitle>{lang('notifications.title')}</CardTitle>
+                  <CardDescription>{lang('notifications.description')}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">이메일 알림</h3>
+                    <h3 className="text-lg font-medium">{lang('notifications.emailNotifications')}</h3>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium">새로운 메시지</p>
-                          <p className="text-sm text-gray-500">새 메시지가 도착하면 알림을 받습니다.</p>
+                          <p className="font-medium">{lang('notifications.newMessage.title')}</p>
+                          <p className="text-sm text-gray-500">{lang('notifications.newMessage.description')}</p>
                         </div>
                         <Switch defaultChecked />
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium">시스템 업데이트</p>
-                          <p className="text-sm text-gray-500">시스템 업데이트 및 변경사항을 알립니다.</p>
+                          <p className="font-medium">{lang('notifications.systemUpdates.title')}</p>
+                          <p className="text-sm text-gray-500">{lang('notifications.systemUpdates.description')}</p>
                         </div>
                         <Switch defaultChecked />
                       </div>
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium">마케팅 정보</p>
-                          <p className="text-sm text-gray-500">새로운 기능 및 프로모션 정보를 받습니다.</p>
+                          <p className="font-medium">{lang('notifications.marketing.title')}</p>
+                          <p className="text-sm text-gray-500">{lang('notifications.marketing.description')}</p>
                         </div>
                         <Switch />
                       </div>
@@ -206,19 +228,12 @@ export default function SettingsPage() {
                   <Separator />
 
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">푸시 알림</h3>
+                    <h3 className="text-lg font-medium">{lang('notifications.pushNotifications')}</h3>
                     <div className="space-y-3">
                       <div className="flex items-center justify-between">
                         <div>
-                          <p className="font-medium">모든 알림</p>
-                          <p className="text-sm text-gray-500">모든 활동에 대한 푸시 알림을 받습니다.</p>
-                        </div>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">멘션 및 댓글</p>
-                          <p className="text-sm text-gray-500">멘션되거나 댓글이 달릴 때 알림을 받습니다.</p>
+                          <p className="font-medium">{lang('notifications.chatNotifications.title')}</p>
+                          <p className="text-sm text-gray-500">{lang('notifications.chatNotifications.description')}</p>
                         </div>
                         <Switch defaultChecked />
                       </div>
@@ -226,7 +241,7 @@ export default function SettingsPage() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  <Button>저장하기</Button>
+                  <Button>{lang('notifications.saveButton')}</Button>
                 </CardFooter>
               </Card>
             </TabsContent>
@@ -235,37 +250,47 @@ export default function SettingsPage() {
             <TabsContent value="preferences">
               <Card className="border-0">
                 <CardHeader>
-                  <CardTitle>환경설정</CardTitle>
-                  <CardDescription>언어 및 표시 설정을 관리하세요.</CardDescription>
+                  <CardTitle>{lang('preferences.title')}</CardTitle>
+                  <CardDescription>{lang('preferences.description')}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="language">언어</Label>
+                    <h3 className="text-lg font-medium">{lang('preferences.appearance')}</h3>
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="font-medium">{lang('preferences.theme.title')}</p>
+                        </div>
+                        <Select defaultValue="system">
+                          <SelectTrigger className="w-32">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="light">{lang('preferences.theme.light')}</SelectItem>
+                            <SelectItem value="dark">{lang('preferences.theme.dark')}</SelectItem>
+                            <SelectItem value="system">{lang('preferences.theme.system')}</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                  </div>
+
+                  <Separator />
+
+                  <div className="space-y-4">
+                    <h3 className="text-lg font-medium">{lang('preferences.language.title')}</h3>
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">{lang('preferences.language.title')}</p>
+                        <p className="text-sm text-gray-500">{lang('preferences.language.description')}</p>
+                      </div>
                       <Select defaultValue="ko">
-                        <SelectTrigger>
-                          <SelectValue placeholder="언어 선택" />
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="ko">한국어</SelectItem>
                           <SelectItem value="en">English</SelectItem>
-                          <SelectItem value="ja">日本語</SelectItem>
-                          <SelectItem value="zh">中文</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="space-y-2">
-                      <Label htmlFor="timezone">시간대</Label>
-                      <Select defaultValue="asia-seoul">
-                        <SelectTrigger>
-                          <SelectValue placeholder="시간대 선택" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="asia-seoul">(GMT+9) 서울, 도쿄</SelectItem>
-                          <SelectItem value="america-la">(GMT-7) 로스앤젤레스</SelectItem>
-                          <SelectItem value="america-ny">(GMT-4) 뉴욕</SelectItem>
-                          <SelectItem value="europe-london">(GMT+1) 런던</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -274,25 +299,26 @@ export default function SettingsPage() {
                   <Separator />
 
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">테마 설정</h3>
+                    <h3 className="text-lg font-medium">{lang('preferences.accessibility')}</h3>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium">다크 모드</p>
-                        <p className="text-sm text-gray-500">어두운 테마로 전환합니다.</p>
+                        <p className="font-medium">{lang('preferences.fontSize.title')}</p>
                       </div>
-                      <Switch />
-                    </div>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">고대비 모드</p>
-                        <p className="text-sm text-gray-500">가독성을 높이기 위한 고대비 모드입니다.</p>
-                      </div>
-                      <Switch />
+                      <Select defaultValue="medium">
+                        <SelectTrigger className="w-32">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="small">{lang('preferences.fontSize.small')}</SelectItem>
+                          <SelectItem value="medium">{lang('preferences.fontSize.medium')}</SelectItem>
+                          <SelectItem value="large">{lang('preferences.fontSize.large')}</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  <Button>저장하기</Button>
+                  <Button>{lang('preferences.saveButton')}</Button>
                 </CardFooter>
               </Card>
             </TabsContent>

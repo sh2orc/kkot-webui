@@ -8,6 +8,8 @@ import { Input } from "@/components/ui/input"
 import { useState, useRef, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
 import { AccountMenu } from "@/components/ui/account-menu"
+import LanguageSwitcher from "@/components/ui/language-switcher"
+import { useTranslation } from "@/lib/i18n"
 
 interface NavbarProps {
   title: string
@@ -21,6 +23,7 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
   const searchInputRef = useRef<HTMLInputElement>(null)
   const router = useRouter()
   const pathname = usePathname()
+  const { lang } = useTranslation('common')
 
   // /chat 페이지인지 확인
   const isChatPage = pathname.startsWith("/chat")
@@ -34,11 +37,16 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
     }
   }, [isDropdownOpen, searchQuery])
 
+  // 모델명을 번역 키로 변환하는 함수
+  const getModelTranslationKey = (modelName: string) => {
+    return modelName.replace(/:/g, '_')
+  }
+
   const models = [
-    { name: "gemma3:27b-it-qat", description: "구글의 고성능 언어 모델" },
-    { name: "gpt-4o", description: "OpenAI의 최신 멀티모달 모델" },
-    { name: "claude-3-sonnet", description: "Anthropic의 균형잡힌 AI 모델" },
-    { name: "llama-3.1-70b", description: "Meta의 오픈소스 대형 언어 모델" },
+    { name: "gemma3:27b-it-qat", description: lang(`navbar.models.descriptions.${getModelTranslationKey("gemma3:27b-it-qat")}`) },
+    { name: "gpt-4o", description: lang('navbar.models.descriptions.gpt-4o') },
+    { name: "claude-3-sonnet", description: lang('navbar.models.descriptions.claude-3-sonnet') },
+    { name: "llama-3.1-70b", description: lang('navbar.models.descriptions.llama-3.1-70b') },
     { name: "mistral-large" }
   ]
 
@@ -68,7 +76,7 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
                     <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                     <Input
                       ref={searchInputRef}
-                      placeholder="모델 검색..."
+                      placeholder={lang('navbar.models.searchPlaceholder')}
                       className="pl-10"
                       value={searchQuery}
                       onChange={(e) => setSearchQuery(e.target.value)}
@@ -95,14 +103,17 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
                     </DropdownMenuItem>
                   ))}
                   {filteredModels.length === 0 && (
-                    <div className="p-2 text-sm text-gray-500 text-center">검색 결과가 없습니다</div>
+                    <div className="p-2 text-sm text-gray-500 text-center">
+                      {lang('navbar.models.noResults')}
+                    </div>
                   )}
                 </div>
               </DropdownMenuContent>
             </DropdownMenu>
           )}
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2">
+          <LanguageSwitcher />
           <div className="flex items-center gap-2">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => router.push("/setting")}>
               <Settings className="h-4 w-4" />

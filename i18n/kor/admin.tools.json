@@ -1,0 +1,13 @@
+{
+  "title": "도구 설정",
+  "description": "외부 도구 및 플러그인 설정을 관리합니다.",
+  "toolsSettings": {
+    "title": "도구 설정",
+    "description": "외부 도구 및 플러그인 설정을 관리합니다.",
+    "codeExecution": {
+      "label": "Code Execution",
+      "description": "코드 실행 기능을 활성화합니다."
+    }
+  },
+  "saveButton": "저장"
+} 

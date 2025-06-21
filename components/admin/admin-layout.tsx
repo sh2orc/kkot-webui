@@ -17,6 +17,7 @@ import {
 } from "lucide-react"
 import Layout from "@/components/layout/layout"
 import { useRouter, usePathname } from "next/navigation"
+import { useTranslation } from "@/lib/i18n"
 
 interface AdminLayoutProps {
   children: React.ReactNode
@@ -25,20 +26,21 @@ interface AdminLayoutProps {
 export default function AdminLayout({ children }: AdminLayoutProps) {
   const router = useRouter()
   const pathname = usePathname()
+  const { lang } = useTranslation('admin')
 
   const menuItems = [
-    { id: "general", label: "일반", icon: Settings, path: "/admin/general" },
-    { id: "connection", label: "연결", icon: Link, path: "/admin/connection" },
-    { id: "model", label: "모델", icon: Brain, path: "/admin/model" },
-    { id: "mcp", label: "MCP", icon: Server, path: "/admin/mcp" },
-    { id: "evaluation", label: "평가", icon: BarChart3, path: "/admin/evaluation" },
-    { id: "tools", label: "도구", icon: Wrench, path: "/admin/tools" },
-    { id: "documents", label: "문서", icon: FileText, path: "/admin/documents" },
-    { id: "websearch", label: "웹검색", icon: Search, path: "/admin/websearch" },
-    { id: "image", label: "이미지", icon: ImageIcon, path: "/admin/image" },
-    { id: "audio", label: "오디오", icon: Volume2, path: "/admin/audio" },
-    { id: "pipeline", label: "파이프라인", icon: GitBranch, path: "/admin/pipeline" },
-    { id: "database", label: "데이터베이스", icon: Database, path: "/admin/database" },
+    { id: "general", label: lang('menu.general'), icon: Settings, path: "/admin/general" },
+    { id: "connection", label: lang('menu.connection'), icon: Link, path: "/admin/connection" },
+    { id: "model", label: lang('menu.model'), icon: Brain, path: "/admin/model" },
+    { id: "mcp", label: lang('menu.mcp'), icon: Server, path: "/admin/mcp" },
+    { id: "evaluation", label: lang('menu.evaluation'), icon: BarChart3, path: "/admin/evaluation" },
+    { id: "tools", label: lang('menu.tools'), icon: Wrench, path: "/admin/tools" },
+    { id: "documents", label: lang('menu.documents'), icon: FileText, path: "/admin/documents" },
+    { id: "websearch", label: lang('menu.websearch'), icon: Search, path: "/admin/websearch" },
+    { id: "image", label: lang('menu.image'), icon: ImageIcon, path: "/admin/image" },
+    { id: "audio", label: lang('menu.audio'), icon: Volume2, path: "/admin/audio" },
+    { id: "pipeline", label: lang('menu.pipeline'), icon: GitBranch, path: "/admin/pipeline" },
+    { id: "database", label: lang('menu.database'), icon: Database, path: "/admin/database" },
   ]
 
   return (
@@ -47,7 +49,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         {/* Sidebar */}
         <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
           <div className="p-4">
-            <h2 className="text-lg font-semibold mb-4">관리자 설정</h2>
+            <h2 className="text-lg font-semibold mb-4">{lang('title')}</h2>
             <nav className="space-y-1">
               {menuItems.map((item) => {
                 const Icon = item.icon

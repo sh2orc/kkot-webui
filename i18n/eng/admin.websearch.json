@@ -1,0 +1,28 @@
+{
+  "title": "Web Search Settings",
+  "description": "Configure real-time internet search functionality.",
+  "developmentNotice": "Web search settings feature is under development.",
+  "internetSearch": {
+    "title": "Internet Search Settings",
+    "description": "Configure real-time internet search functionality",
+    "enabled": {
+      "label": "Internet Search",
+      "description": "Provides real-time internet search functionality"
+    },
+    "engine": {
+      "label": "Search Engine",
+      "placeholder": "Select search engine"
+    },
+    "searchxng": {
+      "url": {
+        "label": "SearchXNG URL",
+        "placeholder": "https://your-searchxng-instance.com"
+      },
+      "apiKey": {
+        "label": "API Key (Optional)",
+        "placeholder": "SearchXNG API Key (if required)"
+      }
+    }
+  },
+  "saveButton": "Save"
+} 

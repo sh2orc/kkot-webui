@@ -1,0 +1,13 @@
+{
+  "title": "평가 설정",
+  "description": "모델 성능 평가 및 모니터링 설정입니다.",
+  "autoEvaluation": {
+    "label": "자동 평가 활성화",
+    "description": "모델 응답에 대한 자동 평가를 수행합니다."
+  },
+  "evaluationInterval": {
+    "label": "평가 주기 (시간)",
+    "description": "평가를 수행할 주기를 시간 단위로 설정합니다."
+  },
+  "saveButton": "저장"
+} 

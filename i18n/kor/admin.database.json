@@ -1,0 +1,10 @@
+{
+  "title": "데이터베이스 설정",
+  "description": "데이터베이스 구성 설정입니다.",
+  "saveButton": "저장",
+  "databaseSettings": {
+    "title": "데이터베이스 설정",
+    "description": "이 섹션의 설정은 개발 중입니다.",
+    "comingSoon": "곧 추가될 예정입니다."
+  }
+} 

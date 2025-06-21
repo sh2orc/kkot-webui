@@ -2,6 +2,7 @@
 
 import './globals.css'
 import { useEffect } from 'react'
+import LanguageProvider from '@/components/providers/language-provider'
 
 export default function RootLayout({
   children,
@@ -9,7 +10,7 @@ export default function RootLayout({
   children: React.ReactNode
 }>) {
   useEffect(() => {
-    // 클라이언트에서만 실행되는 코드
+    // 브라우저에서만 실행되는 코드
     document.title = 'kkot-webui'
     const metaDescription = document.querySelector('meta[name="description"]')
     if (metaDescription) {
@@ -36,7 +37,11 @@ export default function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning>{children}</body>
+      <body suppressHydrationWarning>
+        <LanguageProvider>
+          {children}
+        </LanguageProvider>
+      </body>
     </html>
   )
 }

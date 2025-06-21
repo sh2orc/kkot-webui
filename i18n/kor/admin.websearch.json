@@ -1,0 +1,28 @@
+{
+  "title": "웹검색 설정",
+  "description": "실시간 인터넷 검색 기능을 설정합니다.",
+  "developmentNotice": "웹검색 설정 기능은 개발 중입니다.",
+  "internetSearch": {
+    "title": "인터넷 검색 설정",
+    "description": "실시간 인터넷 검색 기능을 설정합니다",
+    "enabled": {
+      "label": "인터넷 검색",
+      "description": "실시간 인터넷 검색 기능을 제공합니다"
+    },
+    "engine": {
+      "label": "검색엔진",
+      "placeholder": "검색엔진 선택"
+    },
+    "searchxng": {
+      "url": {
+        "label": "SearchXNG URL",
+        "placeholder": "https://your-searchxng-instance.com"
+      },
+      "apiKey": {
+        "label": "API 키 (선택사항)",
+        "placeholder": "SearchXNG API 키 (필요한 경우)"
+      }
+    }
+  },
+  "saveButton": "저장"
+} 

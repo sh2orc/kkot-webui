@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button"
 import { MoreHorizontal } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useRouter } from "next/navigation"
+import { useTranslation } from "@/lib/i18n"
 
 interface ChatItem {
   id: string
@@ -37,6 +38,7 @@ export function ChatGroupComponent({
   isMobile = false,
 }: ChatGroupProps) {
   const router = useRouter()
+  const { lang } = useTranslation("common")
 
   const handleChatClick = (item: ChatItem) => {
     setSelectedChatId(item.id)
@@ -81,16 +83,16 @@ export function ChatGroupComponent({
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuItem>
-                    <span>이름 변경</span>
+                    <span>{lang("sidebar.chatActions.rename")}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <span>보관하기</span>
+                    <span>{lang("sidebar.chatActions.archive")}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem>
-                    <span>공유하기</span>
+                    <span>{lang("sidebar.chatActions.share")}</span>
                   </DropdownMenuItem>
                   <DropdownMenuItem className="text-red-600">
-                    <span>삭제하기</span>
+                    <span>{lang("sidebar.chatActions.delete")}</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>

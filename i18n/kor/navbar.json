@@ -1,0 +1,12 @@
+{
+  "models": {
+    "searchPlaceholder": "모델 검색...",
+    "noResults": "검색 결과가 없습니다",
+    "descriptions": {
+      "gemma3_27b-it-qat": "구글의 고성능 언어 모델",
+      "gpt-4o": "OpenAI의 최신 멀티모달 모델",
+      "claude-3-sonnet": "Anthropic의 균형잡힌 AI 모델",
+      "llama-3.1-70b": "Meta의 오픈소스 대형 언어 모델"
+    }
+  }
+} 

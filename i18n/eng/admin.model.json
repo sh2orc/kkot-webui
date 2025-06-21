@@ -1,0 +1,13 @@
+{
+  "title": "Model Settings",
+  "description": "Configure and manage AI model settings.",
+  "modelManagement": {
+    "title": "Model Management",
+    "description": "Configure and manage AI model settings.",
+    "defaultModel": "Default Model",
+    "selectModel": "Select Model",
+    "maxTokens": "Max Tokens",
+    "temperature": "Temperature"
+  },
+  "saveButton": "Save"
+} 

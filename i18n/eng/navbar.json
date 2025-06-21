@@ -1,0 +1,12 @@
+{
+  "models": {
+    "searchPlaceholder": "Search models...",
+    "noResults": "No search results",
+    "descriptions": {
+      "gemma3_27b-it-qat": "Google's high-performance language model",
+      "gpt-4o": "OpenAI's latest multimodal model",
+      "claude-3-sonnet": "Anthropic's balanced AI model",
+      "llama-3.1-70b": "Meta's open-source large language model"
+    }
+  }
+} 

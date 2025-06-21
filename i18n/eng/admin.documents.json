@@ -1,0 +1,10 @@
+{
+  "title": "Documents Settings",
+  "description": "Document management and indexing settings.",
+  "saveButton": "Save",
+  "documentSettings": {
+    "title": "Document Settings",
+    "description": "Settings for this section are under development.",
+    "comingSoon": "Coming soon."
+  }
+} 

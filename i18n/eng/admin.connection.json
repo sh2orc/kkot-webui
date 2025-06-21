@@ -1,0 +1,37 @@
+{
+  "title": "Connection Settings",
+  "description": "Manage API server connections.",
+  "openai": {
+    "title": "OpenAI API Server",
+    "description": "Manage OpenAI API connection settings.",
+    "addServer": "Add Server",
+    "serverName": "Server Name",
+    "apiUrl": "API URL",
+    "apiUrlPlaceholder": "Enter OpenAI API URL",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Enter OpenAI API Key",
+    "enableConnection": "Enable Connection",
+    "enableConnectionDescription": "Enable this server connection."
+  },
+  "gemini": {
+    "title": "Gemini API",
+    "description": "Manage Google Gemini API connection settings.",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Enter Gemini API Key",
+    "enableConnection": "Enable Connection",
+    "enableConnectionDescription": "Enable Gemini API connection."
+  },
+  "ollama": {
+    "title": "Ollama API Server",
+    "description": "Manage Ollama API connection settings.",
+    "addServer": "Add Server",
+    "serverName": "Server Name",
+    "apiUrl": "API URL",
+    "apiUrlPlaceholder": "Enter Ollama API URL",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Enter Ollama API Key",
+    "enableConnection": "Enable Connection",
+    "enableConnectionDescription": "Enable this server connection."
+  },
+  "saveButton": "Save"
+} 

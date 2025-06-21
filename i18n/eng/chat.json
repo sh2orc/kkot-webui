@@ -1,0 +1,42 @@
+{
+  "placeholder": "How can I help you today?",
+  "mobilePlaceholder": "Type a message...",
+  "modelDescription": "Google's latest language model that provides accurate and helpful answers to various questions",
+  "capabilities": "I can help with creative writing, coding, analysis, translation, and various other tasks.",
+  "disclaimer": "LLM can make mistakes. Please verify important information",
+  "shortcuts": {
+    "send": "Send",
+    "lineBreak": "Line break"
+  },
+  "prompts": [
+    {
+      "title": "Tell me an interesting fact",
+      "description": "About any specific topic"
+    },
+    {
+      "title": "Show me a code review",
+      "description": "Website performance optimization"
+    },
+    {
+      "title": "Help me with design",
+      "description": "Tell me what's missing in the design directly"
+    },
+    {
+      "title": "Tell me about AI marketing strategies",
+      "description": "Practical advice for business growth"
+    }
+  ],
+  "actions": {
+    "copy": "Copy",
+    "copied": "Copied",
+    "like": "Like",
+    "dislike": "Dislike",
+    "regenerate": "Regenerate",
+    "edit": "Edit",
+    "save": "Save",
+    "cancel": "Cancel",
+    "saveShortcut": "Save (Ctrl+Enter)",
+    "cancelShortcut": "Cancel (Escape)",
+    "editHint": "Ctrl+Enter to save, Escape to cancel"
+  }
+} 

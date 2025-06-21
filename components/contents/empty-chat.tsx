@@ -7,6 +7,7 @@ import { Mic, Globe, Plus, FlaskRoundIcon as Flask, Zap, Send } from "lucide-rea
 import { useRef, useState, useEffect, useCallback } from "react"
 import Layout from "@/components/layout/layout"
 import { useRouter } from "next/navigation"
+import { useTranslation } from "@/lib/i18n"
 
 export default function Component() {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -18,23 +19,24 @@ export default function Component() {
   const [isSubmitting, setIsSubmitting] = useState(false)
 
   const router = useRouter()
+  const { lang } = useTranslation("chat")
 
   const prompts = [
     {
-      title: "재미있는 사실 알려주세요",
-      description: "토픽 제공에 대해",
+      title: lang("prompts.0.title"),
+      description: lang("prompts.0.description"),
     },
     {
-      title: "코드 스니펫 보여주세요",
-      description: "웹사이트와 고성 예시",
+      title: lang("prompts.1.title"),
+      description: lang("prompts.1.description"),
     },
     {
-      title: "아이디어를 주세요",
-      description: "아이디어 마음 직접으로 부정한 답 수 있습니다",
+      title: lang("prompts.2.title"),
+      description: lang("prompts.2.description"),
     },
     {
-      title: "AI를 활용한 마케팅 전략을 알려주세요",
-      description: "비즈니스 성장을 위한 실용적인 조언",
+      title: lang("prompts.3.title"),
+      description: lang("prompts.3.description"),
     },
   ]
 
@@ -44,7 +46,7 @@ export default function Component() {
     textarea.style.height = `${newHeight}px`
     
     // 한 줄일 때는 스크롤바 숨김, 두 줄 이상일 때만 스크롤바 표시
-    const lineHeight = 24 // 대략적인 한 줄 높이 (text-sm leading-6)
+    const lineHeight = 24 // 대략적인 줄 높이 (text-sm leading-6)
     const singleLineHeight = 48 + lineHeight // minHeight + 한 줄
     
     if (newHeight <= singleLineHeight) {
@@ -58,7 +60,7 @@ export default function Component() {
     const value = e.target.value
     setInputValue(value)
     
-    // 제안 표시/숨김은 빈 값일 때만 체크 (상태 변경 최소화)
+    // 상태 표시/숨김을 빈 값일 때만 체크 (상태 변경 최소화)
     const isEmpty = value.trim().length === 0
     setIsExpanded(prev => {
       if (isEmpty && prev) return false
@@ -83,7 +85,7 @@ export default function Component() {
         // Shift + Enter: 줄바꿈 허용 (기본 동작)
         return
       } else {
-        // Enter만: submit 동작
+        // Enter만 누르면 submit 동작
         e.preventDefault()
         if (inputValue.trim() && !isSubmitting) {
           setIsSubmitting(true)
@@ -175,10 +177,10 @@ export default function Component() {
           {/* Model Description */}
           <div className="text-center mb-12">
             <p className="text-gray-600 text-lg">
-              Google의 최신 언어 모델로, 다양한 질문에 정확하고 도움이 되는 답변을 제공합니다.
+              {lang("modelDescription")}
             </p>
             <p className="text-gray-500 text-sm mt-2">
-              창의적 글쓰기, 코딩, 분석, 번역 등 다양한 작업을 도와드릴 수 있습니다.
+              {lang("capabilities")}
             </p>
           </div>
 
@@ -192,7 +194,7 @@ export default function Component() {
                   <div className="relative">
                     <textarea
                       ref={textareaRef}
-                      placeholder="오늘 어떻게 도와드릴까요?"
+                      placeholder={lang("placeholder")}
                       className="w-full rounded-lg border border-gray-200 p-3 resize-none focus:outline-none focus:ring-1 focus:ring-gray-200 focus:border-gray-400 text-sm leading-6 min-h-[48px] max-h-[300px]"
                       value={inputValue}
                       onChange={handleInputChange}
@@ -228,11 +230,9 @@ export default function Component() {
                         <Globe className="h-5 w-5" />
                       </Button>
                       <Button
-                        variant="ghost"
-                        size="icon"
-                        className="h-10 w-10 rounded-full bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300"
                         onClick={handleSubmit}
                         disabled={!inputValue.trim() || isSubmitting}
+                        className="h-10 w-10 p-0 rounded-full bg-black hover:bg-gray-800 text-white disabled:bg-gray-300 disabled:text-gray-500"
                       >
                         <Send className="h-5 w-5" />
                       </Button>
@@ -242,103 +242,60 @@ export default function Component() {
               </div>
             </div>
 
-            {/* Mobile Input */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white">
-              <div className="bg-white rounded-xl shadow-lg border border-gray-200">
-                <div className="flex flex-col gap-4">
-                  <div className="relative">
-                    <textarea
-                      ref={textareaRef}
-                      placeholder="오늘 어떻게 도와드릴까요?"
-                      className="w-full rounded-lg border border-gray-300 p-3 pr-12 resize-none focus:outline-none focus:ring-1 focus:ring-gray-400 focus:border-gray-400 text-sm leading-6 min-h-[48px] max-h-[300px]"
-                      value={inputValue}
-                      onChange={handleInputChange}
-                      onInput={handleInput}
-                      onKeyDown={handleKeyDown}
-                      onKeyUp={handleKeyUp}
-                    />
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="absolute right-2 bottom-2 h-8 w-8 rounded-full bg-blue-500 text-white hover:bg-blue-600 disabled:bg-gray-300"
-                      onClick={handleSubmit}
-                      disabled={!inputValue.trim() || isSubmitting}
-                    >
-                      <Send className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full">
-                      <Plus className="h-5 w-5" />
-                    </Button>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full">
-                        <Mic className="h-5 w-5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={`h-10 w-10 rounded-full ${isFlaskActive ? "bg-black text-white hover:bg-gray-800" : ""}`}
-                        onClick={() => setIsFlaskActive(!isFlaskActive)}
-                      >
-                        <Flask className="h-5 w-5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={`h-10 w-10 rounded-full ${isGlobeActive ? "bg-black text-white hover:bg-gray-800" : ""}`}
-                        onClick={() => setIsGlobeActive(!isGlobeActive)}
-                      >
-                        <Globe className="h-5 w-5" />
-                      </Button>
-                    </div>
-                  </div>
+            {/* Mobile Input - Fixed at bottom */}
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
+              <div className="flex items-end gap-2">
+                <div className="flex-1 relative">
+                  <textarea
+                    ref={textareaRef}
+                    placeholder={lang("mobilePlaceholder")}
+                    className="w-full rounded-2xl border border-gray-200 p-3 pr-12 resize-none focus:outline-none focus:ring-1 focus:ring-gray-200 focus:border-gray-400 text-sm leading-6 min-h-[48px] max-h-[120px]"
+                    value={inputValue}
+                    onChange={handleInputChange}
+                    onInput={handleInput}
+                    onKeyDown={handleKeyDown}
+                    onKeyUp={handleKeyUp}
+                  />
+                  <Button
+                    onClick={handleSubmit}
+                    disabled={!inputValue.trim() || isSubmitting}
+                    className="absolute right-2 bottom-2 h-8 w-8 p-0 rounded-full bg-black hover:bg-gray-800 text-white disabled:bg-gray-300 disabled:text-gray-500"
+                  >
+                    <Send className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             </div>
           </div>
 
-          {/* Prompt Suggestions - 크기가 커질 때만 숨김 */}
-          {!isExpanded && (
-            <div className="w-full max-w-3xl transition-opacity duration-300">
-              <div className="flex flex-col gap-4">
-                {/* Group Label */}
-                <div className="flex items-center gap-2 text-gray-600 mb-2">
-                  <Zap className="h-4 w-4 text-yellow-500" />
-                  <span className="text-sm font-medium text-gray-500">제안</span>
-                </div>
-
-                {/* Prompt Grid - Float 형식 */}
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {prompts.map((prompt, index) => (
-                    <div
-                      key={index}
-                      className="group bg-white border border-gray-200 rounded-xl p-4 cursor-pointer hover:border-gray-300 hover:shadow-md transition-all duration-200 hover:-translate-y-1"
-                      onClick={() => handlePromptClick(prompt.title)}
-                    >
-                      <div className="flex flex-col gap-2">
-                        <h3 className="text-sm font-medium text-gray-800 group-hover:text-gray-900 line-clamp-2">
-                          {prompt.title}
-                        </h3>
-                        <p className="text-xs text-gray-500 group-hover:text-gray-600 line-clamp-2">
-                          {prompt.description}
-                        </p>
-                      </div>
-                      <div className="mt-3 flex items-center justify-between">
-                        <div className="w-6 h-6 rounded-full bg-gray-100 group-hover:bg-blue-100 flex items-center justify-center transition-colors">
-                          <Zap className="h-3 w-3 text-gray-400 group-hover:text-blue-500" />
-                        </div>
-                        <div className="text-xs text-gray-400 group-hover:text-gray-500">
-                          클릭하여 시작
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+          {/* Prompt Suggestions */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
+            {prompts.map((prompt, index) => (
+              <div
+                key={index}
+                className="p-4 border border-gray-200 rounded-lg hover:border-gray-300 cursor-pointer transition-colors bg-white hover:bg-gray-50"
+                onClick={() => handlePromptClick(prompt.title)}
+              >
+                <h3 className="font-medium text-gray-900 mb-1">{prompt.title}</h3>
+                <p className="text-sm text-gray-600">{prompt.description}</p>
               </div>
-            </div>
-          )}
+            ))}
+          </div>
         </div>
+
+        {/* Keyboard Shortcut Hint */}
+        {isExpanded && (
+          <div className="hidden md:block absolute bottom-4 right-4">
+            <div className="bg-gray-100 text-gray-600 text-xs px-3 py-2 rounded-lg">
+              <kbd className="bg-white px-2 py-1 rounded border text-xs mr-1">Enter</kbd>
+              {lang("shortcuts.send")} |
+              <kbd className="bg-white px-2 py-1 rounded border text-xs mx-1">Shift</kbd>
+              +
+              <kbd className="bg-white px-2 py-1 rounded border text-xs ml-1">Enter</kbd>
+              {lang("shortcuts.lineBreak")}
+            </div>
+          </div>
+        )}
       </div>
     </Layout>
   )

@@ -2,6 +2,7 @@
 
 import { Copy, Edit, Check, X } from "lucide-react"
 import { useRef, useEffect, useCallback } from "react"
+import { useTranslation } from "@/lib/i18n"
 
 interface UserRequestProps {
   id: string
@@ -30,6 +31,7 @@ export function UserRequest({
   setEditingContent,
   copiedMessageId,
 }: UserRequestProps) {
+  const { lang } = useTranslation("chat")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
   // textarea 높이 자동 조정 함수
@@ -41,7 +43,7 @@ export function UserRequest({
     }
   }, [])
 
-  // 편집 모드가 되거나 내용이 변경될 때 높이 조정
+  // 편집 모드가 활성화되거나 내용이 변경될 때 높이 조정
   useEffect(() => {
     if (editingMessageId === id && textareaRef.current) {
       // 편집 모드 진입 시 포커스 설정
@@ -87,26 +89,26 @@ export function UserRequest({
               onKeyDown={handleKeyDown}
               className="w-full bg-transparent border-0 resize-none focus:outline-none overflow-y-auto"
               style={{ minHeight: "60px", maxHeight: "300px" }}
-              placeholder="메시지를 입력하세요..."
+              placeholder={lang("mobilePlaceholder")}
             />
             <div className="flex gap-1 mt-2">
               <button
                 onClick={() => onSave(id)}
                 className="p-1 rounded-full hover:bg-gray-200 transition-colors"
-                title="저장 (Ctrl+Enter)"
+                title={lang("actions.saveShortcut")}
               >
                 <Check className="h-4 w-4 text-gray-700" />
               </button>
               <button 
                 onClick={onCancel} 
                 className="p-1 rounded-full hover:bg-red-100 transition-colors" 
-                title="취소 (Escape)"
+                title={lang("actions.cancelShortcut")}
               >
                 <X className="h-4 w-4 text-red-600" />
               </button>
             </div>
             <div className="text-xs text-gray-500 mt-1">
-              Ctrl+Enter로 저장, Escape로 취소
+              {lang("actions.editHint")}
             </div>
           </div>
         ) : (
@@ -123,14 +125,14 @@ export function UserRequest({
                 className={`p-1 rounded-full transition-all duration-200 ${
                   copiedMessageId === id ? "bg-green-100 text-green-600 scale-110" : "hover:bg-gray-100 text-gray-500"
                 }`}
-                title={copiedMessageId === id ? "복사됨!" : "복사"}
+                title={copiedMessageId === id ? lang("actions.copied") : lang("actions.copy")}
               >
                 {copiedMessageId === id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
               </button>
               <button
                 onClick={() => onEdit(id, content)}
                 className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-                title="수정"
+                title={lang("actions.edit")}
               >
                 <Edit className="h-4 w-4 text-gray-500" />
               </button>

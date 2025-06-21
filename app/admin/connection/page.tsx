@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import AdminLayout from "@/components/admin/admin-layout"
+import { useTranslation } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -10,6 +11,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Eye, EyeOff, Plus, Trash2 } from "lucide-react"
 
 export default function ConnectionSettingsPage() {
+  const { lang } = useTranslation('admin.connection')
   const [showPassword, setShowPassword] = useState(false)
   const [showAppPassword, setShowAppPassword] = useState(false)
   const [openaiServers, setOpenaiServers] = useState([
@@ -71,14 +73,14 @@ export default function ConnectionSettingsPage() {
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">연결 설정</h1>
-          <p className="text-gray-600 mt-1">API 서버 연결을 관리합니다.</p>
+          <h1 className="text-2xl font-bold">{lang('title')}</h1>
+          <p className="text-gray-600 mt-1">{lang('description')}</p>
         </div>
 
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h3 className="text-lg font-semibold">OpenAI API 서버</h3>
+              <h3 className="text-lg font-semibold">{lang('openai.title')}</h3>
               <Switch
                 checked={openaiEnabled}
                 onCheckedChange={setOpenaiEnabled}
@@ -87,7 +89,7 @@ export default function ConnectionSettingsPage() {
             {openaiEnabled && (
               <Button onClick={addOpenaiServer} variant="outline" size="sm">
                 <Plus className="h-4 w-4 mr-2" />
-                서버 추가
+                {lang('openai.addServer')}
               </Button>
             )}
           </div>
@@ -98,7 +100,7 @@ export default function ConnectionSettingsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-base">{server.name}</CardTitle>
-                    <CardDescription>OpenAI API 연결 설정을 관리합니다.</CardDescription>
+                    <CardDescription>{lang('openai.description')}</CardDescription>
                   </div>
                   {openaiServers.length > 1 && (
                     <Button
@@ -115,33 +117,33 @@ export default function ConnectionSettingsPage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-4 gap-4">
                   <div className="space-y-2 col-span-1">
-                    <Label htmlFor={`openai-name-${server.id}`}>서버 이름</Label>
+                    <Label htmlFor={`openai-name-${server.id}`}>{lang('openai.serverName')}</Label>
                     <Input
                       id={`openai-name-${server.id}`}
                       value={server.name}
                       onChange={(e) => updateOpenaiServer(server.id, "name", e.target.value)}
-                      placeholder="서버 이름"
+                      placeholder={lang('openai.serverName')}
                     />
                   </div>
                   <div className="space-y-2 col-span-3">
-                    <Label htmlFor={`openai-url-${server.id}`}>API URL</Label>
+                    <Label htmlFor={`openai-url-${server.id}`}>{lang('openai.apiUrl')}</Label>
                     <Input
                       id={`openai-url-${server.id}`}
                       value={server.url}
                       onChange={(e) => updateOpenaiServer(server.id, "url", e.target.value)}
-                      placeholder="OpenAI API URL을 입력하세요"
+                      placeholder={lang('openai.apiUrlPlaceholder')}
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor={`openai-key-${server.id}`}>API 키</Label>
+                  <Label htmlFor={`openai-key-${server.id}`}>{lang('openai.apiKey')}</Label>
                   <div className="relative">
                     <Input
                       id={`openai-key-${server.id}`}
                       type={showPassword ? "text" : "password"}
                       value={server.key}
                       onChange={(e) => updateOpenaiServer(server.id, "key", e.target.value)}
-                      placeholder="OpenAI API 키를 입력하세요"
+                      placeholder={lang('openai.apiKeyPlaceholder')}
                     />
                     <Button
                       type="button"
@@ -156,8 +158,8 @@ export default function ConnectionSettingsPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="text-base font-medium">연결 활성화</Label>
-                    <p className="text-sm text-gray-500">이 서버 연결을 활성화합니다.</p>
+                    <Label className="text-base font-medium">{lang('openai.enableConnection')}</Label>
+                    <p className="text-sm text-gray-500">{lang('openai.enableConnectionDescription')}</p>
                   </div>
                   <Switch
                     checked={server.enabled}
@@ -171,7 +173,7 @@ export default function ConnectionSettingsPage() {
 
         <div className="space-y-4">
           <div className="flex items-center gap-3 mb-4">
-            <h3 className="text-lg font-semibold">Gemini API</h3>
+            <h3 className="text-lg font-semibold">{lang('gemini.title')}</h3>
             <Switch
               checked={geminiEnabled}
               onCheckedChange={setGeminiEnabled}
@@ -180,17 +182,17 @@ export default function ConnectionSettingsPage() {
           {geminiEnabled && (
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">Google Gemini API</CardTitle>
-                <CardDescription>Google Gemini API 연결 설정을 관리합니다.</CardDescription>
+                <CardTitle className="text-base">{lang('gemini.title')}</CardTitle>
+                <CardDescription>{lang('gemini.description')}</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="gemini-api-key">API 키</Label>
+                  <Label htmlFor="gemini-api-key">{lang('gemini.apiKey')}</Label>
                   <div className="relative">
                     <Input
                       id="gemini-api-key"
                       type={showPassword ? "text" : "password"}
-                      placeholder="Gemini API 키를 입력하세요"
+                      placeholder={lang('gemini.apiKeyPlaceholder')}
                     />
                     <Button
                       type="button"
@@ -203,13 +205,6 @@ export default function ConnectionSettingsPage() {
                     </Button>
                   </div>
                 </div>
-                <div className="flex items-center justify-between">
-                  <div>
-                    <Label className="text-base font-medium">연결 활성화</Label>
-                    <p className="text-sm text-gray-500">Gemini API 연결을 활성화합니다.</p>
-                  </div>
-                  <Switch />
-                </div>
               </CardContent>
             </Card>
           )}
@@ -218,7 +213,7 @@ export default function ConnectionSettingsPage() {
         <div className="space-y-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <h3 className="text-lg font-semibold">Ollama API 서버</h3>
+              <h3 className="text-lg font-semibold">{lang('ollama.title')}</h3>
               <Switch
                 checked={ollamaEnabled}
                 onCheckedChange={setOllamaEnabled}
@@ -227,7 +222,7 @@ export default function ConnectionSettingsPage() {
             {ollamaEnabled && (
               <Button onClick={addOllamaServer} variant="outline" size="sm">
                 <Plus className="h-4 w-4 mr-2" />
-                서버 추가
+                {lang('ollama.addServer')}
               </Button>
             )}
           </div>
@@ -238,7 +233,7 @@ export default function ConnectionSettingsPage() {
                 <div className="flex items-center justify-between">
                   <div>
                     <CardTitle className="text-base">{server.name}</CardTitle>
-                    <CardDescription>Ollama API 연결 설정을 관리합니다.</CardDescription>
+                    <CardDescription>{lang('ollama.description')}</CardDescription>
                   </div>
                   {ollamaServers.length > 1 && (
                     <Button
@@ -255,33 +250,33 @@ export default function ConnectionSettingsPage() {
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-4 gap-4">
                   <div className="space-y-2 col-span-1">
-                    <Label htmlFor={`ollama-name-${server.id}`}>서버 이름</Label>
+                    <Label htmlFor={`ollama-name-${server.id}`}>{lang('ollama.serverName')}</Label>
                     <Input
                       id={`ollama-name-${server.id}`}
                       value={server.name}
                       onChange={(e) => updateOllamaServer(server.id, "name", e.target.value)}
-                      placeholder="서버 이름"
+                      placeholder={lang('ollama.serverName')}
                     />
                   </div>
                   <div className="space-y-2 col-span-3">
-                    <Label htmlFor={`ollama-url-${server.id}`}>API URL</Label>
+                    <Label htmlFor={`ollama-url-${server.id}`}>{lang('ollama.apiUrl')}</Label>
                     <Input
                       id={`ollama-url-${server.id}`}
                       value={server.url}
                       onChange={(e) => updateOllamaServer(server.id, "url", e.target.value)}
-                      placeholder="Ollama API URL을 입력하세요"
+                      placeholder={lang('ollama.apiUrlPlaceholder')}
                     />
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor={`ollama-key-${server.id}`}>API 키 (선택사항)</Label>
+                  <Label htmlFor={`ollama-key-${server.id}`}>{lang('ollama.apiKey')}</Label>
                   <div className="relative">
                     <Input
                       id={`ollama-key-${server.id}`}
                       type={showAppPassword ? "text" : "password"}
                       value={server.key}
                       onChange={(e) => updateOllamaServer(server.id, "key", e.target.value)}
-                      placeholder="Ollama API 키를 입력하세요 (필요한 경우)"
+                      placeholder={lang('ollama.apiKeyPlaceholder')}
                     />
                     <Button
                       type="button"
@@ -296,8 +291,8 @@ export default function ConnectionSettingsPage() {
                 </div>
                 <div className="flex items-center justify-between">
                   <div>
-                    <Label className="text-base font-medium">연결 활성화</Label>
-                    <p className="text-sm text-gray-500">이 서버 연결을 활성화합니다.</p>
+                    <Label className="text-base font-medium">{lang('ollama.enableConnection')}</Label>
+                    <p className="text-sm text-gray-500">{lang('ollama.enableConnectionDescription')}</p>
                   </div>
                   <Switch
                     checked={server.enabled}
@@ -311,7 +306,9 @@ export default function ConnectionSettingsPage() {
 
         {/* Save Button */}
         <div className="flex justify-end">
-          <Button className="bg-black text-white hover:bg-gray-800">저장</Button>
+          <Button className="bg-black text-white hover:bg-gray-800">
+            {lang('saveButton')}
+          </Button>
         </div>
       </div>
     </AdminLayout>

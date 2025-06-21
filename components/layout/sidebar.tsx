@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ChevronLeft, Search, Plus, Menu, Book } from "lucide-react"
@@ -8,6 +8,7 @@ import { useRouter } from "next/navigation"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { AccountMenu } from "@/components/ui/account-menu"
 import { ChatGroupComponent } from "@/components/sidebar/chat-group"
+import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 
 interface SidebarProps {
   currentPage?: "chat" | "content"
@@ -33,18 +34,24 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const router = useRouter()
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
+  const { lang, language } = useTranslation('common')
+
+  // 번역 파일 프리로드
+  useEffect(() => {
+    preloadTranslationModule(language, 'common')
+  }, [language])
 
   // 채팅 그룹 데이터
   const chatGroups: ChatGroup[] = [
     {
-      label: "오늘",
+      label: lang('sidebar.chatGroups.today'),
       items: [
         { id: "chat-1", title: "에프앤가이드 기업에...", time: "09:45", timeAgo: "15 hours" },
         { id: "chat-2", title: "BC카드의 힘써하는 스...", time: "08:30", timeAgo: "15 hours" },
       ],
     },
     {
-      label: "이전 30일",
+      label: lang('sidebar.chatGroups.previous30Days'),
       items: [
         { id: "chat-3", title: "물지로가 비비가드 맛...", time: "14:22", timeAgo: "41 days" },
         { id: "chat-4", title: "BC카드 페이백을 통한...", time: "11:05", timeAgo: "41 days" },
@@ -53,14 +60,14 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
       ],
     },
     {
-      label: "5월",
+      label: lang('sidebar.chatGroups.may'),
       items: [
         { id: "chat-7", title: "누룩 여행 일정 7일 24...", time: "09:00", timeAgo: "42 days" },
         { id: "chat-8", title: "BC카드 페이백을 통한...", time: "15:45", timeAgo: "42 days" },
       ],
     },
     {
-      label: "4월",
+      label: lang('sidebar.chatGroups.april'),
       items: [{ id: "chat-9", title: "서울 벚꽃 명소", time: "13:20", timeAgo: "47 days" }],
     },
   ]
@@ -101,7 +108,7 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
                     <AvatarFallback className="bg-orange-500 text-white text-xs">A</AvatarFallback>
                   </Avatar>
                   {!sidebarCollapsed && (
-                    <span className="text-sm font-medium ml-2 transition-opacity duration-300">admin</span>
+                    <span className="text-sm font-medium ml-2 transition-opacity duration-300">{lang('sidebar.admin')}</span>
                   )}
                 </Button>
               </AccountMenu>
@@ -122,7 +129,7 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
                     onClick={() => router.push("/chat")}
                   >
                     <Plus className="h-4 w-4" />
-                    새로운 채팅
+                    {lang('sidebar.newChat')}
                   </Button>
                 </div>
                 <Button variant="ghost" size="icon" className="h-6 w-6 focus:outline-none focus:ring-0" onClick={() => setSidebarCollapsed(true)}>
@@ -137,7 +144,7 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
             >
               <div className="relative">
                 <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input placeholder="검색" className="pl-10 bg-white border-gray-200 focus:outline-none focus:ring-0 focus:border-gray-300" />
+                <Input placeholder={lang('sidebar.searchPlaceholder')} className="pl-10 bg-white border-gray-200 focus:outline-none focus:ring-0 focus:border-gray-300" />
               </div>
             </div>
 
@@ -154,7 +161,7 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
                 onClick={() => router.push("/book")}
               >
                 <Book className="h-4 w-4" />
-                Book
+                {lang('sidebar.book')}
               </Button>
             </div>
 
@@ -184,7 +191,7 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
                     <AvatarFallback className="bg-orange-500 text-white text-xs">A</AvatarFallback>
                   </Avatar>
                   {!sidebarCollapsed && (
-                    <span className="text-sm font-medium ml-2 transition-opacity duration-300">admin</span>
+                    <span className="text-sm font-medium ml-2 transition-opacity duration-300">{lang('sidebar.admin')}</span>
                   )}
                 </Button>
               </AccountMenu>
@@ -196,32 +203,24 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
       {/* Mobile Sidebar Overlay */}
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          {/* Backdrop */}
-          <div
-            className="fixed inset-0 bg-black bg-opacity-50 transition-opacity duration-300"
-            onClick={() => setMobileSidebarOpen(false)}
-          />
-
-          {/* Mobile Sidebar */}
-          <div
-            className={`fixed top-0 left-0 h-full w-64 bg-gray-50 border-r border-gray-200 flex flex-col transform transition-transform duration-300 ${mobileSidebarOpen ? "translate-x-0" : "-translate-x-full"}`}
-          >
+          <div className="absolute inset-0 bg-gray-600 bg-opacity-75" onClick={() => setMobileSidebarOpen(false)}></div>
+          <div className="relative flex flex-col w-64 h-full bg-[#f5f5f5] border-r border-gray-200">
             {/* Header */}
-            <div className="p-4 border-b border-gray-200">
-              <div className="flex items-center justify-between">
+            <div className="p-0 h-[3rem] flex items-center px-4">
+              <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
-                    <span className="text-white text-sm font-bold">BC</span>
+                  <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
+                    <span className="text-white text-xs font-bold">kkot</span>
                   </div>
                   <Button
-                    className={`flex items-center gap-2 bg-transparent hover:bg-gray-100 text-gray-700 focus:outline-none focus:ring-0`}
+                    className="flex items-center gap-2 bg-transparent hover:bg-gray-100 text-gray-700 focus:outline-none focus:ring-0"
                     onClick={() => {
                       router.push("/chat")
                       setMobileSidebarOpen(false)
                     }}
                   >
                     <Plus className="h-4 w-4" />
-                    새로운 채팅
+                    {lang('sidebar.newChat')}
                   </Button>
                 </div>
                 <Button variant="ghost" size="icon" className="h-6 w-6 focus:outline-none focus:ring-0" onClick={() => setMobileSidebarOpen(false)}>
@@ -231,30 +230,33 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
             </div>
 
             {/* Search */}
-            <div className="px-4 p-4">
+            <div className="p-1 px-2 my-2">
               <div className="relative">
                 <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input placeholder="검색" className="pl-10 bg-white border-gray-200 focus:outline-none focus:ring-0 focus:border-gray-300" />
+                <Input placeholder={lang('sidebar.searchPlaceholder')} className="pl-10 bg-white border-gray-200 focus:outline-none focus:ring-0 focus:border-gray-300" />
               </div>
             </div>
 
             {/* Content Button */}
-            <div className="p-4">
+            <div className="p-1 px-2">
               <Button
                 className={`w-full justify-start gap-2 focus:outline-none focus:ring-0 ${
                   currentPage === "content"
-                    ? "bg-blue-100 hover:bg-blue-200 text-blue-700 border border-blue-200"
+                    ? "bg-gray-200 hover:bg-gray-200 text-gray-700 border border-gray-200"
                     : "bg-transparent hover:bg-gray-100 text-gray-700"
                 }`}
-                onClick={() => router.push("/book")}
+                onClick={() => {
+                  router.push("/book")
+                  setMobileSidebarOpen(false)
+                }}
               >
                 <Book className="h-4 w-4" />
-                Book
+                {lang('sidebar.book')}
               </Button>
             </div>
 
             {/* Chat History - Grouped by Date */}
-            <div className="flex-1 overflow-y-auto">
+            <div className="flex-1 mt-3 overflow-y-auto">
               <div className="px-4">
                 {chatGroups.map((group, groupIndex) => (
                   <ChatGroupComponent
@@ -274,11 +276,11 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
             {/* Bottom Settings */}
             <div className="p-4">
               <AccountMenu align="start" side="top">
-                <Button variant="ghost" className="w-full justify-start gap-2 h-10 px-2 focus:outline-none focus:ring-0">
+                <Button variant="ghost" className="w-full justify-start h-10 px-2 transition-all duration-300 focus:outline-none focus:ring-0">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-orange-500 text-white text-xs">A</AvatarFallback>
                   </Avatar>
-                  <span className="text-sm font-medium">admin</span>
+                  <span className="text-sm font-medium">{lang('sidebar.admin')}</span>
                 </Button>
               </AccountMenu>
             </div>

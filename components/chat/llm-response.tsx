@@ -1,6 +1,7 @@
 "use client"
 
 import { Copy, ThumbsUp, ThumbsDown, RefreshCw, Check } from "lucide-react"
+import { useTranslation } from "@/lib/i18n"
 
 interface LlmResponseProps {
   id: string
@@ -40,7 +41,7 @@ export function LlmResponse({
             className={`p-1 rounded-full transition-all duration-200 ${
               copiedMessageId === id ? "bg-green-100 text-green-600 scale-110" : "hover:bg-gray-100 text-gray-500"
             }`}
-            title={copiedMessageId === id ? "복사됨!" : "복사"}
+            title={copiedMessageId === id ? "복사됨" : "복사"}
           >
             {copiedMessageId === id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
           </button>

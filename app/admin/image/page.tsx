@@ -10,8 +10,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Eye, EyeOff } from "lucide-react"
+import { useTranslation } from "@/lib/i18n"
 
 export default function ImageSettingsPage() {
+  const { lang } = useTranslation('admin.image')
   const [showPassword, setShowPassword] = useState(false)
   const [showAppPassword, setShowAppPassword] = useState(false)
 
@@ -19,14 +21,24 @@ export default function ImageSettingsPage() {
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">이미지 설정</h1>
-          <p className="text-gray-600 mt-1">이미지 생성을 위한 외부 서비스를 설정합니다.</p>
+          <h1 className="text-2xl font-bold">{lang('title')}</h1>
+          <p className="text-gray-600 mt-1">{lang('description')}</p>
         </div>
 
         <Card>
           <CardHeader>
+            <CardTitle>이미지 생성 설정</CardTitle>
+            <CardDescription>이미지 생성을 위한 설정입니다</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <p className="text-gray-500">이미지 생성 설정 기능은 개발 중입니다.</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
             <CardTitle>이미지 생성 서비스</CardTitle>
-            <CardDescription>이미지 생성을 위한 외부 서비스를 설정합니다.</CardDescription>
+            <CardDescription>이미지 생성을 위한 외부 서비스를 설정합니다</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-4">
@@ -62,10 +74,10 @@ export default function ImageSettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="comfyui-workflow">기본 워크플로우</Label>
+                  <Label htmlFor="comfyui-workflow">기본 워크플로</Label>
                   <Select defaultValue="text2img">
                     <SelectTrigger>
-                      <SelectValue placeholder="워크플로우 선택" />
+                      <SelectValue placeholder="워크플로 선택" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="text2img">Text to Image</SelectItem>
@@ -136,7 +148,7 @@ export default function ImageSettingsPage() {
                     <SelectContent>
                       <SelectItem value="0.25">낮음 (0.25)</SelectItem>
                       <SelectItem value="0.5">보통 (0.5)</SelectItem>
-                      <SelectItem value="1">높음 (1.0)</SelectItem>
+                      <SelectItem value="1">좋음 (1.0)</SelectItem>
                       <SelectItem value="2">최고 (2.0)</SelectItem>
                     </SelectContent>
                   </Select>

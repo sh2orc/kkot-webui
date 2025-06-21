@@ -1,30 +1,35 @@
+"use client"
+
 import AdminLayout from "@/components/admin/admin-layout"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
+import { useTranslation } from "@/lib/i18n"
 
 export default function ModelSettingsPage() {
+  const { lang } = useTranslation('admin.model')
+
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">모델 설정</h1>
-          <p className="text-gray-600 mt-1">AI 모델 설정 및 관리를 수행합니다.</p>
+          <h1 className="text-2xl font-bold">{lang('title')}</h1>
+          <p className="text-gray-600 mt-1">{lang('description')}</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>모델 관리</CardTitle>
-            <CardDescription>AI 모델 설정 및 관리를 수행합니다.</CardDescription>
+            <CardTitle>{lang('modelManagement.title')}</CardTitle>
+            <CardDescription>{lang('modelManagement.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="default-model">기본 모델</Label>
+              <Label htmlFor="default-model">{lang('modelManagement.defaultModel')}</Label>
               <Select defaultValue="gemma3">
                 <SelectTrigger>
-                  <SelectValue placeholder="모델 선택" />
+                  <SelectValue placeholder={lang('modelManagement.selectModel')} />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="gemma3">gemma3:27b-it-qat</SelectItem>
@@ -36,12 +41,12 @@ export default function ModelSettingsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="max-tokens">최대 토큰 수</Label>
+              <Label htmlFor="max-tokens">{lang('modelManagement.maxTokens')}</Label>
               <Input id="max-tokens" type="number" defaultValue="4096" />
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="temperature">Temperature</Label>
+              <Label htmlFor="temperature">{lang('modelManagement.temperature')}</Label>
               <Input id="temperature" type="number" step="0.1" min="0" max="2" defaultValue="0.7" />
             </div>
           </CardContent>
@@ -49,7 +54,7 @@ export default function ModelSettingsPage() {
 
         {/* Save Button */}
         <div className="flex justify-end">
-          <Button className="bg-black text-white hover:bg-gray-800">저장</Button>
+          <Button className="bg-black text-white hover:bg-gray-800">{lang('saveButton')}</Button>
         </div>
       </div>
     </AdminLayout>

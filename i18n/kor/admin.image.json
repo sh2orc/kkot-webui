@@ -1,0 +1,34 @@
+{
+  "title": "이미지 설정",
+  "description": "이미지 생성 및 처리 기능을 설정합니다.",
+  "developmentNotice": "이미지 설정 기능은 개발 중입니다.",
+  "imageGeneration": {
+    "title": "이미지 생성 설정",
+    "description": "AI 이미지 생성 기능을 설정합니다",
+    "enabled": {
+      "label": "이미지 생성 활성화",
+      "description": "AI를 통한 이미지 생성 기능을 제공합니다"
+    },
+    "model": {
+      "label": "이미지 생성 모델",
+      "placeholder": "모델 선택"
+    },
+    "apiKey": {
+      "label": "API 키",
+      "placeholder": "이미지 생성 API 키를 입력하세요"
+    }
+  },
+  "imageProcessing": {
+    "title": "이미지 처리 설정",
+    "description": "이미지 업로드 및 처리 옵션을 설정합니다",
+    "maxSize": {
+      "label": "최대 파일 크기 (MB)",
+      "placeholder": "10"
+    },
+    "allowedFormats": {
+      "label": "허용 형식",
+      "description": "업로드 가능한 이미지 형식을 선택하세요"
+    }
+  },
+  "saveButton": "저장"
+} 

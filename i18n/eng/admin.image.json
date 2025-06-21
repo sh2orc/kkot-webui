@@ -1,0 +1,64 @@
+{
+  "title": "Image Settings",
+  "description": "Configure image generation and processing features.",
+  "developmentNotice": "Image settings feature is under development.",
+  "imageGeneration": {
+    "title": "Image Generation Settings",
+    "description": "Configure AI image generation functionality",
+    "enabled": {
+      "label": "Enable Image Generation",
+      "description": "Provides AI-powered image generation functionality"
+    },
+    "model": {
+      "label": "Image Generation Model",
+      "placeholder": "Select model"
+    },
+    "apiKey": {
+      "label": "API Key",
+      "placeholder": "Enter image generation API key"
+    }
+  },
+  "imageProcessing": {
+    "title": "Image Processing Settings",
+    "description": "Configure image upload and processing options",
+    "maxSize": {
+      "label": "Maximum File Size (MB)",
+      "placeholder": "10"
+    },
+    "allowedFormats": {
+      "label": "Allowed Formats",
+      "description": "Select allowed image formats for upload"
+    }
+  },
+  "comfyui": {
+    "label": "ComfyUI",
+    "serverUrl": "ComfyUI Server URL",
+    "apiKey": "API Key (Optional)",
+    "apiKeyPlaceholder": "ComfyUI API Key (if required)",
+    "defaultWorkflow": "Default Workflow",
+    "selectWorkflow": "Select Workflow"
+  },
+  "midjourney": {
+    "label": "Midjourney",
+    "apiUrl": "Midjourney API URL",
+    "apiKey": "API Key",
+    "apiKeyPlaceholder": "Enter Midjourney API Key",
+    "modelVersion": "Model Version",
+    "selectVersion": "Select Model Version",
+    "defaultQuality": "Default Quality",
+    "selectQuality": "Select Quality"
+  },
+  "workflows": {
+    "text2img": "Text to Image",
+    "img2img": "Image to Image",
+    "inpainting": "Inpainting",
+    "upscaling": "Upscaling"
+  },
+  "qualities": {
+    "low": "Low (0.25)",
+    "normal": "Normal (0.5)",
+    "high": "High (1.0)",
+    "highest": "Highest (2.0)"
+  },
+  "saveButton": "Save"
+} 

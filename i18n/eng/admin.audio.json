@@ -1,0 +1,10 @@
+{
+  "title": "Audio Settings",
+  "description": "Audio processing and synthesis settings.",
+  "saveButton": "Save",
+  "audioSettings": {
+    "title": "Audio Settings",
+    "description": "Settings for this section are under development.",
+    "comingSoon": "Coming soon."
+  }
+} 

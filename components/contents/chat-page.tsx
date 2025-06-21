@@ -47,20 +47,20 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   // 채팅 ID에 따라 메시지 로드
   useEffect(() => {
     if (chatId) {
-      // 실제로는 API에서 채팅 내역을 가져와야 함
-      // 여기서는 더미 데이터 사용
+      // 실제로는 API에서 채팅 히스토리를 가져올 것임
+      // 여기서는 더미 데이터를 사용
       const dummyMessages: Message[] = [
         {
           id: generateUniqueId("user"),
           role: "user",
-          content: "안녕하세요, BC카드의 페이백 서비스에 대해 알려주세요.",
+          content: "안녕하세요! BC카드의 페이백 서비스에 대해 알려주세요",
           timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5분 전
         },
         {
           id: generateUniqueId("assistant"),
           role: "assistant",
           content:
-            "안녕하세요! BC카드의 페이백 서비스는 고객이 결제한 금액의 일부를 현금으로 돌려받을 수 있는 서비스입니다. 주요 특징은 다음과 같습니다:\n\n1. 결제 금액의 일정 비율(보통 0.5~1%)을 현금으로 적립\n2. 적립된 금액은 다음 달 카드 청구액에서 자동 차감\n3. 특정 가맹점이나 프로모션 기간에는 추가 페이백 혜택 제공\n4. 연회비가 있는 카드의 경우 더 높은 페이백 비율 적용\n\n더 구체적인 정보가 필요하시면 특정 BC카드 상품명이나 관심 있는 부분을 알려주세요.",
+            "안녕하세요! BC카드의 페이백 서비스는 고객이 결제한 금액의 일정 비율을 현금으로 돌려받을 수 있는 서비스입니다. 주요 특징은 다음과 같습니다:\n\n1. 결제 금액의 일정 비율(보통 0.5~1%)을 현금으로 적립\n2. 적립된 금액은 다음 달 카드 대금에서 자동 차감\n3. 특정 가맹점이나 프로모션 기간에는 추가 페이백 혜택 제공\n4. 연회비가 있는 카드의 경우 더 높은 페이백 비율 적용\n\n더 구체적인 정보가 필요하시면 특정 BC카드 상품명이나 관심있는 부분을 알려주세요!",
           timestamp: new Date(Date.now() - 1000 * 60 * 4), // 4분 전
         },
         {
@@ -73,7 +73,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           id: generateUniqueId("assistant"),
           role: "assistant",
           content:
-            "네, BC카드의 페이백 서비스는 일반적으로 최소 결제 금액 기준이 있습니다. 카드 상품별로 차이가 있지만, 대부분의 경우 다음과 같은 조건이 적용됩니다:\n\n1. 일반적으로 월 30만원 이상 사용 시 페이백 혜택이 적용됩니다.\n2. 일부 프리미엄 카드의 경우 월 50만원 이상 사용해야 혜택이 적용되기도 합니다.\n3. 특별 프로모션 기간에는 최소 결제 금액 기준이 낮아지거나 없어지는 경우도 있습니다.\n\n정확한 최소 결제 금액은 고객이 보유한 BC카드 상품에 따라 다르므로, 본인의 카드 약관이나 BC카드 고객센터를 통해 확인하시는 것이 좋습니다.",
+            "네! BC카드의 페이백 서비스는 일반적으로 최소 결제 금액 기준이 있습니다. 카드 상품별로 차이가 있지만 대부분의 경우 다음과 같은 조건이 적용됩니다:\n\n1. 일반적으로 월 30만원 이상 사용 시 페이백 혜택이 적용됩니다.\n2. 일부 프리미엄 카드의 경우 월 50만원 이상 사용해야 혜택이 적용되기도 합니다.\n3. 특별 프로모션 기간에는 최소 결제 금액 기준이 낮아지거나 없어지는 경우도 있습니다.\n\n정확한 최소 결제 금액은 고객이 보유한 BC카드 상품에 따라 다르므로, 본인의 카드 약관이나 BC카드 고객센터를 통해 확인하시는 것이 좋습니다.",
           timestamp: new Date(Date.now() - 1000 * 60 * 2), // 2분 전
         },
       ]
@@ -104,7 +104,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       // 초기 메시지 추가 후 즉시 맨 아래로 이동
       setTimeout(() => scrollToBottomInstant(), 0)
 
-      // AI 응답 시뮬레이션 (1초 후)
+      // AI 응답 시뮬레이션(1초 후)
       setTimeout(() => {
         const newAssistantMessage: Message = {
           id: generateUniqueId("assistant"),
@@ -120,7 +120,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     }
   }, [searchParams])
 
-  // 메시지 변경 시 스크롤 처리 (채팅 ID 변경 시에는 동작하지 않도록)
+  // 메시지 변경시 스크롤 처리 (채팅 ID 변경시에도 동작하도록)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   
   useEffect(() => {
@@ -141,7 +141,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     setIsInitialLoad(true)
   }, [chatId])
 
-  // 컴포넌트 마운트 시에는 즉시 맨 아래로 이동
+  // 컴포넌트 마운트시에도 즉시 맨 아래로 이동
   useEffect(() => {
     setTimeout(() => scrollToBottomInstant(), 0)
   }, [])
@@ -166,7 +166,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }
 
   const adjustHeight = () => {
-    // 높이는 고정으로 유지
+    // 높이는 고정으로 사용
   }
 
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
@@ -179,7 +179,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       setIsShiftPressed(true)
     }
 
-    // Enter 키 submit 제거 - 버튼 클릭으로만 메시지 전송
+    // Enter로 submit 제거 - 버튼 클릭으로만 메시지 전송
     // Shift + Enter는 기본 동작(줄바꿈)을 허용
   }
 
@@ -205,7 +205,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         newSet.delete(messageId)
       } else {
         newSet.add(messageId)
-        // 싫어요가 눌려있다면 제거
+        // 좋아요 취소 후 처리
         setDislikedMessages((prevDisliked) => {
           const newDislikedSet = new Set(prevDisliked)
           newDislikedSet.delete(messageId)
@@ -223,7 +223,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         newSet.delete(messageId)
       } else {
         newSet.add(messageId)
-        // 좋아요가 눌려있다면 제거
+        // 좋아요 취소 후 처리
         setLikedMessages((prevLiked) => {
           const newLikedSet = new Set(prevLiked)
           newLikedSet.delete(messageId)
@@ -252,25 +252,25 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }
 
   const handleRegenerateResponse = (messageId: string) => {
-    // 해당 메시지 이후의 모든 메시지를 제거하고 다시 생성
+    // 해당 메시지 이후의 모든 메시지 제거하고 다시 생성
     const messageIndex = messages.findIndex((msg) => msg.id === messageId)
     if (messageIndex > 0) {
       const previousUserMessage = messages[messageIndex - 1]
       if (previousUserMessage.role === "user") {
-        // 해당 응답 이후의 모든 메시지 제거
+        // 해당 답변 이후의 모든 메시지 제거
         setMessages(messages.slice(0, messageIndex))
 
-        // 새로운 응답 생성 (1초 후)
+        // 로그인 후 답변 재생성 (1초 후)
         setTimeout(() => {
           const newAssistantMessage: Message = {
             id: generateUniqueId("assistant"),
             role: "assistant",
             content:
-              "다시 생성된 응답입니다. 실제 구현 시에는 이 부분에서 LLM API를 다시 호출하여 새로운 응답을 받아오게 됩니다.",
+              "시뮬레이션을 위해 제작된 부분에 대해 LLM API 출력 후 답변을 받아 결과를 보여드리게 됩니다. 본인의 카드 약관이나 BC카드 고객센터를 통해 확인하시는 것이 좋습니다.",
             timestamp: new Date(),
           }
           setMessages((prev) => [...prev, newAssistantMessage])
-          // 재생성된 응답 추가 후 부드러운 스크롤
+          // 생성된 답변 추가 후 부드러운 스크롤
           setTimeout(() => scrollToBottomSmooth(), 100)
         }, 1000)
       }
@@ -279,7 +279,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
 
   const handleSubmit = () => {
     if (inputValue.trim()) {
-      // 새 메시지 추가
+      // 메시지 추가
       const newUserMessage: Message = {
         id: generateUniqueId("user"),
         role: "user",
@@ -290,22 +290,22 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       setMessages([...messages, newUserMessage])
       setInputValue("")
       
-      // 사용자 메시지 추가 후 부드러운 스크롤
+      // 메시지 추가 후 부드러운 스크롤
       setTimeout(() => scrollToBottomSmooth(), 100)
 
-      // 텍스트 영역 높이 리셋
+      // 스크롤 초기화
       if (textareaRef.current) {
         textareaRef.current.style.height = "48px"
       }
 
-      // 실제로는 여기서 API 호출하여 응답을 받아야 함
-      // 더미 응답 추가 (1초 후)
+      // 실제로는 기본 API 출력 후 답변을 받아야 함
+      // 여기서는 시뮬레이션을 위해 비동기 처리 후 답변 추가 (1초 후)
       setTimeout(() => {
         const newAssistantMessage: Message = {
           id: generateUniqueId("assistant"),
           role: "assistant",
           content:
-            "죄송합니다만, 현재 데모 버전이라 실제 응답을 생성할 수 없습니다. 실제 구현 시에는 이 부분에서 LLM API를 호출하여 응답을 받아오게 됩니다.",
+            "죄송합니다만, 현재 모델 버전에 대해 제작되지 않아 제작 중인 부분에 대해 LLM API 출력 후 답변을 받아 결과를 보여드리게 됩니다. 본인의 카드 약관이나 BC카드 고객센터를 통해 확인하시는 것이 좋습니다.",
           timestamp: new Date(),
         }
 
@@ -318,7 +318,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
 
   return (
     <Layout currentPage="chat">
-      {/* 메시지 영역 */}
+      {/* 메시지 컨테이너 */}
       <div className="flex-1 flex flex-col relative overflow-hidden">
         <div 
           ref={messagesContainerRef}
@@ -364,7 +364,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           </div>
         </div>
 
-        {/* 입력 영역 - 하단 고정 */}
+        {/* 입력 컨테이너 - 단 고정 */}
         <ChatInput
           inputValue={inputValue}
           textareaRef={textareaRef}

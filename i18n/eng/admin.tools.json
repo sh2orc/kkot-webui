@@ -1,0 +1,13 @@
+{
+  "title": "Tools Settings",
+  "description": "Manage external tools and plugin settings.",
+  "toolsSettings": {
+    "title": "Tools Settings",
+    "description": "Manage external tools and plugin settings.",
+    "codeExecution": {
+      "label": "Code Execution",
+      "description": "Enable code execution functionality."
+    }
+  },
+  "saveButton": "Save"
+} 

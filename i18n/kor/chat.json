@@ -1,0 +1,42 @@
+{
+  "placeholder": "오늘 어떻게 도와드릴까요?",
+  "mobilePlaceholder": "메시지를 입력하세요...",
+  "modelDescription": "Google의 최신 언어 모델로 다양한 질문에 정확하고 유용한 답변을 제공합니다",
+  "capabilities": "창의적 글쓰기, 코딩, 분석, 번역 등 다양한 작업을 도와드릴 수 있습니다.",
+  "disclaimer": "LLM은 실수할 수 있습니다. 중요한 정보는 다시 확인하세요",
+  "shortcuts": {
+    "send": "전송",
+    "lineBreak": "줄바꿈"
+  },
+  "prompts": [
+    {
+      "title": "흥미로운 사실 알려주세요",
+      "description": "특정 주제에 대한 정보"
+    },
+    {
+      "title": "코드 리뷰해 보여주세요",
+      "description": "웹사이트의 고성능 최적화"
+    },
+    {
+      "title": "디자인해 주세요",
+      "description": "디자인에 마음 직접적으로 부족한 것을 알려주세요"
+    },
+    {
+      "title": "AI를 활용한 마케팅 전략을 알려주세요",
+      "description": "비즈니스 성장을 위한 실용적인 조언"
+    }
+  ],
+  "actions": {
+    "copy": "복사",
+    "copied": "복사됨",
+    "like": "좋아요",
+    "dislike": "싫어요",
+    "regenerate": "다시 생성",
+    "edit": "수정",
+    "save": "저장",
+    "cancel": "취소",
+    "saveShortcut": "저장 (Ctrl+Enter)",
+    "cancelShortcut": "취소 (Escape)",
+    "editHint": "Ctrl+Enter로 저장, Escape로 취소"
+  }
+} 

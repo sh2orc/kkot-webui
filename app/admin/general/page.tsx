@@ -9,8 +9,10 @@ import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
 import { Eye, EyeOff } from "lucide-react"
+import { useTranslation } from "@/lib/i18n"
 
 export default function GeneralSettingsPage() {
+  const { lang } = useTranslation('admin.general')
   const [showAppPassword, setShowAppPassword] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   
@@ -28,36 +30,36 @@ export default function GeneralSettingsPage() {
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">일반 설정</h1>
-          <p className="text-gray-600 mt-1">시스템의 기본 동작을 설정합니다.</p>
+          <h1 className="text-2xl font-bold">{lang('title')}</h1>
+          <p className="text-gray-600 mt-1">{lang('description')}</p>
         </div>
 
         <Card>
           <CardHeader>
-            <CardTitle>기본 시스템 설정</CardTitle>
-            <CardDescription>시스템의 기본 동작을 설정합니다.</CardDescription>
+            <CardTitle>{lang('basicSystem.title')}</CardTitle>
+            <CardDescription>{lang('basicSystem.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-base font-medium">새 회원가입 활성화</Label>
-                <p className="text-sm text-gray-500">새로운 사용자의 회원가입을 허용합니다.</p>
+                <Label className="text-base font-medium">{lang('basicSystem.enableSignup.label')}</Label>
+                <p className="text-sm text-gray-500">{lang('basicSystem.enableSignup.description')}</p>
               </div>
               <Switch defaultChecked />
             </div>
             <Separator />
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-base font-medium">API 키 활성화</Label>
-                <p className="text-sm text-gray-500">API 키를 통한 접근을 허용합니다.</p>
+                <Label className="text-base font-medium">{lang('basicSystem.enableApiKey.label')}</Label>
+                <p className="text-sm text-gray-500">{lang('basicSystem.enableApiKey.description')}</p>
               </div>
               <Switch defaultChecked />
             </div>
             <Separator />
             <div className="flex items-center justify-between">
               <div>
-                <Label className="text-base font-medium">API 키 엔드포인트 제한</Label>
-                <p className="text-sm text-gray-500">API 키 사용을 특정 엔드포인트로 제한합니다.</p>
+                <Label className="text-base font-medium">{lang('basicSystem.limitApiKeyEndpoint.label')}</Label>
+                <p className="text-sm text-gray-500">{lang('basicSystem.limitApiKeyEndpoint.description')}</p>
               </div>
               <Switch />
             </div>
@@ -66,15 +68,15 @@ export default function GeneralSettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>JWT 설정</CardTitle>
-            <CardDescription>JSON Web Token 관련 설정을 관리합니다.</CardDescription>
+            <CardTitle>{lang('jwt.title')}</CardTitle>
+            <CardDescription>{lang('jwt.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="jwt-expiry">JWT 만료 시간 (초)</Label>
+              <Label htmlFor="jwt-expiry">{lang('jwt.expiry.label')}</Label>
               <Input id="jwt-expiry" type="number" defaultValue="-1" />
               <p className="text-xs text-gray-500">
-                값이 -1이면 만료되지 않습니다. 예: '3h', '2d', '1w' 형식으로 입력할 수 있습니다.
+                {lang('jwt.expiry.description')}
               </p>
             </div>
           </CardContent>
@@ -82,46 +84,46 @@ export default function GeneralSettingsPage() {
 
         <Card>
           <CardHeader>
-            <CardTitle>Authentication</CardTitle>
-            <CardDescription>사용자 인증 방법을 설정합니다.</CardDescription>
+            <CardTitle>{lang('authentication.title')}</CardTitle>
+            <CardDescription>{lang('authentication.description')}</CardDescription>
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
-                <Label className="text-base font-medium">LDAP</Label>
+                <Label className="text-base font-medium">{lang('authentication.ldap.label')}</Label>
                 <Switch checked={ldapEnabled} onCheckedChange={setLdapEnabled} />
               </div>
 
               {ldapEnabled && (
                 <div className="space-y-4 pl-4 border-l-2 border-gray-200">
                   <div className="space-y-2">
-                    <Label htmlFor="ldap-label">Label</Label>
+                    <Label htmlFor="ldap-label">{lang('authentication.ldap.labelField')}</Label>
                     <Input id="ldap-label" defaultValue="LDAP Server" />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="ldap-host">Host</Label>
+                      <Label htmlFor="ldap-host">{lang('authentication.ldap.host')}</Label>
                       <Input id="ldap-host" defaultValue="localhost" />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="ldap-port">포트</Label>
+                      <Label htmlFor="ldap-port">{lang('authentication.ldap.port')}</Label>
                       <Input id="ldap-port" type="number" defaultValue="389" />
                     </div>
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="app-dn">Application DN</Label>
-                      <Input id="app-dn" placeholder="Enter Application DN" />
+                      <Label htmlFor="app-dn">{lang('authentication.ldap.applicationDn')}</Label>
+                      <Input id="app-dn" placeholder={lang('authentication.ldap.applicationDnPlaceholder')} />
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="app-dn-password">Application DN Password</Label>
+                      <Label htmlFor="app-dn-password">{lang('authentication.ldap.applicationDnPassword')}</Label>
                       <div className="relative">
                         <Input
                           id="app-dn-password"
                           type={showAppPassword ? "text" : "password"}
-                          placeholder="Enter Application DN Password"
+                          placeholder={lang('authentication.ldap.applicationDnPasswordPlaceholder')}
                         />
                         <Button
                           type="button"
@@ -137,23 +139,23 @@ export default function GeneralSettingsPage() {
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="mail-attr">Attribute for Mail</Label>
+                    <Label htmlFor="mail-attr">{lang('authentication.ldap.mailAttribute')}</Label>
                     <Input id="mail-attr" defaultValue="mail" />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="username-attr">Attribute for Username</Label>
+                    <Label htmlFor="username-attr">{lang('authentication.ldap.usernameAttribute')}</Label>
                     <Input id="username-attr" defaultValue="uid" />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="search-base">Search Base</Label>
-                    <Input id="search-base" placeholder="Example: ou=users,dc=foo,dc=example" />
+                    <Label htmlFor="search-base">{lang('authentication.ldap.searchBase')}</Label>
+                    <Input id="search-base" placeholder={lang('authentication.ldap.searchBasePlaceholder')} />
                   </div>
 
                   <div className="space-y-2">
-                    <Label htmlFor="search-filter">필터 검색</Label>
-                    <Input id="search-filter" placeholder="Example: (&(objectClass=inetOrgPerson)(uid=%s))" />
+                    <Label htmlFor="search-filter">{lang('authentication.ldap.searchFilter')}</Label>
+                    <Input id="search-filter" placeholder={lang('authentication.ldap.searchFilterPlaceholder')} />
                   </div>
                 </div>
               )}
@@ -163,12 +165,12 @@ export default function GeneralSettingsPage() {
 
             {/* OAuth Authentication Providers */}
             <div className="space-y-6">
-              <h4 className="text-base font-semibold">OAuth 인증</h4>
+              <h4 className="text-base font-semibold">{lang('authentication.oauth.title')}</h4>
               
               {/* Google OAuth */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium">Google 인증</Label>
+                  <Label className="text-base font-medium">{lang('authentication.oauth.google.label')}</Label>
                   <Switch checked={googleEnabled} onCheckedChange={setGoogleEnabled} />
                 </div>
 
@@ -176,16 +178,16 @@ export default function GeneralSettingsPage() {
                   <div className="space-y-4 pl-4 border-l-2 border-gray-200">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="google-client-id">Client ID</Label>
-                        <Input id="google-client-id" placeholder="Google OAuth Client ID를 입력하세요" />
+                        <Label htmlFor="google-client-id">{lang('authentication.oauth.google.clientId')}</Label>
+                        <Input id="google-client-id" placeholder={lang('authentication.oauth.google.clientIdPlaceholder')} />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="google-client-secret">Client Secret</Label>
+                        <Label htmlFor="google-client-secret">{lang('authentication.oauth.google.clientSecret')}</Label>
                         <div className="relative">
                           <Input
                             id="google-client-secret"
                             type={showPassword ? "text" : "password"}
-                            placeholder="Google OAuth Client Secret을 입력하세요"
+                            placeholder={lang('authentication.oauth.google.clientSecretPlaceholder')}
                           />
                           <Button
                             type="button"
@@ -206,7 +208,7 @@ export default function GeneralSettingsPage() {
               {/* Microsoft OAuth */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium">Microsoft 인증</Label>
+                  <Label className="text-base font-medium">{lang('authentication.oauth.microsoft.label')}</Label>
                   <Switch checked={microsoftEnabled} onCheckedChange={setMicrosoftEnabled} />
                 </div>
 
@@ -214,27 +216,12 @@ export default function GeneralSettingsPage() {
                   <div className="space-y-4 pl-4 border-l-2 border-gray-200">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="microsoft-client-id">Client ID</Label>
-                        <Input id="microsoft-client-id" placeholder="Microsoft OAuth Client ID를 입력하세요" />
+                        <Label htmlFor="microsoft-client-id">{lang('authentication.oauth.microsoft.clientId')}</Label>
+                        <Input id="microsoft-client-id" placeholder={lang('authentication.oauth.microsoft.clientIdPlaceholder')} />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="microsoft-client-secret">Client Secret</Label>
-                        <div className="relative">
-                          <Input
-                            id="microsoft-client-secret"
-                            type={showPassword ? "text" : "password"}
-                            placeholder="Microsoft OAuth Client Secret을 입력하세요"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
+                        <Label htmlFor="microsoft-client-secret">{lang('authentication.oauth.microsoft.clientSecret')}</Label>
+                        <Input id="microsoft-client-secret" type="password" placeholder={lang('authentication.oauth.microsoft.clientSecretPlaceholder')} />
                       </div>
                     </div>
                   </div>
@@ -244,7 +231,7 @@ export default function GeneralSettingsPage() {
               {/* Kakao OAuth */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium">카카오 인증</Label>
+                  <Label className="text-base font-medium">{lang('authentication.oauth.kakao.label')}</Label>
                   <Switch checked={kakaoEnabled} onCheckedChange={setKakaoEnabled} />
                 </div>
 
@@ -252,27 +239,12 @@ export default function GeneralSettingsPage() {
                   <div className="space-y-4 pl-4 border-l-2 border-gray-200">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="kakao-client-id">Client ID (REST API 키)</Label>
-                        <Input id="kakao-client-id" placeholder="카카오 REST API 키를 입력하세요" />
+                        <Label htmlFor="kakao-client-id">{lang('authentication.oauth.kakao.clientId')}</Label>
+                        <Input id="kakao-client-id" placeholder={lang('authentication.oauth.kakao.clientIdPlaceholder')} />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="kakao-client-secret">Client Secret</Label>
-                        <div className="relative">
-                          <Input
-                            id="kakao-client-secret"
-                            type={showPassword ? "text" : "password"}
-                            placeholder="카카오 Client Secret을 입력하세요"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
+                        <Label htmlFor="kakao-client-secret">{lang('authentication.oauth.kakao.clientSecret')}</Label>
+                        <Input id="kakao-client-secret" type="password" placeholder={lang('authentication.oauth.kakao.clientSecretPlaceholder')} />
                       </div>
                     </div>
                   </div>
@@ -282,7 +254,7 @@ export default function GeneralSettingsPage() {
               {/* Naver OAuth */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium">네이버 인증</Label>
+                  <Label className="text-base font-medium">{lang('authentication.oauth.naver.label')}</Label>
                   <Switch checked={naverEnabled} onCheckedChange={setNaverEnabled} />
                 </div>
 
@@ -290,27 +262,12 @@ export default function GeneralSettingsPage() {
                   <div className="space-y-4 pl-4 border-l-2 border-gray-200">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="naver-client-id">Client ID</Label>
-                        <Input id="naver-client-id" placeholder="네이버 OAuth Client ID를 입력하세요" />
+                        <Label htmlFor="naver-client-id">{lang('authentication.oauth.naver.clientId')}</Label>
+                        <Input id="naver-client-id" placeholder={lang('authentication.oauth.naver.clientIdPlaceholder')} />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="naver-client-secret">Client Secret</Label>
-                        <div className="relative">
-                          <Input
-                            id="naver-client-secret"
-                            type={showPassword ? "text" : "password"}
-                            placeholder="네이버 OAuth Client Secret을 입력하세요"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
+                        <Label htmlFor="naver-client-secret">{lang('authentication.oauth.naver.clientSecret')}</Label>
+                        <Input id="naver-client-secret" type="password" placeholder={lang('authentication.oauth.naver.clientSecretPlaceholder')} />
                       </div>
                     </div>
                   </div>
@@ -320,7 +277,7 @@ export default function GeneralSettingsPage() {
               {/* GitHub OAuth */}
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <Label className="text-base font-medium">GitHub 인증</Label>
+                  <Label className="text-base font-medium">{lang('authentication.oauth.github.label')}</Label>
                   <Switch checked={githubEnabled} onCheckedChange={setGithubEnabled} />
                 </div>
 
@@ -328,27 +285,12 @@ export default function GeneralSettingsPage() {
                   <div className="space-y-4 pl-4 border-l-2 border-gray-200">
                     <div className="grid grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <Label htmlFor="github-client-id">Client ID</Label>
-                        <Input id="github-client-id" placeholder="GitHub OAuth Client ID를 입력하세요" />
+                        <Label htmlFor="github-client-id">{lang('authentication.oauth.github.clientId')}</Label>
+                        <Input id="github-client-id" placeholder={lang('authentication.oauth.github.clientIdPlaceholder')} />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="github-client-secret">Client Secret</Label>
-                        <div className="relative">
-                          <Input
-                            id="github-client-secret"
-                            type={showPassword ? "text" : "password"}
-                            placeholder="GitHub OAuth Client Secret을 입력하세요"
-                          />
-                          <Button
-                            type="button"
-                            variant="ghost"
-                            size="icon"
-                            className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
-                            onClick={() => setShowPassword(!showPassword)}
-                          >
-                            {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                          </Button>
-                        </div>
+                        <Label htmlFor="github-client-secret">{lang('authentication.oauth.github.clientSecret')}</Label>
+                        <Input id="github-client-secret" type="password" placeholder={lang('authentication.oauth.github.clientSecretPlaceholder')} />
                       </div>
                     </div>
                   </div>
@@ -358,9 +300,10 @@ export default function GeneralSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* Save Button */}
         <div className="flex justify-end">
-          <Button className="bg-black text-white hover:bg-gray-800">저장</Button>
+          <Button className="bg-black text-white hover:bg-gray-800">
+            {lang('saveButton')}
+          </Button>
         </div>
       </div>
     </AdminLayout>

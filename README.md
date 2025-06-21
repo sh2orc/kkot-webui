@@ -1,153 +1,186 @@
 # 🌸 KKOT WebUI
 
-**다양한 LLM 서비스를 위한 통합 웹 인터페이스**
+**A Universal Web Interface for Multiple LLM Services**
 
-KKOT WebUI는 OpenAI, Gemini, Ollama, vLLM 등 다양한 대형 언어 모델(LLM) 서비스들에 대해 직관적이고 사용하기 쉬운 웹 인터페이스를 제공하는 오픈소스 프로젝트입니다.
+KKOT WebUI is an open-source project that provides an intuitive and user-friendly web interface for various Large Language Model (LLM) services including OpenAI, Gemini, Ollama, vLLM, and more.
 
-## ✨ 주요 기능
+## ✨ Key Features
 
-### 🤖 다중 LLM 지원
-- **OpenAI API**: GPT-4o 등 OpenAI 모델 지원
-- **Google Gemini**: Gemini API 통합
-- **Ollama**: 로컬 Ollama 서버 연결
-- **기타 모델**: Claude, LLaMA, Mistral 등 다양한 모델 지원
+### 🤖 Multi-LLM Support
+- **OpenAI API**: Support for GPT-4o and other OpenAI models
+- **Google Gemini**: Integrated Gemini API support
+- **Ollama**: Local Ollama server connectivity
+- **Other Models**: Support for Claude, LLaMA, Mistral, and various other models
 
-### 💬 채팅 인터페이스
-- 실시간 대화형 채팅 UI
-- 메시지 복사, 좋아요/싫어요, 재생성 기능
-- 사용자 메시지 편집 기능
-- 반응형 디자인으로 모바일/데스크톱 지원
+### 💬 Chat Interface
+- Real-time conversational chat UI
+- Message copy, like/dislike, and regeneration features
+- User message editing capabilities
+- Responsive design for mobile and desktop
 
-### ⚙️ 관리자 설정
-- 다중 API 서버 관리
-- 모델별 세부 설정 (토큰 수, Temperature 등)
-- 인터넷 검색 기능 통합
-- 이미지 생성 API 연동 (DALL-E, Midjourney 등)
-- 음성 인식 및 TTS 설정
+### ⚙️ Comprehensive Admin Panel
+- **General Settings**: User registration, API keys, JWT configuration, OAuth authentication
+- **Connection Management**: Multiple API server management for OpenAI and Ollama
+- **Model Configuration**: Model selection, token limits, temperature settings
+- **MCP Integration**: Model Context Protocol support
+- **Evaluation Tools**: Model performance evaluation features
+- **Document Management**: Document processing and management
+- **Web Search**: Internet search functionality integration
+- **Image Generation**: AI image generation API integration
+- **Audio Processing**: Speech recognition and TTS settings
+- **Pipeline Management**: AI workflow configuration
+- **Database Integration**: Database connectivity and management
 
-### 🎨 현대적인 UI/UX
-- Tailwind CSS 기반의 깔끔한 디자인
-- Radix UI 컴포넌트 활용
-- 다크/라이트 테마 지원
-- 직관적인 네비게이션
+### 🎨 Modern UI/UX
+- Clean design based on Tailwind CSS
+- Radix UI components utilization
+- Dark/Light theme support
+- Intuitive navigation and user experience
 
-## 🚀 빠른 시작
+### 🌐 Internationalization
+- Multi-language support (Korean, English)
+- Easy language switching
+- Extensible translation system
 
-### 필수 요구사항
-- Node.js 18.0 이상
-- npm, yarn, 또는 pnpm
+## 🚀 Quick Start
 
-### 설치 및 실행
+### Prerequisites
+- Node.js 18.0 or higher
+- npm, yarn, or pnpm
 
-1. **저장소 클론**
+### Installation & Setup
+
+1. **Clone the repository**
 ```bash
-git clone https://github.com/your-username/korean-chat-interface.git
-cd korean-chat-interface
+git clone https://github.com/sh2orc/kkot-webui.git
+cd kkot-webui
 ```
 
-2. **의존성 설치**
+2. **Install dependencies**
 ```bash
 npm install
-# 또는
+# or
 yarn install
-# 또는
+# or
 pnpm install
 ```
 
-3. **개발 서버 실행**
+3. **Run the development server**
 ```bash
 npm run dev
-# 또는
+# or
 yarn dev
-# 또는
+# or
 pnpm dev
 ```
 
-4. **브라우저에서 확인**
-http://localhost:3000 에서 애플리케이션을 확인할 수 있습니다.
+4. **Open in browser**
+Visit http://localhost:3000 to access the application.
 
-### 프로덕션 빌드
+### Production Build
 
 ```bash
 npm run build
 npm run start
 ```
 
-## 📁 프로젝트 구조
+## 📁 Project Structure
 
 ```
-korean-chat-interface/
+kkot-webui/
 ├── app/                    # Next.js App Router
-│   ├── chat/              # 채팅 페이지
-│   ├── admin/             # 관리자 설정
-│   ├── setting/           # 사용자 설정
-│   └── layout.tsx         # 루트 레이아웃
-├── components/            # React 컴포넌트
-│   ├── chat/              # 채팅 관련 컴포넌트
-│   ├── layout/            # 레이아웃 컴포넌트
-│   ├── sidebar/           # 사이드바 컴포넌트
-│   ├── contents/          # 페이지 컨텐츠
-│   └── ui/                # 재사용 가능한 UI 컴포넌트
-├── lib/                   # 유틸리티 함수
-├── hooks/                 # 커스텀 React 훅
-├── styles/                # 스타일 파일
-└── public/                # 정적 파일
+│   ├── chat/              # Chat pages
+│   ├── admin/             # Admin settings
+│   │   ├── general/       # General settings
+│   │   ├── connection/    # API connections
+│   │   ├── model/         # Model configuration
+│   │   ├── mcp/           # MCP integration
+│   │   ├── evaluation/    # Model evaluation
+│   │   ├── tools/         # Tools management
+│   │   ├── documents/     # Document management
+│   │   ├── websearch/     # Web search settings
+│   │   ├── image/         # Image generation
+│   │   ├── audio/         # Audio processing
+│   │   ├── pipeline/      # AI pipelines
+│   │   └── database/      # Database settings
+│   ├── book/              # Content pages
+│   ├── setting/           # User settings
+│   └── layout.tsx         # Root layout
+├── components/            # React components
+│   ├── chat/              # Chat-related components
+│   ├── layout/            # Layout components
+│   ├── sidebar/           # Sidebar components
+│   ├── contents/          # Page content components
+│   ├── admin/             # Admin components
+│   ├── providers/         # Context providers
+│   └── ui/                # Reusable UI components
+├── i18n/                  # Internationalization
+│   ├── eng/               # English translations
+│   └── kor/               # Korean translations
+├── lib/                   # Utility functions
+├── hooks/                 # Custom React hooks
+├── styles/                # Style files
+└── public/                # Static assets
 ```
 
-## 🔧 기술 스택
+## 🔧 Tech Stack
 
-- **프레임워크**: Next.js 15.2.4
-- **언어**: TypeScript
-- **스타일링**: Tailwind CSS
-- **UI 컴포넌트**: Radix UI
-- **아이콘**: Lucide React
-- **폼 관리**: React Hook Form + Zod
-- **테마**: next-themes
+- **Framework**: Next.js 15.2.4
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS
+- **UI Components**: Radix UI
+- **Icons**: Lucide React
+- **Form Management**: React Hook Form + Zod
+- **Theme**: next-themes
+- **Internationalization**: Custom i18n system
+- **State Management**: React Context API
 
-## 🌟 기여하기
+## 🌟 Contributing
 
-이 프로젝트는 완전한 오픈소스이며, 누구나 기여할 수 있습니다. 여러분의 기여를 통해 더 빠르게 많은 기능들을 추가할 수 있습니다!
+This project is completely open source and welcomes contributions from everyone. Your contributions help us add more features faster!
 
-### 기여 방법
+### How to Contribute
 
-1. 이 저장소를 포크합니다
-2. 새로운 기능 브랜치를 생성합니다 (`git checkout -b feature/amazing-feature`)
-3. 변경사항을 커밋합니다 (`git commit -m 'Add some amazing feature'`)
-4. 브랜치에 푸시합니다 (`git push origin feature/amazing-feature`)
-5. Pull Request를 생성합니다
+1. Fork this repository
+2. Create a new feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Create a Pull Request
 
-### 기여 가이드라인
+### Contributing Guidelines
 
-- 코드 스타일을 일관성 있게 유지해주세요
-- 새로운 기능에 대한 테스트를 작성해주세요
-- 문서를 업데이트해주세요
-- 이슈를 먼저 확인하고 중복을 피해주세요
+- Maintain consistent code style
+- Write tests for new features
+- Update documentation
+- Check for existing issues to avoid duplicates
 
-## 🎯 로드맵
+## 🎯 Roadmap
 
-- [ ] 실시간 스트리밍 응답 지원
-- [ ] 대화 히스토리 저장 및 관리
-- [ ] 플러그인 시스템 구축
-- [ ] 다국어 지원 확장
-- [ ] 모바일 앱 개발
-- [ ] API 문서 자동 생성
-- [ ] 사용자 인증 시스템
-- [ ] 팀 협업 기능
+- [ ] Real-time streaming response support
+- [ ] Conversation history storage and management
+- [ ] Plugin system development
+- [ ] Extended multi-language support
+- [ ] Mobile app development
+- [ ] Automatic API documentation generation
+- [ ] User authentication system
+- [ ] Team collaboration features
+- [ ] Advanced model evaluation metrics
+- [ ] RAG (Retrieval-Augmented Generation) integration
 
-## 📄 라이선스
+## 📄 License
 
-이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+This project is distributed under the MIT License. See the [LICENSE](LICENSE) file for more details.
 
-## 🤝 지원 및 문의
+## 🤝 Support & Contact
 
-- **이슈 리포트**: [GitHub Issues](https://github.com/sh2orc/kkot-webui/issues)
-- **기능 요청**: [GitHub Discussions](https://github.com/sh2orc/kkot-webui)
-- **이메일**: sh2orc@gmail.com
+- **Issue Reports**: [GitHub Issues](https://github.com/sh2orc/kkot-webui/issues)
+- **Feature Requests**: [GitHub Discussions](https://github.com/sh2orc/kkot-webui/discussions)
+- **Email**: sh2orc@gmail.com
 
-## 🙏 감사의 말
+## 🙏 Acknowledgments
 
-이 프로젝트를 더욱 발전시키기 위해 기여해주시는 모든 분들께 진심으로 감사드립니다. 여러분의 도움으로 더 많은 사람들이 AI의 혜택을 누릴 수 있게 됩니다.
+We sincerely thank all contributors who help improve this project. Your contributions make AI benefits accessible to more people around the world.
 
 ---
 
-**KKOT WebUI**로 AI와의 대화를 더욱 쉽고 즐겁게 만들어보세요! 🚀 
+**Make AI conversations easier and more enjoyable with KKOT WebUI!** 🚀 

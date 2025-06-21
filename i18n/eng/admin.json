@@ -1,0 +1,78 @@
+{
+  "title": "Admin Settings",
+  "dashboard": {
+    "title": "Admin Dashboard",
+    "description": "Dashboard for system configuration and management.",
+    "quickLinks": {
+      "general": {
+        "label": "General Settings",
+        "description": "Basic system settings and JWT management"
+      },
+      "connection": {
+        "label": "Connection Settings",
+        "description": "API server connection management"
+      },
+      "model": {
+        "label": "Model Settings",
+        "description": "AI model configuration and management"
+      },
+      "mcp": {
+        "label": "MCP Settings",
+        "description": "Model Context Protocol server management"
+      },
+      "evaluation": {
+        "label": "Evaluation Settings",
+        "description": "Performance evaluation and monitoring"
+      },
+      "tools": {
+        "label": "Tools Settings",
+        "description": "External tools and plugins"
+      },
+      "documents": {
+        "label": "Document Settings",
+        "description": "Document management and indexing"
+      },
+      "websearch": {
+        "label": "Web Search Settings",
+        "description": "Real-time internet search"
+      },
+      "image": {
+        "label": "Image Settings",
+        "description": "Image generation services"
+      },
+      "audio": {
+        "label": "Audio Settings",
+        "description": "Voice processing and generation"
+      },
+      "pipeline": {
+        "label": "Pipeline Settings",
+        "description": "Workflow management"
+      },
+      "database": {
+        "label": "Database Settings",
+        "description": "Database configuration"
+      }
+    },
+    "systemStatus": {
+      "title": "System Status",
+      "description": "Check the current system status",
+      "openai": "OpenAI API: Connected",
+      "ollama": "Ollama: Configuration Required",
+      "websearch": "Web Search Disabled"
+    }
+  },
+  "menu": {
+    "general": "General",
+    "connection": "Connection",
+    "model": "Model",
+    "mcp": "MCP",
+    "evaluation": "Evaluation",
+    "tools": "Tools",
+    "documents": "Documents",
+    "websearch": "Web Search",
+    "image": "Image",
+    "audio": "Audio",
+    "pipeline": "Pipeline",
+    "database": "Database"
+  }
+} 

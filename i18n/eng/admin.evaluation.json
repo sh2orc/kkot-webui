@@ -1,0 +1,13 @@
+{
+  "title": "Evaluation Settings",
+  "description": "Model performance evaluation and monitoring settings.",
+  "autoEvaluation": {
+    "label": "Enable Auto Evaluation",
+    "description": "Perform automatic evaluation of model responses."
+  },
+  "evaluationInterval": {
+    "label": "Evaluation Interval (hours)",
+    "description": "Set the evaluation interval in hours."
+  },
+  "saveButton": "Save"
+} 

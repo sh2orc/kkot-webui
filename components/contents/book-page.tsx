@@ -16,7 +16,7 @@ export default function ContentPage() {
     {
       id: 1,
       title: "AI 기반 마케팅 전략",
-      description: "인공지능을 활용한 효과적인 마케팅 방법론과 실제 적용 사례들을 살펴보겠습니다.",
+      description: "인공지능을 활용한 효과적인 마케팅 방법론과 실제 적용 사례들을 살펴보겠습니다",
       category: "마케팅",
       readTime: "5분",
       likes: 24,
@@ -37,7 +37,7 @@ export default function ContentPage() {
       id: 3,
       title: "UX/UI 디자인 트렌드 2024",
       description:
-        "올해 주목해야 할 사용자 경험 디자인 트렌드와 실무 적용 방안을 소개합니다. 모바일 퍼스트 접근법부터 접근성 개선까지 다양한 주제를 다룹니다.",
+        "올해 주목해야 할 사용자 경험 디자인 트렌드와 실무 적용 방안을 소개합니다. 모바일 퍼스트 접근법부터 최신 개선까지 다양한 주제를 다룹니다.",
       category: "디자인",
       readTime: "12분",
       likes: 67,
@@ -47,7 +47,7 @@ export default function ContentPage() {
     {
       id: 4,
       title: "블록체인 기술 이해하기",
-      description: "블록체인의 기본 원리와 실제 활용 사례",
+      description: "블록체인의 기본 원리와 실제 적용 사례",
       category: "기술",
       readTime: "6분",
       likes: 31,
@@ -68,7 +68,7 @@ export default function ContentPage() {
       id: 6,
       title: "스타트업 투자 가이드",
       description:
-        "초기 스타트업을 위한 투자 유치 전략과 피치덱 작성법을 상세히 설명합니다. 엔젤 투자자부터 VC까지 다양한 투자 단계별 접근 방법을 알아보세요.",
+        "초기 스타트업을 위한 투자 유치 전략과 투자사 선정법을 자세히 설명합니다. 엔젤 투자자부터 VC까지 다양한 투자 단계별 접근 방법을 알아보세요",
       category: "투자",
       readTime: "15분",
       likes: 89,
@@ -78,7 +78,7 @@ export default function ContentPage() {
     {
       id: 7,
       title: "머신러닝 입문",
-      description: "기계학습의 기본 개념과 실습 예제",
+      description: "기계학습의 기본 개념과 학습 과제",
       category: "AI",
       readTime: "10분",
       likes: 56,
@@ -213,10 +213,10 @@ export default function ContentPage() {
                 <div className="relative">
                   <div className="w-full h-40 bg-gradient-to-br from-blue-100 to-purple-100 rounded-t-lg flex items-center justify-center relative overflow-hidden">
                     <div className="text-center p-4">
-                      <div className="text-2xl mb-2">📚</div>
+                      <div className="text-2xl mb-2">?��</div>
                       <div className="text-sm text-gray-600 font-medium">{item.category}</div>
                     </div>
-                    {/* 그라데이션 오버레이 - 더 뚜렷하게 */}
+                    {/* 그라?�이???�버?�이 - ???�렷?�게 */}
                     <div className="absolute inset-0 bg-gradient-to-t from-white/40 via-white/10 to-transparent pointer-events-none"></div>
                     <div className="absolute inset-0 bg-gradient-to-br from-transparent via-white/5 to-white/20 pointer-events-none"></div>
                   </div>
