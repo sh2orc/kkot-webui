@@ -1,8 +1,14 @@
 # 🌸 KKOT WebUI
 
+[![GitHub Repository](https://img.shields.io/badge/GitHub-sh2orc%2Fkkot--webui-blue?logo=github)](https://github.com/sh2orc/kkot-webui)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![TypeScript](https://img.shields.io/badge/TypeScript-98.2%25-blue)](https://github.com/sh2orc/kkot-webui)
+
 **A Universal Web Interface for Multiple LLM Services**
 
 KKOT WebUI is an open-source project that provides an intuitive and user-friendly web interface for various Large Language Model (LLM) services including OpenAI, Gemini, Ollama, vLLM, and more.
+
+> 🔗 **GitHub Repository**: [https://github.com/sh2orc/kkot-webui](https://github.com/sh2orc/kkot-webui)
 
 ## ✨ Key Features
 
@@ -13,7 +19,7 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Other Models**: Support for Claude, LLaMA, Mistral, and various other models
 
 ### 💬 Chat Interface
-- Real-time conversational chat UI
+- Seamless and Real-time conversational chat UI
 - Message copy, like/dislike, and regeneration features
 - User message editing capabilities
 - Responsive design for mobile and desktop
