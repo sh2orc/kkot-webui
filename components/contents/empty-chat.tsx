@@ -206,7 +206,10 @@ export default function Component() {
 
                   {/* Bottom Controls */}
                   <div className="flex items-center justify-between">
-                    <Button variant="ghost" size="icon" className="h-10 w-10">
+                    <Button 
+                      variant="ghost" 
+                      size="icon" 
+                      className="h-10 w-10 rounded-full">
                       <Plus className="h-5 w-5" />
                     </Button>
                     <div className="flex items-center gap-2">
@@ -216,7 +219,7 @@ export default function Component() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={`h-10 w-10 rounded-full ${isFlaskActive ? "bg-black text-white hover:bg-gray-800" : ""}`}
+                        className={`h-10 w-10 rounded-full ${isFlaskActive ? "bg-black text-white hover:bg-gray-800 hover:text-white" : "hover:bg-transparent"}`}
                         onClick={() => setIsFlaskActive(!isFlaskActive)}
                       >
                         <Flask className="h-5 w-5" />
@@ -224,7 +227,7 @@ export default function Component() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={`h-10 w-10 rounded-full ${isGlobeActive ? "bg-black text-white hover:bg-gray-800" : ""}`}
+                        className={`h-10 w-10 rounded-full ${isGlobeActive ? "bg-black text-white hover:bg-gray-800 hover:text-white" : "hover:bg-transparent"}`}
                         onClick={() => setIsGlobeActive(!isGlobeActive)}
                       >
                         <Globe className="h-5 w-5" />
@@ -232,7 +235,7 @@ export default function Component() {
                       <Button
                         onClick={handleSubmit}
                         disabled={!inputValue.trim() || isSubmitting}
-                        className="h-10 w-10 p-0 rounded-full bg-black hover:bg-gray-800 text-white disabled:bg-gray-300 disabled:text-gray-500"
+                        className="h-10 w-10 p-0 rounded-full bg-blue-600 hover:bg-blue-700 hover:text-white text-white disabled:bg-gray-300 disabled:text-gray-500"
                       >
                         <Send className="h-5 w-5" />
                       </Button>
@@ -259,7 +262,7 @@ export default function Component() {
                   <Button
                     onClick={handleSubmit}
                     disabled={!inputValue.trim() || isSubmitting}
-                    className="absolute right-2 bottom-2 h-8 w-8 p-0 rounded-full bg-black hover:bg-gray-800 text-white disabled:bg-gray-300 disabled:text-gray-500"
+                    className="absolute right-2 bottom-2 h-8 w-8 p-0 rounded-full bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
                   >
                     <Send className="h-4 w-4" />
                   </Button>

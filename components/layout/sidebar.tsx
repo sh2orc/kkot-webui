@@ -121,9 +121,12 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
             <div className="p-0 h-[3rem] flex items-center px-4">
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
+                  
+                  {/* favicon */}
                   <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
                     <span className="text-white text-xs font-bold">kkot</span>
                   </div>
+
                   <Button
                     className={`flex items-center gap-2 bg-transparent hover:bg-gray-100 text-gray-700 focus:outline-none focus:ring-0`}
                     onClick={() => router.push("/chat")}

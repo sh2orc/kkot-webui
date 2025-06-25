@@ -66,13 +66,15 @@ export function ChatInput({
                 <Plus className="h-4 w-4" />
               </Button>
               <div className="flex items-center gap-2">
-                <Button variant="ghost" size="icon" className="h-8 w-8">
+                <Button variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 rounded-full hover:bg-gray-100">
                   <Mic className="h-4 w-4" />
                 </Button>
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-8 w-8 rounded-full ${isFlaskActive ? "bg-black text-white hover:bg-gray-800" : ""}`}
+                  className={`h-8 w-8 rounded-full hover:bg-gray-100 ${isFlaskActive ? "bg-black text-white hover:bg-black hover:text-white" : ""}`}
                   onClick={() => setIsFlaskActive(!isFlaskActive)}
                 >
                   <Flask className="h-4 w-4" />
@@ -80,7 +82,7 @@ export function ChatInput({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-8 w-8 rounded-full ${isGlobeActive ? "bg-black text-white hover:bg-gray-800" : ""}`}
+                  className={`h-8 w-8 rounded-full hover:bg-gray-100 ${isGlobeActive ? "bg-black text-white hover:bg-black hover:text-white" : ""}`}
                   onClick={() => setIsGlobeActive(!isGlobeActive)}
                 >
                   <Globe className="h-4 w-4" />
