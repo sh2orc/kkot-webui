@@ -104,5 +104,13 @@
       }
     }
   },
-  "saveButton": "Save"
+  "saveButton": "Save",
+  "savingButton": "Saving",
+  "saveSuccessTitle": "Settings Saved",
+  "saveSuccessMessage": "System settings have been successfully saved.",
+  "saveFailureTitle": "Failed to Save Settings",
+  "saveFailureMessage": "Failed to save settings. Please try again.",
+  "savePartialFailureTitle": "Some Settings Failed to Save",
+  "savePartialFailureMessage": "Some settings were not saved. Check the console for details.",
+  "serverError": "A server error occurred"
 } 

@@ -9,6 +9,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { AccountMenu } from "@/components/ui/account-menu"
 import { ChatGroupComponent } from "@/components/sidebar/chat-group"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
+import { useBranding } from "@/components/providers/branding-provider"
 
 interface SidebarProps {
   currentPage?: "chat" | "content"
@@ -35,6 +36,7 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
   const router = useRouter()
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
   const { lang, language } = useTranslation('common')
+  const { branding } = useBranding()
 
   // 번역 파일 프리로드
   useEffect(() => {
@@ -124,7 +126,9 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
                   
                   {/* favicon */}
                   <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">kkot</span>
+                    <span className="text-white text-xs font-bold">
+                      {branding.appName.substring(0, 4).toLowerCase() || 'kkot'}
+                    </span>
                   </div>
 
                   <Button
@@ -213,7 +217,9 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
                   <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">kkot</span>
+                    <span className="text-white text-xs font-bold">
+                      {branding.appName.substring(0, 4).toLowerCase() || 'kkot'}
+                    </span>
                   </div>
                   <Button
                     className="flex items-center gap-2 bg-transparent hover:bg-gray-100 text-gray-700 focus:outline-none focus:ring-0"

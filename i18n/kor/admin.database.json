@@ -1,7 +1,23 @@
 {
-  "title": "데이터베이스 설정",
-  "description": "데이터베이스 구성 설정입니다.",
-  "saveButton": "저장",
+  "title": "데이터베이스 관리",
+  "description": "데이터베이스 연결 및 설정을 관리합니다.",
+  "status": {
+    "title": "데이터베이스 상태",
+    "description": "현재 데이터베이스 연결 상태를 확인합니다.",
+    "test": "연결 테스트",
+    "testing": "테스트 중...",
+    "connected": "연결됨",
+    "error": "연결 오류",
+    "type": "데이터베이스 타입",
+    "url": "연결 URL",
+    "users": "사용자 수",
+    "lastChecked": "마지막 확인 시간"
+  },
+  "settings": {
+    "title": "데이터베이스 설정",
+    "description": "데이터베이스 연결 설정을 변경합니다."
+  },
+  "saveButton": "설정 저장",
   "databaseSettings": {
     "title": "데이터베이스 설정",
     "description": "이 섹션의 설정은 개발 중입니다.",

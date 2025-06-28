@@ -1,32 +1,38 @@
-import { NextResponse } from 'next/server';
-import LLMFactory, { LLMMessage } from '@/lib/llm';
+import { NextRequest, NextResponse } from 'next/server';
+import { initializeDb, llmServerRepository } from '@/lib/db/server';
 
-export async function GET() {
+// GET: LLM test endpoint
+export async function GET(request: NextRequest) {
   try {
-    // Create OpenAI LLM instance
-    const llm = LLMFactory.createDefault("openai");
+    // Verify DB initialization
+    await initializeDb();
     
-    // Prepare messages
-    const messages: LLMMessage[] = [
-      { role: "system", content: "You are a helpful AI assistant." },
-      { role: "user", content: "Hello, please respond with a short greeting." }
-    ];
-    
-    // Call LLM
-    const response = await llm.chat(messages);
+    // Get LLM server information
+    const servers = await llmServerRepository.findAll();
+    const enabledServers = await llmServerRepository.findEnabled();
+    const defaultServer = await llmServerRepository.findDefault();
     
     return NextResponse.json({
       success: true,
-      content: response.content,
-      tokens: response.tokens,
-      modelName: response.modelName,
-      provider: response.provider
+      results: {
+        totalServers: servers.length,
+        enabledServers: enabledServers.length,
+        defaultServer: defaultServer.length > 0 ? defaultServer[0] : null,
+        serversByProvider: servers.reduce((acc: any, server: any) => {
+          if (!acc[server.provider]) {
+            acc[server.provider] = 0;
+          }
+          acc[server.provider]++;
+          return acc;
+        }, {}),
+        timestamp: new Date().toISOString()
+      }
     });
   } catch (error) {
-    console.error("LLM test failed:", error);
+    console.error('LLM test error:', error);
     return NextResponse.json({
       success: false,
-      error: error instanceof Error ? error.message : String(error)
+      message: error instanceof Error ? error.message : 'An unknown error has occurred.'
     }, { status: 500 });
   }
 } 

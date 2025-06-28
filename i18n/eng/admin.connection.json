@@ -16,10 +16,14 @@
   "gemini": {
     "title": "Gemini API",
     "description": "Manage Google Gemini API connection settings.",
+    "addServer": "Add Server",
+    "serverName": "Server Name",
+    "apiUrl": "API URL",
+    "apiUrlPlaceholder": "Enter Gemini API URL",
     "apiKey": "API Key",
     "apiKeyPlaceholder": "Enter Gemini API Key",
     "enableConnection": "Enable Connection",
-    "enableConnectionDescription": "Enable Gemini API connection."
+    "enableConnectionDescription": "Enable this server connection."
   },
   "ollama": {
     "title": "Ollama API Server",
@@ -33,5 +37,24 @@
     "enableConnection": "Enable Connection",
     "enableConnectionDescription": "Enable this server connection."
   },
-  "saveButton": "Save"
+  "saveButton": "Save",
+  "savingButton": "Saving...",
+  "testConnection": "Test Connection",
+  "testConnectionSuccess": "Connection Test Successful",
+  "testConnectionFailure": "Connection Test Failed",
+  "testConnectionError": "Connection Test Error",
+  "testConnectionErrorMessage": "An error occurred while testing the connection.",
+  "deleteServerError": "Failed to delete server",
+  "deleteServerSuccess": "Server Deleted",
+  "deleteServerSuccessMessage": "LLM server has been deleted.",
+  "deleteServerFailure": "Failed to Delete Server",
+  "deleteServerFailureMessage": "Failed to delete the server.",
+  "saveServerError": "Failed to save server",
+  "saveSuccess": "Settings Saved",
+  "saveSuccessMessage": "LLM server settings have been successfully saved.",
+  "saveFailure": "Failed to Save Settings",
+  "saveFailureMessage": "Failed to save settings.",
+  "modelsSynced": "models synced",
+  "defaultServer": "Default Server",
+  "noEnabledServersWarning": "No LLM servers are enabled. You must enable at least one server to use the chat feature."
 } 

@@ -1,7 +1,23 @@
 {
-  "title": "Database Settings",
-  "description": "Database configuration settings.",
-  "saveButton": "Save",
+  "title": "Database Management",
+  "description": "Manage database connections and settings.",
+  "status": {
+    "title": "Database Status",
+    "description": "Check the current database connection status.",
+    "test": "Test Connection",
+    "testing": "Testing...",
+    "connected": "Connected",
+    "error": "Connection Error",
+    "type": "Database Type",
+    "url": "Connection URL",
+    "users": "User Count",
+    "lastChecked": "Last Checked"
+  },
+  "settings": {
+    "title": "Database Settings",
+    "description": "Change database connection settings."
+  },
+  "saveButton": "Save Settings",
   "databaseSettings": {
     "title": "Database Settings",
     "description": "Settings for this section are under development.",

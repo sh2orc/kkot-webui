@@ -9,5 +9,29 @@
     "maxTokens": "Max Tokens",
     "temperature": "Temperature"
   },
-  "saveButton": "Save"
+  "saveButton": "Save",
+  "savingButton": "Saving...",
+  "searchPlaceholder": "Search models...",
+  "modelsCount": "models",
+  "syncModels": "Sync Models",
+  "syncModelsError": "Failed to sync models",
+  "syncModelsSuccess": "Model Sync Complete",
+  "syncModelsSuccessMessage": " models have been synced.",
+  "syncModelsFailure": "Model Sync Failed",
+  "syncModelsFailureMessage": "Failed to fetch model list.",
+  "updateModelError": "Failed to update model",
+  "saveSuccess": "Settings Saved",
+  "saveSuccessMessage": " model settings have been saved.",
+  "saveFailure": "Failed to Save Settings",
+  "saveFailureMessage": "Failed to save settings.",
+  "tableHeaders": {
+    "serverModel": "Server / Model ID",
+    "enabled": "Enabled",
+    "public": "Public",
+    "updatedAt": "Updated"
+  },
+  "noModelsMessage": "No models available. Click the sync button to fetch models.",
+  "noSearchResults": "No search results found.",
+  "noEnabledServers": "No enabled servers.",
+  "saveChanges": "Save Changes"
 } 

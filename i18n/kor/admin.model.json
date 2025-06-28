@@ -9,5 +9,29 @@
     "maxTokens": "최대 토큰 수",
     "temperature": "Temperature"
   },
-  "saveButton": "저장"
+  "saveButton": "저장",
+  "savingButton": "저장 중...",
+  "searchPlaceholder": "모델 검색...",
+  "modelsCount": "개 모델",
+  "syncModels": "모델 동기화",
+  "syncModelsError": "모델 동기화 실패",
+  "syncModelsSuccess": "모델 동기화 완료",
+  "syncModelsSuccessMessage": "개의 모델이 동기화되었습니다.",
+  "syncModelsFailure": "모델 동기화 실패",
+  "syncModelsFailureMessage": "모델 목록을 가져오는데 실패했습니다.",
+  "updateModelError": "모델 업데이트 실패",
+  "saveSuccess": "설정 저장 완료",
+  "saveSuccessMessage": "개의 모델 설정이 저장되었습니다.",
+  "saveFailure": "설정 저장 실패",
+  "saveFailureMessage": "설정을 저장하는데 실패했습니다.",
+  "tableHeaders": {
+    "serverModel": "서버 / 모델 ID",
+    "enabled": "활성화",
+    "public": "공개",
+    "updatedAt": "갱신일"
+  },
+  "noModelsMessage": "모델이 없습니다. 동기화 버튼을 눌러 모델을 가져오세요.",
+  "noSearchResults": "검색 결과가 없습니다.",
+  "noEnabledServers": "활성화된 서버가 없습니다.",
+  "saveChanges": "변경사항 저장"
 } 

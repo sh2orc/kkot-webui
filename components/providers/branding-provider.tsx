@@ -28,43 +28,86 @@ interface BrandingProviderProps {
 
 export function BrandingProvider({ children }: BrandingProviderProps) {
   const [branding, setBranding] = useState<BrandingSettings>(defaultBranding)
+  const [isInitialized, setIsInitialized] = useState(false)
 
-  // 브라우저에서만 실행되는 로직
+  // Logic that only runs in the browser
   useEffect(() => {
-    // localStorage에서 브랜딩 설정 불러오기
-    const savedBranding = localStorage.getItem('branding-settings')
-    if (savedBranding) {
+    // Don't execute if already initialized
+    if (isInitialized) return
+    
+    // Load branding settings from localStorage
+    if (typeof window !== 'undefined') {
+      const savedBranding = localStorage.getItem('branding-settings')
+      if (savedBranding) {
+        try {
+          const parsed = JSON.parse(savedBranding)
+          setBranding({ ...defaultBranding, ...parsed })
+        } catch (error) {
+          console.error('Failed to parse branding settings:', error)
+        }
+      }
+      
+      // Get app name from DB - silently ignore errors
       try {
-        const parsed = JSON.parse(savedBranding)
-        setBranding({ ...defaultBranding, ...parsed })
+        fetch('/api/admin-settings?key=app.name')
+          .then(res => {
+            if (!res.ok) throw new Error('Failed to fetch app name')
+            return res.json()
+          })
+          .then(data => {
+            if (data && data.value) {
+              setBranding(prev => ({
+                ...prev,
+                appName: data.value
+              }))
+              // Update localStorage as well
+              const currentSettings = localStorage.getItem('branding-settings')
+              const settings = currentSettings ? JSON.parse(currentSettings) : {}
+              localStorage.setItem('branding-settings', JSON.stringify({
+                ...settings,
+                appName: data.value
+              }))
+            }
+          })
+          .catch(error => {
+            console.warn('Failed to fetch app name from DB:', error)
+          })
+          .finally(() => {
+            setIsInitialized(true)
+          })
       } catch (error) {
-        console.error('Failed to parse branding settings:', error)
+        console.warn('Error occurred while fetching app name:', error)
+        setIsInitialized(true)
       }
     }
-  }, [])
+  }, [isInitialized])
 
-  // 브랜딩 설정이 변경될 때마다 문서 title과 favicon 업데이트
+  // Update document title and favicon whenever branding settings change
   useEffect(() => {
     if (typeof window !== 'undefined') {
-      // 문서 제목 업데이트
-      document.title = branding.appName
+      try {
+        // Update document title
+        document.title = branding.appName
 
-      // 메타 description 업데이트
-      const metaDescription = document.querySelector('meta[name="description"]')
-      if (metaDescription) {
-        metaDescription.setAttribute('content', `${branding.appName} is an open-source UI project designed to provide a seamless user interface for interacting with large language models (LLMs).`)
-      }
+        // Update meta description
+        const metaDescription = document.querySelector('meta[name="description"]')
+        if (metaDescription) {
+          metaDescription.setAttribute('content', `${branding.appName} is an open-source UI project designed to provide a seamless user interface for interacting with large language models (LLMs).`)
+        }
 
-      // favicon 업데이트
-      const existingFavicon = document.querySelector('link[rel="icon"]')
-      if (existingFavicon) {
-        existingFavicon.setAttribute('href', branding.faviconUrl)
-      } else {
-        const favicon = document.createElement('link')
-        favicon.rel = 'icon'
-        favicon.type = 'image/png'
-        favicon.href = branding.faviconUrl
-        document.head.appendChild(favicon)
+        // Update favicon
+        const existingFavicon = document.querySelector('link[rel="icon"]')
+        if (existingFavicon) {
+          existingFavicon.setAttribute('href', branding.faviconUrl)
+        } else {
+          const favicon = document.createElement('link')
+          favicon.rel = 'icon'
+          favicon.type = 'image/png'
+          favicon.href = branding.faviconUrl
+          document.head.appendChild(favicon)
+        }
+      } catch (error) {
+        console.warn('Error updating document properties:', error)
       }
     }
   }, [branding])
@@ -73,7 +116,7 @@ export function BrandingProvider({ children }: BrandingProviderProps) {
     const newBranding = { ...branding, ...settings }
     setBranding(newBranding)
     
-    // localStorage에 저장
+    // Save to localStorage
     if (typeof window !== 'undefined') {
       localStorage.setItem('branding-settings', JSON.stringify(newBranding))
     }
