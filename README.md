@@ -19,15 +19,22 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Other Models**: Support for Claude, LLaMA, Mistral, and various other models
 
 ### 💬 Chat Interface
-- Seamless and Real-time conversational chat UI
-- Message copy, like/dislike, and regeneration features
-- User message editing capabilities
-- Responsive design for mobile and desktop
+- **Real-time Streaming**: Seamless streaming response for natural conversations
+- **Interactive Features**: Message copy, like/dislike, and regeneration capabilities
+- **Message Management**: User message editing and conversation history
+- **Responsive Design**: Optimized for mobile and desktop experiences
+
+### 🤖 Agent Management
+- **Custom AI Agents**: Create and manage personalized AI agents with specific configurations
+- **Agent Profiles**: Upload custom images and descriptions for each agent
+- **Model Integration**: Connect agents to different LLM models and providers
+- **Parameter Control**: Fine-tune temperature, token limits, and other model parameters
 
 ### ⚙️ Comprehensive Admin Panel
 - **General Settings**: User registration, API keys, JWT configuration, OAuth authentication
 - **Connection Management**: Multiple API server management for OpenAI and Ollama
 - **Model Configuration**: Model selection, token limits, temperature settings
+- **Agent Management**: Create, edit, and delete custom AI agents
 - **MCP Integration**: Model Context Protocol support
 - **Evaluation Tools**: Model performance evaluation features
 - **Document Management**: Document processing and management
@@ -36,6 +43,12 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Audio Processing**: Speech recognition and TTS settings
 - **Pipeline Management**: AI workflow configuration
 - **Database Integration**: Database connectivity and management
+
+### 🗄️ Database & Storage
+- **SQLite Integration**: Local database with automatic migrations
+- **PostgreSQL Support**: Production-ready database configuration
+- **Data Persistence**: Chat history, agent configurations, and settings storage
+- **Migration System**: Automated database schema updates
 
 ### 🎨 Modern UI/UX
 - Clean design based on Tailwind CSS
@@ -133,13 +146,16 @@ kkot-webui/
 
 - **Framework**: Next.js 15.2.4
 - **Language**: TypeScript
+- **Database**: SQLite with Drizzle ORM
 - **Styling**: Tailwind CSS
 - **UI Components**: Radix UI
 - **Icons**: Lucide React
 - **Form Management**: React Hook Form + Zod
+- **Validation**: Zod schema validation
 - **Theme**: next-themes
 - **Internationalization**: Custom i18n system
 - **State Management**: React Context API
+- **File Handling**: Multipart form data support
 
 ## 🌟 Contributing
 
@@ -162,16 +178,26 @@ This project is completely open source and welcomes contributions from everyone.
 
 ## 🎯 Roadmap
 
-- [ ] Real-time streaming response support
-- [ ] Conversation history storage and management
+### ✅ Completed Features
+- [x] **Real-time streaming response support** - Implemented streaming chat API
+- [x] **Conversation history storage and management** - Chat sessions with persistent storage
+- [x] **Extended multi-language support** - Korean/English support with i18n system
+- [x] **Agent management system** - Create, edit, and manage custom AI agents
+- [x] **Model provider integration** - Unified interface for multiple LLM providers
+- [x] **Database integration** - SQLite/PostgreSQL support with migrations
+- [x] **Admin panel enhancements** - Comprehensive settings and management interface
+
+### 🚧 In Progress / Planned
 - [ ] Plugin system development
-- [ ] Extended multi-language support
 - [ ] Mobile app development
 - [ ] Automatic API documentation generation
 - [ ] User authentication system
 - [ ] Team collaboration features
 - [ ] Advanced model evaluation metrics
 - [ ] RAG (Retrieval-Augmented Generation) integration
+- [ ] Voice input/output support
+- [ ] Advanced prompt templates
+- [ ] API rate limiting and usage analytics
 
 ## 📄 License
 
