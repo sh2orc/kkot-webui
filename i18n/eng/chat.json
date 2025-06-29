@@ -1,9 +1,16 @@
 {
   "placeholder": "How can I help you today?",
   "mobilePlaceholder": "Type a message...",
-  "modelDescription": "Google's latest language model that provides accurate and helpful answers to various questions",
+  "modelDescription": "This language model provides accurate and helpful answers to various questions",
   "capabilities": "I can help with creative writing, coding, analysis, translation, and various other tasks.",
   "disclaimer": "LLM can make mistakes. Please verify important information",
+  "selectModel": "Select Model",
+  "loadingAgents": "Loading agents and models...",
+  "agents": "Agents",
+  "publicModels": "Public Models",
+  "noAgentsOrModels": "No agents or public models available",
+  "searchModels": "Search models or agents",
+  "noResults": "No results found",
   "shortcuts": {
     "send": "Send",
     "lineBreak": "Line break"

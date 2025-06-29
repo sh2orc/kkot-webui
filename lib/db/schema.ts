@@ -224,10 +224,10 @@ export const llmModels = getDbType() === 'sqlite'
   ? sqliteTable('llm_models', {
       id: text('id').primaryKey(),
       serverId: text('server_id').references(() => llmServers.id, { onDelete: 'cascade' }),
-      modelId: text('model_id').notNull(), // 실제 모델 ID (예: gpt-4, llama2 등)
-      provider: text('provider').notNull(), // openai, ollama 등
+      modelId: text('model_id').notNull(), // Actual model ID (e.g., gpt-4, llama2, etc.)
+      provider: text('provider').notNull(), // openai, ollama, etc.
       enabled: integer('enabled', { mode: 'boolean' }).default(true),
-      isPublic: integer('is_public', { mode: 'boolean' }).default(false), // 일반 사용자에게 공개 여부
+      isPublic: integer('is_public', { mode: 'boolean' }).default(false), // Whether to expose to general users
       capabilities: text('capabilities'), // JSON string for model capabilities
       contextLength: integer('context_length'),
       createdAt: integer('created_at', { mode: 'timestamp' }),
@@ -242,6 +242,47 @@ export const llmModels = getDbType() === 'sqlite'
       isPublic: boolean('is_public').default(false),
       capabilities: pgText('capabilities'),
       contextLength: integer('context_length'),
+      createdAt: timestamp('created_at').defaultNow(),
+      updatedAt: timestamp('updated_at').defaultNow(),
+    });
+
+// Agent management table
+export const agentManage = getDbType() === 'sqlite'
+  ? sqliteTable('agent_manage', {
+      id: text('id').primaryKey(),
+      agentId: text('agent_id').notNull().unique(),
+      modelId: text('model_id').references(() => llmModels.id, { onDelete: 'cascade' }),
+      name: text('name').notNull(),
+      systemPrompt: text('system_prompt'),
+      temperature: text('temperature').default('0.7'),
+      topK: integer('top_k').default(50),
+      topP: text('top_p').default('0.95'),
+      maxTokens: integer('max_tokens').default(2048),
+      presencePenalty: text('presence_penalty').default('0.0'),
+      frequencyPenalty: text('frequency_penalty').default('0.0'),
+      imageData: blob('image_data'),
+      description: text('description'),
+      enabled: integer('enabled', { mode: 'boolean' }).default(true),
+      parameterEnabled: integer('parameter_enabled', { mode: 'boolean' }).default(true),
+      createdAt: integer('created_at', { mode: 'timestamp' }),
+      updatedAt: integer('updated_at', { mode: 'timestamp' }),
+    })
+  : pgTable('agent_manage', {
+      id: serial('id').primaryKey(),
+      agentId: varchar('agent_id', { length: 255 }).notNull().unique(),
+      modelId: serial('model_id').references(() => llmModels.id, { onDelete: 'cascade' }),
+      name: varchar('name', { length: 255 }).notNull(),
+      systemPrompt: pgText('system_prompt'),
+      temperature: varchar('temperature', { length: 10 }).default('0.7'),
+      topK: integer('top_k').default(50),
+      topP: varchar('top_p', { length: 10 }).default('0.95'),
+      maxTokens: integer('max_tokens').default(2048),
+      presencePenalty: varchar('presence_penalty', { length: 10 }).default('0.0'),
+      frequencyPenalty: varchar('frequency_penalty', { length: 10 }).default('0.0'),
+      imageData: text('image_data'), // PostgreSQL uses bytea type, but stores as base64 text
+      description: pgText('description'),
+      enabled: boolean('enabled').default(true),
+      parameterEnabled: boolean('parameter_enabled').default(true),
       createdAt: timestamp('created_at').defaultNow(),
       updatedAt: timestamp('updated_at').defaultNow(),
     }); 

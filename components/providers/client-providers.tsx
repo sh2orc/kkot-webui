@@ -3,6 +3,7 @@
 import { ReactNode, Suspense } from 'react'
 import { BrandingProvider } from './branding-provider'
 import LanguageProvider from './language-provider'
+import { ModelProvider } from './model-provider'
 import { Toaster } from '@/components/ui/toaster'
 
 // Basic Loading UI Component
@@ -18,8 +19,10 @@ export default function ClientProviders({ children }: { children: ReactNode }) {
       <BrandingProvider>
         <Suspense fallback={<LoadingFallback />}>
           <LanguageProvider>
-            {children}
-            <Toaster />
+            <ModelProvider>
+              {children}
+              <Toaster />
+            </ModelProvider>
           </LanguageProvider>
         </Suspense>
       </BrandingProvider>

@@ -33,7 +33,7 @@ export function LlmResponse({
       <div className="prose prose-sm max-w-none">
         <div className="whitespace-pre-wrap">{content}</div>
         <div className="text-xs text-gray-400 mt-1">
-          {timestamp.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                          {(timestamp instanceof Date ? timestamp : new Date(timestamp)).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </div>
         <div className="flex gap-1 mt-2">
           <button

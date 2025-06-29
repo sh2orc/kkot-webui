@@ -79,7 +79,7 @@ export async function POST(request: NextRequest) {
       isDefault: body.isDefault,
       settings: body.settings
     });
-
+    
     return NextResponse.json({
       message: 'LLM 서버가 추가되었습니다.',
       data: {
@@ -127,7 +127,7 @@ export async function PUT(request: NextRequest) {
         { status: 404 }
       );
     }
-
+    
     return NextResponse.json({
       message: 'LLM 서버가 업데이트되었습니다.',
       data: {
@@ -159,7 +159,7 @@ export async function DELETE(request: NextRequest) {
     }
 
     await llmServerRepository.delete(id);
-
+    
     return NextResponse.json({
       message: 'LLM 서버가 삭제되었습니다.'
     });

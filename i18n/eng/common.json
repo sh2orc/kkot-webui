@@ -10,6 +10,7 @@
     "searchPlaceholder": "Search",
     "book": "Book",
     "admin": "admin",
+    "noChatHistory": "No chat history",
     "chatGroups": {
       "today": "Today",
       "yesterday": "Yesterday",

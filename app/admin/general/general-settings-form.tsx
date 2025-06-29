@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
@@ -100,6 +101,7 @@ interface GeneralSettingsFormProps {
 }
 
 export default function GeneralSettingsForm({ initialSettings }: GeneralSettingsFormProps) {
+  const router = useRouter()
   const { lang } = useTranslation('admin.general')
   const { toast } = useToast()
   const { updateBranding } = useBranding()
@@ -230,6 +232,15 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
             title: lang('saveSuccessTitle'),
             description: lang('saveSuccessMessage'),
           })
+          
+          // 저장 완료 후 버튼 상태 즉시 업데이트
+          setIsSaving(false)
+          
+          // 저장 후 페이지 새로고침하여 서버 상태 동기화
+          setTimeout(() => {
+            console.log('일반 설정 저장 완료, 페이지 새로고침')
+            router.refresh()
+          }, 1000)
         }
       } else {
         // Read as text if not JSON
@@ -897,7 +908,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
           <div className="flex justify-end">
             <Button 
               type="submit"
-              className="bg-black text-white hover:text-white hover:bg-blue-800"
+              className="bg-black text-white hover:text-white hover:bg-blue-700"
               disabled={isSaving}
             >
               {isSaving ? `${lang('savingButton')}...` : lang('saveButton')}

@@ -10,6 +10,7 @@
     "searchPlaceholder": "검색",
     "book": "Book",
     "admin": "admin",
+    "noChatHistory": "채팅 기록이 없습니다",
     "chatGroups": {
       "today": "오늘",
       "yesterday": "어제",

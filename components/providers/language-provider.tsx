@@ -26,6 +26,7 @@ export default function LanguageProvider({ children }: LanguageProviderProps) {
     'admin.general',
     'admin.connection', 
     'admin.model',
+    'admin.agent',
     'admin.evaluation',
     'admin.tools',
     'admin.documents',

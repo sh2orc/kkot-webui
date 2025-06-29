@@ -1,8 +1,106 @@
 import { llmServerRepository, llmModelRepository } from "@/lib/db/server"
 import ModelManagementForm from "./model-management-form"
 
+// OpenAI model lookup function
+async function fetchOpenAIModels(server: any) {
+  if (!server.apiKey) return [];
+  
+  try {
+    const response = await fetch(`${server.baseUrl}/models`, {
+      headers: {
+        'Authorization': `Bearer ${server.apiKey}`
+      }
+    });
+    
+    if (response.ok) {
+      const data = await response.json();
+      return data.data.filter((model: any) => 
+        model.id.includes('gpt') || model.id.includes('dall-e') || model.id.includes('whisper')
+      ).map((model: any) => ({
+        modelId: model.id,
+        capabilities: {
+          chat: model.id.includes('gpt'),
+          image: model.id.includes('dall-e'),
+          audio: model.id.includes('whisper')
+        }
+      }));
+    }
+  } catch (err) {
+    console.error('Failed to fetch OpenAI models:', err);
+  }
+  return [];
+}
+
+// Ollama model lookup function
+async function fetchOllamaModels(server: any) {
+  try {
+    const response = await fetch(`${server.baseUrl}/api/tags`);
+    
+    if (response.ok) {
+      const data = await response.json();
+      return data.models?.map((model: any) => ({
+        modelId: model.name,
+        capabilities: {
+          chat: true,
+          image: false,
+          audio: false
+        },
+        contextLength: model.details?.parameter_size
+      })) || [];
+    }
+  } catch (err) {
+    console.error('Failed to fetch Ollama models:', err);
+  }
+  return [];
+}
+
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function ModelSettingsPage() {
-  // Fetching data with SSR
+  console.log('=== Model 페이지 로드 시작 ===');
+  
+  // Fetch enabled LLM servers
+  const enabledServers = await llmServerRepository.findEnabled();
+  console.log('활성화된 서버 수:', enabledServers.length);
+  
+  // Query each enabled server's models and sync with DB
+  for (const server of enabledServers) {
+    console.log(`서버 ${server.name} (${server.provider}) 모델 동기화 시작`);
+    
+    let models = [];
+    
+    // Query models by provider
+    if (server.provider === 'openai') {
+      models = await fetchOpenAIModels(server);
+    } else if (server.provider === 'ollama') {
+      models = await fetchOllamaModels(server);
+    }
+    
+    console.log(`서버 ${server.name}에서 ${models.length}개 모델 발견`);
+    
+    // Upsert queried models to DB
+    for (const model of models) {
+      try {
+        await llmModelRepository.upsert({
+          serverId: server.id,
+          modelId: model.modelId,
+          provider: server.provider,
+          capabilities: model.capabilities,
+          contextLength: model.contextLength
+          // enabled and isPublic are not passed
+          // - New models: set to disabled (false) by default
+          // - Existing models: maintain current status
+        });
+      } catch (err) {
+        console.error('Error upserting model:', err);
+      }
+    }
+  }
+  
+  console.log('모든 서버 모델 동기화 완료');
+  
+  // Get updated servers and models after sync
   const [servers, modelsWithServer] = await Promise.all([
     llmServerRepository.findEnabled(),
     llmModelRepository.findAllWithServer()
@@ -25,6 +123,9 @@ export default async function ModelSettingsPage() {
     ...server,
     models: modelsByServer[server.id] || []
   }))
+  
+  console.log('최종 서버별 모델 수:', serversWithModels.map(s => ({ name: s.name, modelCount: s.models.length })));
+  console.log('=== Model 페이지 로드 완료 ===');
   
   return <ModelManagementForm initialServers={serversWithModels} />
 } 

@@ -8,8 +8,17 @@ import { useRef, useState, useEffect, useCallback } from "react"
 import Layout from "@/components/layout/layout"
 import { useRouter } from "next/navigation"
 import { useTranslation } from "@/lib/i18n"
+import { useModel, type Agent, type PublicModel } from "@/components/providers/model-provider"
 
-export default function Component() {
+// 타입은 model-provider에서 import
+
+interface EmptyChatProps {
+  initialAgents?: Agent[]
+  initialPublicModels?: PublicModel[]
+  defaultModel?: Agent | PublicModel | null
+}
+
+export default function Component({ initialAgents, initialPublicModels, defaultModel }: EmptyChatProps = {}) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [inputValue, setInputValue] = useState("")
   const [isExpanded, setIsExpanded] = useState(false)
@@ -17,9 +26,25 @@ export default function Component() {
   const [isFlaskActive, setIsFlaskActive] = useState(false)
   const [isShiftPressed, setIsShiftPressed] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  
+  // navbar에서 선택된 모델 사용
+  const { selectedModel, setInitialData } = useModel()
 
   const router = useRouter()
   const { lang } = useTranslation("chat")
+  
+  // 초기 데이터가 있으면 설정
+  useEffect(() => {
+    if (initialAgents || initialPublicModels) {
+      setInitialData(
+        initialAgents || [], 
+        initialPublicModels || [], 
+        defaultModel
+      )
+    }
+  }, [initialAgents, initialPublicModels, defaultModel, setInitialData])
+
+
 
   const prompts = [
     {
@@ -75,6 +100,86 @@ export default function Component() {
     adjustTextareaHeight(textarea)
   }, [adjustTextareaHeight])
 
+  const handleSubmit = useCallback(async () => {
+    if (inputValue.trim() && !isSubmitting && selectedModel) {
+      setIsSubmitting(true)
+      
+      try {
+        console.log('=== 클라이언트: 채팅 세션 생성 요청 시작 ===')
+        console.log('선택된 모델:', selectedModel)
+        console.log('초기 메시지:', inputValue)
+        
+        // 새로운 채팅 세션 생성 API 호출
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            agentId: selectedModel.type === 'agent' ? selectedModel.id : undefined,
+            modelId: selectedModel.type === 'model' ? selectedModel.id : undefined,
+            modelType: selectedModel.type,
+            initialMessage: inputValue
+          })
+        })
+
+        console.log('=== 클라이언트: 응답 받음 ===')
+        console.log('응답 상태:', response.status)
+        console.log('응답 OK:', response.ok)
+        console.log('응답 헤더:', response.headers)
+
+        if (!response.ok) {
+          const errorText = await response.text()
+          console.log('오류 응답 내용:', errorText)
+          throw new Error(`채팅 세션 생성에 실패했습니다 (${response.status}: ${errorText})`)
+        }
+
+        const data = await response.json()
+        console.log('=== 클라이언트: 응답 데이터 ===')
+        console.log('응답 데이터:', data)
+        
+        const chatId = data.chatId
+        console.log('채팅 ID:', chatId)
+
+        // 에이전트 정보를 localStorage에 저장 (스트리밍 응답용)
+        if (typeof window !== 'undefined') {
+          localStorage.setItem(`chat_${chatId}_agent`, JSON.stringify({
+            id: selectedModel.id,
+            type: selectedModel.type
+          }))
+        }
+
+        // 사이드바 새로고침 (새 채팅이 목록에 표시되도록)
+        if (typeof window !== 'undefined' && (window as any).refreshSidebar) {
+          (window as any).refreshSidebar()
+        }
+
+        // 생성된 채팅 ID로 페이지 이동 (URL에 민감한 정보 노출 없음)
+        router.push(`/chat/${chatId}`)
+        
+        // 입력창 초기화
+        setInputValue("")
+        setIsExpanded(false)
+        
+        // 높이 리셋
+        if (textareaRef.current) {
+          textareaRef.current.style.height = "48px"
+        }
+        
+      } catch (error) {
+        console.error('=== 클라이언트: 채팅 세션 생성 오류 ===')
+        console.error('오류 상세:', error)
+        if (error instanceof Error) {
+          console.error('오류 스택:', error.stack)
+        }
+        // 오류 처리 - 사용자에게 알림 표시
+        alert('채팅을 시작하는데 실패했습니다. 다시 시도해주세요.')
+      } finally {
+        setIsSubmitting(false)
+      }
+    }
+  }, [inputValue, router, isSubmitting, selectedModel])
+
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Shift") {
       setIsShiftPressed(true)
@@ -87,60 +192,16 @@ export default function Component() {
       } else {
         // Enter만 누르면 submit 동작
         e.preventDefault()
-        if (inputValue.trim() && !isSubmitting) {
-          setIsSubmitting(true)
-          
-          // 새로운 채팅 ID 생성
-          const newChatId = `chat-${Date.now()}`
-
-          // 새로운 채팅 페이지로 이동하면서 입력값을 쿼리 파라미터로 전달
-          router.push(`/chat/${newChatId}?message=${encodeURIComponent(inputValue)}`)
-          
-          // 입력창 초기화
-          setInputValue("")
-          setIsExpanded(false)
-          
-          // 높이 리셋
-          if (textareaRef.current) {
-            textareaRef.current.style.height = "48px"
-          }
-          
-          // 잠시 후 submit 상태 해제
-          setTimeout(() => setIsSubmitting(false), 1000)
-        }
+        handleSubmit()
       }
     }
-  }, [inputValue, router, isSubmitting])
+  }, [handleSubmit])
 
   const handleKeyUp = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Shift") {
       setIsShiftPressed(false)
     }
   }, [])
-
-  const handleSubmit = useCallback(() => {
-    if (inputValue.trim() && !isSubmitting) {
-      setIsSubmitting(true)
-      
-      // 새로운 채팅 ID 생성
-      const newChatId = `chat-${Date.now()}`
-
-      // 새로운 채팅 페이지로 이동하면서 입력값을 쿼리 파라미터로 전달
-      router.push(`/chat/${newChatId}?message=${encodeURIComponent(inputValue)}`)
-      
-      // 입력창 초기화
-      setInputValue("")
-      setIsExpanded(false)
-      
-      // 높이 리셋
-      if (textareaRef.current) {
-        textareaRef.current.style.height = "48px"
-      }
-      
-      // 잠시 후 submit 상태 해제
-      setTimeout(() => setIsSubmitting(false), 1000)
-    }
-  }, [inputValue, router, isSubmitting])
 
   const handlePromptClick = useCallback((prompt: string) => {
     setInputValue(prompt)
@@ -154,11 +215,49 @@ export default function Component() {
     }
   }, [adjustTextareaHeight])
 
+  // 에이전트 또는 모델 선택 핸들러
+
+
   useEffect(() => {
     if (textareaRef.current) {
       adjustTextareaHeight(textareaRef.current)
     }
   }, [])
+
+  // 이미지 데이터 처리 함수
+  const getAvatarContent = (model: Agent | PublicModel | null) => {
+    if (!model) return 'AI'
+    
+    // 에이전트이고 이미지가 있는 경우
+    if (model.type === 'agent' && (model as Agent).imageData) {
+      return <img src={`data:image/png;base64,${(model as Agent).imageData}`} alt={(model as Agent).name || ''} />
+    }
+    
+    // 첫 글자 가져오기
+    const letter = model.type === 'agent' 
+      ? ((model as Agent).name || '').charAt(0).toUpperCase()
+      : ((model as PublicModel).provider || '').charAt(0).toUpperCase()
+      
+    return letter || 'AI'
+  }
+  
+  // 배경색 결정 함수
+  const getAvatarBackground = (model: Agent | PublicModel | null) => {
+    if (!model) return 'bg-red-500'
+    
+    switch(model.type) {
+      case 'agent':
+        return 'bg-green-500'
+      case 'model':
+        const provider = (model as PublicModel).provider?.toLowerCase()
+        if (provider?.includes('openai')) return 'bg-blue-500'
+        if (provider?.includes('google')) return 'bg-yellow-500'
+        if (provider?.includes('gemini')) return 'bg-teal-500'
+        return 'bg-purple-500'
+      default:
+        return 'bg-red-500'
+    }
+  }
 
   return (
     <Layout currentPage="chat">
@@ -166,22 +265,64 @@ export default function Component() {
       <div className="flex-1 flex flex-col relative">
         {/* Initial State Content */}
         <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-4xl mx-auto w-full pb-32 md:pb-6">
-          {/* Model Name */}
-          <div className="flex items-center gap-3 mb-4">
-            <Avatar className="h-12 w-12">
-              <AvatarFallback className="bg-red-500 text-white text-lg font-bold">G</AvatarFallback>
-            </Avatar>
-            <h1 className="text-2xl font-semibold">gemma3:27b-it-qat</h1>
-          </div>
+          {/* 모델 선택 영역 - 새로 추가 */}
+
+          
+          {/* 선택된 모델 이름 */}
+          {selectedModel && (
+            <div className="flex items-center gap-3 mb-4">
+              <Avatar className="h-12 w-12">
+                <AvatarFallback className={`${getAvatarBackground(selectedModel)} text-white text-lg font-bold`}>
+                  {getAvatarContent(selectedModel)}
+                </AvatarFallback>
+              </Avatar>
+              <div>
+                <h1 className="text-2xl font-semibold">
+                  {selectedModel.type === 'agent' ? (selectedModel as Agent).name : (selectedModel as PublicModel).modelId}
+                </h1>
+                <p className="text-sm text-gray-500">
+                  {selectedModel.type === 'agent' 
+                    ? `${(selectedModel as Agent).modelName} (${(selectedModel as Agent).modelProvider})` 
+                    : (selectedModel as PublicModel).provider}
+                </p>
+              </div>
+            </div>
+          )}
+
+          {/* 기본 모델 표시 (선택된 모델이 없는 경우) */}
+          {!selectedModel && (
+            <div className="flex items-center gap-3 mb-4">
+              <Avatar className="h-12 w-12">
+                <AvatarFallback className="bg-red-500 text-white text-lg font-bold">G</AvatarFallback>
+              </Avatar>
+              <h1 className="text-2xl font-semibold">gemma3:27b-it-qat</h1>
+            </div>
+          )}
 
           {/* Model Description */}
           <div className="text-center mb-12">
-            <p className="text-gray-600 text-lg">
-              {lang("modelDescription")}
-            </p>
-            <p className="text-gray-500 text-sm mt-2">
-              {lang("capabilities")}
-            </p>
+            {selectedModel ? (
+              <>
+                <p className="text-gray-600 text-lg">
+                  {selectedModel.type === 'agent' 
+                    ? (selectedModel as Agent).description || lang("modelDescription")
+                    : lang("modelDescription")
+                  }
+                </p>
+                <p className="text-gray-500 text-sm mt-2">
+                  {lang("capabilities")}
+                </p>
+              </>
+            ) : (
+              <>
+                <p className="text-gray-600 text-lg">
+                  {lang("modelDescription")}
+                </p>
+                <p className="text-gray-500 text-sm mt-2">
+                  {lang("capabilities")}
+                </p>
+              </>
+            )}
           </div>
 
           {/* Central Input Area */}
@@ -201,6 +342,7 @@ export default function Component() {
                       onInput={handleInput}
                       onKeyDown={handleKeyDown}
                       onKeyUp={handleKeyUp}
+                      disabled={!selectedModel}
                     />
                   </div>
 
@@ -219,7 +361,7 @@ export default function Component() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={`h-10 w-10 rounded-full ${isFlaskActive ? "bg-black text-white hover:bg-gray-800 hover:text-white" : "hover:bg-transparent"}`}
+                        className={`h-10 w-10 rounded-full ${isFlaskActive ? "bg-black text-white hover:bg-blue-700 hover:text-white" : "hover:bg-transparent"}`}
                         onClick={() => setIsFlaskActive(!isFlaskActive)}
                       >
                         <Flask className="h-5 w-5" />
@@ -227,14 +369,14 @@ export default function Component() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={`h-10 w-10 rounded-full ${isGlobeActive ? "bg-black text-white hover:bg-gray-800 hover:text-white" : "hover:bg-transparent"}`}
+                        className={`h-10 w-10 rounded-full ${isGlobeActive ? "bg-black text-white hover:bg-blue-700 hover:text-white" : "hover:bg-transparent"}`}
                         onClick={() => setIsGlobeActive(!isGlobeActive)}
                       >
                         <Globe className="h-5 w-5" />
                       </Button>
                       <Button
                         onClick={handleSubmit}
-                        disabled={!inputValue.trim() || isSubmitting}
+                        disabled={!inputValue.trim() || isSubmitting || !selectedModel}
                         className="h-10 w-10 p-0 rounded-full bg-blue-600 hover:bg-blue-700 hover:text-white text-white disabled:bg-gray-300 disabled:text-gray-500"
                       >
                         <Send className="h-5 w-5" />
@@ -258,10 +400,11 @@ export default function Component() {
                     onInput={handleInput}
                     onKeyDown={handleKeyDown}
                     onKeyUp={handleKeyUp}
+                    disabled={!selectedModel}
                   />
                   <Button
                     onClick={handleSubmit}
-                    disabled={!inputValue.trim() || isSubmitting}
+                    disabled={!inputValue.trim() || isSubmitting || !selectedModel}
                     className="absolute right-2 bottom-2 h-8 w-8 p-0 rounded-full bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
                   >
                     <Send className="h-4 w-4" />

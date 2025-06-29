@@ -1,0 +1,103 @@
+{
+  "title": "Agent Management",
+  "description": "Create and manage LLM model-based agents.",
+  "addAgent": "Add Agent",
+  "editAgent": "Edit Agent",
+  "noAgents": "No agents registered.",
+  "addAgentDescription": "Register a new agent and set system prompt and parameters.",
+  "editAgentDescription": "Edit agent information and settings.",
+  
+  "agentList": "Agent List",
+  "agentListDescription": "View and manage registered agents.",
+  "noDescription": "No description",
+  "noModelsAvailable": "No models are registered",
+  "modelRequired": "Model Registration Required",
+  "modelRequiredMessage": "Please register a Foundation model first.",
+  "unsupportedFileType": "Unsupported file type",
+  "fileSizeExceeded": "File size exceeded",
+  "imageProcessingError": "Error processing image",
+  "imageUploadSuccess": "Image Upload Success",
+  "imageUploadSuccessMessage": "Image has been successfully uploaded.",
+  "imageFileOnlyMessage": "Only image files can be uploaded.",
+  "fileSizeExceededMessage": "File size is too large. Please select a file under 10MB.",
+  "imageProcessingErrorMessage": "An error occurred while processing the image.",
+  "modelRegistrationNotice": "Please register a Foundation model first.",
+  "goToModelManagement": "Go to Model Management",
+  
+  "tableHeaders": {
+    "name": "Name",
+    "model": "Model",
+    "parameters": "Parameters",
+    "enabled": "Enabled",
+    "actions": "Actions"
+  },
+  
+  "table": {
+    "name": "Name",
+    "model": "Model", 
+    "description": "Description",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  
+  "status": {
+    "enabled": "Enabled",
+    "disabled": "Disabled"
+  },
+  
+  "form": {
+    "basicInfo": "Basic Information",
+    "parameters": "Parameter Settings",
+    "name": "Agent Name",
+    "namePlaceholder": "Enter agent name",
+    "model": "Foundation Model",
+    "modelPlaceholder": "Select a model",
+    "image": "Agent Image",
+    "uploadImage": "Upload Image",
+    "imageHint": "Upload an image for the agent (max 5MB, recommended square image)",
+    "description": "Description",
+    "descriptionPlaceholder": "Enter a brief description of the agent",
+    "systemPrompt": "System Prompt",
+    "systemPromptPlaceholder": "Enter the system prompt that defines the agent's behavior",
+    "temperature": "Temperature",
+    "topK": "Top-K",
+    "topP": "Top-P",
+    "maxTokens": "Max Tokens",
+    "presencePenalty": "Presence Penalty",
+    "frequencyPenalty": "Frequency Penalty",
+    "enabled": "Enabled"
+  },
+  
+  "cancel": "Cancel",
+  "save": "Save",
+  "saving": "Saving...",
+  "delete": "Delete",
+  
+  "createSuccess": "Agent Created",
+  "createSuccessMessage": "New agent has been successfully registered.",
+  "updateSuccess": "Agent Updated",
+  "updateSuccessMessage": "Agent information has been successfully updated.",
+  "deleteSuccess": "Agent Deleted",
+  "deleteSuccessMessage": "Agent has been successfully deleted.",
+  "enableSuccess": "Agent Enabled",
+  "enableSuccessMessage": "Agent has been successfully enabled.",
+  "disableSuccess": "Agent Disabled",
+  "disableSuccessMessage": "Agent has been successfully disabled.",
+  
+  "saveError": "Save Failed",
+  "saveFailure": "Save Failed",
+  "saveFailureMessage": "An error occurred while saving the agent.",
+  "imageUploadError": "Image Upload Failed",
+  "imageSizeLimit": "Image size exceeds the 5MB limit.",
+  "deleteError": "Delete Failed",
+  "deleteFailure": "Delete Failed",
+  "deleteFailureMessage": "An error occurred while deleting the agent.",
+  "deleteConfirm": "Delete Agent",
+  "deleteConfirmMessage": "Are you sure you want to delete this agent? This action cannot be undone.",
+  "toggleError": "Status Change Failed",
+  "toggleFailure": "Enable Status Change Failed",
+  "toggleFailureMessage": "An error occurred while changing agent enable status.",
+  
+  "validationError": "Validation Error",
+  "requiredFields": "Please fill in all required fields (Name, Model)."
+} 

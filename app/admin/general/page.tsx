@@ -1,19 +1,22 @@
-import { systemSettingsRepository } from "@/lib/db/repository"
+import { adminSettingsRepository } from "@/lib/db/repository"
 import GeneralSettingsForm from "./general-settings-form"
 
+export const dynamic = 'force-dynamic'
+export const revalidate = 0
+
 export default async function GeneralSettingsPage() {
-  // SSR로 설정 데이터 가져오기
-  const settings = await systemSettingsRepository.findAll()
+  // Fetch settings data with SSR
+  const settings = await adminSettingsRepository.findAll()
   
-  // 설정을 key-value 객체로 변환
+  // Convert settings to key-value object
   const settingsMap = settings.reduce((acc: Record<string, string>, setting: any) => {
         acc[setting.key] = setting.value
         return acc
       }, {})
       
-  // 빈 설정인 경우 기본값 설정
+  // Set default values if settings are empty
   if (Object.keys(settingsMap).length === 0) {
-    // 기본 설정 저장
+    // Save default settings
     const defaultSettings = [
       { key: 'app.name', value: 'kkot-webui' },
       { key: 'auth.signupEnabled', value: 'true' },
@@ -33,9 +36,9 @@ export default async function GeneralSettingsPage() {
       { key: 'auth.oauth.github.enabled', value: 'false' },
     ]
     
-    // 기본 설정을 DB에 저장
+    // Save default settings to DB
     for (const setting of defaultSettings) {
-      await systemSettingsRepository.upsert(setting.key, setting.value)
+      await adminSettingsRepository.upsert(setting.key, setting.value)
       settingsMap[setting.key] = setting.value
     }
   }

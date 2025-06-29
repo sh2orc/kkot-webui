@@ -16,6 +16,10 @@
         "label": "모델 설정",
         "description": "AI 모델 구성 및 관리"
       },
+      "agent": {
+        "label": "에이전트 설정",
+        "description": "에이전트 구성 및 관리"
+      },      
       "mcp": {
         "label": "MCP 설정",
         "description": "Model Context Protocol 서버 관리"
@@ -65,6 +69,7 @@
     "general": "일반",
     "connection": "연결",
     "model": "모델",
+    "agent": "에이전트",
     "mcp": "MCP",
     "evaluation": "평가",
     "tools": "도구",

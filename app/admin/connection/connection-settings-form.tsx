@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import AdminLayout from "@/components/admin/admin-layout"
 import { useTranslation } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
@@ -36,6 +37,7 @@ interface ConnectionSettingsFormProps {
 }
 
 export default function ConnectionSettingsForm({ initialServers }: ConnectionSettingsFormProps) {
+  const router = useRouter()
   const { lang } = useTranslation('admin.connection')
   const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
@@ -217,10 +219,14 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
       const allServers = Object.values(servers).flat()
       const updatedServers: Record<string, LLMServer[]> = {}
       
+      console.log('저장 시작:', allServers.length, '개 서버 업데이트 중...')
+      
       for (const server of allServers) {
         const isNew = server.id.startsWith('new-')
         const endpoint = '/api/llm-servers'
         const method = isNew ? 'POST' : 'PUT'
+        
+        console.log(`서버 ${server.name} (${server.provider}) 업데이트: enabled=${server.enabled}`)
         
         const response = await fetch(endpoint, {
           method,
@@ -234,12 +240,16 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
         })
         
         if (!response.ok) {
-          throw new Error(`${lang('saveServerError')} ${server.name}`)
+          const errorData = await response.json().catch(() => ({}))
+          console.error(`${server.name} 저장 실패:`, response.status, errorData)
+          throw new Error(`${lang('saveServerError')} ${server.name}: ${errorData.error || response.statusText}`)
         }
+        
+        const result = await response.json()
+        console.log(`서버 ${server.name} 저장 성공:`, result)
         
         // Update with ID from response for newly created servers
         if (isNew) {
-          const result = await response.json()
           const newServer = result.data
           
           if (!updatedServers[server.provider]) {
@@ -254,13 +264,21 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
         }
       }
       
-      // Update state
-      setServers(updatedServers)
+      console.log('모든 서버 저장 완료, 페이지 새로고침 중...')
       
       toast({
         title: lang('saveSuccess'),
         description: lang('saveSuccessMessage')
       })
+      
+      // 저장 완료 후 버튼 상태 즉시 업데이트
+      setIsSaving(false)
+      
+      // 저장 후 페이지 새로고침하여 서버 상태 동기화
+      setTimeout(() => {
+        console.log('페이지 새로고침 실행')
+        router.refresh()
+      }, 1000)
       
     } catch (error) {
       console.error('Settings save error:', error)
@@ -269,9 +287,9 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
         description: error instanceof Error ? error.message : lang('saveFailureMessage'),
         variant: "destructive"
       })
-    } finally {
-      setIsSaving(false)
+      setIsSaving(false) // 에러 시에만 여기서 setIsSaving(false) 호출
     }
+    // 성공 시에는 페이지가 새로고침되므로 setIsSaving(false) 불필요
   }
 
   const renderProviderSection = (provider: string, title: string, description: string) => {
@@ -431,7 +449,7 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
         {/* Save Button */}
         <div className="flex justify-end">
           <Button 
-              className="bg-black text-white hover:text-white hover:bg-blue-800"
+              className="bg-black text-white hover:text-white hover:bg-blue-700"
             onClick={handleSave}
             disabled={isSaving || !hasEnabledServers}
           >

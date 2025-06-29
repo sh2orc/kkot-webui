@@ -6,29 +6,29 @@ import * as repositories from './repository';
 import * as fs from 'fs';
 import * as path from 'path';
 
-// 마이그레이션 버전 파일 경로
+// Migration version file path
 const MIGRATION_VERSION_FILE = path.join(process.cwd(), '.db_version');
 
-// DB 초기화 상태 추적 (전역 변수로 상태 유지)
+// Track DB initialization state (maintain state with global variable)
 let isDbInitialized = false;
 let dbInitializationPromise: Promise<void> | null = null;
 
 /**
- * DB 초기화를 보장하는 wrapper 함수
- * 서버 시작 시 한 번만 실행되도록 Promise 캐싱
+ * Wrapper function to ensure DB initialization
+ * Promise caching to execute only once at server startup
  */
 async function ensureDbInitialized() {
-  // 이미 초기화되었으면 바로 반환
+  // Return immediately if already initialized
   if (isDbInitialized) {
     return;
   }
   
-  // 이미 초기화 중이면 해당 Promise 반환
+  // Return existing Promise if already initializing
   if (dbInitializationPromise) {
     return dbInitializationPromise;
   }
   
-  // 초기화 Promise 생성 및 캐싱
+  // Create and cache initialization Promise
   dbInitializationPromise = (async () => {
     try {
       console.log('Checking database migrations...');
@@ -37,7 +37,7 @@ async function ensureDbInitialized() {
       console.log('Database is ready');
     } catch (error) {
       console.error('Database initialization error:', error);
-      // 초기화 실패 시 다음 시도에서 재시도할 수 있도록 함
+      // Allow retry on next attempt if initialization fails
       dbInitializationPromise = null;
       throw error;
     }
@@ -47,7 +47,7 @@ async function ensureDbInitialized() {
 }
 
 /**
- * DB 인스턴스를 가져오는 함수 (초기화 보장)
+ * Function to get DB instance (ensures initialization)
  */
 export async function getDb() {
   await ensureDbInitialized();
@@ -55,14 +55,14 @@ export async function getDb() {
 }
 
 /**
- * DB 초기화 함수
- * 서버 시작 시 또는 필요 시 호출
+ * DB initialization function
+ * Called at server startup or when needed
  */
 export async function initializeDb() {
   await ensureDbInitialized();
 }
 
-// 서버 시작 시 자동으로 초기화 시도 (하지만 실패해도 서버 시작은 차단하지 않음)
+// Automatically attempt initialization at server startup (but don't block server start if it fails)
 ensureDbInitialized().catch(err => {
   console.error('Initial DB initialization failed:', err);
 });
@@ -93,11 +93,12 @@ export const {
   userRepository,
   chatSessionRepository,
   chatMessageRepository,
-  apiConnectionRepository,
-  systemSettingsRepository,
+  apiConnectionRepository,  
   adminSettingsRepository,
   llmServerRepository,
-  llmModelRepository
+  llmModelRepository,
+  agentManageRepository,
+  convertImageDataToDataUrl
 } = repositories;
 
 // Server-only DB functionality
@@ -106,5 +107,5 @@ export const {
 // Export everything from repository
 export * from './repository';
 
-// Export other server-safe DB utilities (getDb 제외 - 이미 위에서 정의함)
+// Export other server-safe DB utilities (excluding getDb - already defined above)
 export { runMigrations } from './config'; 

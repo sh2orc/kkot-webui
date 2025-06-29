@@ -54,6 +54,9 @@ async function fetchOllamaModels(server: any) {
   return [];
 }
 
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+
 export default async function ConnectionSettingsPage() {
   // Fetch LLM server data with SSR
   const servers = await llmServerRepository.findAll()

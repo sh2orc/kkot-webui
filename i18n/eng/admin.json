@@ -16,6 +16,10 @@
         "label": "Model Settings",
         "description": "AI model configuration and management"
       },
+      "agent": {
+        "label": "Agent Settings",
+        "description": "Agent configuration and management"
+      },
       "mcp": {
         "label": "MCP Settings",
         "description": "Model Context Protocol server management"
@@ -65,6 +69,7 @@
     "general": "General",
     "connection": "Connection",
     "model": "Model",
+    "agent": "Agent",
     "mcp": "MCP",
     "evaluation": "Evaluation",
     "tools": "Tools",

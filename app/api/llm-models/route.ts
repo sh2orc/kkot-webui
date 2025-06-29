@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { llmModelRepository, llmServerRepository } from '@/lib/db/server';
 
 // GET: Retrieve LLM models
@@ -121,6 +122,9 @@ export async function POST(request: NextRequest) {
         results.push(result[0]);
       }
       
+      // 페이지 캐시 무효화
+      revalidatePath('/admin/model');
+      
       return NextResponse.json({
         message: 'Model synchronization complete',
         count: results.length,
@@ -166,6 +170,9 @@ export async function PUT(request: NextRequest) {
         { status: 404 }
       );
     }
+    
+    // 페이지 캐시 무효화
+    revalidatePath('/admin/model');
     
     return NextResponse.json({
       message: 'Model has been updated.',

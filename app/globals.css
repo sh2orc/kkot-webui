@@ -136,6 +136,24 @@ html, body {
   .messages-container::-webkit-scrollbar-thumb:hover {
     background: #9ca3af;
   }
+  
+  /* Number input 스타일링 */
+  input[type="number"] {
+    -moz-appearance: textfield; /* Firefox */
+    appearance: textfield;
+  }
+  
+  /* Chrome, Safari, Edge에서 spinner 제거 */
+  input[type="number"]::-webkit-inner-spin-button,
+  input[type="number"]::-webkit-outer-spin-button {
+    -webkit-appearance: none;
+    margin: 0;
+  }
+  
+  /* Number input의 일관된 padding */
+  input[type="number"] {
+    padding: 0.5rem 0.75rem;
+  }
 }
 
 /* 클릭 및 호버 효과 */

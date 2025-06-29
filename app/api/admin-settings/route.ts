@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { revalidatePath } from 'next/cache';
 import { adminSettingsRepository } from '@/lib/db/server';
 
 // GET: Retrieve all admin settings or specific setting by key
@@ -73,6 +74,9 @@ export async function POST(request: NextRequest) {
       // Create or update setting
       const result = await adminSettingsRepository.upsert(body.key, body.value);
       
+      // 페이지 캐시 무효화
+      revalidatePath('/admin/general');
+      
       return NextResponse.json({
         message: 'Setting has been updated.',
         data: result[0]
@@ -126,6 +130,9 @@ export async function PUT(request: NextRequest) {
         errors.push({ key: setting.key, error: err instanceof Error ? err.message : 'Unknown error' });
       }
     }
+    
+    // 페이지 캐시 무효화
+    revalidatePath('/admin/general');
     
     return NextResponse.json({
       message: 'Settings have been updated.',

@@ -10,6 +10,7 @@ import { AccountMenu } from "@/components/ui/account-menu"
 import { ChatGroupComponent } from "@/components/sidebar/chat-group"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 import { useBranding } from "@/components/providers/branding-provider"
+import Image from "next/image"
 
 interface SidebarProps {
   currentPage?: "chat" | "content"
@@ -17,7 +18,7 @@ interface SidebarProps {
   setMobileSidebarOpen: (open: boolean) => void
 }
 
-// 채팅 항목 타입 정의
+// Chat item type definition
 interface ChatItem {
   id: string
   title: string
@@ -25,7 +26,7 @@ interface ChatItem {
   timeAgo: string
 }
 
-// 채팅 그룹 타입 정의
+// Chat group type definition
 interface ChatGroup {
   label: string
   items: ChatItem[]
@@ -35,44 +36,140 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const router = useRouter()
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
+  const [chatGroups, setChatGroups] = useState<ChatGroup[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const { lang, language } = useTranslation('common')
   const { branding } = useBranding()
 
-  // 번역 파일 프리로드
+  // Preload translation files
   useEffect(() => {
     preloadTranslationModule(language, 'common')
   }, [language])
 
-  // 채팅 그룹 데이터
-  const chatGroups: ChatGroup[] = [
-    {
-      label: lang('sidebar.chatGroups.today'),
-      items: [
-        { id: "chat-1", title: "에프앤가이드 기업에...", time: "09:45", timeAgo: "15 hours" },
-        { id: "chat-2", title: "BC카드의 힘써하는 스...", time: "08:30", timeAgo: "15 hours" },
-      ],
-    },
-    {
-      label: lang('sidebar.chatGroups.previous30Days'),
-      items: [
-        { id: "chat-3", title: "물지로가 비비가드 맛...", time: "14:22", timeAgo: "41 days" },
-        { id: "chat-4", title: "BC카드 페이백을 통한...", time: "11:05", timeAgo: "41 days" },
-        { id: "chat-5", title: "페이백 캐리터 디자인...", time: "16:30", timeAgo: "42 days" },
-        { id: "chat-6", title: "페이백을 이용한 365...", time: "10:15", timeAgo: "42 days" },
-      ],
-    },
-    {
-      label: lang('sidebar.chatGroups.may'),
-      items: [
-        { id: "chat-7", title: "누룩 여행 일정 7일 24...", time: "09:00", timeAgo: "42 days" },
-        { id: "chat-8", title: "BC카드 페이백을 통한...", time: "15:45", timeAgo: "42 days" },
-      ],
-    },
-    {
-      label: lang('sidebar.chatGroups.april'),
-      items: [{ id: "chat-9", title: "서울 벚꽃 명소", time: "13:20", timeAgo: "47 days" }],
-    },
-  ]
+  // Fetch chat sessions list
+  const fetchChatSessions = async () => {
+    try {
+      setIsLoading(true)
+      const response = await fetch('/api/chat')
+      const data = await response.json()
+      
+      if (data.sessions) {
+        // Group by date
+        const groups = groupChatSessionsByDate(data.sessions)
+        setChatGroups(groups)
+      }
+    } catch (error) {
+      console.error('Error fetching chat sessions:', error)
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Date-based grouping function
+  const groupChatSessionsByDate = (sessions: any[]): ChatGroup[] => {
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+    
+    const groups: { [key: string]: ChatItem[] } = {
+      today: [],
+      previous30Days: [],
+    }
+    const monthGroups: { [key: string]: ChatItem[] } = {}
+
+    sessions.forEach((session: any) => {
+      const sessionDate = new Date(session.createdAt)
+      const sessionDateOnly = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate())
+      
+      // Generate time format
+      const timeStr = sessionDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+      
+      // Calculate elapsed time
+      const diffInHours = Math.floor((now.getTime() - sessionDate.getTime()) / (1000 * 60 * 60))
+      const diffInDays = Math.floor(diffInHours / 24)
+      let timeAgo = ''
+      
+      if (diffInHours < 24) {
+        timeAgo = `${diffInHours}시간 전`
+      } else {
+        timeAgo = `${diffInDays}일 전`
+      }
+
+      const chatItem: ChatItem = {
+        id: session.id,
+        title: session.title,
+        time: timeStr,
+        timeAgo: timeAgo
+      }
+
+      // Group classification
+      if (sessionDateOnly.getTime() === today.getTime()) {
+        groups.today.push(chatItem)
+      } else if (sessionDate.getTime() >= thirtyDaysAgo.getTime()) {
+        groups.previous30Days.push(chatItem)
+      } else {
+        // Monthly groups
+        const monthKey = sessionDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })
+        if (!monthGroups[monthKey]) {
+          monthGroups[monthKey] = []
+        }
+        monthGroups[monthKey].push(chatItem)
+      }
+    })
+
+    const result: ChatGroup[] = []
+    
+    // Today group
+    if (groups.today.length > 0) {
+      result.push({
+        label: lang('sidebar.chatGroups.today'),
+        items: groups.today
+      })
+    }
+    
+    // Previous 30 days group
+    if (groups.previous30Days.length > 0) {
+      result.push({
+        label: lang('sidebar.chatGroups.previous30Days'),
+        items: groups.previous30Days
+      })
+    }
+    
+    // Monthly groups (from newest month)
+    const sortedMonths = Object.keys(monthGroups).sort((a, b) => {
+      const dateA = new Date(a)
+      const dateB = new Date(b)
+      return dateB.getTime() - dateA.getTime()
+    })
+    
+    sortedMonths.forEach(month => {
+      result.push({
+        label: month,
+        items: monthGroups[month]
+      })
+    })
+
+    return result
+  }
+
+  // Fetch chat sessions list on component mount
+  useEffect(() => {
+    fetchChatSessions()
+    
+    // Expose function globally for sidebar refresh
+    if (typeof window !== 'undefined') {
+      (window as any).refreshSidebar = fetchChatSessions
+    }
+
+    // Cleanup on component unmount
+    return () => {
+      if (typeof window !== 'undefined') {
+        delete (window as any).refreshSidebar
+      }
+    }
+  }, [])
+
+
 
   return (
     <>
@@ -122,23 +219,27 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
             {/* Header */}
             <div className="p-0 h-[3rem] flex items-center px-4">
               <div className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-3">
+                
+                <div 
+                  className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => router.push("/")}
+                >
                   
-                  {/* favicon */}
-                  <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">
-                      {branding.appName.substring(0, 4).toLowerCase() || 'kkot'}
-                    </span>
+                  {/* Logo */}
+                  <Image
+                    src="/images/logo.svg"
+                    alt="Logo"
+                    width={130}
+                    height={24}
+                    className="h-8 w-auto"
+                  />
+
+                  <div className={`text-sm overflow-hidden font-bold ml-1 text-black transition-all duration-300 ${sidebarCollapsed ? 'w-0 opacity-0' : 'w-24 opacity-100'}`}>
+                    <span className="whitespace-nowrap">kkot webui</span>
                   </div>
 
-                  <Button
-                    className={`flex items-center gap-2 bg-transparent hover:bg-gray-100 text-gray-700 focus:outline-none focus:ring-0`}
-                    onClick={() => router.push("/chat")}
-                  >
-                    <Plus className="h-4 w-4" />
-                    {lang('sidebar.newChat')}
-                  </Button>
                 </div>
+                
                 <Button variant="ghost" size="icon" className="h-6 w-6 focus:outline-none focus:ring-0" onClick={() => setSidebarCollapsed(true)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -155,9 +256,10 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
               </div>
             </div>
 
-            {/* Content Button */}
+            {/* Content Button : Hide in sidebar */}
             <div
-              className={`p-1 px-2 transition-opacity duration-200 ${sidebarCollapsed ? "opacity-0" : "opacity-100"}`}
+              className={`p-1 px-2 transition-opacity duration-200 hidden ${sidebarCollapsed ? "opacity-0" : "opacity-100"}`}
+              style={{ display: sidebarCollapsed ? 'none' : 'block' }}
             >
               <Button
                 className={`w-full justify-start gap-2 focus:outline-none focus:ring-0 ${
@@ -172,19 +274,36 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
               </Button>
             </div>
 
+
             {/* Chat History - Grouped by Date */}
             <div className="flex-1 mt-3 overflow-y-auto">
               <div className="px-4">
-                {chatGroups.map((group, groupIndex) => (
-                  <ChatGroupComponent
-                    key={groupIndex}
-                    group={group}
-                    groupIndex={groupIndex}
-                    sidebarCollapsed={sidebarCollapsed}
-                    selectedChatId={selectedChatId}
-                    setSelectedChatId={setSelectedChatId}
-                  />
-                ))}
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <div className="animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                      <div className="space-y-1">
+                        <div className="h-8 bg-gray-100 rounded"></div>
+                        <div className="h-8 bg-gray-100 rounded"></div>
+                      </div>
+                    </div>
+                  </div>
+                ) : chatGroups.length > 0 ? (
+                  chatGroups.map((group, groupIndex) => (
+                    <ChatGroupComponent
+                      key={groupIndex}
+                      group={group}
+                      groupIndex={groupIndex}
+                      sidebarCollapsed={sidebarCollapsed}
+                      selectedChatId={selectedChatId}
+                      setSelectedChatId={setSelectedChatId}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center text-gray-500 text-sm mt-8">
+                    {lang('sidebar.noChatHistory')}
+                  </div>
+                )}
               </div>
             </div>
 
@@ -216,21 +335,12 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
             <div className="p-0 h-[3rem] flex items-center px-4">
               <div className="flex items-center justify-between w-full">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 bg-black rounded-full flex items-center justify-center">
-                    <span className="text-white text-xs font-bold">
-                      {branding.appName.substring(0, 4).toLowerCase() || 'kkot'}
-                    </span>
-                  </div>
-                  <Button
-                    className="flex items-center gap-2 bg-transparent hover:bg-gray-100 text-gray-700 focus:outline-none focus:ring-0"
-                    onClick={() => {
-                      router.push("/chat")
-                      setMobileSidebarOpen(false)
-                    }}
-                  >
-                    <Plus className="h-4 w-4" />
-                    {lang('sidebar.newChat')}
-                  </Button>
+                  {/* Logo */}
+                  <Image
+                    src="/images/logo.svg"
+                    alt="Logo"
+                    className="h-8 w-auto"
+                  />
                 </div>
                 <Button variant="ghost" size="icon" className="h-6 w-6 focus:outline-none focus:ring-0" onClick={() => setMobileSidebarOpen(false)}>
                   <ChevronLeft className="h-4 w-4" />
@@ -264,21 +374,39 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
               </Button>
             </div>
 
+
+
             {/* Chat History - Grouped by Date */}
             <div className="flex-1 mt-3 overflow-y-auto">
               <div className="px-4">
-                {chatGroups.map((group, groupIndex) => (
-                  <ChatGroupComponent
-                    key={groupIndex}
-                    group={group}
-                    groupIndex={groupIndex}
-                    sidebarCollapsed={false}
-                    selectedChatId={selectedChatId}
-                    setSelectedChatId={setSelectedChatId}
-                    setMobileSidebarOpen={setMobileSidebarOpen}
-                    isMobile={true}
-                  />
-                ))}
+                {isLoading ? (
+                  <div className="space-y-2">
+                    <div className="animate-pulse">
+                      <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
+                      <div className="space-y-1">
+                        <div className="h-8 bg-gray-100 rounded"></div>
+                        <div className="h-8 bg-gray-100 rounded"></div>
+                      </div>
+                    </div>
+                  </div>
+                ) : chatGroups.length > 0 ? (
+                  chatGroups.map((group, groupIndex) => (
+                    <ChatGroupComponent
+                      key={groupIndex}
+                      group={group}
+                      groupIndex={groupIndex}
+                      sidebarCollapsed={false}
+                      selectedChatId={selectedChatId}
+                      setSelectedChatId={setSelectedChatId}
+                      setMobileSidebarOpen={setMobileSidebarOpen}
+                      isMobile={true}
+                    />
+                  ))
+                ) : (
+                  <div className="text-center text-gray-500 text-sm mt-8">
+                    {lang('sidebar.noChatHistory')}
+                  </div>
+                )}
               </div>
             </div>
 

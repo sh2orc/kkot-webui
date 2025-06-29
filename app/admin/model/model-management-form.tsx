@@ -1,6 +1,7 @@
 "use client"
 
 import { useState } from "react"
+import { useRouter } from "next/navigation"
 import AdminLayout from "@/components/admin/admin-layout"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -48,6 +49,7 @@ interface ModelManagementFormProps {
 }
 
 export default function ModelManagementForm({ initialServers }: ModelManagementFormProps) {
+  const router = useRouter()
   const { lang } = useTranslation('admin.model')
   const { toast } = useToast()
   const [servers, setServers] = useState<LLMServer[]>(initialServers)
@@ -166,6 +168,15 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
         title: lang('saveSuccess'),
         description: `${modelsToUpdate.length}${lang('saveSuccessMessage')}`
       })
+      
+      // 저장 완료 후 버튼 상태 즉시 업데이트
+      setIsSaving(false)
+      
+      // 저장 후 페이지 새로고침하여 서버 상태 동기화
+      setTimeout(() => {
+        console.log('모델 설정 저장 완료, 페이지 새로고침')
+        router.refresh()
+      }, 1000)
     } catch (error) {
       console.error('Settings save error:', error)
       toast({
@@ -282,7 +293,7 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
         {/* Save button */}
         <div className="flex justify-end">
           <Button 
-            className="bg-black text-white hover:text-white hover:bg-blue-800"
+            className="bg-black text-white hover:text-white hover:bg-blue-700"
             onClick={handleSave}
             disabled={isSaving || modifiedModels.size === 0}
           >

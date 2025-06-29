@@ -1,7 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { initializeDb, getDb, systemSettingsRepository } from '@/lib/db/server';
+import { initializeDb, getDb, adminSettingsRepository, agentManageRepository } from '@/lib/db/server';
 import * as fs from 'fs';
 import * as path from 'path';
+import { db } from '@/lib/db/server';
+import { agentManage } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 /**
  * DB Test API
@@ -13,17 +16,67 @@ import * as path from 'path';
 // GET: DB initialization and test
 export async function GET(request: NextRequest) {
   try {
-    // Initialize DB
-    await initializeDb();
+    const { searchParams } = new URL(request.url);
+    const agentId = searchParams.get('agentId');
+    
+    if (agentId) {
+      // 특정 에이전트 조회
+      const result = await agentManageRepository.findById(agentId);
+      
+      if (result.length > 0) {
+        const agent = result[0];
+        console.log('=== 에이전트 이미지 데이터 분석 ===');
+        console.log('에이전트 ID:', agent.id);
+        console.log('에이전트 이름:', agent.name);
+        console.log('이미지 데이터 타입:', typeof agent.imageData);
+        console.log('이미지 데이터 길이:', 
+          agent.imageData instanceof Uint8Array ? agent.imageData.length : 
+          typeof agent.imageData === 'string' ? agent.imageData.length : 
+          'unknown'
+        );
+        
+        if (agent.imageData) {
+          if (agent.imageData instanceof Uint8Array) {
+            console.log('Uint8Array 샘플:', agent.imageData.slice(0, 20));
+          } else if (typeof agent.imageData === 'string') {
+            console.log('문자열 샘플:', agent.imageData.substring(0, 100));
+          }
+        }
+        console.log('=== 분석 완료 ===');
+        
+        return NextResponse.json({
+          id: agent.id,
+          name: agent.name,
+          imageDataType: typeof agent.imageData,
+          imageDataLength: agent.imageData instanceof Uint8Array ? agent.imageData.length : 
+                          typeof agent.imageData === 'string' ? agent.imageData.length : 0,
+          hasImageData: !!agent.imageData,
+          imageDataSample: agent.imageData instanceof Uint8Array ? 
+                          Array.from(agent.imageData.slice(0, 20)) :
+                          typeof agent.imageData === 'string' ? 
+                          agent.imageData.substring(0, 100) : null
+        });
+      } else {
+        return NextResponse.json({ error: '에이전트를 찾을 수 없습니다.' }, { status: 404 });
+      }
+    }
+    
+    // 기존 테스트 코드
+    const result = await agentManageRepository.findAll();
     
     return NextResponse.json({
-      message: "DB has been successfully initialized.",
-      timestamp: new Date().toISOString()
+      message: 'Database connection successful',
+      agentCount: result.length,
+      agents: result.map((agent: any) => ({
+        id: agent.id,
+        name: agent.name,
+        hasImage: !!agent.imageData
+      }))
     });
   } catch (error) {
-    console.error('DB initialization error:', error);
+    console.error('Database test failed:', error);
     return NextResponse.json(
-      { error: 'An error occurred during DB initialization.' },
+      { error: 'Database connection failed', details: error },
       { status: 500 }
     );
   }
@@ -50,7 +103,7 @@ export async function POST(request: NextRequest) {
         const { key, value } = item;
         
         // Save data using repository
-        const result = await systemSettingsRepository.upsert(key, value);
+        const result = await adminSettingsRepository.upsert(key, value);
         results.push({ key, value, success: true });
       } catch (err: any) {
         console.error(`Error adding item ${item.key}:`, err);

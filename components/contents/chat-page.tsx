@@ -9,6 +9,7 @@ import { LlmResponse } from "@/components/chat/llm-response"
 import { UserRequest } from "@/components/chat/user-request"
 import { ChatInput } from "@/components/chat/chat-input"
 import { useTranslation } from "@/lib/i18n"
+import { useModel } from "@/components/providers/model-provider"
 
 interface Message {
   id: string
@@ -25,6 +26,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { lang } = useTranslation('chat')
+  const { selectedModel } = useModel()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
@@ -40,103 +42,198 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   const [copiedMessageId, setCopiedMessageId] = useState<string | null>(null)
   const [likedMessages, setLikedMessages] = useState<Set<string>>(new Set())
   const [dislikedMessages, setDislikedMessages] = useState<Set<string>>(new Set())
+  const [historyLoaded, setHistoryLoaded] = useState(false)
 
-  // 고유한 ID 생성 함수
+  // Unique ID generation function
   const generateUniqueId = (prefix: string) => {
     return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   }
 
-  // 채팅 ID에 따라 메시지 로드
+  // Send message to AI and receive streaming response
+  const sendMessageToAI = async (message: string, agentInfo: {id: string, type: string}) => {
+    try {
+      console.log('=== AI message sending start ===')
+      console.log('Message:', message)
+      console.log('Agent info:', agentInfo)
+
+      const response = await fetch(`/api/chat/${chatId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          message: message,
+          agentId: agentInfo.type === 'agent' ? agentInfo.id : undefined,
+          modelId: agentInfo.type === 'model' ? agentInfo.id : undefined,
+          modelType: agentInfo.type,
+        })
+      })
+
+      console.log('=== AI API response received ===')
+      console.log('Response status:', response.status)
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error('API response error:', errorText)
+        throw new Error(`Message sending failed (${response.status}: ${errorText})`)
+      }
+
+      // Process streaming response
+      console.log('=== Stream processing start ===')
+      const reader = response.body?.getReader()
+      const decoder = new TextDecoder()
+
+      if (reader) {
+        console.log('Stream reader created')
+        let assistantContent = ''
+        let assistantMessageId = ''
+
+        const processStream = async () => {
+          try {
+            console.log('Stream processing loop start')
+            while (true) {
+              const { done, value } = await reader.read()
+              if (done) {
+                console.log('Stream completed')
+                break
+              }
+
+              const chunk = decoder.decode(value)
+              console.log('Chunk received:', chunk)
+              const lines = chunk.split('\n')
+
+              for (const line of lines) {
+                if (line.startsWith('data: ')) {
+                  try {
+                    const data = JSON.parse(line.slice(6))
+                    console.log('Stream data:', data)
+                    
+                    if (data.error) {
+                      console.error('AI response error:', data.error)
+                      break
+                    }
+
+                    if (data.messageId && !assistantMessageId) {
+                      assistantMessageId = data.messageId
+                      // Initialize AI response message
+                      setMessages(prev => [...prev, {
+                        id: assistantMessageId,
+                        role: "assistant" as const,
+                        content: '',
+                        timestamp: new Date(),
+                      }])
+                    }
+
+                    if (data.content) {
+                      assistantContent += data.content
+                      // Real-time update of AI response
+                      setMessages(prev => 
+                        prev.map(m => 
+                          m.id === assistantMessageId 
+                            ? { ...m, content: assistantContent }
+                            : m
+                        )
+                      )
+                    }
+
+                    if (data.done) {
+                      break
+                    }
+                  } catch (e) {
+                    // Ignore JSON parsing errors
+                  }
+                }
+              }
+            }
+          } catch (error) {
+            console.error('Stream processing error:', error)
+          }
+        }
+
+        processStream()
+      }
+    } catch (error) {
+      console.error('AI message sending error:', error)
+    }
+  }
+
+  // Load messages based on chat ID
   useEffect(() => {
     if (chatId) {
-      // 실제로는 API에서 채팅 히스토리를 가져올 것임
-      // 여기서는 더미 데이터를 사용
-      const dummyMessages: Message[] = [
-        {
-          id: generateUniqueId("user"),
-          role: "user",
-          content: lang('dummyData.sample.question1'),
-          timestamp: new Date(Date.now() - 1000 * 60 * 5), // 5분 전
-        },
-        {
-          id: generateUniqueId("assistant"),
-          role: "assistant",
-          content: lang('dummyData.sample.answer1'),
-          timestamp: new Date(Date.now() - 1000 * 60 * 4), // 4분 전
-        },
-        {
-          id: generateUniqueId("user"),
-          role: "user",
-          content: lang('dummyData.sample.question2'),
-          timestamp: new Date(Date.now() - 1000 * 60 * 3), // 3분 전
-        },
-        {
-          id: generateUniqueId("assistant"),
-          role: "assistant",
-          content: lang('dummyData.sample.answer2'),
-          timestamp: new Date(Date.now() - 1000 * 60 * 2), // 2분 전
-        },
-      ]
+      // Get chat history from API
+      const loadChatHistory = async () => {
+        try {
+          const response = await fetch(`/api/chat/${chatId}`)
+          if (response.ok) {
+            const data = await response.json()
+            // Convert timestamp to Date object
+            const messagesWithDateTimestamp = (data.messages || []).map((msg: any) => ({
+              ...msg,
+              timestamp: new Date(msg.timestamp)
+            }))
+            setMessages(messagesWithDateTimestamp)
+            
+            // Auto-generate AI response if last message is user message
+            if (messagesWithDateTimestamp.length > 0) {
+              const lastMessage = messagesWithDateTimestamp[messagesWithDateTimestamp.length - 1]
+              if (lastMessage.role === 'user') {
+                console.log('Last message is user message. Generating AI response.')
+                
+                // Read agent info from localStorage
+                const agentInfo = localStorage.getItem(`chat_${chatId}_agent`)
+                if (agentInfo) {
+                  const parsedAgentInfo = JSON.parse(agentInfo)
+                  console.log('Agent info:', parsedAgentInfo)
+                  
+                  // Call streaming API
+                  sendMessageToAI(lastMessage.content, parsedAgentInfo)
+                  
+                  // Clean up localStorage after use
+                  localStorage.removeItem(`chat_${chatId}_agent`)
+                }
+              }
+            }
+          } else {
+            console.error('Failed to load chat history')
+          }
+        } catch (error) {
+          console.error('Chat history load error:', error)
+        } finally {
+          setHistoryLoaded(true) // Mark history load as completed
+        }
+      }
 
-      setMessages(dummyMessages)
+      loadChatHistory()
       
-      // 메시지 로드 후 즉시 맨 아래로 이동 (애니메이션 없이)
+      // Move to bottom immediately after loading messages (without animation)
       setTimeout(() => {
         scrollToBottomInstant()
       }, 0)
     }
   }, [chatId])
 
-  // 초기 메시지 처리
+    // Reset history load state when chat ID changes
   useEffect(() => {
-    const initialMessage = searchParams.get("message")
-    if (initialMessage && messages.length === 0) {
-      // 사용자 메시지 추가
-      const newUserMessage: Message = {
-        id: generateUniqueId("user"),
-        role: "user",
-        content: initialMessage,
-        timestamp: new Date(),
-      }
+    setHistoryLoaded(false)
+  }, [chatId])
 
-      setMessages([newUserMessage])
-      
-      // 초기 메시지 추가 후 즉시 맨 아래로 이동
-      setTimeout(() => scrollToBottomInstant(), 0)
-
-      // AI 응답 시뮬레이션(1초 후)
-      setTimeout(() => {
-        const newAssistantMessage: Message = {
-          id: generateUniqueId("assistant"),
-          role: "assistant",
-          content: lang('dummyData.greeting'),
-          timestamp: new Date(),
-        }
-
-        setMessages((prev) => [...prev, newAssistantMessage])
-        // AI 응답 추가 후 부드러운 스크롤
-        setTimeout(() => scrollToBottomSmooth(), 100)
-      }, 1000)
-    }
-  }, [searchParams])
-
-  // 메시지 변경시 스크롤 처리 (채팅 ID 변경시에도 동작하도록)
+  // Handle scroll on message change (also works when chat ID changes)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
   
   useEffect(() => {
     if (messages.length > 0) {
       if (isInitialLoad) {
-        // 처음 로드 시에는 즉시 맨 아래로
+        // Move to bottom immediately on first load
         setTimeout(() => scrollToBottomInstant(), 0)
         setIsInitialLoad(false)
       } else {
-        // 새 메시지 추가 시에는 부드러운 스크롤
+        // Smooth scroll when new message is added
         setTimeout(() => scrollToBottomSmooth(), 100)
       }
     }
   }, [messages, isInitialLoad])
   
-  // chatId가 변경될 때 초기 로드 상태로 리셋
+  // Reset to initial load state when chatId changes
   useEffect(() => {
     setIsInitialLoad(true)
   }, [chatId])
@@ -179,8 +276,16 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       setIsShiftPressed(true)
     }
 
-    // Enter로 submit 제거 - 버튼 클릭으로만 메시지 전송
-    // Shift + Enter는 기본 동작(줄바꿈)을 허용
+    if (e.key === "Enter") {
+      if (e.shiftKey) {
+        // Shift + Enter: 줄바꿈 허용 (기본 동작)
+        return
+      } else {
+        // Enter만 누르면 submit 동작
+        e.preventDefault()
+        handleSubmit()
+      }
+    }
   }
 
   const handleKeyUp = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -278,7 +383,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }
 
   const handleSubmit = () => {
-    if (inputValue.trim()) {
+    if (inputValue.trim() && selectedModel && chatId) {
       // 메시지 추가
       const newUserMessage: Message = {
         id: generateUniqueId("user"),
@@ -288,6 +393,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       }
 
       setMessages([...messages, newUserMessage])
+      const messageContent = inputValue
       setInputValue("")
       
       // 메시지 추가 후 부드러운 스크롤
@@ -298,21 +404,11 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         textareaRef.current.style.height = "48px"
       }
 
-      // 실제로는 기본 API 출력 후 답변을 받아야 함
-      // 여기서는 시뮬레이션을 위해 비동기 처리 후 답변 추가 (1초 후)
-      setTimeout(() => {
-        const newAssistantMessage: Message = {
-          id: generateUniqueId("assistant"),
-          role: "assistant",
-          content:
-            "죄송합니다만, 현재 모델 버전에 대해 제작되지 않아 제작 중인 부분에 대해 LLM API 출력 후 답변을 받아 결과를 보여드리게 됩니다. 본인의 카드 약관이나 BC카드 고객센터를 통해 확인하시는 것이 좋습니다.",
-          timestamp: new Date(),
-        }
-
-        setMessages((prev) => [...prev, newAssistantMessage])
-        // AI 응답 추가 후 부드러운 스크롤
-        setTimeout(() => scrollToBottomSmooth(), 100)
-      }, 1000)
+      // AI에게 메시지 전송
+      sendMessageToAI(messageContent, {
+        id: selectedModel.id,
+        type: selectedModel.type
+      })
     }
   }
 

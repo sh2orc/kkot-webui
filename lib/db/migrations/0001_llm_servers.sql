@@ -1,3 +1,5 @@
+DROP TABLE IF EXISTS llm_servers;
+
 -- LLM 서버 설정 테이블 생성
 CREATE TABLE IF NOT EXISTS llm_servers (
     id TEXT PRIMARY KEY,

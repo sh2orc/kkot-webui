@@ -74,7 +74,7 @@ export function ChatInput({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-8 w-8 rounded-full hover:bg-gray-100 ${isFlaskActive ? "bg-black text-white hover:bg-black hover:text-white" : ""}`}
+                  className={`h-8 w-8 rounded-full hover:bg-gray-100 ${isFlaskActive ? "bg-black text-white hover:bg-blue-700 hover:text-white" : ""}`}
                   onClick={() => setIsFlaskActive(!isFlaskActive)}
                 >
                   <Flask className="h-4 w-4" />
@@ -82,7 +82,7 @@ export function ChatInput({
                 <Button
                   variant="ghost"
                   size="icon"
-                  className={`h-8 w-8 rounded-full hover:bg-gray-100 ${isGlobeActive ? "bg-black text-white hover:bg-black hover:text-white" : ""}`}
+                  className={`h-8 w-8 rounded-full hover:bg-gray-100 ${isGlobeActive ? "bg-black text-white hover:bg-blue-700 hover:text-white" : ""}`}
                   onClick={() => setIsGlobeActive(!isGlobeActive)}
                 >
                   <Globe className="h-4 w-4" />
