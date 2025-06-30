@@ -4,6 +4,7 @@ import type React from "react"
 
 import { useRef, useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
+import { useSession } from "next-auth/react"
 import Layout from "@/components/layout/layout"
 import { LlmResponse } from "@/components/chat/llm-response"
 import { UserRequest } from "@/components/chat/user-request"
@@ -25,6 +26,7 @@ interface ChatPageProps {
 export default function ChatPage({ chatId }: ChatPageProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { data: session } = useSession()
   const { lang } = useTranslation('chat')
   const { selectedModel } = useModel()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -51,10 +53,16 @@ export default function ChatPage({ chatId }: ChatPageProps) {
 
   // Send message to AI and receive streaming response
   const sendMessageToAI = async (message: string, agentInfo: {id: string, type: string}) => {
+    if (!session?.user?.id) {
+      console.error('User authentication required')
+      return
+    }
+
     try {
       console.log('=== AI message sending start ===')
       console.log('Message:', message)
       console.log('Agent info:', agentInfo)
+      console.log('User ID:', session.user.id)
 
       const response = await fetch(`/api/chat/${chatId}`, {
         method: 'POST',
@@ -66,6 +74,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           agentId: agentInfo.type === 'agent' ? agentInfo.id : undefined,
           modelId: agentInfo.type === 'model' ? agentInfo.id : undefined,
           modelType: agentInfo.type,
+          userId: session.user.id,
         })
       })
 
@@ -162,8 +171,13 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     if (chatId) {
       // Get chat history from API
       const loadChatHistory = async () => {
+        if (!session?.user?.id) {
+          console.error('사용자 인증이 필요합니다')
+          return
+        }
+
         try {
-          const response = await fetch(`/api/chat/${chatId}`)
+          const response = await fetch(`/api/chat/${chatId}?userId=${session.user.id}`)
           if (response.ok) {
             const data = await response.json()
             // Convert timestamp to Date object
@@ -210,7 +224,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         scrollToBottomInstant()
       }, 0)
     }
-  }, [chatId])
+  }, [chatId, session?.user?.id])
 
     // Reset history load state when chat ID changes
   useEffect(() => {
@@ -383,7 +397,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }
 
   const handleSubmit = () => {
-    if (inputValue.trim() && selectedModel && chatId) {
+    if (inputValue.trim() && selectedModel && chatId && session?.user?.id) {
       // 메시지 추가
       const newUserMessage: Message = {
         id: generateUniqueId("user"),

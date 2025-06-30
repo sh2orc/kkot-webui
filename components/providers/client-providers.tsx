@@ -1,6 +1,7 @@
 'use client'
 
 import { ReactNode, Suspense } from 'react'
+import { SessionProvider } from 'next-auth/react'
 import { BrandingProvider } from './branding-provider'
 import LanguageProvider from './language-provider'
 import { ModelProvider } from './model-provider'
@@ -15,17 +16,22 @@ const LoadingFallback = () => (
 
 export default function ClientProviders({ children }: { children: ReactNode }) {
   return (
-    <Suspense fallback={<LoadingFallback />}>
-      <BrandingProvider>
-        <Suspense fallback={<LoadingFallback />}>
-          <LanguageProvider>
-            <ModelProvider>
-              {children}
-              <Toaster />
-            </ModelProvider>
-          </LanguageProvider>
-        </Suspense>
-      </BrandingProvider>
-    </Suspense>
+    <SessionProvider 
+      basePath="/api/auth"
+      refetchOnWindowFocus={false}
+    >
+      <Suspense fallback={<LoadingFallback />}>
+        <BrandingProvider>
+          <Suspense fallback={<LoadingFallback />}>
+            <LanguageProvider>
+              <ModelProvider>
+                {children}
+                <Toaster />
+              </ModelProvider>
+            </LanguageProvider>
+          </Suspense>
+        </BrandingProvider>
+      </Suspense>
+    </SessionProvider>
   )
 } 

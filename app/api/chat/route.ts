@@ -2,59 +2,50 @@ import { NextRequest, NextResponse } from 'next/server'
 import { chatSessionRepository, agentManageRepository, userRepository, chatMessageRepository } from '@/lib/db/server'
 
 export async function POST(request: NextRequest) {
-  console.log('=== Chat API POST 요청 받음 ===')
+  console.log('=== Chat API POST request received ===')
   try {
     const body = await request.json()
-    console.log('요청 바디:', body)
-    const { agentId, modelId, modelType, initialMessage } = body
+    console.log('Request body:', body)
+    const { agentId, modelId, modelType, initialMessage, userId } = body
 
     if (!initialMessage?.trim()) {
-      return NextResponse.json({ error: '초기 메시지가 필요합니다' }, { status: 400 })
+      return NextResponse.json({ error: 'Initial message is required' }, { status: 400 })
     }
 
-    // 익명 사용자 ID 가져오기 또는 생성
-    let anonymousUserId = 'anonymous'
-    
-    // 먼저 익명 사용자가 존재하는지 확인
+    if (!userId) {
+      return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
+    }
+
+    // Check user existence
     const existingUsers = await userRepository.findAll()
-    let anonymousUser = existingUsers.find((user: any) => user.username === 'anonymous')
+    const currentUser = existingUsers.find((user: any) => user.id === userId)
     
-    if (!anonymousUser) {
-      // 익명 사용자가 없으면 생성
-      console.log('익명 사용자 생성 중...')
-      const createdUsers = await userRepository.create({
-        username: 'anonymous',
-        email: 'anonymous@system.local',
-        password: 'no-password',
-        role: 'user'
-      })
-      anonymousUser = createdUsers[0]
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Invalid user' }, { status: 401 })
     }
-    
-    anonymousUserId = anonymousUser.id
 
-    // 채팅 세션 생성
+    // Create chat session
     const sessionData = {
-      userId: anonymousUserId,
+      userId: userId,
       title: initialMessage.substring(0, 50) + (initialMessage.length > 50 ? '...' : '')
     }
 
-    console.log('세션 데이터:', sessionData)
+    console.log('Session data:', sessionData)
     const createdSession = await chatSessionRepository.create(sessionData)
-    console.log('생성된 세션:', createdSession)
+    console.log('Created session:', createdSession)
     const chatId = createdSession[0]?.id
-    console.log('최종 채팅 ID:', chatId)
+    console.log('Final chat ID:', chatId)
 
-    // 사용자 메시지 저장
+    // Save user message
     const userMessage = {
       sessionId: chatId,
       role: 'user' as const,
       content: initialMessage
     }
-    console.log('사용자 메시지 저장:', userMessage)
+    console.log('Saving user message:', userMessage)
     await chatMessageRepository.create(userMessage)
 
-    // 에이전트 정보를 응답에 포함 (채팅 페이지에서 사용할 수 있도록)
+    // Include agent information in response (for use in chat page)
     let agentInfo = null
     if (modelType === 'agent' && agentId) {
       const agentResult = await agentManageRepository.findById(agentId)
@@ -71,39 +62,40 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 채팅 ID와 에이전트 정보 반환 (AI 응답은 채팅 페이지에서 스트리밍으로 생성)
+    // Return chat ID and agent info (AI response will be generated via streaming in chat page)
     return NextResponse.json({ 
       chatId,
       agentInfo
     })
   } catch (error) {
-    console.error('채팅 생성 오류:', error)
-    return NextResponse.json({ error: '채팅 생성에 실패했습니다' }, { status: 500 })
+    console.error('Chat creation error:', error)
+    return NextResponse.json({ error: 'Failed to create chat' }, { status: 500 })
   }
 }
 
-// 채팅 세션 목록 조회
-export async function GET() {
-  console.log('=== Chat API GET 요청 받음 - 채팅 세션 목록 조회 ===')
+// Retrieve chat session list
+export async function GET(request: NextRequest) {
+  console.log('=== Chat API GET request received - Chat session list query ===')
   try {
-    // 익명 사용자 ID 가져오기
-    let anonymousUserId = 'anonymous'
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
     
-    // 익명 사용자 확인
-    const existingUsers = await userRepository.findAll()
-    let anonymousUser = existingUsers.find((user: any) => user.username === 'anonymous')
-    
-    if (!anonymousUser) {
-      // 익명 사용자가 없으면 빈 배열 반환
-      return NextResponse.json({ sessions: [] })
+    if (!userId) {
+      return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
     }
     
-    anonymousUserId = anonymousUser.id
-
-    // 해당 사용자의 모든 채팅 세션 조회 (최신순)
-    const sessions = await chatSessionRepository.findByUserId(anonymousUserId)
+    // Check user existence
+    const existingUsers = await userRepository.findAll()
+    const currentUser = existingUsers.find((user: any) => user.id === userId)
     
-    // 세션에 대한 추가 정보 처리 (마지막 메시지 시간 등)
+    if (!currentUser) {
+      return NextResponse.json({ error: 'Invalid user' }, { status: 401 })
+    }
+
+    // Retrieve all chat sessions for the user (in descending order)
+    const sessions = await chatSessionRepository.findByUserId(userId)
+    
+    // Process additional session information (last message time, etc.)
     const processedSessions = sessions.map((session: any) => ({
       id: session.id,
       title: session.title,
@@ -111,18 +103,18 @@ export async function GET() {
       updatedAt: session.updatedAt
     }))
     
-    // 최신순으로 정렬
+    // Sort in descending order (newest first)
     processedSessions.sort((a: any, b: any) => {
       const dateA = new Date(a.updatedAt || a.createdAt).getTime()
       const dateB = new Date(b.updatedAt || b.createdAt).getTime()
-      return dateB - dateA // 최신이 앞에 오도록
+      return dateB - dateA // Newest first
     })
 
-    console.log('조회된 채팅 세션 수:', processedSessions.length)
+    console.log('Retrieved chat session count:', processedSessions.length)
     return NextResponse.json({ sessions: processedSessions })
     
   } catch (error) {
-    console.error('채팅 세션 목록 조회 오류:', error)
-    return NextResponse.json({ error: '채팅 세션 목록을 불러오는데 실패했습니다' }, { status: 500 })
+    console.error('Chat session list retrieval error:', error)
+    return NextResponse.json({ error: 'Failed to load chat session list' }, { status: 500 })
   }
 } 

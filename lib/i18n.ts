@@ -10,6 +10,54 @@ export const defaultLanguage: Language = 'kor'
 // Translation module cache
 const translationCache = new Map<string, any>()
 
+// Static import maps for all translation modules
+const translationModules = {
+  kor: {
+    'auth': () => import('@/i18n/kor/auth.json'),
+    'admin': () => import('@/i18n/kor/admin.json'),
+    'admin.agent': () => import('@/i18n/kor/admin.agent.json'),
+    'admin.audio': () => import('@/i18n/kor/admin.audio.json'),
+    'admin.connection': () => import('@/i18n/kor/admin.connection.json'),
+    'admin.database': () => import('@/i18n/kor/admin.database.json'),
+    'admin.documents': () => import('@/i18n/kor/admin.documents.json'),
+    'admin.evaluation': () => import('@/i18n/kor/admin.evaluation.json'),
+    'admin.general': () => import('@/i18n/kor/admin.general.json'),
+    'admin.image': () => import('@/i18n/kor/admin.image.json'),
+    'admin.model': () => import('@/i18n/kor/admin.model.json'),
+    'admin.pipeline': () => import('@/i18n/kor/admin.pipeline.json'),
+    'admin.tools': () => import('@/i18n/kor/admin.tools.json'),
+    'admin.websearch': () => import('@/i18n/kor/admin.websearch.json'),
+    'book': () => import('@/i18n/kor/book.json'),
+    'chat': () => import('@/i18n/kor/chat.json'),
+    'common': () => import('@/i18n/kor/common.json'),
+    'language': () => import('@/i18n/kor/language.json'),
+    'navbar': () => import('@/i18n/kor/navbar.json'),
+    'settings': () => import('@/i18n/kor/settings.json'),
+  },
+  eng: {
+    'auth': () => import('@/i18n/eng/auth.json'),
+    'admin': () => import('@/i18n/eng/admin.json'),
+    'admin.agent': () => import('@/i18n/eng/admin.agent.json'),
+    'admin.audio': () => import('@/i18n/eng/admin.audio.json'),
+    'admin.connection': () => import('@/i18n/eng/admin.connection.json'),
+    'admin.database': () => import('@/i18n/eng/admin.database.json'),
+    'admin.documents': () => import('@/i18n/eng/admin.documents.json'),
+    'admin.evaluation': () => import('@/i18n/eng/admin.evaluation.json'),
+    'admin.general': () => import('@/i18n/eng/admin.general.json'),
+    'admin.image': () => import('@/i18n/eng/admin.image.json'),
+    'admin.model': () => import('@/i18n/eng/admin.model.json'),
+    'admin.pipeline': () => import('@/i18n/eng/admin.pipeline.json'),
+    'admin.tools': () => import('@/i18n/eng/admin.tools.json'),
+    'admin.websearch': () => import('@/i18n/eng/admin.websearch.json'),
+    'book': () => import('@/i18n/eng/book.json'),
+    'chat': () => import('@/i18n/eng/chat.json'),
+    'common': () => import('@/i18n/eng/common.json'),
+    'language': () => import('@/i18n/eng/language.json'),
+    'navbar': () => import('@/i18n/eng/navbar.json'),
+    'settings': () => import('@/i18n/eng/settings.json'),
+  },
+} as const
+
 // Module loading function
 export async function loadTranslationModule(language: Language, module: string): Promise<any> {
   const cacheKey = `${language}.${module}`
@@ -20,14 +68,21 @@ export async function loadTranslationModule(language: Language, module: string):
   }
 
   try {
-    // Load module dynamically
-    const data = await import(`../i18n/${language}/${module}.json`)
-    const translations = data.default
+    // Use static import map
+    const moduleMap = translationModules[language]
+    const moduleLoader = moduleMap[module as keyof typeof moduleMap]
+    
+    if (!moduleLoader) {
+      throw new Error(`Translation module '${module}' not found for language '${language}'`)
+    }
+    
+    const translations = await moduleLoader()
+    const data = translations.default
     
     // Save to cache
-    translationCache.set(cacheKey, translations)
+    translationCache.set(cacheKey, data)
     
-    return translations
+    return data
   } catch (error) {
     console.error(`Failed to load translation module ${module} for ${language}:`, error)
     

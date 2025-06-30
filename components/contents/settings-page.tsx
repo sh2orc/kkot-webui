@@ -13,15 +13,38 @@ import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
 import { User, Bell, Shield, Globe, Upload } from "lucide-react"
+import { toast } from "sonner"
 import Layout from "@/components/layout/layout"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 
-export default function SettingsPage() {
+interface UserProfile {
+  id: string
+  username: string
+  email: string
+  role: string
+  createdAt: string
+}
+
+interface SettingsPageProps {
+  initialUserProfile?: UserProfile | null
+}
+
+export default function SettingsPage({ initialUserProfile }: SettingsPageProps) {
   const { lang, language } = useTranslation('settings')
   const [isLoaded, setIsLoaded] = useState(false)
   const [profileImage, setProfileImage] = useState<string | null>(null)
+  const [userProfile, setUserProfile] = useState<UserProfile | null>(initialUserProfile || null)
+  const [isLoading, setIsLoading] = useState(false)
+  
+  // Form state - set initial values from server data
+  const [formData, setFormData] = useState({
+    username: initialUserProfile?.username || '',
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  })
 
-  // 번역 모듈 프리로드
+  // Preload translation modules
   useEffect(() => {
     async function loadTranslations() {
       await preloadTranslationModule(language, 'settings')
@@ -29,6 +52,17 @@ export default function SettingsPage() {
     }
     loadTranslations()
   }, [language])
+
+  // Update form data when initial profile data changes
+  useEffect(() => {
+    if (initialUserProfile) {
+      setUserProfile(initialUserProfile)
+      setFormData(prev => ({
+        ...prev,
+        username: initialUserProfile.username
+      }))
+    }
+  }, [initialUserProfile])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -38,6 +72,90 @@ export default function SettingsPage() {
         setProfileImage(e.target?.result as string)
       }
       reader.readAsDataURL(file)
+    }
+  }
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({
+      ...prev,
+      [field]: value
+    }))
+  }
+
+  const handleProfileUpdate = async () => {
+    if (!userProfile) return
+
+    // Validation
+    if (!formData.username.trim()) {
+      toast.error('Please enter username.')
+      return
+    }
+
+    setIsLoading(true)
+
+    try {
+      const updateData: any = {
+        username: formData.username.trim()
+      }
+
+      // If password change is requested
+      if (formData.currentPassword || formData.newPassword) {
+        if (!formData.currentPassword) {
+          toast.error('Please enter current password.')
+          setIsLoading(false)
+          return
+        }
+
+        if (!formData.newPassword) {
+          toast.error('Please enter new password.')
+          setIsLoading(false)
+          return
+        }
+
+        if (formData.newPassword !== formData.confirmPassword) {
+          toast.error('New password and confirmation password do not match.')
+          setIsLoading(false)
+          return
+        }
+
+        if (formData.newPassword.length < 6) {
+          toast.error('New password must be at least 6 characters.')
+          setIsLoading(false)
+          return
+        }
+
+        updateData.currentPassword = formData.currentPassword
+        updateData.newPassword = formData.newPassword
+      }
+
+      const response = await fetch('/api/profile', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(updateData),
+      })
+
+      const result = await response.json()
+
+      if (response.ok) {
+        toast.success('Profile updated successfully.')
+        setUserProfile(result.user)
+        // Reset password fields
+        setFormData(prev => ({
+          ...prev,
+          currentPassword: '',
+          newPassword: '',
+          confirmPassword: ''
+        }))
+      } else {
+        toast.error(result.error || 'Failed to update profile.')
+      }
+    } catch (error) {
+      console.error('Profile update error:', error)
+      toast.error('An error occurred while updating profile.')
+    } finally {
+      setIsLoading(false)
     }
   }
 
@@ -51,29 +169,39 @@ export default function SettingsPage() {
     )
   }
 
+  if (!userProfile) {
+    return (
+      <Layout>
+        <div className="flex-1 flex items-center justify-center">
+          <p className="text-gray-500">Unable to load user information.</p>
+        </div>
+      </Layout>
+    )
+  }
+
   return (
     <Layout>
       <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
         <div className="max-w-4xl mx-auto">
-          <h1 className="text-2xl font-bold mb-6">{lang('title')}</h1>
+          <h1 className="text-2xl font-bold mb-6">{lang('title') || '설정'}</h1>
 
           <Tabs defaultValue="profile" className="w-full">
             <TabsList className="grid grid-cols-4 mb-8 rounded-lg">
               <TabsTrigger value="profile" className="flex items-center gap-2">
                 <User className="h-4 w-4" />
-                <span className="hidden sm:inline">{lang('tabs.profile')}</span>
+                <span className="hidden sm:inline">{lang('tabs.profile') || '프로필'}</span>
               </TabsTrigger>
               <TabsTrigger value="account" className="flex items-center gap-2">
                 <Shield className="h-4 w-4" />
-                <span className="hidden sm:inline">{lang('tabs.account')}</span>
+                <span className="hidden sm:inline">{lang('tabs.account') || '계정'}</span>
               </TabsTrigger>
               <TabsTrigger value="notifications" className="flex items-center gap-2">
                 <Bell className="h-4 w-4" />
-                <span className="hidden sm:inline">{lang('tabs.notifications')}</span>
+                <span className="hidden sm:inline">{lang('tabs.notifications') || '알림'}</span>
               </TabsTrigger>
               <TabsTrigger value="preferences" className="flex items-center gap-2">
                 <Globe className="h-4 w-4" />
-                <span className="hidden sm:inline">{lang('tabs.preferences')}</span>
+                <span className="hidden sm:inline">{lang('tabs.preferences') || '환경설정'}</span>
               </TabsTrigger>
             </TabsList>
 
@@ -81,17 +209,19 @@ export default function SettingsPage() {
             <TabsContent value="profile">
               <Card className="border-0">
                 <CardHeader>
-                  <CardTitle>{lang('profile.title')}</CardTitle>
-                  <CardDescription>{lang('profile.description')}</CardDescription>
+                  <CardTitle>{lang('profile.title') || '프로필 설정'}</CardTitle>
+                  <CardDescription>{lang('profile.description') || '프로필 정보를 수정할 수 있습니다.'}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="flex flex-col md:flex-row gap-8 items-start">
                     <div className="flex flex-col items-center gap-4 p-2 mr-2">
                       <Avatar className="h-12 w-12">
                         {profileImage ? (
-                          <AvatarImage src={profileImage || "/placeholder.svg"} alt={lang('altTexts.profileImage')} />
+                          <AvatarImage src={profileImage || "/placeholder.svg"} alt="프로필 이미지" />
                         ) : (
-                          <AvatarFallback className="bg-orange-500 text-white text-xl">A</AvatarFallback>
+                          <AvatarFallback className="bg-orange-500 text-white text-xl">
+                            {userProfile?.username?.charAt(0).toUpperCase() || 'U'}
+                          </AvatarFallback>
                         )}
                       </Avatar>
                       <div className="relative">
@@ -107,40 +237,48 @@ export default function SettingsPage() {
                           className="flex items-center gap-2 bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-2 rounded-md cursor-pointer text-sm"
                         >
                           <Upload className="h-4 w-4" />
-                          {lang('profile.uploadImage')}
+                          {lang('profile.uploadImage') || '이미지 업로드'}
                         </Label>
                       </div>
                     </div>
 
                     <div className="flex-1 space-y-4 w-full max-w-md">
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="name">{lang('profile.name')}</Label>
-                          <Input id="name" placeholder={lang('placeholders.name')} defaultValue={lang('placeholders.defaultName')} />
-                        </div>
-                        <div className="space-y-2">
-                          <Label htmlFor="username">{lang('profile.username')}</Label>
-                          <Input id="username" placeholder={lang('placeholders.username')} defaultValue={lang('placeholders.defaultUsername')} />
-                        </div>
-                      </div>
                       <div className="space-y-2">
-                        <Label htmlFor="email">{lang('profile.email')}</Label>
-                        <Input
-                          id="email"
-                          type="email"
-                          placeholder={lang('placeholders.email')}
-                          defaultValue={lang('placeholders.defaultEmail')}
+                        <Label htmlFor="username">{lang('profile.username') || '사용자명'}</Label>
+                        <Input 
+                          id="username" 
+                          value={formData.username}
+                          onChange={(e) => handleInputChange('username', e.target.value)}
+                          placeholder="사용자명을 입력하세요"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="bio">{lang('profile.bio')}</Label>
-                        <Input id="bio" placeholder={lang('profile.bioPlaceholder')} />
+                        <Label htmlFor="email">{lang('profile.email') || '이메일'}</Label>
+                        <Input
+                          id="email"
+                          type="email"
+                          value={userProfile?.email || ''}
+                          disabled
+                          className="bg-gray-50 text-gray-500"
+                        />
+                        <p className="text-xs text-gray-500">이메일은 변경할 수 없습니다.</p>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="role">역할</Label>
+                        <Input
+                          id="role"
+                          value={userProfile?.role === 'admin' ? '관리자' : '사용자'}
+                          disabled
+                          className="bg-gray-50 text-gray-500"
+                        />
                       </div>
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  <Button>{lang('profile.saveButton')}</Button>
+                  <Button onClick={handleProfileUpdate} disabled={isLoading}>
+                    {isLoading ? '저장 중...' : '저장'}
+                  </Button>
                 </CardFooter>
               </Card>
             </TabsContent>
@@ -149,24 +287,39 @@ export default function SettingsPage() {
             <TabsContent value="account">
               <Card className="border-0">
                 <CardHeader>
-                  <CardTitle>{lang('account.title')}</CardTitle>
-                  <CardDescription>{lang('account.description')}</CardDescription>
+                  <CardTitle>{lang('account.title') || '계정 보안'}</CardTitle>
+                  <CardDescription>{lang('account.description') || '비밀번호 및 보안 설정을 관리합니다.'}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">{lang('account.passwordChange')}</h3>
-                    <div className="space-y-4">
+                    <h3 className="text-lg font-medium">{lang('account.passwordChange') || '비밀번호 변경'}</h3>
+                    <div className="space-y-4 max-w-md">
                       <div className="space-y-2">
-                        <Label htmlFor="current-password">{lang('account.currentPassword')}</Label>
-                        <Input id="current-password" type="password" />
+                        <Label htmlFor="current-password">{lang('account.currentPassword') || '현재 비밀번호'}</Label>
+                        <Input 
+                          id="current-password" 
+                          type="password"
+                          value={formData.currentPassword}
+                          onChange={(e) => handleInputChange('currentPassword', e.target.value)}
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="new-password">{lang('account.newPassword')}</Label>
-                        <Input id="new-password" type="password" />
+                        <Label htmlFor="new-password">{lang('account.newPassword') || '새 비밀번호'}</Label>
+                        <Input 
+                          id="new-password" 
+                          type="password"
+                          value={formData.newPassword}
+                          onChange={(e) => handleInputChange('newPassword', e.target.value)}
+                        />
                       </div>
                       <div className="space-y-2">
-                        <Label htmlFor="confirm-password">{lang('account.confirmPassword')}</Label>
-                        <Input id="confirm-password" type="password" />
+                        <Label htmlFor="confirm-password">{lang('account.confirmPassword') || '새 비밀번호 확인'}</Label>
+                        <Input 
+                          id="confirm-password" 
+                          type="password"
+                          value={formData.confirmPassword}
+                          onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
+                        />
                       </div>
                     </div>
                   </div>
@@ -174,18 +327,20 @@ export default function SettingsPage() {
                   <Separator />
 
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">{lang('account.accountSecurity')}</h3>
+                    <h3 className="text-lg font-medium">{lang('account.accountSecurity') || '계정 보안'}</h3>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-medium">{lang('account.twoFactor.title')}</p>
-                        <p className="text-sm text-gray-500">{lang('account.twoFactor.description')}</p>
+                        <p className="font-medium">{lang('account.twoFactor.title') || '2단계 인증'}</p>
+                        <p className="text-sm text-gray-500">{lang('account.twoFactor.description') || '계정 보안을 강화합니다.'}</p>
                       </div>
-                      <Switch />
+                      <Switch disabled />
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  <Button>{lang('account.saveButton')}</Button>
+                  <Button onClick={handleProfileUpdate} disabled={isLoading}>
+                    {isLoading ? '저장 중...' : '저장'}
+                  </Button>
                 </CardFooter>
               </Card>
             </TabsContent>
@@ -194,54 +349,29 @@ export default function SettingsPage() {
             <TabsContent value="notifications">
               <Card className="border-0">
                 <CardHeader>
-                  <CardTitle>{lang('notifications.title')}</CardTitle>
-                  <CardDescription>{lang('notifications.description')}</CardDescription>
+                  <CardTitle>{lang('notifications.title') || '알림 설정'}</CardTitle>
+                  <CardDescription>{lang('notifications.description') || '알림 기본 설정을 관리합니다.'}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">{lang('notifications.emailNotifications')}</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{lang('notifications.newMessage.title')}</p>
-                          <p className="text-sm text-gray-500">{lang('notifications.newMessage.description')}</p>
-                        </div>
-                        <Switch defaultChecked />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">이메일 알림</p>
+                        <p className="text-sm text-gray-500">중요한 업데이트를 이메일로 받습니다.</p>
                       </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{lang('notifications.systemUpdates.title')}</p>
-                          <p className="text-sm text-gray-500">{lang('notifications.systemUpdates.description')}</p>
-                        </div>
-                        <Switch defaultChecked />
-                      </div>
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{lang('notifications.marketing.title')}</p>
-                          <p className="text-sm text-gray-500">{lang('notifications.marketing.description')}</p>
-                        </div>
-                        <Switch />
-                      </div>
+                      <Switch />
                     </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">{lang('notifications.pushNotifications')}</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{lang('notifications.chatNotifications.title')}</p>
-                          <p className="text-sm text-gray-500">{lang('notifications.chatNotifications.description')}</p>
-                        </div>
-                        <Switch defaultChecked />
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="font-medium">브라우저 알림</p>
+                        <p className="text-sm text-gray-500">브라우저 푸시 알림을 받습니다.</p>
                       </div>
+                      <Switch />
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  <Button>{lang('notifications.saveButton')}</Button>
+                  <Button disabled>저장</Button>
                 </CardFooter>
               </Card>
             </TabsContent>
@@ -250,75 +380,40 @@ export default function SettingsPage() {
             <TabsContent value="preferences">
               <Card className="border-0">
                 <CardHeader>
-                  <CardTitle>{lang('preferences.title')}</CardTitle>
-                  <CardDescription>{lang('preferences.description')}</CardDescription>
+                  <CardTitle>{lang('preferences.title') || '환경설정'}</CardTitle>
+                  <CardDescription>{lang('preferences.description') || '언어 및 테마 설정을 관리합니다.'}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-6">
                   <div className="space-y-4">
-                    <h3 className="text-lg font-medium">{lang('preferences.appearance')}</h3>
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="font-medium">{lang('preferences.theme.title')}</p>
-                        </div>
-                        <Select defaultValue="system">
-                          <SelectTrigger className="w-32">
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="light">{lang('preferences.theme.light')}</SelectItem>
-                            <SelectItem value="dark">{lang('preferences.theme.dark')}</SelectItem>
-                            <SelectItem value="system">{lang('preferences.theme.system')}</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
-                    </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">{lang('preferences.language.title')}</h3>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{lang('preferences.language.title')}</p>
-                        <p className="text-sm text-gray-500">{lang('preferences.language.description')}</p>
-                      </div>
-                      <Select defaultValue="ko">
-                        <SelectTrigger className="w-32">
+                    <div className="space-y-2">
+                      <Label>언어</Label>
+                      <Select defaultValue={language}>
+                        <SelectTrigger className="w-48">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="ko">한국어</SelectItem>
-                          <SelectItem value="en">English</SelectItem>
+                          <SelectItem value="kor">한국어</SelectItem>
+                          <SelectItem value="eng">English</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                  </div>
-
-                  <Separator />
-
-                  <div className="space-y-4">
-                    <h3 className="text-lg font-medium">{lang('preferences.accessibility')}</h3>
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className="font-medium">{lang('preferences.fontSize.title')}</p>
-                      </div>
-                      <Select defaultValue="medium">
-                        <SelectTrigger className="w-32">
+                    <div className="space-y-2">
+                      <Label>테마</Label>
+                      <Select defaultValue="system">
+                        <SelectTrigger className="w-48">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="small">{lang('preferences.fontSize.small')}</SelectItem>
-                          <SelectItem value="medium">{lang('preferences.fontSize.medium')}</SelectItem>
-                          <SelectItem value="large">{lang('preferences.fontSize.large')}</SelectItem>
+                          <SelectItem value="light">라이트</SelectItem>
+                          <SelectItem value="dark">다크</SelectItem>
+                          <SelectItem value="system">시스템 설정</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-end">
-                  <Button>{lang('preferences.saveButton')}</Button>
+                  <Button disabled>저장</Button>
                 </CardFooter>
               </Card>
             </TabsContent>

@@ -4,57 +4,66 @@ import { chatMessageRepository, chatSessionRepository, agentManageRepository, ll
 import { LLMFactory } from '@/lib/llm'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  console.log('=== Chat [id] API POST 요청 받음 ===')
+  console.log('=== Chat [id] API POST request received ===')
   try {
     const resolvedParams = await params
     const chatId = resolvedParams.id
     console.log('Chat ID:', chatId)
     const body = await request.json()
-    console.log('요청 바디:', body)
-    const { message, agentId, modelId, modelType } = body
+    console.log('Request body:', body)
+    const { message, agentId, modelId, modelType, userId } = body
 
     if (!message?.trim()) {
-      return NextResponse.json({ error: '메시지가 필요합니다' }, { status: 400 })
+      return NextResponse.json({ error: 'Message is required' }, { status: 400 })
     }
 
-    // 채팅 세션 존재 확인
+    if (!userId) {
+      return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
+    }
+
+    // Check chat session existence and verify permissions
     const session = await chatSessionRepository.findById(chatId)
-    console.log('세션 조회 결과:', session)
+    console.log('Session query result:', session)
     if (!session || session.length === 0) {
-      return NextResponse.json({ error: '채팅 세션을 찾을 수 없습니다' }, { status: 404 })
+      return NextResponse.json({ error: 'Chat session not found' }, { status: 404 })
     }
 
-    // 사용자 메시지 저장
+    // Check session owner
+    if (session[0].userId !== userId) {
+      return NextResponse.json({ error: 'Access denied to this chat' }, { status: 403 })
+    }
+
+    // Save user message
     const userMessage = {
       sessionId: chatId,
       role: 'user' as const,
       content: message
     }
-    console.log('사용자 메시지 저장:', userMessage)
+    console.log('Saving user message:', userMessage)
     await chatMessageRepository.create(userMessage)
 
-    // 기존 메시지 히스토리 조회
+    // Retrieve existing message history
     const messageHistory = await chatMessageRepository.findBySessionId(chatId)
 
-    // 에이전트 또는 모델 정보 조회
+    // Retrieve agent or model information
     let agent = null
     let model = null
     let systemPrompt = ''
     let llmParams: any = {}
 
     if (modelType === 'agent' && agentId) {
-      console.log('에이전트 조회 중:', agentId)
+      console.log('Querying agent:', agentId)
       const agentResult = await agentManageRepository.findById(agentId)
-      console.log('에이전트 조회 결과:', agentResult)
+      console.log('Agent query result:', agentResult)
       if (agentResult && agentResult.length > 0) {
         agent = agentResult[0]
-        console.log('선택된 에이전트:', agent)
-        // 시스템 프롬프트가 3자 이상이면 사용
+        console.log('Selected agent:', agent)
+        // Use system prompt if it's 3 characters or longer
         if (agent.systemPrompt && agent.systemPrompt.trim().length >= 3) {
           systemPrompt = agent.systemPrompt
         }
         
-        // 파라미터가 활성화되어 있으면 설정 적용
+        // Apply parameter settings if enabled
         if (agent.parameterEnabled) {
           llmParams = {
             temperature: parseFloat(agent.temperature || '0.7'),
@@ -66,13 +75,13 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           }
         }
         
-        // 모델 정보 조회
-        console.log('모델 조회 중:', agent.modelId)
+        // Retrieve model information
+        console.log('Querying model:', agent.modelId)
         const modelResult = await llmModelRepository.findById(agent.modelId)
-        console.log('모델 조회 결과:', modelResult)
+        console.log('Model query result:', modelResult)
         if (modelResult && modelResult.length > 0) {
           model = modelResult[0]
-          console.log('선택된 모델:', model)
+          console.log('Selected model:', model)
         }
       }
     } else if (modelType === 'model' && modelId) {
@@ -83,20 +92,20 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     }
 
     if (!model) {
-      return NextResponse.json({ error: '모델 정보를 찾을 수 없습니다' }, { status: 404 })
+      return NextResponse.json({ error: 'Model information not found' }, { status: 404 })
     }
 
-    // 서버 정보 조회
-    console.log('서버 조회 중:', model.serverId)
+    // Retrieve server information
+    console.log('Querying server:', model.serverId)
     const serverResult = await llmServerRepository.findById(model.serverId)
-    console.log('서버 조회 결과:', serverResult)
+    console.log('Server query result:', serverResult)
     if (!serverResult || serverResult.length === 0) {
-      return NextResponse.json({ error: '서버 정보를 찾을 수 없습니다' }, { status: 404 })
+      return NextResponse.json({ error: 'Server information not found' }, { status: 404 })
     }
     const server = serverResult[0]
-    console.log('선택된 서버:', server)
+    console.log('Selected server:', server)
 
-    // LLM 설정 구성
+    // Configure LLM settings
     const llmConfig = {
       provider: server.provider as any,
       modelName: model.modelId,
@@ -104,22 +113,22 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       baseUrl: server.baseUrl,
       ...llmParams
     }
-    console.log('LLM 설정:', llmConfig)
+    console.log('LLM config:', llmConfig)
 
-    // LLM 클라이언트 생성
-    console.log('LLM 클라이언트 생성 중...')
+    // Create LLM client
+    console.log('Creating LLM client...')
     const llmClient = LLMFactory.create(llmConfig)
-    console.log('LLM 클라이언트 생성 완료')
+    console.log('LLM client created')
 
-    // 메시지 배열 구성
+    // Construct message array
     const messages: Array<{role: 'user' | 'assistant' | 'system', content: string}> = []
     
-    // 시스템 프롬프트 추가 (있는 경우)
+    // Add system prompt (if exists)
     if (systemPrompt) {
       messages.push({ role: 'system', content: systemPrompt })
     }
 
-    // 기존 메시지 히스토리 추가 (최근 10개만, 방금 추가한 메시지 제외)
+    // Add existing message history (only recent 10, excluding just added message)
     const historyToUse = messageHistory.slice(0, -1).slice(-10)
     for (const historyMessage of historyToUse) {
       messages.push({
@@ -128,24 +137,24 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       })
     }
 
-    // 현재 사용자 메시지 추가
+    // Add current user message
     messages.push({ role: 'user', content: message })
     
-    console.log('최종 메시지 배열:', messages)
+    console.log('Final message array:', messages)
 
-    // 스트리밍 응답 생성
+    // Generate streaming response
     const stream = new ReadableStream({
       async start(controller) {
         try {
           let fullResponse = ''
           const assistantMessageId = uuidv4()
 
-          // 스트리밍 콜백 정의
+          // Define streaming callbacks
           const streamCallbacks = {
             onToken: (token: string) => {
               fullResponse += token
               
-              // 클라이언트에 청크 전송
+              // Send chunk to client
               controller.enqueue(
                 new TextEncoder().encode(
                   `data: ${JSON.stringify({ 
@@ -158,7 +167,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             },
             onComplete: async (response: any) => {
               try {
-                // AI 응답 메시지 저장
+                // Save AI response message
                 const assistantMessage = {
                   sessionId: chatId,
                   role: 'assistant' as const,
@@ -166,7 +175,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                 }
                 await chatMessageRepository.create(assistantMessage)
 
-                // 완료 신호 전송
+                // Send completion signal
                 controller.enqueue(
                   new TextEncoder().encode(
                     `data: ${JSON.stringify({ 
@@ -179,16 +188,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
                 controller.close()
               } catch (error) {
-                console.error('메시지 저장 오류:', error)
+                console.error('Message save error:', error)
                 controller.close()
               }
             },
             onError: (error: Error) => {
-              console.error('스트리밍 응답 오류:', error)
+              console.error('Streaming response error:', error)
               controller.enqueue(
                 new TextEncoder().encode(
                   `data: ${JSON.stringify({ 
-                    error: 'AI 응답 생성 중 오류가 발생했습니다',
+                    error: 'An error occurred while generating AI response',
                     done: true 
                   })}\n\n`
                 )
@@ -197,18 +206,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             }
           }
 
-          // 스트리밍 호출
-          console.log('스트리밍 호출 시작...')
+          // Streaming call
+          console.log('Starting streaming call...')
           await llmClient.streamChat(messages, streamCallbacks, {
             stream: true
           })
-          console.log('스트리밍 호출 완료')
+          console.log('Streaming call completed')
         } catch (error) {
-          console.error('스트리밍 초기화 오류:', error)
+          console.error('Streaming initialization error:', error)
           controller.enqueue(
             new TextEncoder().encode(
               `data: ${JSON.stringify({ 
-                error: 'AI 응답 생성 중 오류가 발생했습니다',
+                error: 'An error occurred while generating AI response',
                 done: true 
               })}\n\n`
             )
@@ -227,24 +236,35 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     })
 
   } catch (error) {
-    console.error('메시지 전송 오류:', error)
-    return NextResponse.json({ error: '메시지 전송에 실패했습니다' }, { status: 500 })
+    console.error('Message sending error:', error)
+    return NextResponse.json({ error: 'Failed to send message' }, { status: 500 })
   }
 }
 
-// 채팅 메시지 히스토리 조회
+// Retrieve chat message history
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
     const resolvedParams = await params
     const chatId = resolvedParams.id
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
 
-    // 채팅 세션 존재 확인
-    const session = await chatSessionRepository.findById(chatId)
-    if (!session) {
-      return NextResponse.json({ error: '채팅 세션을 찾을 수 없습니다' }, { status: 404 })
+    if (!userId) {
+      return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
     }
 
-    // 메시지 히스토리 조회
+    // Check chat session existence and verify permissions
+    const session = await chatSessionRepository.findById(chatId)
+    if (!session || session.length === 0) {
+      return NextResponse.json({ error: 'Chat session not found' }, { status: 404 })
+    }
+
+    // Check session owner
+    if (session[0].userId !== userId) {
+      return NextResponse.json({ error: 'Access denied to this chat' }, { status: 403 })
+    }
+
+    // Retrieve message history
     const messages = await chatMessageRepository.findBySessionId(chatId)
 
     return NextResponse.json({ 
@@ -258,7 +278,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       }))
     })
   } catch (error) {
-    console.error('메시지 조회 오류:', error)
-    return NextResponse.json({ error: '메시지 조회에 실패했습니다' }, { status: 500 })
+    console.error('Message retrieval error:', error)
+    return NextResponse.json({ error: 'Failed to retrieve messages' }, { status: 500 })
   }
 } 

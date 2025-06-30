@@ -12,6 +12,13 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 
 ## ✨ Key Features
 
+### 🔐 Authentication & Security
+- **NextAuth Integration**: Secure JWT-based authentication system
+- **User Management**: Built-in user registration and login system
+- **Admin System**: First user automatically becomes admin
+- **Route Protection**: Middleware-based route protection for secure access
+- **Password Security**: Bcrypt-based password hashing with salt
+
 ### 🤖 Multi-LLM Support
 - **OpenAI API**: Support for GPT-4o and other OpenAI models
 - **Google Gemini**: Integrated Gemini API support
@@ -84,7 +91,28 @@ yarn install
 pnpm install
 ```
 
-3. **Run the development server**
+3. **Environment Setup**
+Create a `.env.local` file in the root directory:
+```bash
+# NextAuth Configuration
+NEXTAUTH_SECRET=your-secret-key-here
+NEXTAUTH_URL=http://localhost:3000
+
+# Database Configuration (Optional - defaults to SQLite)
+DB_TYPE=sqlite
+DATABASE_URL=file:./kkot.db
+
+# LLM API Keys (Optional)
+OPENAI_API_KEY=your-openai-api-key
+GOOGLE_API_KEY=your-google-api-key
+```
+
+4. **Database Migration**
+```bash
+npm run db:migrate
+```
+
+5. **Run the development server**
 ```bash
 npm run dev
 # or
@@ -93,8 +121,11 @@ yarn dev
 pnpm dev
 ```
 
-4. **Open in browser**
+6. **Open in browser**
 Visit http://localhost:3000 to access the application.
+
+7. **First User Setup**
+The first user to register will automatically become an admin with full access to all features.
 
 ### Production Build
 
@@ -108,6 +139,7 @@ npm run start
 ```
 kkot-webui/
 ├── app/                    # Next.js App Router
+│   ├── auth/              # Authentication pages
 │   ├── chat/              # Chat pages
 │   ├── admin/             # Admin settings
 │   │   ├── general/       # General settings
@@ -122,6 +154,11 @@ kkot-webui/
 │   │   ├── audio/         # Audio processing
 │   │   ├── pipeline/      # AI pipelines
 │   │   └── database/      # Database settings
+│   ├── api/               # API routes
+│   │   ├── auth/          # NextAuth API routes
+│   │   ├── agents/        # Agent management API
+│   │   ├── chat/          # Chat API
+│   │   └── profile/       # User profile API
 │   ├── book/              # Content pages
 │   ├── setting/           # User settings
 │   └── layout.tsx         # Root layout
@@ -137,7 +174,13 @@ kkot-webui/
 │   ├── eng/               # English translations
 │   └── kor/               # Korean translations
 ├── lib/                   # Utility functions
+│   ├── auth.ts            # Authentication utilities
+│   ├── db/                # Database configuration
+│   ├── llm/               # LLM integration
+│   └── i18n.ts            # Internationalization
 ├── hooks/                 # Custom React hooks
+├── middleware.ts          # Route protection middleware
+├── types/                 # TypeScript type definitions
 ├── styles/                # Style files
 └── public/                # Static assets
 ```
@@ -146,7 +189,9 @@ kkot-webui/
 
 - **Framework**: Next.js 15.2.4
 - **Language**: TypeScript
-- **Database**: SQLite with Drizzle ORM
+- **Authentication**: NextAuth.js v4 with JWT strategy
+- **Database**: SQLite with Drizzle ORM (PostgreSQL support)
+- **Password Security**: bcryptjs with PBKDF2 hashing
 - **Styling**: Tailwind CSS
 - **UI Components**: Radix UI
 - **Icons**: Lucide React
@@ -156,6 +201,7 @@ kkot-webui/
 - **Internationalization**: Custom i18n system
 - **State Management**: React Context API
 - **File Handling**: Multipart form data support
+- **Route Protection**: Custom middleware for authentication
 
 ## 🌟 Contributing
 
@@ -179,6 +225,7 @@ This project is completely open source and welcomes contributions from everyone.
 ## 🎯 Roadmap
 
 ### ✅ Completed Features
+- [x] **User authentication system** - NextAuth-based secure login/registration
 - [x] **Real-time streaming response support** - Implemented streaming chat API
 - [x] **Conversation history storage and management** - Chat sessions with persistent storage
 - [x] **Extended multi-language support** - Korean/English support with i18n system
@@ -186,13 +233,14 @@ This project is completely open source and welcomes contributions from everyone.
 - [x] **Model provider integration** - Unified interface for multiple LLM providers
 - [x] **Database integration** - SQLite/PostgreSQL support with migrations
 - [x] **Admin panel enhancements** - Comprehensive settings and management interface
+- [x] **Route protection** - Middleware-based authentication and authorization
 
 ### 🚧 In Progress / Planned
 - [ ] Plugin system development
 - [ ] Mobile app development
 - [ ] Automatic API documentation generation
-- [ ] User authentication system
 - [ ] Team collaboration features
+- [ ] OAuth provider integration (Google, GitHub)
 - [ ] Advanced model evaluation metrics
 - [ ] RAG (Retrieval-Augmented Generation) integration
 - [ ] Voice input/output support

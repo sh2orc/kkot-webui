@@ -3,14 +3,16 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, Search, Plus, Menu, Book } from "lucide-react"
+import { ChevronLeft, Search, Plus, Menu, Book, Link as LinkIcon } from "lucide-react"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { AccountMenu } from "@/components/ui/account-menu"
 import { ChatGroupComponent } from "@/components/sidebar/chat-group"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 import { useBranding } from "@/components/providers/branding-provider"
 import Image from "next/image"
+import Link from "next/link"
 
 interface SidebarProps {
   currentPage?: "chat" | "content"
@@ -35,6 +37,7 @@ interface ChatGroup {
 export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMobileSidebarOpen }: SidebarProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const router = useRouter()
+  const { data: session } = useSession()
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
   const [chatGroups, setChatGroups] = useState<ChatGroup[]>([])
   const [isLoading, setIsLoading] = useState(true)
@@ -48,18 +51,27 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
 
   // Fetch chat sessions list
   const fetchChatSessions = async () => {
+    if (!session?.user?.id) {
+      setIsLoading(false)
+      return
+    }
+
     try {
       setIsLoading(true)
-      const response = await fetch('/api/chat')
+      const response = await fetch(`/api/chat?userId=${session.user.id}`)
       const data = await response.json()
       
       if (data.sessions) {
         // Group by date
         const groups = groupChatSessionsByDate(data.sessions)
         setChatGroups(groups)
+      } else if (data.error) {
+        console.error('Chat session load error:', data.error)
+        setChatGroups([])
       }
     } catch (error) {
       console.error('Error fetching chat sessions:', error)
+      setChatGroups([])
     } finally {
       setIsLoading(false)
     }
@@ -152,9 +164,11 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
     return result
   }
 
-  // Fetch chat sessions list on component mount
+  // Fetch chat sessions list when session is available
   useEffect(() => {
-    fetchChatSessions()
+    if (session?.user?.id) {
+      fetchChatSessions()
+    }
     
     // Expose function globally for sidebar refresh
     if (typeof window !== 'undefined') {
@@ -167,7 +181,7 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
         delete (window as any).refreshSidebar
       }
     }
-  }, [])
+  }, [session?.user?.id])
 
 
 
@@ -222,7 +236,7 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
                 
                 <div 
                   className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => router.push("/")}
+                  onClick={() => router.push("/chat")}
                 >
                   
                   {/* Logo */}
@@ -234,8 +248,8 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
                     className="h-8 w-auto"
                   />
 
-                  <div className={`text-sm overflow-hidden font-bold ml-1 text-black transition-all duration-300 ${sidebarCollapsed ? 'w-0 opacity-0' : 'w-24 opacity-100'}`}>
-                    <span className="whitespace-nowrap">kkot webui</span>
+                  <div className={`overflow-hidden ml-1 transition-all duration-300 ${sidebarCollapsed ? 'w-0 opacity-0' : 'w-24 opacity-100'}`}>
+                    <span className="whitespace-nowrap font-semibold text-gray-500">꽃 kkot</span>
                   </div>
 
                 </div>
@@ -314,10 +328,15 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
                   <Avatar
                     className={`h-8 w-8 transition-transform duration-300 ${sidebarCollapsed ? "-translate-x-1" : ""}`}
                   >
-                    <AvatarFallback className="bg-orange-500 text-white text-xs">A</AvatarFallback>
+                    <AvatarFallback className="bg-orange-500 text-white text-xs">
+                      {session?.user?.name ? session.user.name.charAt(0).toUpperCase() : 
+                       session?.user?.email ? session.user.email.charAt(0).toUpperCase() : 'U'}
+                    </AvatarFallback>
                   </Avatar>
                   {!sidebarCollapsed && (
-                    <span className="text-sm font-medium ml-2 transition-opacity duration-300">{lang('sidebar.admin')}</span>
+                    <span className="text-sm font-medium ml-2 transition-opacity duration-300">
+                      {session?.user?.name || session?.user?.email?.split('@')[0] || '사용자'}
+                    </span>
                   )}
                 </Button>
               </AccountMenu>
@@ -334,14 +353,21 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
             {/* Header */}
             <div className="p-0 h-[3rem] flex items-center px-4">
               <div className="flex items-center justify-between w-full">
-                <div className="flex items-center gap-3">
+                <Link 
+                  href="/"
+                  className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+                  onClick={() => setMobileSidebarOpen(false)}
+                >
                   {/* Logo */}
                   <Image
                     src="/images/logo.svg"
                     alt="Logo"
+                    width={130}
+                    height={24}
                     className="h-8 w-auto"
                   />
-                </div>
+                  <span className="whitespace-nowrap font-semibold text-gray-500">꽃 kkot</span>
+                </Link>
                 <Button variant="ghost" size="icon" className="h-6 w-6 focus:outline-none focus:ring-0" onClick={() => setMobileSidebarOpen(false)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -415,9 +441,14 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
               <AccountMenu align="start" side="top">
                 <Button variant="ghost" className="w-full justify-start h-10 px-2 transition-all duration-300 focus:outline-none focus:ring-0">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-orange-500 text-white text-xs">A</AvatarFallback>
+                    <AvatarFallback className="bg-orange-500 text-white text-xs">
+                      {session?.user?.name ? session.user.name.charAt(0).toUpperCase() : 
+                       session?.user?.email ? session.user.email.charAt(0).toUpperCase() : 'U'}
+                    </AvatarFallback>
                   </Avatar>
-                  <span className="text-sm font-medium">{lang('sidebar.admin')}</span>
+                  <span className="text-sm font-medium">
+                    {session?.user?.name || session?.user?.email?.split('@')[0] || '사용자'}
+                  </span>
                 </Button>
               </AccountMenu>
             </div>

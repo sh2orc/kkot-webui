@@ -6,6 +6,7 @@ import { Settings, Menu } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useState, useRef, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { AccountMenu } from "@/components/ui/account-menu"
 import LanguageSwitcher from "@/components/ui/language-switcher"
 import { useTranslation } from "@/lib/i18n"
@@ -20,11 +21,23 @@ interface NavbarProps {
 export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
   const router = useRouter()
   const pathname = usePathname()
+  const { data: session } = useSession()
   const { lang } = useTranslation('common')
   const { selectedModel } = useModel()
 
-  // /chat 페이지인지 확인
+  // Check if current page is /chat
   const isChatPage = pathname.startsWith("/chat")
+
+  // Generate user avatar text
+  const getAvatarText = () => {
+    if (session?.user?.name) {
+      return session.user.name.charAt(0).toUpperCase()
+    }
+    if (session?.user?.email) {
+      return session.user.email.charAt(0).toUpperCase()
+    }
+    return 'U' // Default value
+  }
 
   return (
     <div className="bg-white p-0 h-12 min-h-12 max-h-12 flex items-center px-3 md:px-4">
@@ -47,7 +60,9 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
             </Button>
             <AccountMenu align="end" side="bottom">
               <Avatar className="h-8 w-8 cursor-pointer">
-                <AvatarFallback className="bg-orange-500 text-white text-xs">A</AvatarFallback>
+                <AvatarFallback className="bg-orange-500 text-white text-xs">
+                  {getAvatarText()}
+                </AvatarFallback>
               </Avatar>
             </AccountMenu>
           </div>

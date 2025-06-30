@@ -7,10 +7,11 @@ import { Mic, Globe, Plus, FlaskRoundIcon as Flask, Zap, Send } from "lucide-rea
 import { useRef, useState, useEffect, useCallback } from "react"
 import Layout from "@/components/layout/layout"
 import { useRouter } from "next/navigation"
+import { useSession } from "next-auth/react"
 import { useTranslation } from "@/lib/i18n"
 import { useModel, type Agent, type PublicModel } from "@/components/providers/model-provider"
 
-// 타입은 model-provider에서 import
+// Types are imported from model-provider
 
 interface EmptyChatProps {
   initialAgents?: Agent[]
@@ -27,13 +28,14 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
   const [isShiftPressed, setIsShiftPressed] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
-  // navbar에서 선택된 모델 사용
+  // Use model selected from navbar
   const { selectedModel, setInitialData } = useModel()
+  const { data: session } = useSession()
 
   const router = useRouter()
   const { lang } = useTranslation("chat")
   
-  // 초기 데이터가 있으면 설정
+  // Set initial data if available
   useEffect(() => {
     if (initialAgents || initialPublicModels) {
       setInitialData(
@@ -70,9 +72,9 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
     const newHeight = Math.min(textarea.scrollHeight, 400)
     textarea.style.height = `${newHeight}px`
     
-    // 한 줄일 때는 스크롤바 숨김, 두 줄 이상일 때만 스크롤바 표시
-    const lineHeight = 24 // 대략적인 줄 높이 (text-sm leading-6)
-    const singleLineHeight = 48 + lineHeight // minHeight + 한 줄
+    // Hide scrollbar for single line, show scrollbar only for multiple lines
+    const lineHeight = 24 // Approximate line height (text-sm leading-6)
+    const singleLineHeight = 48 + lineHeight // minHeight + one line
     
     if (newHeight <= singleLineHeight) {
       textarea.style.overflowY = "hidden"
@@ -85,7 +87,7 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
     const value = e.target.value
     setInputValue(value)
     
-    // 상태 표시/숨김을 빈 값일 때만 체크 (상태 변경 최소화)
+    // Check state show/hide only when empty (minimize state changes)
     const isEmpty = value.trim().length === 0
     setIsExpanded(prev => {
       if (isEmpty && prev) return false
@@ -94,22 +96,23 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
     })
   }, [])
 
-  // input 이벤트로 높이 조정 (onChange와 분리)
+  // Adjust height with input event (separate from onChange)
   const handleInput = useCallback((e: React.FormEvent<HTMLTextAreaElement>) => {
     const textarea = e.currentTarget
     adjustTextareaHeight(textarea)
   }, [adjustTextareaHeight])
 
   const handleSubmit = useCallback(async () => {
-    if (inputValue.trim() && !isSubmitting && selectedModel) {
+    if (inputValue.trim() && !isSubmitting && selectedModel && session?.user?.id) {
       setIsSubmitting(true)
       
       try {
-        console.log('=== 클라이언트: 채팅 세션 생성 요청 시작 ===')
-        console.log('선택된 모델:', selectedModel)
-        console.log('초기 메시지:', inputValue)
+        console.log('=== Client: Chat session creation request started ===')
+        console.log('Selected model:', selectedModel)
+        console.log('Initial message:', inputValue)
+        console.log('User ID:', session.user.id)
         
-        // 새로운 채팅 세션 생성 API 호출
+        // Call API to create new chat session
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: {
@@ -119,29 +122,30 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
             agentId: selectedModel.type === 'agent' ? selectedModel.id : undefined,
             modelId: selectedModel.type === 'model' ? selectedModel.id : undefined,
             modelType: selectedModel.type,
-            initialMessage: inputValue
+            initialMessage: inputValue,
+            userId: session.user.id
           })
         })
 
-        console.log('=== 클라이언트: 응답 받음 ===')
-        console.log('응답 상태:', response.status)
-        console.log('응답 OK:', response.ok)
-        console.log('응답 헤더:', response.headers)
+        console.log('=== Client: Response received ===')
+        console.log('Response status:', response.status)
+        console.log('Response OK:', response.ok)
+        console.log('Response headers:', response.headers)
 
         if (!response.ok) {
           const errorText = await response.text()
-          console.log('오류 응답 내용:', errorText)
-          throw new Error(`채팅 세션 생성에 실패했습니다 (${response.status}: ${errorText})`)
+          console.log('Error response content:', errorText)
+          throw new Error(`Failed to create chat session (${response.status}: ${errorText})`)
         }
 
         const data = await response.json()
-        console.log('=== 클라이언트: 응답 데이터 ===')
-        console.log('응답 데이터:', data)
+        console.log('=== Client: Response data ===')
+        console.log('Response data:', data)
         
         const chatId = data.chatId
-        console.log('채팅 ID:', chatId)
+        console.log('Chat ID:', chatId)
 
-        // 에이전트 정보를 localStorage에 저장 (스트리밍 응답용)
+        // Save agent information to localStorage (for streaming response)
         if (typeof window !== 'undefined') {
           localStorage.setItem(`chat_${chatId}_agent`, JSON.stringify({
             id: selectedModel.id,
@@ -149,36 +153,36 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
           }))
         }
 
-        // 사이드바 새로고침 (새 채팅이 목록에 표시되도록)
+        // Refresh sidebar (so new chat appears in list)
         if (typeof window !== 'undefined' && (window as any).refreshSidebar) {
           (window as any).refreshSidebar()
         }
 
-        // 생성된 채팅 ID로 페이지 이동 (URL에 민감한 정보 노출 없음)
+        // Navigate to created chat ID page (no sensitive information exposed in URL)
         router.push(`/chat/${chatId}`)
         
-        // 입력창 초기화
+        // Reset input field
         setInputValue("")
         setIsExpanded(false)
         
-        // 높이 리셋
+        // Reset height
         if (textareaRef.current) {
           textareaRef.current.style.height = "48px"
         }
         
       } catch (error) {
-        console.error('=== 클라이언트: 채팅 세션 생성 오류 ===')
-        console.error('오류 상세:', error)
+        console.error('=== Client: Chat session creation error ===')
+        console.error('Error details:', error)
         if (error instanceof Error) {
-          console.error('오류 스택:', error.stack)
+          console.error('Error stack:', error.stack)
         }
-        // 오류 처리 - 사용자에게 알림 표시
-        alert('채팅을 시작하는데 실패했습니다. 다시 시도해주세요.')
+        // Error handling - show notification to user
+        alert('Failed to start chat. Please try again.')
       } finally {
         setIsSubmitting(false)
       }
     }
-  }, [inputValue, router, isSubmitting, selectedModel])
+  }, [inputValue, router, isSubmitting, selectedModel, session?.user?.id])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Shift") {
@@ -187,10 +191,10 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
 
     if (e.key === "Enter") {
       if (e.shiftKey) {
-        // Shift + Enter: 줄바꿈 허용 (기본 동작)
+        // Shift + Enter: Allow line break (default behavior)
         return
       } else {
-        // Enter만 누르면 submit 동작
+        // Enter only: Submit action
         e.preventDefault()
         handleSubmit()
       }
@@ -265,9 +269,18 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
       <div className="flex-1 flex flex-col relative">
         {/* Initial State Content */}
         <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-4xl mx-auto w-full pb-32 md:pb-6">
-          {/* 모델 선택 영역 - 새로 추가 */}
+          {/* 사용자 환영 메시지 */}
+          {session?.user && (
+            <div className="text-center mb-8">
+              <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                안녕하세요, {session.user.name}님! 👋
+              </h1>
+              <p className="text-lg text-gray-600">
+                오늘은 어떤 것을 도와드릴까요?
+              </p>
+            </div>
+          )}
 
-          
           {/* 선택된 모델 이름 */}
           {selectedModel && (
             <div className="flex items-center gap-3 mb-4">
@@ -309,17 +322,11 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
                     : lang("modelDescription")
                   }
                 </p>
-                <p className="text-gray-500 text-sm mt-2">
-                  {lang("capabilities")}
-                </p>
               </>
             ) : (
               <>
                 <p className="text-gray-600 text-lg">
                   {lang("modelDescription")}
-                </p>
-                <p className="text-gray-500 text-sm mt-2">
-                  {lang("capabilities")}
                 </p>
               </>
             )}

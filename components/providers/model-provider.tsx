@@ -58,8 +58,20 @@ export function ModelProvider({ children }: { children: ReactNode }) {
     try {
       setIsLoading(true)
       const response = await fetch('/api/agents')
+      
+      // Handle authentication error
+      if (response.status === 401) {
+        console.log('Authentication required')
+        // Only redirect if not already on auth page
+        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth')) {
+          console.log('Redirecting to login page...')
+          window.location.href = '/auth'
+        }
+        return
+      }
+      
       if (!response.ok) {
-        throw new Error('Failed to fetch agent list')
+        throw new Error(`Failed to fetch agent list: ${response.status} ${response.statusText}`)
       }
       
       const data = await response.json()
@@ -169,6 +181,13 @@ export function ModelProvider({ children }: { children: ReactNode }) {
 
   // Fetch agent list on component mount (only when initial data is not available)
   useEffect(() => {
+    // Skip API call on auth pages
+    if (typeof window !== 'undefined' && window.location.pathname.startsWith('/auth')) {
+      setIsInitialized(true)
+      setIsLoading(false)
+      return
+    }
+    
     // Call API only if not initialized
     if (!isInitialized) {
       fetchModelsAndAgents()
