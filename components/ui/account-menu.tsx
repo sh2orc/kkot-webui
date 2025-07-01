@@ -87,10 +87,12 @@ export function AccountMenu({ children, align = "start", side = "top" }: Account
           <Archive className="mr-2 h-4 w-4" />
           <span>{lang("accountContextMenu.archivedChats")}</span>
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => router.push("/admin")}>
-          <Shield className="mr-2 h-4 w-4" />
-          <span>{lang("accountContextMenu.adminSettings")}</span>
-        </DropdownMenuItem>
+        {session?.user?.role === 'admin' && (
+          <DropdownMenuItem onClick={() => router.push("/admin")}>
+            <Shield className="mr-2 h-4 w-4" />
+            <span>{lang("accountContextMenu.adminSettings")}</span>
+          </DropdownMenuItem>
+        )}
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleLogout}>
           <LogOut className="mr-2 h-4 w-4" />

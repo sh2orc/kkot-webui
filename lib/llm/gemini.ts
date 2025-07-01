@@ -28,7 +28,17 @@ export class GeminiLLM extends BaseLLM {
     
     const functionCallOptions = this.prepareFunctionCallOptions(options?.functions);
     
-    const response = await this.client.invoke(langChainMessages, functionCallOptions);
+    // Create client with dynamic options
+    const dynamicClient = new ChatGoogleGenerativeAI({
+      model: this.config.modelName,
+      temperature: this.config.temperature,
+      maxOutputTokens: options?.maxTokens ?? this.config.maxTokens,
+      topP: this.config.topP,
+      apiKey: this.config.apiKey,
+      streaming: this.config.streaming,
+    });
+    
+    const response = await dynamicClient.invoke(langChainMessages, functionCallOptions);
     
     // 토큰 사용량 계산 (추정치)
     const promptTokens = this.estimateTokenCount(messages);
@@ -59,7 +69,7 @@ export class GeminiLLM extends BaseLLM {
     const streamingClient = new ChatGoogleGenerativeAI({
       model: this.config.modelName,
       temperature: this.config.temperature,
-      maxOutputTokens: this.config.maxTokens,
+      maxOutputTokens: options?.maxTokens ?? this.config.maxTokens,
       topP: this.config.topP,
       apiKey: this.config.apiKey,
       streaming: true
@@ -135,7 +145,7 @@ export class GeminiLLM extends BaseLLM {
    * 토큰 수 추정 (간단한 구현)
    */
   private estimateTokenCount(messages: LLMMessage[]): number {
-    // 단순한 추정: 영어 기준으로 단어 4개당 약 3토큰
+    // Simple estimation: approximately 3 tokens per 4 words in English
     const totalChars = messages.reduce((sum, msg) => sum + msg.content.length, 0);
     return Math.ceil(totalChars / 4);
   }

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { signIn, useSession } from 'next-auth/react';
+import { signIn, useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,11 +10,11 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from 'sonner';
 import Image from 'next/image';
-import { useTranslation, preloadTranslationModule } from '@/lib/i18n';
+import { useTranslation } from '@/lib/i18n';
+import Loading from '@/components/ui/loading';
 
 export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
-  const [isTranslationLoaded, setIsTranslationLoaded] = useState(false);
   const [loginForm, setLoginForm] = useState({ email: '', password: '' });
   const [registerForm, setRegisterForm] = useState({ 
     email: '', 
@@ -24,57 +24,29 @@ export default function AuthPage() {
   });
   const router = useRouter();
   const { data: session, status } = useSession();
-  const { t, lang, language } = useTranslation('auth');
+  const { t, lang } = useTranslation('auth');
 
-  // 번역 모듈 미리 로드
+  // 디버깅을 위한 로그 (간소화)
   useEffect(() => {
-    const loadTranslations = async () => {
-      try {
-        await preloadTranslationModule(language, 'auth');
-        setIsTranslationLoaded(true);
-      } catch (error) {
-        console.error('Failed to load translations:', error);
-        setIsTranslationLoaded(true); // 에러가 발생해도 계속 진행
-      }
-    };
-    
-    loadTranslations();
-  }, [language]);
+    console.log('Auth Page - Session Status:', status);
+  }, [status]);
 
-  // 이미 로그인된 경우 메인 페이지로 리다이렉트 (로딩 완료 후에만)
+  // 이미 로그인된 경우 채팅 페이지로 리다이렉트 (한 번만)
   useEffect(() => {
     if (status === 'authenticated' && session) {
-      // 약간의 지연을 두어 무한 리다이렉트 방지
-      const timer = setTimeout(() => {
-        router.replace('/');
-      }, 100);
-      
-      return () => clearTimeout(timer);
+      console.log('Redirecting to /chat...');
+      router.replace('/chat');
     }
-  }, [status, session, router]);
+  }, [status, session]); // router를 의존성에서 제거
 
-  // 번역 모듈과 세션 로딩 상태 표시
-  if (status === 'loading' || !isTranslationLoaded) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-2 text-sm text-gray-600">로딩 중...</p>
-        </div>
-      </div>
-    );
+  // 세션 로딩 중인 경우 로딩 표시
+  if (status === 'loading') {
+    return <Loading />;
   }
 
-  // 이미 인증된 사용자는 빈 화면 표시 (리다이렉트 중)
+  // 이미 인증된 사용자는 리다이렉트 중 표시
   if (status === 'authenticated') {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 mx-auto"></div>
-          <p className="mt-2 text-sm text-gray-600">리다이렉트 중...</p>
-        </div>
-      </div>
-    );
+    return <Loading text="Redirecting..." />;
   }
 
   // 안전한 번역 함수 (기본값 제공)
@@ -165,31 +137,31 @@ export default function AuthPage() {
             <Image src="/images/logo.svg" alt="KKOT WebUI" width={130} height={24} />
           </div>
           <h2 className="mt-6 text-3xl font-extrabold text-gray-900">
-            {safeTranslate('title', '꽃 KKOT')}
+            {safeTranslate('title', 'KKOT WebUI')}
           </h2>
           <p className="mt-2 text-sm text-gray-600">
-            {safeTranslate('subtitle', '계정에 로그인하거나 새 계정을 만드세요')}
+            {safeTranslate('subtitle', 'Sign in to your account or create a new one')}
           </p>
         </div>
 
         <Tabs defaultValue="login" className="w-full">
           <TabsList className="grid w-full grid-cols-2">
-            <TabsTrigger value="login">{safeTranslate('login.title', '로그인')}</TabsTrigger>
-            <TabsTrigger value="register">{safeTranslate('register.title', '회원가입')}</TabsTrigger>
+            <TabsTrigger value="login">{safeTranslate('login.title', 'Login')}</TabsTrigger>
+            <TabsTrigger value="register">{safeTranslate('register.title', 'Register')}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="login">
             <Card>
               <CardHeader>
-                <CardTitle>{safeTranslate('login.title', '로그인')}</CardTitle>
+                <CardTitle>{safeTranslate('login.title', 'Login')}</CardTitle>
                 <CardDescription>
-                  {safeTranslate('login.description', '기존 계정으로 로그인하세요')}
+                  {safeTranslate('login.description', 'Sign in to your existing account')}
                 </CardDescription>
               </CardHeader>
               <form onSubmit={handleLogin}>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="login-email">{safeTranslate('form.email', '이메일')}</Label>
+                    <Label htmlFor="login-email">{safeTranslate('form.email', 'Email')}</Label>
                     <Input
                       id="login-email"
                       type="email"
@@ -200,7 +172,7 @@ export default function AuthPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="login-password">{safeTranslate('form.password', '비밀번호')}</Label>
+                    <Label htmlFor="login-password">{safeTranslate('form.password', 'Password')}</Label>
                     <Input
                       id="login-password"
                       type="password"
@@ -212,7 +184,7 @@ export default function AuthPage() {
                 </CardContent>
                 <CardFooter>
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? safeTranslate('login.loading', '로그인 중...') : safeTranslate('login.button', '로그인')}
+                    {isLoading ? safeTranslate('login.loading', 'Signing in...') : safeTranslate('login.button', 'Sign In')}
                   </Button>
                 </CardFooter>
               </form>
@@ -222,15 +194,15 @@ export default function AuthPage() {
           <TabsContent value="register">
             <Card>
               <CardHeader>
-                <CardTitle>{safeTranslate('register.title', '회원가입')}</CardTitle>
+                <CardTitle>{safeTranslate('register.title', 'Register')}</CardTitle>
                 <CardDescription>
-                  {safeTranslate('register.description', '새 계정을 만드세요. 첫 번째 사용자는 자동으로 관리자가 됩니다.')}
+                  {safeTranslate('register.description', 'Create a new account. The first user will automatically become an administrator.')}
                 </CardDescription>
               </CardHeader>
               <form onSubmit={handleRegister}>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
-                    <Label htmlFor="register-email">{safeTranslate('form.email', '이메일')}</Label>
+                    <Label htmlFor="register-email">{safeTranslate('form.email', 'Email')}</Label>
                     <Input
                       id="register-email"
                       type="email"
@@ -241,33 +213,33 @@ export default function AuthPage() {
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-username">{safeTranslate('form.username', '사용자명')}</Label>
+                    <Label htmlFor="register-username">{safeTranslate('form.username', 'Username')}</Label>
                     <Input
                       id="register-username"
                       type="text"
-                      placeholder={safeTranslate('form.usernamePlaceholder', '사용자명')}
+                      placeholder={safeTranslate('form.usernamePlaceholder', 'Username')}
                       value={registerForm.username}
                       onChange={(e) => setRegisterForm({ ...registerForm, username: e.target.value })}
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-password">{safeTranslate('form.password', '비밀번호')}</Label>
+                    <Label htmlFor="register-password">{safeTranslate('form.password', 'Password')}</Label>
                     <Input
                       id="register-password"
                       type="password"
-                      placeholder={safeTranslate('form.passwordPlaceholder', '최소 6자리')}
+                      placeholder={safeTranslate('form.passwordPlaceholder', 'At least 6 characters')}
                       value={registerForm.password}
                       onChange={(e) => setRegisterForm({ ...registerForm, password: e.target.value })}
                       required
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="register-confirm-password">{safeTranslate('form.confirmPassword', '비밀번호 확인')}</Label>
+                    <Label htmlFor="register-confirm-password">{safeTranslate('form.confirmPassword', 'Confirm Password')}</Label>
                     <Input
                       id="register-confirm-password"
                       type="password"
-                      placeholder={safeTranslate('form.confirmPasswordPlaceholder', '비밀번호 재입력')}
+                      placeholder={safeTranslate('form.confirmPasswordPlaceholder', 'Re-enter password')}
                       value={registerForm.confirmPassword}
                       onChange={(e) => setRegisterForm({ ...registerForm, confirmPassword: e.target.value })}
                       required
@@ -276,7 +248,7 @@ export default function AuthPage() {
                 </CardContent>
                 <CardFooter>
                   <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? safeTranslate('register.loading', '가입 중...') : safeTranslate('register.button', '회원가입')}
+                    {isLoading ? safeTranslate('register.loading', 'Registering...') : safeTranslate('register.button', 'Register')}
                   </Button>
                 </CardFooter>
               </form>

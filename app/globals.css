@@ -176,3 +176,52 @@ html, body {
     transform: scale(0.98);
   }
 }
+
+/* 페이지 전환 효과 */
+@layer base {
+  /* View Transitions API 지원 */
+  ::view-transition-old(root) {
+    animation: fade-out 0.3s ease-out;
+  }
+  
+  ::view-transition-new(root) {
+    animation: fade-in 0.3s ease-out;
+  }
+  
+  @keyframes fade-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+  
+  @keyframes fade-in {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+  
+  /* 페이지 전환 Wrapper 스타일 */
+  .page-transition-wrapper {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    transition: 0.3s ease-out, transform 0.3s ease-out;
+  }
+  
+  .page-transition-wrapper.transitioning {
+    transform: scale(1.00);
+  }
+  
+  /* 더블 버퍼링 효과 */
+  @supports (view-transition-name: root) {
+    :root {
+      view-transition-name: root;
+    }
+  }
+}

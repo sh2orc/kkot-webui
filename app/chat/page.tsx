@@ -1,18 +1,31 @@
 import EmptyChat from "@/components/contents/empty-chat"
 import { agentManageRepository, llmModelRepository, convertImageDataToDataUrl } from "@/lib/db/server"
+import { getServerSession } from "next-auth"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { loadTranslationModule } from "@/lib/i18n-server"
+import { headers } from "next/headers"
 
 export const dynamic = 'force-dynamic'
 
 export default async function Page() {
-  // SSR로 에이전트와 공개 모델 목록 가져오기
-  const [agents, publicModels] = await Promise.all([
+  // Get session information from server
+  const session = await getServerSession(authOptions)
+  
+  // Extract language information from Accept-Language header (default: 'kor')
+  const headersList = await headers()
+  const acceptLanguage = headersList.get('accept-language') || ''
+  const preferredLanguage = acceptLanguage.includes('en') ? 'eng' : 'kor'
+  
+  // Get agent and public model lists via SSR
+  const [agents, publicModels, chatTranslations] = await Promise.all([
     agentManageRepository.findAllWithModelAndServer(),
-    llmModelRepository.findPublic()
+    llmModelRepository.findPublic(),
+    loadTranslationModule(preferredLanguage, 'chat')
   ])
   
-  // 에이전트 데이터 변환 (이미지 포함)
+  // Transform agent data (including images)
   const processedAgents = agents
-    .filter((agent: any) => agent.enabled) // 활성화된 에이전트만
+    .filter((agent: any) => agent.enabled) // Only enabled agents
     .map((agent: any) => {
       let imageData: string | null = null
       let hasImage = false
@@ -24,20 +37,20 @@ export default async function Page() {
       
       return {
         ...agent,
-        imageData: undefined, // 클라이언트로 전송하지 않음
+        imageData,
         hasImage,
-        type: 'agent' as const // 타입 구분을 위한 필드
+        type: 'agent' as const // Field for type distinction
       }
     })
   
-  // 공개 모델 데이터 변환
+  // Transform public model data
   const processedPublicModels = publicModels.map((model: any) => ({
     ...model,
     capabilities: model.capabilities ? JSON.parse(model.capabilities) : null,
-    type: 'model' as const // 타입 구분을 위한 필드
+    type: 'model' as const // Field for type distinction
   }))
   
-  // 기본 선택될 모델 결정 (첫 번째 에이전트 또는 첫 번째 공개 모델)
+  // Determine default model to be selected (first agent or first public model)
   let defaultModel = null
   if (processedAgents.length > 0) {
     defaultModel = processedAgents[0]
@@ -50,6 +63,9 @@ export default async function Page() {
       initialAgents={processedAgents}
       initialPublicModels={processedPublicModels}
       defaultModel={defaultModel}
+      session={session}
+      initialTranslations={chatTranslations}
+      preferredLanguage={preferredLanguage}
     />
   )
 }

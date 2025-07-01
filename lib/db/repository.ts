@@ -870,7 +870,7 @@ export function convertImageDataToDataUrl(imageData: any): string | null {
       if (buffer.length < 100) {
         return null;
       }
-      const base64String = buffer.toString('base64');
+      const base64String = buffer.toString();
       return `data:image/png;base64,${base64String}`;
     }
     

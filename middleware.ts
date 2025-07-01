@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import type { NextRequest } from 'next/server';
+import { getToken } from 'next-auth/jwt';
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -20,12 +21,31 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // Check NextAuth session cookie
+  // 임시로 세션 쿠키 확인 방식으로 변경
   const sessionToken = request.cookies.get('next-auth.session-token')?.value ||
                       request.cookies.get('__Secure-next-auth.session-token')?.value;
 
-  // If session token is missing
+  // 디버깅 로그
+  console.log(`Middleware - Path: ${pathname}`);
+  console.log(`Middleware - Session Cookie:`, !!sessionToken);
+
+  // Get JWT token for detailed info (if session cookie exists)
+  let token = null;
+  if (sessionToken) {
+    try {
+      token = await getToken({ 
+        req: request, 
+        secret: process.env.NEXTAUTH_SECRET 
+      });
+      console.log(`Middleware - JWT Token:`, !!token);
+    } catch (error) {
+      console.log(`Middleware - JWT Error:`, error instanceof Error ? error.message : 'Unknown error');
+    }
+  }
+
+  // If no session cookie (not authenticated)
   if (!sessionToken) {
+    console.log(`Middleware - No session cookie, redirecting to /auth`);
     // Return JSON error response for API routes
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(
@@ -36,6 +56,22 @@ export async function middleware(request: NextRequest) {
     
     // Redirect to auth page for regular pages
     return NextResponse.redirect(new URL('/auth', request.url));
+  }
+
+  // Check admin access for /admin paths
+  if (pathname.startsWith('/admin')) {
+    if (!token || token.role !== 'admin') {
+      // Return JSON error response for API routes
+      if (pathname.startsWith('/api/')) {
+        return NextResponse.json(
+          { error: 'Forbidden', message: 'Admin access required' },
+          { status: 403 }
+        );
+      }
+      
+      // Redirect to main page for regular pages
+      return NextResponse.redirect(new URL('/', request.url));
+    }
   }
 
   return NextResponse.next();

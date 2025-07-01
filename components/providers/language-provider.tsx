@@ -10,6 +10,7 @@ import {
   preloadTranslationModules,
   supportedLanguages
 } from '@/lib/i18n'
+import Loading from '@/components/ui/loading'
 
 interface LanguageProviderProps {
   children: ReactNode
@@ -21,6 +22,7 @@ export default function LanguageProvider({ children }: LanguageProviderProps) {
 
   // 모든 번역 모듈 목록
   const translationModules = [
+    'auth',
     'common',
     'admin',
     'admin.general',
@@ -38,6 +40,7 @@ export default function LanguageProvider({ children }: LanguageProviderProps) {
     'navbar',
     'settings',
     'chat',
+    'book',
     'language'
   ]
 
@@ -67,11 +70,7 @@ export default function LanguageProvider({ children }: LanguageProviderProps) {
 
   // 로딩 중이면 로딩 상태 표시
   if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-gray-900"></div>
-      </div>
-    )
+    return <Loading />
   }
 
   return (

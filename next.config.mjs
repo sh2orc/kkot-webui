@@ -1,5 +1,7 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  // 개발 환경에서 React Strict Mode 비활성화 (중복 렌더링 방지)
+  reactStrictMode: false,
   eslint: {
     ignoreDuringBuilds: true,
   },

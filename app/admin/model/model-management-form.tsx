@@ -174,7 +174,7 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
       
       // 저장 후 페이지 새로고침하여 서버 상태 동기화
       setTimeout(() => {
-        console.log('모델 설정 저장 완료, 페이지 새로고침')
+        console.log('Model settings saved successfully, refreshing page')
         router.refresh()
       }, 1000)
     } catch (error) {
@@ -293,7 +293,6 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
         {/* Save button */}
         <div className="flex justify-end">
           <Button 
-            className="bg-black text-white hover:text-white hover:bg-blue-700"
             onClick={handleSave}
             disabled={isSaving || modifiedModels.size === 0}
           >

@@ -24,7 +24,7 @@ import { Slider } from "@/components/ui/slider"
 
 interface AgentData {
   id?: string
-  agentId?: string  // 에이전트 ID 필드 추가
+  agentId?: string  // Agent ID field
   modelId: string
   name: string
   systemPrompt: string
@@ -58,7 +58,7 @@ export default function AgentRegisterForm({
   const { toast } = useToast()
   const [isLoading, setIsLoading] = useState(false)
   
-  // Agent ID 검증 상태
+  // Agent ID validation state
   const [agentIdValidation, setAgentIdValidation] = useState<{
     isChecking: boolean
     isValid: boolean | null
@@ -69,7 +69,7 @@ export default function AgentRegisterForm({
     message: ''
   })
   
-  // 기본 폼 데이터 설정
+  // Default form data setup
   const defaultFormData = {
     agentId: '',
     modelId: '',
@@ -90,67 +90,67 @@ export default function AgentRegisterForm({
   // Form state
   const [formData, setFormData] = useState(initialAgentData || defaultFormData)
   
-  // 이미지 업로드 관련 상태
+  // Image upload related state
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [previewImage, setPreviewImage] = useState<string>('')
   
-  // SSR로 이미지가 전달되므로 API 호출 불필요 
-  // 초기 데이터 설정 (이미지 포함)
+  // No API call needed as image is passed through SSR 
+  // Initial data setup (including image)
   useEffect(() => {
-    // 수정 모드인데 초기 에이전트 데이터가 없는 경우 (존재하지 않는 ID)
+    // If in edit mode but no initial agent data (non-existent ID)
     if (editingId && !initialAgentData) {
-      console.log('에이전트 데이터가 없음, 등록 페이지로 리다이렉트:', editingId)
+      console.log('No agent data found, redirecting to agent list:', editingId)
       router.push('/admin/agent')
       return
     }
     
-    // 초기 에이전트 데이터가 있는 경우
+    // If initial agent data exists
     if (initialAgentData) {
       setFormData({
         ...initialAgentData,
-        agentId: initialAgentData.agentId || initialAgentData.id || '', // 기존 데이터에 agentId가 없으면 id 사용
-        parameterEnabled: (initialAgentData as any).parameterEnabled ?? true // 기존 데이터에 parameterEnabled가 없으면 기본값 true
+        agentId: initialAgentData.agentId || initialAgentData.id || '', // Use id if agentId doesn't exist in existing data
+        parameterEnabled: (initialAgentData as any).parameterEnabled ?? true // Default to true if parameterEnabled doesn't exist in existing data
       })
     }
     
-    // SSR로 전달된 초기 이미지 데이터 처리
+    // Process initial image data passed through SSR
     if (initialImageData) {
       try {
-        console.log("🖼️ SSR 이미지 데이터 처리 중...", { length: initialImageData.length });
+        console.log("🖼️ Processing SSR image data...", { length: initialImageData.length });
         
-        // 유효성 검사
+        // Validation
         if (typeof initialImageData !== 'string' || !initialImageData.trim()) {
-          console.error("❌ 유효하지 않은 이미지 데이터");
+          console.error("❌ Invalid image data");
           return;
         }
         
-        // SSR로 전달된 이미지 데이터는 이미 data URL 형태
+        // SSR image data is already in data URL format
         if (initialImageData.startsWith('data:')) {
-          console.log(`✅ SSR 이미지 설정 (크기: ${(initialImageData.length / 1024).toFixed(1)}KB)`);
+          console.log(`✅ Setting SSR image (size: ${(initialImageData.length / 1024).toFixed(1)}KB)`);
           
-          // 미리보기 설정
+          // Set preview
           setPreviewImage(initialImageData);
           
-          // 폼 데이터에 base64 부분만 저장
+          // Store only base64 part in form data
           const base64Data = initialImageData.split(',')[1];
           setFormData(prev => ({ ...prev, imageData: base64Data }));
         } else {
-          console.warn("SSR 이미지 데이터가 예상 형식이 아님:", initialImageData.substring(0, 50));
+          console.warn("SSR image data is not in expected format:", initialImageData.substring(0, 50));
         }
         
       } catch (error) {
-        console.error("❌ SSR 이미지 처리 오류:", error);
+        console.error("❌ SSR image processing error:", error);
       }
     }
   }, [initialAgentData, initialImageData, editingId])
 
-  // Agent ID 중복 확인
+  // Check Agent ID availability
   const checkAgentIdAvailability = async (agentId: string) => {
     if (!agentId || agentId.length < 3) {
       setAgentIdValidation({
         isChecking: false,
         isValid: false,
-        message: '에이전트 ID는 3자 이상이어야 합니다.'
+        message: 'Agent ID must be at least 3 characters long.'
       })
       return
     }
@@ -172,16 +172,16 @@ export default function AgentRegisterForm({
         message: result.message
       })
     } catch (error) {
-      console.error('Agent ID 확인 오류:', error)
+      console.error('Agent ID check error:', error)
       setAgentIdValidation({
         isChecking: false,
         isValid: false,
-        message: '에이전트 ID 확인 중 오류가 발생했습니다.'
+        message: 'An error occurred while checking agent ID.'
       })
     }
   }
 
-  // Agent ID 포커스아웃 핸들러
+  // Agent ID blur handler
   const handleAgentIdBlur = (agentId: string) => {
     if (agentId.trim()) {
       checkAgentIdAvailability(agentId.trim())
@@ -199,7 +199,7 @@ export default function AgentRegisterForm({
     try {
       setIsLoading(true)
       
-      // 모델 등록 여부 검증
+      // Validate model registration
       if (enabledModels.length === 0) {
         toast({
           title: lang('modelRequired'),
@@ -210,7 +210,7 @@ export default function AgentRegisterForm({
         return
       }
       
-      // 필수 필드 검증
+      // Validate required fields
       if (!formData.name || !formData.modelId || !(formData as any).agentId) {
         toast({
           title: lang('validationError'),
@@ -221,7 +221,7 @@ export default function AgentRegisterForm({
         return
       }
 
-      // Agent ID 유효성 검증
+      // Validate Agent ID
       if (agentIdValidation.isValid === false) {
         toast({
           title: lang('validationError'),
@@ -232,44 +232,44 @@ export default function AgentRegisterForm({
         return
       }
       
-      console.log("=== 에이전트 저장 시작 ===")
-      console.log("에이전트 이름:", formData.name)
-      console.log("이미지 데이터 존재 여부:", !!formData.imageData)
+      console.log("=== Starting agent save ===")
+      console.log("Agent name:", formData.name)
+      console.log("Image data exists:", !!formData.imageData)
       if (formData.imageData) {
-        console.log("이미지 데이터 타입:", typeof formData.imageData)
-        console.log("이미지 데이터 길이:", formData.imageData.length)
-        console.log("이미지 데이터 시작 부분:", formData.imageData.substring(0, 50))
-        console.log("이미지 데이터가 data:로 시작하는지:", formData.imageData.startsWith('data:'))
-        console.log("이미지 데이터가 base64,를 포함하는지:", formData.imageData.includes('base64,'))
+        console.log("Image data type:", typeof formData.imageData)
+        console.log("Image data length:", formData.imageData.length)
+        console.log("Image data start:", formData.imageData.substring(0, 50))
+        console.log("Image data starts with data::", formData.imageData.startsWith('data:'))
+        console.log("Image data contains base64,:", formData.imageData.includes('base64,'))
       }
       
       const url = '/api/agents'
       const method = editingId ? 'PUT' : 'POST'
       
-      // 이미지 데이터 전처리
+      // Preprocess image data
       let processedFormData = { ...formData }
       if (processedFormData.imageData) {
-        console.log("이미지 데이터 전처리 시작")
-        console.log("원본 이미지 데이터:", processedFormData.imageData.substring(0, 50) + "...")
+        console.log("Starting image data preprocessing")
+        console.log("Original image data:", processedFormData.imageData.substring(0, 50) + "...")
         
-        // 이미지 데이터가 data:image/ 형식으로 시작하면 base64 부분만 추출
+        // If image data starts with data:image/, extract only base64 part
         if (processedFormData.imageData.startsWith('data:image/')) {
           const base64Part = processedFormData.imageData.split(',')[1]
-          console.log("data URL에서 base64 부분 추출")
-          console.log("추출된 base64 길이:", base64Part.length)
-          console.log("추출된 base64 시작 부분:", base64Part.substring(0, 50) + "...")
+          console.log("Extracting base64 part from data URL")
+          console.log("Extracted base64 length:", base64Part.length)
+          console.log("Extracted base64 start:", base64Part.substring(0, 50) + "...")
           processedFormData.imageData = base64Part
         }
         
-        console.log("최종 전송할 이미지 데이터 길이:", processedFormData.imageData.length)
-        console.log("최종 전송할 이미지 데이터 시작 부분:", processedFormData.imageData.substring(0, 50) + "...")
+        console.log("Final image data length to send:", processedFormData.imageData.length)
+        console.log("Final image data start:", processedFormData.imageData.substring(0, 50) + "...")
       }
       
       const body = editingId 
         ? { id: editingId, ...processedFormData }
         : processedFormData
       
-      console.log("API 요청 데이터:", {
+      console.log("API request data:", {
         ...body,
         imageData: body.imageData ? `[${body.imageData.length} characters]` : null
       })
@@ -280,16 +280,16 @@ export default function AgentRegisterForm({
         body: JSON.stringify(body)
       })
       
-      console.log("API 응답 상태:", response.status)
+      console.log("API response status:", response.status)
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        console.error("API 오류 응답:", errorData)
+        console.error("API error response:", errorData)
         throw new Error(errorData.message || lang('saveError'))
       }
       
       const responseData = await response.json()
-      console.log("API 성공 응답:", {
+      console.log("API success response:", {
         ...responseData,
         imageData: responseData.imageData ? `[${responseData.imageData.length} characters]` : null
       })
@@ -306,7 +306,7 @@ export default function AgentRegisterForm({
         })
       }
       
-      console.log("=== 에이전트 저장 완료 ===")
+      console.log("=== Agent save completed ===")
       router.push('/admin/agent')
     } catch (error) {
       console.error('Save agent error:', error)
@@ -322,19 +322,19 @@ export default function AgentRegisterForm({
 
 
 
-  // 이미지 업로드 처리
+  // Handle image upload
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    console.log("=== 이미지 업로드 시작 ===")
-    console.log("파일 이름:", file.name)
-    console.log("파일 크기:", (file.size / 1024).toFixed(1), "KB")
-    console.log("파일 타입:", file.type)
+    console.log("=== Starting image upload ===")
+    console.log("File name:", file.name)
+    console.log("File size:", (file.size / 1024).toFixed(1), "KB")
+    console.log("File type:", file.type)
 
-    // 파일 타입 검증
+    // Validate file type
     if (!file.type.startsWith('image/')) {
-      console.error("지원하지 않는 파일 타입:", file.type)
+      console.error("Unsupported file type:", file.type)
       toast({
         title: lang('imageUploadError'),
         description: lang('imageFileOnlyMessage'),
@@ -343,9 +343,9 @@ export default function AgentRegisterForm({
       return;
     }
 
-    // 파일 크기 제한 (10MB - 리사이즈 전 원본 제한)
+    // File size limit (10MB - original file limit before resize)
     if (file.size > 10 * 1024 * 1024) {
-      console.error("파일 크기 초과:", (file.size / 1024 / 1024).toFixed(1), "MB")
+      console.error("File size exceeded:", (file.size / 1024 / 1024).toFixed(1), "MB")
       toast({
         title: lang('imageUploadError'),
         description: lang('fileSizeExceededMessage'),
@@ -355,52 +355,52 @@ export default function AgentRegisterForm({
     }
 
     try {
-      console.log("이미지 처리 시작...");
+      console.log("Starting image processing...");
       
-      // 간단한 FileReader 사용 (리사이즈 로직 제거)
+      // Use simple FileReader (remove resize logic)
       const processedDataUrl = await new Promise<string>((resolve, reject) => {
         const reader = new FileReader();
         reader.onload = (e) => {
           const result = e.target?.result;
           if (result && typeof result === 'string') {
-            console.log("파일 읽기 성공");
-            console.log("data URL 길이:", result.length);
-            console.log("data URL 시작:", result.substring(0, 50) + "...");
+            console.log("File read successful");
+            console.log("data URL length:", result.length);
+            console.log("data URL start:", result.substring(0, 50) + "...");
             resolve(result);
           } else {
-            reject(new Error('파일 읽기 결과가 올바르지 않습니다'));
+            reject(new Error('File read result is not valid'));
           }
         };
         reader.onerror = (error) => {
-          console.error("FileReader 오류:", error);
-          reject(new Error('파일 읽기 실패'));
+          console.error("FileReader error:", error);
+          reject(new Error('File read failed'));
         };
         reader.readAsDataURL(file);
       });
       
-      console.log("이미지 처리 완료");
-      console.log("처리된 이미지 크기:", ((processedDataUrl.length * 3) / 4 / 1024).toFixed(1), "KB");
+      console.log("Image processing completed");
+      console.log("Processed image size:", ((processedDataUrl.length * 3) / 4 / 1024).toFixed(1), "KB");
       
-      // 미리보기 설정
-      console.log("미리보기 이미지 설정 중...");
+      // Set preview
+      console.log("Setting preview image...");
       setPreviewImage(processedDataUrl);
       
-      // 폼 데이터에 이미지 추가 (base64 문자열에서 데이터 부분만 저장)
+      // Add image to form data (store only data part from base64 string)
       if (processedDataUrl.includes(',')) {
         const base64Data = processedDataUrl.split(',')[1];
-        console.log("base64 데이터 추출 완료, 길이:", base64Data.length);
+        console.log("Base64 data extraction completed, length:", base64Data.length);
         setFormData(prev => ({ ...prev, imageData: base64Data }));
         
         toast({
           title: lang('imageUploadSuccess'),
-          description: `${lang('imageUploadSuccessMessage')} (크기: ${((processedDataUrl.length * 3) / 4 / 1024).toFixed(1)}KB)`
+          description: `${lang('imageUploadSuccessMessage')} (size: ${((processedDataUrl.length * 3) / 4 / 1024).toFixed(1)}KB)`
         });
       } else {
-        throw new Error('올바르지 않은 data URL 형식입니다');
+        throw new Error('Invalid data URL format');
       }
       
     } catch (error) {
-      console.error("이미지 처리 중 오류:", error);
+      console.error("Error during image processing:", error);
       toast({
         title: lang('imageUploadError'),
         description: error instanceof Error ? error.message : lang('imageProcessingErrorMessage'),
@@ -408,10 +408,10 @@ export default function AgentRegisterForm({
       });
     }
     
-    console.log("=== 이미지 업로드 완료 ===");
+    console.log("=== Image upload completed ===");
   };
 
-  // 이미지 제거
+  // Remove image
   const handleRemoveImage = () => {
     setPreviewImage('');
     setFormData(prev => ({ ...prev, imageData: '' }));
@@ -458,20 +458,20 @@ export default function AgentRegisterForm({
               </div>
               
               <div className="grid gap-2">
-                <Label htmlFor="agentId">에이전트 ID</Label>
+                <Label htmlFor="agentId">Agent ID</Label>
                 <Input
                   id="agentId"
                   value={formData.agentId || ''}
                   onChange={(e) => {
                     const value = e.target.value
                     setFormData(prev => ({ ...prev, agentId: value }))
-                    // 입력 중에는 검증 상태 초기화
+                    // Reset validation state during input
                     if (agentIdValidation.isValid !== null) {
                       setAgentIdValidation({ isChecking: false, isValid: null, message: '' })
                     }
                   }}
                   onBlur={(e) => handleAgentIdBlur(e.target.value)}
-                  placeholder="API 호출 시 사용할 고유한 ID를 입력하세요"
+                  placeholder="Enter unique ID for API calls"
                   className={
                     agentIdValidation.isValid === false ? 'border-red-500' :
                     agentIdValidation.isValid === true ? 'border-green-500' : ''
@@ -483,7 +483,7 @@ export default function AgentRegisterForm({
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    확인 중...
+                    Checking...
                   </p>
                 )}
                 {agentIdValidation.isValid === true && (
@@ -503,7 +503,7 @@ export default function AgentRegisterForm({
                   </p>
                 )}
                 <p className="text-xs text-gray-500">
-                  영문, 숫자, 하이픈(-), 언더스코어(_)만 사용 가능 (3-50자)
+                  Only English letters, numbers, hyphens(-), underscores(_) allowed (3-50 characters)
                 </p>
               </div>
               
@@ -552,7 +552,7 @@ export default function AgentRegisterForm({
               <div className="grid gap-2">
                 <Label htmlFor="agentImage">{lang('form.image')}</Label>
                 <div className="flex items-start gap-4">
-                  {/* 이미지 미리보기 */}
+                  {/* Image preview */}
                   <div className="relative">
                     <div className="h-24 w-24 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200">
                       {previewImage ? (
@@ -562,32 +562,32 @@ export default function AgentRegisterForm({
                             alt="Agent" 
                             className="w-full h-full object-cover"
                             onLoad={() => {
-                              console.log("이미지 로드 성공");
-                              console.log("이미지 URL:", previewImage.substring(0, 50) + "...");
+                              console.log("Image load successful");
+                              console.log("Image URL:", previewImage.substring(0, 50) + "...");
                             }}
                             onError={(e) => {
-                              console.error("🚨 이미지 로드 실패");
-                              console.error("이미지 URL 길이:", previewImage.length);
-                              console.error("이미지 URL 시작 부분:", previewImage.substring(0, 100) + "...");
+                              console.error("🚨 Image load failed");
+                              console.error("Image URL length:", previewImage.length);
+                              console.error("Image URL start:", previewImage.substring(0, 100) + "...");
                               
                               if (previewImage.includes('base64,')) {
                                 const base64Part = previewImage.split('base64,')[1];
-                                console.error("base64 부분 길이:", base64Part.length);
-                                console.error("base64 시작 부분:", base64Part.substring(0, 50) + "...");
-                                console.error("base64 끝 부분:", "..." + base64Part.substring(base64Part.length - 50));
+                                console.error("base64 part length:", base64Part.length);
+                                console.error("base64 start:", base64Part.substring(0, 50) + "...");
+                                console.error("base64 end:", "..." + base64Part.substring(base64Part.length - 50));
                                 
-                                // base64 유효성 검사 - 더 많은 데이터로 테스트
+                                // base64 validity test - test with more data
                                 try {
                                   const testDecode = atob(base64Part.substring(0, 1000));
-                                  console.log("base64 디코딩 테스트 성공 (1000자)");
+                                  console.log("base64 decode test successful (1000 chars)");
                                   
-                                  // 전체 base64 디코딩 테스트
+                                  // Full base64 decode test
                                   const fullDecode = atob(base64Part);
-                                  console.log("전체 base64 디코딩 성공, 크기:", fullDecode.length, "바이트");
+                                  console.log("Full base64 decode successful, size:", fullDecode.length, "bytes");
                                   
-                                  // PNG 헤더 확인
+                                  // Check PNG header
                                   const pngHeader = fullDecode.substring(0, 8);
-                                  const pngSignature = [137, 80, 78, 71, 13, 10, 26, 10]; // PNG 시그니처
+                                  const pngSignature = [137, 80, 78, 71, 13, 10, 26, 10]; // PNG signature
                                   let isPng = true;
                                   for (let i = 0; i < 8; i++) {
                                     if (pngHeader.charCodeAt(i) !== pngSignature[i]) {
@@ -595,48 +595,48 @@ export default function AgentRegisterForm({
                                       break;
                                     }
                                   }
-                                  console.log("PNG 헤더 유효성:", isPng);
+                                  console.log("PNG header validity:", isPng);
                                   if (!isPng) {
-                                    console.error("PNG 헤더가 올바르지 않음");
-                                    console.error("실제 헤더:", Array.from(pngHeader).map(c => c.charCodeAt(0)));
+                                    console.error("PNG header is not correct");
+                                    console.error("Actual header:", Array.from(pngHeader).map(c => c.charCodeAt(0)));
                                   }
                                   
                                 } catch (decodeError) {
-                                  console.error("base64 디코딩 실패:", decodeError);
+                                  console.error("base64 decode failed:", decodeError);
                                 }
                                 
-                                // base64 문자 유효성 검사
+                                // base64 character validity check
                                 const validBase64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
                                 const isValidBase64 = validBase64Regex.test(base64Part);
-                                console.error("base64 문자 유효성:", isValidBase64);
+                                console.error("base64 character validity:", isValidBase64);
                                 
                                 if (!isValidBase64) {
-                                  console.error("유효하지 않은 base64 문자 발견");
-                                  // 첫 100자에서 유효하지 않은 문자 찾기
+                                  console.error("Invalid base64 characters found");
+                                  // Find invalid characters in first 100 chars
                                   const sample = base64Part.substring(0, 100);
                                   for (let i = 0; i < sample.length; i++) {
                                     const char = sample[i];
                                     if (!/[A-Za-z0-9+/=]/.test(char)) {
-                                      console.error(`위치 ${i}에서 유효하지 않은 문자 발견: '${char}' (코드: ${char.charCodeAt(0)})`);
+                                      console.error(`Invalid character found at position ${i}: '${char}' (code: ${char.charCodeAt(0)})`);
                                     }
                                   }
                                 }
                               }
                               
-                              // 이미지 데이터 타입 검사
+                              // Check image data type
                               if (previewImage.startsWith('data:image/')) {
                                 const mimeType = previewImage.split(';')[0].split(':')[1];
-                                console.error("MIME 타입:", mimeType);
+                                console.error("MIME type:", mimeType);
                               }
                               
-                              // 브라우저 제한 확인
-                              console.error("브라우저 data URL 길이 제한 (Chrome: ~2MB, Firefox: ~2MB)");
-                              console.error("현재 이미지 크기:", (previewImage.length / 1024 / 1024).toFixed(2), "MB");
+                              // Check browser limits
+                              console.error("Browser data URL length limits (Chrome: ~2MB, Firefox: ~2MB)");
+                              console.error("Current image size:", (previewImage.length / 1024 / 1024).toFixed(2), "MB");
                               
                               e.currentTarget.style.display = 'none';
                               const container = e.currentTarget.parentNode as HTMLElement;
                               if (container) {
-                                container.innerHTML = '<div class="h-full w-full flex items-center justify-center text-red-500"><div class="text-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-1"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg><div class="text-xs">로드 실패<br/>크기: ' + (previewImage.length / 1024 / 1024).toFixed(1) + 'MB</div></div></div>';
+                                container.innerHTML = '<div class="h-full w-full flex items-center justify-center text-red-500"><div class="text-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-1"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg><div class="text-xs">Load Failed<br/>Size: ' + (previewImage.length / 1024 / 1024).toFixed(1) + 'MB</div></div></div>';
                               }
                             }}
                           />
@@ -660,7 +660,7 @@ export default function AgentRegisterForm({
                     )}
                   </div>
                   
-                  {/* 이미지 업로드 버튼 */}
+                  {/* Image upload button */}
                   <div className="flex-1">
                     <input
                       ref={fileInputRef}
@@ -679,9 +679,9 @@ export default function AgentRegisterForm({
                       {lang('form.uploadImage')}
                     </Button>
                     <p className="text-xs text-gray-500 mt-2">
-                      이미지 파일을 업로드하면 base64로 인코딩되어 저장됩니다.
+                      Image files will be encoded as base64 and stored.
                       <br />
-                      지원 형식: JPG, PNG, GIF (최대 10MB)
+                      Supported formats: JPG, PNG, GIF (max 10MB)
                     </p>
                   </div>
                 </div>
@@ -715,10 +715,10 @@ export default function AgentRegisterForm({
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, enabled: checked }))}
                 />
                 <Label htmlFor="enabled" className="text-sm font-medium">
-                  에이전트 활성화
+                  Enable Agent
                 </Label>
                 <span className="text-xs text-gray-500 ml-2">
-                  비활성화하면 API 호출 시 이 에이전트를 사용할 수 없습니다
+                  When disabled, this agent cannot be used in API calls
                 </span>
               </div>
             </div>
@@ -899,10 +899,10 @@ export default function AgentRegisterForm({
                 onCheckedChange={(checked) => setFormData(prev => ({ ...prev, parameterEnabled: checked } as any))}
               />
               <Label htmlFor="parameterEnabled" className="text-sm font-medium">
-                파라미터 활성화
+                Enable Parameters
               </Label>
               <span className="text-xs text-gray-500 ml-2">
-                비활성화하면 기본 파라미터 값을 사용합니다
+                When disabled, default parameter values will be used
               </span>
             </div>
           </CardContent>
@@ -918,8 +918,7 @@ export default function AgentRegisterForm({
           <Button 
             onClick={handleSave} 
             disabled={isLoading || enabledModels.length === 0}
-            className="bg-black text-white hover:bg-blue-700 hover:text-white disabled:bg-gray-400 disabled:cursor-not-allowed"
-            title={enabledModels.length === 0 ? "Foundation 모델을 먼저 등록해주세요" : ""}
+            title={enabledModels.length === 0 ? "Please register Foundation models first" : ""}
           >
             <Save className="h-4 w-4 mr-2" />
             {isLoading ? lang('saving') : lang('save')}

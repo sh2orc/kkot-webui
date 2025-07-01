@@ -11,6 +11,10 @@
     "book": "Book",
     "admin": "admin",
     "noChatHistory": "채팅 기록이 없습니다",
+    "timeAgo": {
+      "hoursAgo": "{{hours}}시간 전",
+      "daysAgo": "{{days}}일 전"
+    },
     "chatGroups": {
       "today": "오늘",
       "yesterday": "어제",

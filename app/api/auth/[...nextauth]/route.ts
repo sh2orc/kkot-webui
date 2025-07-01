@@ -5,7 +5,7 @@ import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { hashPassword, verifyPassword, generateUserId } from '@/lib/auth';
 
-const handler = NextAuth({
+export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET || 'fallback-secret-for-development',
   providers: [
     Credentials({
@@ -97,6 +97,17 @@ const handler = NextAuth({
   jwt: {
     maxAge: 24 * 60 * 60, // 24시간
   },
+  cookies: {
+    sessionToken: {
+      name: 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax' as const,
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
+  },
   callbacks: {
     async jwt({ token, user }: any) {
       if (user) {
@@ -118,6 +129,8 @@ const handler = NextAuth({
     error: '/auth'
   },
   debug: process.env.NODE_ENV === 'development',
-});
+};
+
+const handler = NextAuth(authOptions);
 
 export { handler as GET, handler as POST }; 

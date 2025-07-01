@@ -72,10 +72,18 @@ const messages: LLMMessage[] = [
   { role: "user", content: "What is the capital of South Korea?" }
 ];
 
-// Call LLM
+// Call LLM with default settings
 const response = await openaiLLM.chat(messages);
 console.log("Response:", response.content);
 console.log("Token usage:", response.tokens);
+
+// Call LLM with custom maxTokens
+const shortResponse = await openaiLLM.chat(messages, { maxTokens: 50 });
+console.log("Short response:", shortResponse.content);
+
+// Call LLM with longer maxTokens
+const longResponse = await openaiLLM.chat(messages, { maxTokens: 2000 });
+console.log("Long response:", longResponse.content);
 ```
 
 ### Streaming Responses
@@ -94,8 +102,11 @@ const onError = (error: Error) => {
   console.error("Streaming error:", error);
 };
 
-// Streaming call
+// Streaming call with default settings
 await openaiLLM.streamChat(messages, { onToken, onComplete, onError });
+
+// Streaming call with custom maxTokens
+await openaiLLM.streamChat(messages, { onToken, onComplete, onError }, { maxTokens: 100 });
 ```
 
 ### Using LLM Chains
@@ -183,6 +194,37 @@ DEFAULT_TOP_P=1.0
 ```
 
 ## Advanced Settings
+
+### Using maxTokens Option
+
+The `maxTokens` option allows you to control the maximum number of tokens in the response. This can be useful for:
+
+- **Cost control**: Limiting token usage to reduce API costs
+- **Response length control**: Getting shorter or longer responses as needed
+- **Context window management**: Ensuring responses fit within available context
+
+```typescript
+// Short response (50 tokens maximum)
+const shortResponse = await llm.chat(messages, { maxTokens: 50 });
+
+// Medium response (500 tokens maximum)
+const mediumResponse = await llm.chat(messages, { maxTokens: 500 });
+
+// Long response (2000 tokens maximum)
+const longResponse = await llm.chat(messages, { maxTokens: 2000 });
+
+// Streaming with token limit
+await llm.streamChat(messages, callbacks, { maxTokens: 100 });
+```
+
+**Note**: The `maxTokens` option passed to the `chat()` or `streamChat()` methods will override the default `maxTokens` setting from the LLM configuration.
+
+### Provider-specific maxTokens Behavior
+
+- **OpenAI**: Uses `maxTokens` parameter
+- **Gemini**: Uses `maxOutputTokens` parameter
+- **Ollama**: Uses `numCtx` parameter (context window size)
+- **vLLM**: Uses `maxTokens` parameter (OpenAI-compatible)
 
 ### Updating Model Configuration
 

@@ -93,7 +93,7 @@ export default function WebSearchSettingsPage() {
 
         {/* Save Button */}
         <div className="flex justify-end">
-              <Button className="bg-black text-white hover:bg-blue-700 hover:text-white">{lang('saveButton')}</Button>
+              <Button>{lang('saveButton')}</Button>
         </div>
       </div>
     </AdminLayout>

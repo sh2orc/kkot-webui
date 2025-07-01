@@ -449,7 +449,6 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
         {/* Save Button */}
         <div className="flex justify-end">
           <Button 
-              className="bg-black text-white hover:text-white hover:bg-blue-700"
             onClick={handleSave}
             disabled={isSaving || !hasEnabledServers}
           >

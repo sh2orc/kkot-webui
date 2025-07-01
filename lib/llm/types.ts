@@ -63,4 +63,5 @@ export interface LLMRequestOptions {
   stream?: boolean;
   streamCallbacks?: LLMStreamCallbacks;
   abortSignal?: AbortSignal;
+  maxTokens?: number;
 } 

@@ -206,7 +206,7 @@ export async function DELETE(request: NextRequest) {
       message: '모델이 삭제되었습니다.'
     });
   } catch (error) {
-    console.error('LLM 모델 삭제 오류:', error);
+    console.error('LLM model deletion error:', error);
     return NextResponse.json(
       { error: 'LLM 모델을 삭제하는 중 오류가 발생했습니다.' },
       { status: 500 }

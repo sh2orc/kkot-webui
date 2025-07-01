@@ -15,7 +15,7 @@ import { Switch } from "@/components/ui/switch"
 
 interface Agent {
   id: string
-  agentId: string  // 사용자가 입력한 에이전트 ID
+  agentId: string  // User-entered agent ID
   name: string
   modelId: string
   modelName?: string
@@ -23,7 +23,7 @@ interface Agent {
   description?: string
   enabled: boolean
   hasImage: boolean
-  imageData?: string // SSR로 전달된 이미지 데이터
+  imageData?: string // Image data passed via SSR
 }
 
 interface AgentManagementFormProps {
@@ -39,12 +39,12 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
   const router = useRouter()
   const { lang } = useTranslation('admin.agent')
   
-  // SSR로 전달된 이미지 데이터를 사용하므로 별도 로딩 불필요
+  // No separate loading needed as image data is passed via SSR
   useEffect(() => {
-    console.log('에이전트 목록 초기화 완료 (SSR 이미지 포함)')
+    console.log('Agent list initialization completed (including SSR images)')
   }, [])
 
-  // Agent 상태 토글
+  // Toggle agent status
   const handleToggleAgent = async (id: string, enabled: boolean) => {
     try {
       setIsLoading(true)
@@ -62,7 +62,7 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
         throw new Error('Agent toggle failed')
       }
       
-      // 상태 업데이트
+      // Update state
       setAgents(prevAgents => 
         prevAgents.map(agent => 
           agent.id === id ? { ...agent, enabled: !enabled } : agent
@@ -85,7 +85,7 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
     }
   }
 
-  // Agent 삭제
+  // Delete agent
   const handleDeleteAgent = async (id: string, name: string) => {
     try {
       setIsLoading(true)
@@ -128,7 +128,6 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
           </div>
           <Button 
           onClick={() => router.push('/admin/agent/register')}
-          className="bg-black text-white hover:bg-blue-700 hover:text-white"
           >
             <Plus className="h-4 w-4 mr-2" />
             {lang('addAgent')}
@@ -159,7 +158,7 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
                     <TableRow key={agent.id}>
                       <TableCell>
                         <div className="flex items-center gap-3">
-                          {/* 에이전트 이미지 - SSR 데이터 바로 사용 */}
+                          {/* Agent image - use SSR data directly */}
                           <div className="relative flex-shrink-0">
                             <div className="h-10 w-10 rounded-md overflow-hidden bg-gray-100 flex items-center justify-center border border-gray-200">
                               {agent.hasImage && agent.imageData ? (
@@ -168,8 +167,8 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
                                     src={agent.imageData} 
                                     alt={agent.name} 
                                     className="w-full h-full object-cover" 
-                                    onLoad={() => console.log(`에이전트 ${agent.id} 이미지 표시 성공 (SSR)`)}
-                                    onError={() => console.error(`에이전트 ${agent.id} 이미지 표시 실패`)}
+                                    onLoad={() => console.log(`Agent ${agent.id} image display successful (SSR)`)}
+                                    onError={() => console.error(`Agent ${agent.id} image display failed`)}
                                   />
                                 </div>
                               ) : (
@@ -233,9 +232,9 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
                             <AlertDialogContent>
                               <AlertDialogHeader>
                                 <AlertDialogTitle>{lang('deleteConfirm')}</AlertDialogTitle>
-                                                                 <AlertDialogDescription>
-                                   {lang('deleteConfirmMessage')}
-                                 </AlertDialogDescription>
+                                <AlertDialogDescription>
+                                  {lang('deleteConfirmMessage')}
+                                </AlertDialogDescription>
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>{lang('cancel')}</AlertDialogCancel>

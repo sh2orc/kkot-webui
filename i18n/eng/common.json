@@ -11,6 +11,10 @@
     "book": "Book",
     "admin": "admin",
     "noChatHistory": "No chat history",
+    "timeAgo": {
+      "hoursAgo": "{{hours}} hours ago",
+      "daysAgo": "{{days}} days ago"
+    },
     "chatGroups": {
       "today": "Today",
       "yesterday": "Yesterday",

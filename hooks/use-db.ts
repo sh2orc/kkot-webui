@@ -12,7 +12,7 @@ export function useDb() {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<Error | null>(null);
 
-  // API 호출을 위한 기본 함수
+  // Basic function for API calls
   const fetchApi = useCallback(async (endpoint: string, options?: RequestInit) => {
     setIsLoading(true);
     setError(null);
@@ -42,7 +42,7 @@ export function useDb() {
   return {
     isLoading,
     error,
-    // DB 작업을 위한 API 호출 함수들
+    // API call functions for DB operations
     users: {
       findAll: () => fetchApi('/users'),
       findById: (id: string | number) => fetchApi(`/users/${id}`),

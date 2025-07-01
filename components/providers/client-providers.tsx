@@ -5,14 +5,12 @@ import { SessionProvider } from 'next-auth/react'
 import { BrandingProvider } from './branding-provider'
 import LanguageProvider from './language-provider'
 import { ModelProvider } from './model-provider'
+import { PageTransitionProvider } from './page-transition-provider'
 import { Toaster } from '@/components/ui/toaster'
+import Loading from '@/components/ui/loading'
 
 // Basic Loading UI Component
-const LoadingFallback = () => (
-  <div className="flex items-center justify-center min-h-screen">
-    <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-  </div>
-)
+const LoadingFallback = () => <Loading />
 
 export default function ClientProviders({ children }: { children: ReactNode }) {
   return (
@@ -25,8 +23,10 @@ export default function ClientProviders({ children }: { children: ReactNode }) {
           <Suspense fallback={<LoadingFallback />}>
             <LanguageProvider>
               <ModelProvider>
-                {children}
-                <Toaster />
+                <PageTransitionProvider>
+                  {children}
+                  <Toaster />
+                </PageTransitionProvider>
               </ModelProvider>
             </LanguageProvider>
           </Suspense>

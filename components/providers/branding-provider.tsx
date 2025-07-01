@@ -1,6 +1,7 @@
 "use client"
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react'
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from 'react'
+import { useSession } from 'next-auth/react'
 
 interface BrandingSettings {
   appName: string
@@ -29,6 +30,7 @@ interface BrandingProviderProps {
 export function BrandingProvider({ children }: BrandingProviderProps) {
   const [branding, setBranding] = useState<BrandingSettings>(defaultBranding)
   const [isInitialized, setIsInitialized] = useState(false)
+  const { data: session, status } = useSession()
 
   // Logic that only runs in the browser
   useEffect(() => {
@@ -47,40 +49,55 @@ export function BrandingProvider({ children }: BrandingProviderProps) {
         }
       }
       
-      // Get app name from DB - silently ignore errors
-      try {
-        fetch('/api/admin-settings?key=app.name')
-          .then(res => {
-            if (!res.ok) throw new Error('Failed to fetch app name')
-            return res.json()
-          })
-          .then(data => {
-            if (data && data.value) {
-              setBranding(prev => ({
-                ...prev,
-                appName: data.value
-              }))
-              // Update localStorage as well
-              const currentSettings = localStorage.getItem('branding-settings')
-              const settings = currentSettings ? JSON.parse(currentSettings) : {}
-              localStorage.setItem('branding-settings', JSON.stringify({
-                ...settings,
-                appName: data.value
-              }))
-            }
-          })
-          .catch(error => {
-            console.warn('Failed to fetch app name from DB:', error)
-          })
-          .finally(() => {
-            setIsInitialized(true)
-          })
-      } catch (error) {
-        console.warn('Error occurred while fetching app name:', error)
+      // Only try to fetch from DB if user is authenticated and is admin
+      if (status === 'authenticated' && session?.user?.role === 'admin') {
+        try {
+          fetch('/api/admin-settings?key=app.name')
+            .then(res => {
+              if (!res.ok) {
+                // Don't throw error for 404, just log it
+                if (res.status === 404) {
+                  console.log('Admin settings API not found, using default settings')
+                  return null
+                }
+                throw new Error('Failed to fetch app name')
+              }
+              return res.json()
+            })
+            .then(data => {
+              if (data && data.value) {
+                setBranding(prev => ({
+                  ...prev,
+                  appName: data.value
+                }))
+                // Update localStorage as well
+                const currentSettings = localStorage.getItem('branding-settings')
+                const settings = currentSettings ? JSON.parse(currentSettings) : {}
+                localStorage.setItem('branding-settings', JSON.stringify({
+                  ...settings,
+                  appName: data.value
+                }))
+              }
+            })
+            .catch(error => {
+              // Only log warning for non-404 errors
+              if (error.message !== 'Failed to fetch app name') {
+                console.warn('Failed to fetch app name from DB:', error)
+              }
+            })
+            .finally(() => {
+              setIsInitialized(true)
+            })
+        } catch (error) {
+          console.warn('Error occurred while fetching app name:', error)
+          setIsInitialized(true)
+        }
+      } else {
+        // If not authenticated or not admin, just mark as initialized
         setIsInitialized(true)
       }
     }
-  }, [isInitialized])
+  }, [status, session?.user?.role]) // isInitialized를 의존성에서 제거
 
   // Update document title and favicon whenever branding settings change
   useEffect(() => {
@@ -112,22 +129,25 @@ export function BrandingProvider({ children }: BrandingProviderProps) {
     }
   }, [branding])
 
-  const updateBranding = (settings: Partial<BrandingSettings>) => {
-    const newBranding = { ...branding, ...settings }
-    setBranding(newBranding)
-    
-    // Save to localStorage
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('branding-settings', JSON.stringify(newBranding))
-    }
-  }
+  const updateBranding = useCallback((settings: Partial<BrandingSettings>) => {
+    setBranding(prev => {
+      const newBranding = { ...prev, ...settings }
+      
+      // Save to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('branding-settings', JSON.stringify(newBranding))
+      }
+      
+      return newBranding
+    })
+  }, [])
 
-  const resetBranding = () => {
+  const resetBranding = useCallback(() => {
     setBranding(defaultBranding)
     if (typeof window !== 'undefined') {
       localStorage.removeItem('branding-settings')
     }
-  }
+  }, [])
 
   return (
     <BrandingContext.Provider value={{ branding, updateBranding, resetBranding }}>

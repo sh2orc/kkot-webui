@@ -5,7 +5,6 @@ import type React from "react"
 import { Button } from "@/components/ui/button"
 import { Mic, Globe, Plus, FlaskRoundIcon as Flask, Zap, Send } from "lucide-react"
 import { useRef, useState, useEffect, useCallback } from "react"
-import Layout from "@/components/layout/layout"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { useTranslation } from "@/lib/i18n"
@@ -17,9 +16,19 @@ interface EmptyChatProps {
   initialAgents?: Agent[]
   initialPublicModels?: PublicModel[]
   defaultModel?: Agent | PublicModel | null
+  session?: any
+  initialTranslations?: any
+  preferredLanguage?: string
 }
 
-export default function Component({ initialAgents, initialPublicModels, defaultModel }: EmptyChatProps = {}) {
+export default function Component({ 
+  initialAgents, 
+  initialPublicModels, 
+  defaultModel, 
+  session: serverSession,
+  initialTranslations,
+  preferredLanguage 
+}: EmptyChatProps = {}) {
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [inputValue, setInputValue] = useState("")
   const [isExpanded, setIsExpanded] = useState(false)
@@ -28,9 +37,15 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
   const [isShiftPressed, setIsShiftPressed] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   
+  // Ref to prevent duplicate submissions
+  const submitInProgress = useRef(false)
+  
   // Use model selected from navbar
   const { selectedModel, setInitialData } = useModel()
   const { data: session } = useSession()
+  
+  // Use server session info if available, otherwise use client session
+  const currentSession = serverSession || session
 
   const router = useRouter()
   const { lang } = useTranslation("chat")
@@ -103,14 +118,21 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
   }, [adjustTextareaHeight])
 
   const handleSubmit = useCallback(async () => {
-    if (inputValue.trim() && !isSubmitting && selectedModel && session?.user?.id) {
+    if (inputValue.trim() && !isSubmitting && selectedModel && currentSession?.user?.id) {
+      // Stop if already submitting
+      if (submitInProgress.current) {
+        console.log('Submit already in progress, skipping duplicate call')
+        return
+      }
+
+      submitInProgress.current = true
       setIsSubmitting(true)
       
       try {
         console.log('=== Client: Chat session creation request started ===')
         console.log('Selected model:', selectedModel)
         console.log('Initial message:', inputValue)
-        console.log('User ID:', session.user.id)
+        console.log('User ID:', currentSession.user.id)
         
         // Call API to create new chat session
         const response = await fetch('/api/chat', {
@@ -123,7 +145,7 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
             modelId: selectedModel.type === 'model' ? selectedModel.id : undefined,
             modelType: selectedModel.type,
             initialMessage: inputValue,
-            userId: session.user.id
+            userId: currentSession.user.id
           })
         })
 
@@ -153,9 +175,24 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
           }))
         }
 
-        // Refresh sidebar (so new chat appears in list)
-        if (typeof window !== 'undefined' && (window as any).refreshSidebar) {
-          (window as any).refreshSidebar()
+        // Add new chat to sidebar immediately
+        if (typeof window !== 'undefined') {
+          const newChatData = {
+            id: chatId,
+            title: inputValue.substring(0, 20) + (inputValue.length > 20 ? '...' : ''),
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+          
+          // Dispatch event to add new chat to sidebar
+          window.dispatchEvent(new CustomEvent('newChatCreated', { 
+            detail: { chat: newChatData } 
+          }))
+          
+          // Also refresh sidebar as fallback
+          if ((window as any).refreshSidebar) {
+            (window as any).refreshSidebar()
+          }
         }
 
         // Navigate to created chat ID page (no sensitive information exposed in URL)
@@ -180,9 +217,10 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
         alert('Failed to start chat. Please try again.')
       } finally {
         setIsSubmitting(false)
+        submitInProgress.current = false
       }
     }
-  }, [inputValue, router, isSubmitting, selectedModel, session?.user?.id])
+  }, [inputValue, router, isSubmitting, selectedModel, currentSession?.user?.id])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Shift") {
@@ -211,15 +249,15 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
     setInputValue(prompt)
     setIsExpanded(true)
     
-    // textarea에 포커스 설정
+    // Set focus to textarea
     if (textareaRef.current) {
       textareaRef.current.focus()
-      // 높이 조정
+      // Adjust height
       adjustTextareaHeight(textareaRef.current)
     }
   }, [adjustTextareaHeight])
 
-  // 에이전트 또는 모델 선택 핸들러
+      // Agent or model selection handler
 
 
   useEffect(() => {
@@ -228,13 +266,18 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
     }
   }, [])
 
-  // 이미지 데이터 처리 함수
+      // Image data processing function
   const getAvatarContent = (model: Agent | PublicModel | null) => {
     if (!model) return 'AI'
     
-    // 에이전트이고 이미지가 있는 경우
+          // If it's an agent and has an image
     if (model.type === 'agent' && (model as Agent).imageData) {
-      return <img src={`data:image/png;base64,${(model as Agent).imageData}`} alt={(model as Agent).name || ''} />
+      const imageData = (model as Agent).imageData!
+              // Check if it's already in data: URL format
+      const imageSrc = imageData.startsWith('data:') 
+        ? imageData 
+        : `data:image/png;base64,${imageData}`
+      return <img src={imageSrc} alt={(model as Agent).name || ''} />
     }
     
     // 첫 글자 가져오기
@@ -264,16 +307,16 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
   }
 
   return (
-    <Layout currentPage="chat">
+    <>
       {/* Main Content */}
       <div className="flex-1 flex flex-col relative">
         {/* Initial State Content */}
         <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-4xl mx-auto w-full pb-32 md:pb-6">
           {/* 사용자 환영 메시지 */}
-          {session?.user && (
+          {currentSession?.user && (
             <div className="text-center mb-8">
               <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                안녕하세요, {session.user.name}님! 👋
+                안녕하세요, {currentSession.user.name}님! 👋
               </h1>
               <p className="text-lg text-gray-600">
                 오늘은 어떤 것을 도와드릴까요?
@@ -281,56 +324,7 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
             </div>
           )}
 
-          {/* 선택된 모델 이름 */}
-          {selectedModel && (
-            <div className="flex items-center gap-3 mb-4">
-              <Avatar className="h-12 w-12">
-                <AvatarFallback className={`${getAvatarBackground(selectedModel)} text-white text-lg font-bold`}>
-                  {getAvatarContent(selectedModel)}
-                </AvatarFallback>
-              </Avatar>
-              <div>
-                <h1 className="text-2xl font-semibold">
-                  {selectedModel.type === 'agent' ? (selectedModel as Agent).name : (selectedModel as PublicModel).modelId}
-                </h1>
-                <p className="text-sm text-gray-500">
-                  {selectedModel.type === 'agent' 
-                    ? `${(selectedModel as Agent).modelName} (${(selectedModel as Agent).modelProvider})` 
-                    : (selectedModel as PublicModel).provider}
-                </p>
-              </div>
-            </div>
-          )}
 
-          {/* 기본 모델 표시 (선택된 모델이 없는 경우) */}
-          {!selectedModel && (
-            <div className="flex items-center gap-3 mb-4">
-              <Avatar className="h-12 w-12">
-                <AvatarFallback className="bg-red-500 text-white text-lg font-bold">G</AvatarFallback>
-              </Avatar>
-              <h1 className="text-2xl font-semibold">gemma3:27b-it-qat</h1>
-            </div>
-          )}
-
-          {/* Model Description */}
-          <div className="text-center mb-12">
-            {selectedModel ? (
-              <>
-                <p className="text-gray-600 text-lg">
-                  {selectedModel.type === 'agent' 
-                    ? (selectedModel as Agent).description || lang("modelDescription")
-                    : lang("modelDescription")
-                  }
-                </p>
-              </>
-            ) : (
-              <>
-                <p className="text-gray-600 text-lg">
-                  {lang("modelDescription")}
-                </p>
-              </>
-            )}
-          </div>
 
           {/* Central Input Area */}
           <div className="w-full max-w-3xl mb-8">
@@ -422,18 +416,21 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
           </div>
 
           {/* Prompt Suggestions */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
-            {prompts.map((prompt, index) => (
-              <div
-                key={index}
-                className="p-4 border border-gray-200 rounded-lg hover:border-gray-300 cursor-pointer transition-colors bg-white hover:bg-gray-50"
-                onClick={() => handlePromptClick(prompt.title)}
-              >
-                <h3 className="font-medium text-gray-900 mb-1">{prompt.title}</h3>
-                <p className="text-sm text-gray-600">{prompt.description}</p>
-              </div>
-            ))}
-          </div>
+          {selectedModel && (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
+              {prompts.map((prompt, index) => (
+                <div
+                  key={index}
+                  className="p-4 border border-gray-200 rounded-lg hover:border-gray-300 cursor-pointer transition-colors bg-white hover:bg-gray-50"
+                  onClick={() => handlePromptClick(prompt.title)}
+                >
+                  <h3 className="font-medium text-gray-900 mb-1">{prompt.title}</h3>
+                  <p className="text-sm text-gray-600">{prompt.description}</p>
+                </div>
+              ))}
+            </div>
+          )}
+          
         </div>
 
         {/* Keyboard Shortcut Hint */}
@@ -450,6 +447,6 @@ export default function Component({ initialAgents, initialPublicModels, defaultM
           </div>
         )}
       </div>
-    </Layout>
+    </>
   )
 }

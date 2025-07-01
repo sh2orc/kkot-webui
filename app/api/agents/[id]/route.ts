@@ -19,7 +19,7 @@ export async function GET(
     
     // Uint8Array를 Base64 문자열로 변환
     if (agent.imageData instanceof Uint8Array) {
-      agent.imageData = Buffer.from(agent.imageData).toString('base64')
+      agent.imageData = `data:image/png;base64,${Buffer.from(agent.imageData).toString()}`
     }
     
     return NextResponse.json(agent)

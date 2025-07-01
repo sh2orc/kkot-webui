@@ -1,5 +1,5 @@
-'use client'
-import { createContext, useContext } from 'react'
+// Server-only i18n utilities
+import 'server-only'
 
 // Supported languages list
 export const supportedLanguages = ['kor', 'eng'] as const
@@ -59,7 +59,7 @@ const translationModules = {
   },
 } as const
 
-// Client-side module loading function
+// Server-side module loading function
 export async function loadTranslationModule(language: Language, module: string): Promise<any> {
   const cacheKey = `${language}.${module}`
   
@@ -113,68 +113,10 @@ export function getTranslationKey(translations: any, key: string): string {
   return typeof result === 'string' ? result : key
 }
 
-// Translation hook (page-specific usage)
-export function useTranslation(module: string) {
-  const context = useContext(LanguageContext)
-  if (!context) {
-    throw new Error('useTranslation must be used within a LanguageProvider')
-  }
-
-  const { language } = context
-  
-  // Translation function
-  const t = async (key: string): Promise<string> => {
-    const translations = await loadTranslationModule(language, module)
-    return getTranslationKey(translations, key)
-  }
-
-  // Synchronous translation function (only when cached)
-  const lang = (key: string): string => {
-    const cacheKey = `${language}.${module}`
-    const translations = translationCache.get(cacheKey)
-    
-    if (translations) {
-      return getTranslationKey(translations, key)
-    }
-    
-    return key // Return key if not cached
-  }
-
-  return { t, lang, language }
-}
-
-// Language context type
-export interface LanguageContextType {
-  language: Language
-  setLanguage: (language: Language) => void
-}
-
-export const LanguageContext = createContext<LanguageContextType | null>(null)
-
-// Hook for using language context
-export function useLanguage() {
-  const context = useContext(LanguageContext)
-  if (!context) {
-    throw new Error('useLanguage must be used within a LanguageProvider')
-  }
-  return context
-}
-
-// Get language settings from local storage
-export function getStoredLanguage(): Language {
-  if (typeof window === 'undefined') return defaultLanguage
-  
-  const stored = localStorage.getItem('language')
-  if (stored && supportedLanguages.includes(stored as Language)) {
-    return stored as Language
-  }
-  return defaultLanguage
-}
-
-// Save language settings to local storage
-export function setStoredLanguage(language: Language) {
-  if (typeof window === 'undefined') return
-  localStorage.setItem('language', language)
+// Server-side translation function
+export async function getServerTranslation(language: Language, module: string, key: string): Promise<string> {
+  const translations = await loadTranslationModule(language, module)
+  return getTranslationKey(translations, key)
 }
 
 // Preload translation module

@@ -233,14 +233,8 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
             description: lang('saveSuccessMessage'),
           })
           
-          // 저장 완료 후 버튼 상태 즉시 업데이트
-          setIsSaving(false)
-          
-          // 저장 후 페이지 새로고침하여 서버 상태 동기화
-          setTimeout(() => {
-            console.log('일반 설정 저장 완료, 페이지 새로고침')
-            router.refresh()
-          }, 1000)
+          // 저장 후 서버 상태 동기화
+          router.refresh()
         }
       } else {
         // Read as text if not JSON
@@ -908,7 +902,6 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
           <div className="flex justify-end">
             <Button 
               type="submit"
-              className="bg-black text-white hover:text-white hover:bg-blue-700"
               disabled={isSaving}
             >
               {isSaving ? `${lang('savingButton')}...` : lang('saveButton')}

@@ -34,7 +34,23 @@ export class OpenAILLM extends BaseLLM {
     
     const functionCallOptions = this.prepareFunctionCallOptions(options?.functions);
     
-    const response = await this.client.invoke(langChainMessages, functionCallOptions);
+    // Create client with dynamic options
+    const clientOptions = {
+      modelName: this.config.modelName,
+      temperature: this.config.temperature,
+      maxTokens: options?.maxTokens ?? this.config.maxTokens,
+      topP: this.config.topP,
+      frequencyPenalty: this.config.frequencyPenalty,
+      presencePenalty: this.config.presencePenalty,
+      streaming: this.config.streaming,
+      openAIApiKey: this.config.apiKey,
+      configuration: {
+        baseURL: this.config.baseUrl
+      }
+    };
+    
+    const dynamicClient = new ChatOpenAI(clientOptions);
+    const response = await dynamicClient.invoke(langChainMessages, functionCallOptions);
     
     // Calculate token usage (estimate)
     const promptTokens = this.estimateTokenCount(messages);
@@ -65,7 +81,7 @@ export class OpenAILLM extends BaseLLM {
     const streamingClient = new ChatOpenAI({
       modelName: this.config.modelName,
       temperature: this.config.temperature,
-      maxTokens: this.config.maxTokens,
+      maxTokens: options?.maxTokens ?? this.config.maxTokens,
       topP: this.config.topP,
       frequencyPenalty: this.config.frequencyPenalty,
       presencePenalty: this.config.presencePenalty,

@@ -5,7 +5,7 @@ import { sqliteTable, text, integer, blob, primaryKey } from 'drizzle-orm/sqlite
 import { pgTable, serial, varchar, boolean, timestamp, text as pgText } from 'drizzle-orm/pg-core';
 import { DbType } from './types';
 
-// DB 타입을 결정하는 함수
+// Function to determine DB type
 function getDbType(): DbType {
   return (process.env.DB_TYPE || 'sqlite') as DbType;
 }

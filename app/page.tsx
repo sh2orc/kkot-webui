@@ -3,6 +3,7 @@
 import { useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { useSession, signOut } from "next-auth/react"
+import Loading from "@/components/ui/loading"
 
 export default function Page() {
   const router = useRouter()
@@ -23,15 +24,11 @@ export default function Page() {
         router.replace("/auth")
       })
     }
-  }, [status, session, router])
+  }, [status, session?.user]) // Remove router from dependencies and only track session.user
 
   // Display loading state
   if (status === "loading") {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-      </div>
-    )
+    return <Loading />
   }
 
   // Empty screen until session state processing is complete

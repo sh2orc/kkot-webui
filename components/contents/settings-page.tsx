@@ -16,6 +16,7 @@ import { User, Bell, Shield, Globe, Upload } from "lucide-react"
 import { toast } from "sonner"
 import Layout from "@/components/layout/layout"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
+import Loading from "@/components/ui/loading"
 
 interface UserProfile {
   id: string
@@ -162,9 +163,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
   if (!isLoaded) {
     return (
       <Layout>
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-gray-900"></div>
-        </div>
+        <Loading className="flex-1" fullScreen={false} />
       </Layout>
     )
   }

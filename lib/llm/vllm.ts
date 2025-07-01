@@ -36,7 +36,22 @@ export class VLLMLLM extends BaseLLM {
     const functionCallOptions = this.prepareFunctionCallOptions(options?.functions);
     
     try {
-      const response = await this.client.invoke(langChainMessages, functionCallOptions);
+      // Create client with dynamic options
+      const dynamicClient = new ChatOpenAI({
+        modelName: this.config.modelName,
+        temperature: this.config.temperature,
+        maxTokens: options?.maxTokens ?? this.config.maxTokens,
+        topP: this.config.topP,
+        frequencyPenalty: this.config.frequencyPenalty,
+        presencePenalty: this.config.presencePenalty,
+        streaming: this.config.streaming,
+        openAIApiKey: "EMPTY",
+        configuration: {
+          baseURL: this.config.baseUrl
+        }
+      });
+      
+      const response = await dynamicClient.invoke(langChainMessages, functionCallOptions);
       
       // 토큰 사용량 계산 (추정치)
       const promptTokens = this.estimateTokenCount(messages);
@@ -53,7 +68,7 @@ export class VLLMLLM extends BaseLLM {
         provider: "vllm"
       };
     } catch (error) {
-      console.error("vLLM API 호출 중 오류 발생:", error);
+      console.error("Error occurred during vLLM API call:", error);
       throw error;
     }
   }
@@ -71,7 +86,7 @@ export class VLLMLLM extends BaseLLM {
     const streamingClient = new ChatOpenAI({
       modelName: this.config.modelName,
       temperature: this.config.temperature,
-      maxTokens: this.config.maxTokens,
+      maxTokens: options?.maxTokens ?? this.config.maxTokens,
       topP: this.config.topP,
       frequencyPenalty: this.config.frequencyPenalty,
       presencePenalty: this.config.presencePenalty,
@@ -154,7 +169,7 @@ export class VLLMLLM extends BaseLLM {
    * 토큰 수 추정 (간단한 구현)
    */
   private estimateTokenCount(messages: LLMMessage[]): number {
-    // 단순한 추정: 영어 기준으로 단어 4개당 약 3토큰
+    // Simple estimation: approximately 3 tokens per 4 words in English
     const totalChars = messages.reduce((sum, msg) => sum + msg.content.length, 0);
     return Math.ceil(totalChars / 4);
   }

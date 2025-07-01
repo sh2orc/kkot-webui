@@ -24,10 +24,10 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Invalid user' }, { status: 401 })
     }
 
-    // Create chat session
+    // Create chat session with temporary title
     const sessionData = {
       userId: userId,
-      title: initialMessage.substring(0, 50) + (initialMessage.length > 50 ? '...' : '')
+      title: initialMessage.substring(0, 20) + (initialMessage.length > 20 ? '...' : '')
     }
 
     console.log('Session data:', sessionData)

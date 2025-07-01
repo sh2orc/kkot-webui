@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
       })));
     }
   } catch (error) {
-    console.error('LLM 서버 조회 오류:', error);
+    console.error('LLM server query error:', error);
     return NextResponse.json(
       { error: 'LLM 서버를 조회하는 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -89,7 +89,7 @@ export async function POST(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('LLM 서버 추가 오류:', error);
+    console.error('LLM server addition error:', error);
     return NextResponse.json(
       { error: 'LLM 서버를 추가하는 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -137,7 +137,7 @@ export async function PUT(request: NextRequest) {
       }
     });
   } catch (error) {
-    console.error('LLM 서버 업데이트 오류:', error);
+    console.error('LLM server update error:', error);
     return NextResponse.json(
       { error: 'LLM 서버를 업데이트하는 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
@@ -164,7 +164,7 @@ export async function DELETE(request: NextRequest) {
       message: 'LLM 서버가 삭제되었습니다.'
     });
   } catch (error) {
-    console.error('LLM 서버 삭제 오류:', error);
+    console.error('LLM server deletion error:', error);
     return NextResponse.json(
       { error: 'LLM 서버를 삭제하는 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }

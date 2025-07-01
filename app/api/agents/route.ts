@@ -33,7 +33,7 @@ export async function GET() {
           if (agent.imageData instanceof Uint8Array) {
             // Uint8Array인 경우
             const base64String = Buffer.from(agent.imageData).toString();
-            imageData = base64String;
+            imageData = `data:image/png;base64,${base64String}`;
           } else if (typeof agent.imageData === 'string') {
             // 이미 문자열인 경우
             if (agent.imageData.startsWith('data:image/')) {
@@ -180,7 +180,7 @@ export async function POST(request: NextRequest) {
     
     // Uint8Array를 Base64 문자열로 변환
     if (fullAgent && fullAgent.imageData instanceof Uint8Array) {
-      fullAgent.imageData = Buffer.from(fullAgent.imageData).toString('base64')
+      fullAgent.imageData = `data:image/png;base64,${Buffer.from(fullAgent.imageData).toString('base64')}`
     }
     
     // 페이지 캐시 무효화
@@ -292,7 +292,7 @@ export async function PUT(request: NextRequest) {
     
     // Uint8Array를 Base64 문자열로 변환
     if (updatedAgent && updatedAgent.imageData instanceof Uint8Array) {
-      updatedAgent.imageData = Buffer.from(updatedAgent.imageData).toString('base64')
+      updatedAgent.imageData = `data:image/png;base64,${Buffer.from(updatedAgent.imageData).toString()}`
     }
     
     // 페이지 캐시 무효화

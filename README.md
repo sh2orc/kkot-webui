@@ -29,13 +29,17 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Real-time Streaming**: Seamless streaming response for natural conversations
 - **Interactive Features**: Message copy, like/dislike, and regeneration capabilities
 - **Message Management**: User message editing and conversation history
+- **Auto Title Generation**: AI-powered automatic chat session title generation
+- **Page Transitions**: Smooth page transitions using View Transitions API
+- **Loading States**: Enhanced loading indicators and state management
 - **Responsive Design**: Optimized for mobile and desktop experiences
 
 ### 🤖 Agent Management
 - **Custom AI Agents**: Create and manage personalized AI agents with specific configurations
 - **Agent Profiles**: Upload custom images and descriptions for each agent
 - **Model Integration**: Connect agents to different LLM models and providers
-- **Parameter Control**: Fine-tune temperature, token limits, and other model parameters
+- **Parameter Control**: Fine-tune temperature, maxTokens limits, and other model parameters
+- **Token Management**: Configurable maxTokens settings for response length control
 
 ### ⚙️ Comprehensive Admin Panel
 - **General Settings**: User registration, API keys, JWT configuration, OAuth authentication
@@ -61,12 +65,16 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - Clean design based on Tailwind CSS
 - Radix UI components utilization
 - Dark/Light theme support
+- Smooth page transitions with View Transitions API
+- Enhanced loading states and animations
 - Intuitive navigation and user experience
 
 ### 🌐 Internationalization
 - Multi-language support (Korean, English)
 - Easy language switching
 - Extensible translation system
+- Server-side translation utilities for improved performance
+- Dynamic module loading with caching
 
 ## 🚀 Quick Start
 
@@ -157,7 +165,7 @@ kkot-webui/
 │   ├── api/               # API routes
 │   │   ├── auth/          # NextAuth API routes
 │   │   ├── agents/        # Agent management API
-│   │   ├── chat/          # Chat API
+│   │   ├── chat/          # Chat API with title generation
 │   │   └── profile/       # User profile API
 │   ├── book/              # Content pages
 │   ├── setting/           # User settings
@@ -168,16 +176,17 @@ kkot-webui/
 │   ├── sidebar/           # Sidebar components
 │   ├── contents/          # Page content components
 │   ├── admin/             # Admin components
-│   ├── providers/         # Context providers
-│   └── ui/                # Reusable UI components
+│   ├── providers/         # Context providers (including page transitions)
+│   └── ui/                # Reusable UI components (loading, transitions)
 ├── i18n/                  # Internationalization
 │   ├── eng/               # English translations
 │   └── kor/               # Korean translations
 ├── lib/                   # Utility functions
 │   ├── auth.ts            # Authentication utilities
 │   ├── db/                # Database configuration
-│   ├── llm/               # LLM integration
-│   └── i18n.ts            # Internationalization
+│   ├── llm/               # LLM integration with maxTokens support
+│   ├── i18n.ts            # Client-side internationalization
+│   └── i18n-server.ts     # Server-side internationalization utilities
 ├── hooks/                 # Custom React hooks
 ├── middleware.ts          # Route protection middleware
 ├── types/                 # TypeScript type definitions
@@ -202,6 +211,44 @@ kkot-webui/
 - **State Management**: React Context API
 - **File Handling**: Multipart form data support
 - **Route Protection**: Custom middleware for authentication
+
+## 🆕 Latest Features
+
+### 🎬 Page Transitions
+- **View Transitions API**: Smooth page transitions using modern web standards
+- **Fallback Support**: Graceful degradation for browsers without View Transitions API
+- **Scroll Position Memory**: Maintains scroll position across page transitions
+- **Custom Transition Components**: TransitionLink component for seamless navigation
+
+### 🔢 Token Management
+- **maxTokens Configuration**: Fine-grained control over response length
+- **Per-Agent Settings**: Individual token limits for each AI agent
+- **Dynamic Token Control**: Runtime adjustment of token limits in chat sessions
+- **Example Usage**: Comprehensive examples for different token scenarios
+
+### 🏷️ Auto Title Generation
+- **AI-Powered Titles**: Automatic generation of meaningful chat session titles
+- **Multi-language Support**: Titles generated in the same language as the conversation
+- **Smart Fallbacks**: Intelligent fallback mechanisms for title generation
+- **Length Optimization**: Automatically optimized title lengths for UI display
+
+### ⚡ Enhanced Loading States
+- **Unified Loading Component**: Consistent loading indicators across the application
+- **Contextual Loading**: Different loading states for different scenarios
+- **Performance Optimization**: Efficient loading state management
+- **Accessibility**: Screen reader friendly loading indicators
+
+### 🌐 Server-side Internationalization
+- **Server-only Utilities**: Dedicated server-side translation functions
+- **Module Caching**: Efficient caching of translation modules
+- **Preloading Support**: Ability to preload translation modules for better performance
+- **Error Handling**: Robust error handling with fallback mechanisms
+
+### 🎨 UI/UX Improvements
+- **Chat Layout**: Dedicated layout for chat pages with optimized navigation
+- **Loading Animations**: Smooth loading animations throughout the application
+- **Responsive Design**: Enhanced mobile and desktop experience
+- **Accessibility**: Improved accessibility features and ARIA labels
 
 ## 🌟 Contributing
 
@@ -234,6 +281,11 @@ This project is completely open source and welcomes contributions from everyone.
 - [x] **Database integration** - SQLite/PostgreSQL support with migrations
 - [x] **Admin panel enhancements** - Comprehensive settings and management interface
 - [x] **Route protection** - Middleware-based authentication and authorization
+- [x] **Page transitions** - View Transitions API with smooth animations
+- [x] **Token management** - maxTokens configuration for response control
+- [x] **Auto title generation** - AI-powered chat session titles
+- [x] **Enhanced loading states** - Unified loading components and states
+- [x] **Server-side i18n** - Performance-optimized translation utilities
 
 ### 🚧 In Progress / Planned
 - [ ] Plugin system development

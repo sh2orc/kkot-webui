@@ -5,7 +5,6 @@ import type React from "react"
 import { useRef, useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { useSession } from "next-auth/react"
-import Layout from "@/components/layout/layout"
 import { LlmResponse } from "@/components/chat/llm-response"
 import { UserRequest } from "@/components/chat/user-request"
 import { ChatInput } from "@/components/chat/chat-input"
@@ -45,6 +44,10 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   const [likedMessages, setLikedMessages] = useState<Set<string>>(new Set())
   const [dislikedMessages, setDislikedMessages] = useState<Set<string>>(new Set())
   const [historyLoaded, setHistoryLoaded] = useState(false)
+  
+  // React Strict Mode 중복 실행 방지를 위한 ref
+  const streamingInProgress = useRef(false)
+  const abortControllerRef = useRef<AbortController | null>(null)
 
   // Unique ID generation function
   const generateUniqueId = (prefix: string) => {
@@ -58,11 +61,40 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       return
     }
 
+    // 이미 스트리밍 중이면 중단
+    if (streamingInProgress.current) {
+      console.log('Streaming already in progress, skipping duplicate call')
+      return
+    }
+
+    // Simple duplicate prevention using message content
+    const lastMessage = sessionStorage.getItem(`lastMessage_${chatId}`)
+    if (lastMessage === message) {
+      console.log('Duplicate message detected, skipping:', message.substring(0, 30))
+      return
+    }
+    sessionStorage.setItem(`lastMessage_${chatId}`, message)
+
+    // 이전 요청이 있다면 중단
+    if (abortControllerRef.current) {
+      abortControllerRef.current.abort()
+    }
+
+    // 새로운 AbortController 생성
+    const abortController = new AbortController()
+    abortControllerRef.current = abortController
+    streamingInProgress.current = true
+
+    // Track message count for debugging (server will determine if title generation is needed)
+    console.log('Current messages count when starting AI call:', messages.length)
+
     try {
       console.log('=== AI message sending start ===')
+      console.log('Timestamp:', new Date().toISOString())
       console.log('Message:', message)
       console.log('Agent info:', agentInfo)
       console.log('User ID:', session.user.id)
+      console.log('Chat ID:', chatId)
 
       const response = await fetch(`/api/chat/${chatId}`, {
         method: 'POST',
@@ -75,7 +107,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           modelId: agentInfo.type === 'model' ? agentInfo.id : undefined,
           modelType: agentInfo.type,
           userId: session.user.id,
-        })
+        }),
+        signal: abortController.signal
       })
 
       console.log('=== AI API response received ===')
@@ -101,6 +134,11 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           try {
             console.log('Stream processing loop start')
             while (true) {
+              if (abortController.signal.aborted) {
+                console.log('Stream aborted')
+                break
+              }
+
               const { done, value } = await reader.read()
               if (done) {
                 console.log('Stream completed')
@@ -135,6 +173,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
 
                     if (data.content) {
                       assistantContent += data.content
+                      console.log('Content received, total length:', assistantContent.length)
                       // Real-time update of AI response
                       setMessages(prev => 
                         prev.map(m => 
@@ -145,7 +184,27 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                       )
                     }
 
+                    if (data.titleGenerated) {
+                      // Title has been generated, immediately refresh sidebar
+                      console.log('=== Title generation completed ===')
+                      console.log('Generated title:', data.title)
+                      console.log('For chat ID:', data.chatId)
+                      console.log('Current chat ID:', chatId)
+                      console.log('Chat IDs match:', data.chatId === chatId)
+                      console.log('Dispatching chatTitleUpdated event...')
+                      
+                      // Dispatch immediately without delay
+                      const eventDetail = { chatId: data.chatId, title: data.title }
+                      console.log('Event detail:', eventDetail)
+                      
+                      window.dispatchEvent(new CustomEvent('chatTitleUpdated', { 
+                        detail: eventDetail
+                      }))
+                      console.log('Event dispatched successfully')
+                    }
+
                     if (data.done) {
+                      console.log('Stream marked as done, final assistant content length:', assistantContent.length)
                       break
                     }
                   } catch (e) {
@@ -155,31 +214,58 @@ export default function ChatPage({ chatId }: ChatPageProps) {
               }
             }
           } catch (error) {
-            console.error('Stream processing error:', error)
+            if (error instanceof Error && error.name === 'AbortError') {
+              console.log('Stream processing aborted')
+            } else {
+              console.error('Stream processing error:', error)
+            }
           }
         }
 
-        processStream()
+        await processStream()
+        
+        // Stream processing completed - server will handle title generation if needed
+        console.log('Stream processing completed.')
+        console.log('Waiting for potential title generation from server...')
+        
+        // Wait a bit and log if title generation occurred
+        setTimeout(() => {
+          console.log('Title generation check completed.')
+        }, 3000)
       }
     } catch (error) {
-      console.error('AI message sending error:', error)
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.log('AI message sending aborted')
+      } else {
+        console.error('AI message sending error:', error)
+      }
+    } finally {
+      streamingInProgress.current = false
+      abortControllerRef.current = null
+      // Clear duplicate prevention after request completes
+      setTimeout(() => {
+        sessionStorage.removeItem(`lastMessage_${chatId}`)
+      }, 5000) // Clear after 5 seconds
     }
   }
 
   // Load messages based on chat ID
   useEffect(() => {
-    if (chatId) {
+    if (chatId && session?.user?.id) {
+      let isCancelled = false
+      
       // Get chat history from API
       const loadChatHistory = async () => {
-        if (!session?.user?.id) {
-          console.error('사용자 인증이 필요합니다')
-          return
-        }
+        if (isCancelled) return
 
         try {
           const response = await fetch(`/api/chat/${chatId}?userId=${session.user.id}`)
+          if (isCancelled) return
+          
           if (response.ok) {
             const data = await response.json()
+            if (isCancelled) return
+            
             // Convert timestamp to Date object
             const messagesWithDateTimestamp = (data.messages || []).map((msg: any) => ({
               ...msg,
@@ -187,33 +273,49 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             }))
             setMessages(messagesWithDateTimestamp)
             
-            // Auto-generate AI response if last message is user message
-            if (messagesWithDateTimestamp.length > 0) {
+            // Auto-generate AI response if last message is user message AND there's agent info in localStorage
+            // This only happens for newly created chats where user message was just sent
+            const agentInfo = localStorage.getItem(`chat_${chatId}_agent`)
+            if (messagesWithDateTimestamp.length > 0 && !streamingInProgress.current && agentInfo) {
               const lastMessage = messagesWithDateTimestamp[messagesWithDateTimestamp.length - 1]
-              if (lastMessage.role === 'user') {
-                console.log('Last message is user message. Generating AI response.')
+              
+              // Only generate response if:
+              // 1. Last message is from user
+              // 2. There's exactly 1 message (first conversation)
+              // 3. Agent info exists in localStorage
+              if (lastMessage.role === 'user' && messagesWithDateTimestamp.length === 1) {
+                console.log('First user message detected. Generating AI response.')
                 
-                // Read agent info from localStorage
-                const agentInfo = localStorage.getItem(`chat_${chatId}_agent`)
-                if (agentInfo) {
+                if (!isCancelled) {
                   const parsedAgentInfo = JSON.parse(agentInfo)
                   console.log('Agent info:', parsedAgentInfo)
                   
                   // Call streaming API
+                  console.log('Calling sendMessageToAI from loadChatHistory (auto-generation)')
                   sendMessageToAI(lastMessage.content, parsedAgentInfo)
                   
-                  // Clean up localStorage after use
-                  localStorage.removeItem(`chat_${chatId}_agent`)
+                  // Clean up localStorage after use (delay to prevent race condition)
+                  setTimeout(() => {
+                    localStorage.removeItem(`chat_${chatId}_agent`)
+                  }, 1000)
                 }
+              } else {
+                console.log('Not first conversation or no agent info, skipping auto-generation')
+                // Clean up localStorage if it exists but we're not using it
+                localStorage.removeItem(`chat_${chatId}_agent`)
               }
             }
           } else {
             console.error('Failed to load chat history')
           }
         } catch (error) {
-          console.error('Chat history load error:', error)
+          if (!isCancelled) {
+            console.error('Chat history load error:', error)
+          }
         } finally {
-          setHistoryLoaded(true) // Mark history load as completed
+          if (!isCancelled) {
+            setHistoryLoaded(true) // Mark history load as completed
+          }
         }
       }
 
@@ -221,10 +323,26 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       
       // Move to bottom immediately after loading messages (without animation)
       setTimeout(() => {
-        scrollToBottomInstant()
+        if (!isCancelled) {
+          scrollToBottomInstant()
+        }
       }, 0)
+
+      // Cleanup function
+      return () => {
+        isCancelled = true
+      }
     }
   }, [chatId, session?.user?.id])
+
+  // Handle session status changes
+  useEffect(() => {
+    // Reset history load state when session changes
+    if (!session?.user?.id) {
+      setHistoryLoaded(false)
+      setMessages([])
+    }
+  }, [session?.user?.id])
 
     // Reset history load state when chat ID changes
   useEffect(() => {
@@ -255,6 +373,16 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   // 컴포넌트 마운트시에도 즉시 맨 아래로 이동
   useEffect(() => {
     setTimeout(() => scrollToBottomInstant(), 0)
+  }, [])
+
+  // 컴포넌트 언마운트 시 스트리밍 정리
+  useEffect(() => {
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort()
+      }
+      streamingInProgress.current = false
+    }
   }, [])
 
   // 애니메이션 없이 즉시 맨 아래로 이동
@@ -397,7 +525,16 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }
 
   const handleSubmit = () => {
+    console.log('=== handleSubmit called ===')
+    console.log('Timestamp:', new Date().toISOString())
+    console.log('Input value:', inputValue)
+    console.log('Current messages count:', messages.length)
+    console.log('Selected model:', selectedModel)
+    console.log('Chat ID:', chatId)
+    
     if (inputValue.trim() && selectedModel && chatId && session?.user?.id) {
+      console.log('All conditions met, proceeding with message submission')
+      
       // 메시지 추가
       const newUserMessage: Message = {
         id: generateUniqueId("user"),
@@ -419,6 +556,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       }
 
       // AI에게 메시지 전송
+      console.log('Calling sendMessageToAI from handleSubmit')
       sendMessageToAI(messageContent, {
         id: selectedModel.id,
         type: selectedModel.type
@@ -427,7 +565,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }
 
   return (
-    <Layout currentPage="chat">
+    <>
       {/* 메시지 컨테이너 */}
       <div className="flex-1 flex flex-col relative overflow-hidden">
         <div 
@@ -488,6 +626,6 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           setIsFlaskActive={setIsFlaskActive}
         />
       </div>
-    </Layout>
+    </>
   )
 }

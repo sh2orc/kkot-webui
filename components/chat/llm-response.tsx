@@ -29,7 +29,7 @@ export function LlmResponse({
   dislikedMessages,
 }: LlmResponseProps) {
   return (
-    <div className="flex items-start gap-0 max-w-[85%]">
+    <div className="flex items-start gap-0 max-w-[100%] text-sm leading-[2.1] tracking-wide">
       <div className="prose prose-sm max-w-none">
         <div className="whitespace-pre-wrap">{content}</div>
         <div className="text-xs text-gray-400 mt-1">

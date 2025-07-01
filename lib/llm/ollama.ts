@@ -24,7 +24,16 @@ export class OllamaLLM extends BaseLLM {
   async chat(messages: LLMMessage[], options?: LLMRequestOptions): Promise<LLMResponse> {
     const langChainMessages = this.convertToLangChainMessages(messages);
     
-    const response = await this.client.invoke(langChainMessages);
+    // Create client with dynamic options
+    const dynamicClient = new ChatOllama({
+      model: this.config.modelName,
+      temperature: this.config.temperature,
+      numCtx: options?.maxTokens ?? this.config.maxTokens, // Ollama uses numCtx for context window
+      topP: this.config.topP,
+      baseUrl: this.config.baseUrl || "http://localhost:11434",
+    });
+    
+    const response = await dynamicClient.invoke(langChainMessages);
     
     // 토큰 사용량 계산 (추정치)
     const promptTokens = this.estimateTokenCount(messages);
@@ -55,6 +64,8 @@ export class OllamaLLM extends BaseLLM {
     const streamingClient = new ChatOllama({
       model: this.config.modelName,
       temperature: this.config.temperature,
+      numCtx: options?.maxTokens ?? this.config.maxTokens,
+      topP: this.config.topP,
       baseUrl: this.config.baseUrl || "http://localhost:11434"
     });
     
@@ -107,7 +118,7 @@ export class OllamaLLM extends BaseLLM {
    * 토큰 수 추정 (간단한 구현)
    */
   private estimateTokenCount(messages: LLMMessage[]): number {
-    // 단순한 추정: 영어 기준으로 단어 4개당 약 3토큰
+    // Simple estimation: approximately 3 tokens per 4 words in English
     const totalChars = messages.reduce((sum, msg) => sum + msg.content.length, 0);
     return Math.ceil(totalChars / 4);
   }

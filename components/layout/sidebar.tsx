@@ -4,7 +4,7 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ChevronLeft, Search, Plus, Menu, Book, Link as LinkIcon } from "lucide-react"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { AccountMenu } from "@/components/ui/account-menu"
@@ -12,12 +12,14 @@ import { ChatGroupComponent } from "@/components/sidebar/chat-group"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 import { useBranding } from "@/components/providers/branding-provider"
 import Image from "next/image"
-import Link from "next/link"
+import TransitionLink from "@/components/ui/transition-link"
+import { useTransitionRouter } from "@/components/providers/page-transition-provider"
 
 interface SidebarProps {
   currentPage?: "chat" | "content"
   mobileSidebarOpen: boolean
   setMobileSidebarOpen: (open: boolean) => void
+  initialChatSessions?: any[]
 }
 
 // Chat item type definition
@@ -34,13 +36,19 @@ interface ChatGroup {
   items: ChatItem[]
 }
 
-export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMobileSidebarOpen }: SidebarProps) {
+export default function Sidebar({ 
+  currentPage = "chat", 
+  mobileSidebarOpen, 
+  setMobileSidebarOpen,
+  initialChatSessions = []
+}: SidebarProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const router = useRouter()
+  const pathname = usePathname()
   const { data: session } = useSession()
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
   const [chatGroups, setChatGroups] = useState<ChatGroup[]>([])
-  const [isLoading, setIsLoading] = useState(true)
+  const [isLoading, setIsLoading] = useState(false)
   const { lang, language } = useTranslation('common')
   const { branding } = useBranding()
 
@@ -49,33 +57,17 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
     preloadTranslationModule(language, 'common')
   }, [language])
 
-  // Fetch chat sessions list
-  const fetchChatSessions = async () => {
-    if (!session?.user?.id) {
-      setIsLoading(false)
-      return
+  // Update selectedChatId based on current pathname
+  useEffect(() => {
+    const chatIdMatch = pathname.match(/^\/chat\/(.+)$/)
+    if (chatIdMatch) {
+      // We're on a specific chat page
+      setSelectedChatId(chatIdMatch[1])
+    } else if (pathname === '/chat') {
+      // We're on the new chat page
+      setSelectedChatId(null)
     }
-
-    try {
-      setIsLoading(true)
-      const response = await fetch(`/api/chat?userId=${session.user.id}`)
-      const data = await response.json()
-      
-      if (data.sessions) {
-        // Group by date
-        const groups = groupChatSessionsByDate(data.sessions)
-        setChatGroups(groups)
-      } else if (data.error) {
-        console.error('Chat session load error:', data.error)
-        setChatGroups([])
-      }
-    } catch (error) {
-      console.error('Error fetching chat sessions:', error)
-      setChatGroups([])
-    } finally {
-      setIsLoading(false)
-    }
-  }
+  }, [pathname])
 
   // Date-based grouping function
   const groupChatSessionsByDate = (sessions: any[]): ChatGroup[] => {
@@ -102,9 +94,9 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
       let timeAgo = ''
       
       if (diffInHours < 24) {
-        timeAgo = `${diffInHours}시간 전`
+        timeAgo = lang('sidebar.timeAgo.hoursAgo').replace('{{hours}}', diffInHours.toString())
       } else {
-        timeAgo = `${diffInDays}일 전`
+        timeAgo = lang('sidebar.timeAgo.daysAgo').replace('{{days}}', diffInDays.toString())
       }
 
       const chatItem: ChatItem = {
@@ -164,9 +156,49 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
     return result
   }
 
-  // Fetch chat sessions list when session is available
+  // Fetch chat sessions list (CSR fallback)
+  const fetchChatSessions = async () => {
+    if (!session?.user?.id) {
+      console.log('No session available, skipping chat sessions fetch')
+      setIsLoading(false)
+      setChatGroups([])
+      return
+    }
+
+    try {
+      setIsLoading(true)
+      console.log('Fetching chat sessions for user:', session.user.id)
+      const response = await fetch(`/api/chat?userId=${session.user.id}`)
+      const data = await response.json()
+      
+      if (data.sessions) {
+        // Group by date
+        const groups = groupChatSessionsByDate(data.sessions)
+        setChatGroups(groups)
+      } else if (data.error) {
+        console.error('Chat session load error:', data.error)
+        setChatGroups([])
+      }
+    } catch (error) {
+      console.error('Error fetching chat sessions:', error)
+      setChatGroups([])
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // 초기 데이터로 채팅 그룹 설정 (SSR 데이터 사용)
   useEffect(() => {
-    if (session?.user?.id) {
+    if (initialChatSessions.length > 0) {
+      const groups = groupChatSessionsByDate(initialChatSessions)
+      setChatGroups(groups)
+    }
+  }, [initialChatSessions, lang])
+
+  // Fetch chat sessions list when session is available (CSR 폴백)
+  useEffect(() => {
+    // SSR 데이터가 없고 세션이 있을 때만 CSR로 데이터 가져오기
+    if (initialChatSessions.length === 0 && session?.user?.id) {
       fetchChatSessions()
     }
     
@@ -175,21 +207,116 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
       (window as any).refreshSidebar = fetchChatSessions
     }
 
+    // Add event listener for new chat creation
+    const handleNewChatCreated = (event: CustomEvent) => {
+      console.log('=== New chat created event received ===')
+      console.log('Event detail:', event.detail)
+      const { chat } = event.detail
+      
+      if (chat) {
+        console.log(`Adding new chat ${chat.id} with title: ${chat.title}`)
+        // Add new chat to the beginning of today's group
+        setChatGroups(prevGroups => {
+          const newChatItem: ChatItem = {
+            id: chat.id,
+            title: chat.title,
+            time: new Date(chat.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
+            timeAgo: '방금 전'
+          }
+          
+          // Find or create today's group
+          const todayLabel = lang('sidebar.chatGroups.today')
+          const existingTodayIndex = prevGroups.findIndex(group => group.label === todayLabel)
+          
+          if (existingTodayIndex >= 0) {
+            // Add to existing today group
+            const updatedGroups = [...prevGroups]
+            updatedGroups[existingTodayIndex] = {
+              ...updatedGroups[existingTodayIndex],
+              items: [newChatItem, ...updatedGroups[existingTodayIndex].items]
+            }
+            return updatedGroups
+          } else {
+            // Create new today group
+            return [
+              { label: todayLabel, items: [newChatItem] },
+              ...prevGroups
+            ]
+          }
+        })
+      }
+    }
+
+    // Add event listener for chat title updates
+    const handleChatTitleUpdate = (event: CustomEvent) => {
+      console.log('=== Chat title update event received ===')
+      console.log('Event detail:', event.detail)
+      console.log('Event type:', event.type)
+      console.log('Current chat groups count:', chatGroups.length)
+      
+      const { chatId, title } = event.detail
+      
+      if (chatId && title) {
+        console.log(`Updating title for chat ${chatId} to: ${title}`)
+        
+        // Log current groups before update
+        console.log('Current groups before update:', chatGroups.map(g => ({
+          label: g.label,
+          items: g.items.map(i => ({ id: i.id, title: i.title }))
+        })))
+        
+        // Update specific chat title in current state
+        setChatGroups(prevGroups => {
+          const updatedGroups = prevGroups.map(group => ({
+            ...group,
+            items: group.items.map(item => {
+              const matches = String(item.id) === String(chatId)
+              console.log(`Comparing item ${item.id} with chatId ${chatId}: ${matches}`)
+              return matches ? { ...item, title: title } : item
+            })
+          }))
+          
+          console.log('Updated chat groups:', updatedGroups.map(g => ({
+            label: g.label,
+            items: g.items.map(i => ({ id: i.id, title: i.title }))
+          })))
+          
+          return updatedGroups
+        })
+        
+        console.log('Title update completed')
+      } else {
+        console.log('Missing chatId or title, refreshing entire list')
+        console.log('chatId:', chatId, 'title:', title)
+        // Fallback: refresh entire list
+        if (session?.user?.id) {
+          fetchChatSessions()
+        }
+      }
+    }
+
+    if (typeof window !== 'undefined') {
+      console.log('Adding event listeners for chat management')
+      window.addEventListener('newChatCreated', handleNewChatCreated as EventListener)
+      window.addEventListener('chatTitleUpdated', handleChatTitleUpdate as EventListener)
+    }
+
     // Cleanup on component unmount
     return () => {
       if (typeof window !== 'undefined') {
+        console.log('Cleaning up sidebar event listeners')
         delete (window as any).refreshSidebar
+        window.removeEventListener('newChatCreated', handleNewChatCreated as EventListener)
+        window.removeEventListener('chatTitleUpdated', handleChatTitleUpdate as EventListener)
       }
     }
-  }, [session?.user?.id])
-
-
+  }, [session?.user?.id, initialChatSessions.length])
 
   return (
     <>
       {/* Desktop Sidebar */}
       <div
-        className={`${sidebarCollapsed ? "w-16" : "w-64"} bg-[#f5f5f5] border-r border-gray-200 flex-col transition-all duration-300 hidden md:flex overflow-hidden`}
+        className={`${sidebarCollapsed ? "w-16" : "w-60"} bg-[#f5f5f5] border-r border-gray-200 flex-col transition-all duration-300 hidden md:flex overflow-hidden`}
       >
         {sidebarCollapsed ? (
           /* Collapsed Sidebar - Icon Only */
@@ -201,9 +328,11 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
             </div>
 
             <div className="p-4">
-              <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => router.push("/chat")}>
-                <Plus className="h-4 w-4" />
-              </Button>
+              <TransitionLink href="/chat">
+                <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0">
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </TransitionLink>
             </div>
 
             <div className="p-4">
@@ -234,9 +363,8 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
             <div className="p-0 h-[3rem] flex items-center px-4">
               <div className="flex items-center justify-between w-full">
                 
-                <div 
-                  className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
-                  onClick={() => router.push("/chat")}
+                <div
+                  className="flex items-center gap-1"
                 >
                   
                   {/* Logo */}
@@ -249,7 +377,7 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
                   />
 
                   <div className={`overflow-hidden ml-1 transition-all duration-300 ${sidebarCollapsed ? 'w-0 opacity-0' : 'w-24 opacity-100'}`}>
-                    <span className="whitespace-nowrap font-semibold text-gray-500">꽃 kkot</span>
+                    <span className="whitespace-nowrap text-gray-500 text-sm">kkot</span>
                   </div>
 
                 </div>
@@ -270,24 +398,15 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
               </div>
             </div>
 
-            {/* Content Button : Hide in sidebar */}
-            <div
-              className={`p-1 px-2 transition-opacity duration-200 hidden ${sidebarCollapsed ? "opacity-0" : "opacity-100"}`}
-              style={{ display: sidebarCollapsed ? 'none' : 'block' }}
-            >
-              <Button
-                className={`w-full justify-start gap-2 focus:outline-none focus:ring-0 ${
-                  currentPage === "content"
-                    ? "bg-gray-200 hover:bg-gray-200 text-gray-700 border border-gray-200"
-                    : "bg-transparent hover:bg-gray-100 text-gray-700"
-                }`}
-                onClick={() => router.push("/book")}
-              >
-                <Book className="h-4 w-4" />
-                {lang('sidebar.book')}
-              </Button>
+            {/* New Chat Button */}
+            <div className="px-4 mb-2">
+              <TransitionLink href="/chat" className="block" onClick={() => setSelectedChatId(null)}>
+                <div className="w-full flex px-2 py-2 justify-start items-center text-sm leading-relaxed rounded-lg hover:bg-gray-200">
+                  <Plus className="h-4 w-4 mr-2" />
+                  {lang('sidebar.newChat')}
+                </div>
+              </TransitionLink>
             </div>
-
 
             {/* Chat History - Grouped by Date */}
             <div className="flex-1 mt-3 overflow-y-auto">
@@ -349,11 +468,11 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
           <div className="absolute inset-0 bg-gray-600 bg-opacity-75" onClick={() => setMobileSidebarOpen(false)}></div>
-          <div className="relative flex flex-col w-64 h-full bg-[#f5f5f5] border-r border-gray-200">
+          <div className="relative flex flex-col w-60 h-full bg-[#f5f5f5] border-r border-gray-200">
             {/* Header */}
             <div className="p-0 h-[3rem] flex items-center px-4">
               <div className="flex items-center justify-between w-full">
-                <Link 
+                <TransitionLink 
                   href="/"
                   className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
                   onClick={() => setMobileSidebarOpen(false)}
@@ -367,7 +486,7 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
                     className="h-8 w-auto"
                   />
                   <span className="whitespace-nowrap font-semibold text-gray-500">꽃 kkot</span>
-                </Link>
+                </TransitionLink>
                 <Button variant="ghost" size="icon" className="h-6 w-6 focus:outline-none focus:ring-0" onClick={() => setMobileSidebarOpen(false)}>
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
@@ -382,25 +501,18 @@ export default function Sidebar({ currentPage = "chat", mobileSidebarOpen, setMo
               </div>
             </div>
 
-            {/* Content Button */}
-            <div className="p-1 px-2">
-              <Button
-                className={`w-full justify-start gap-2 focus:outline-none focus:ring-0 ${
-                  currentPage === "content"
-                    ? "bg-gray-200 hover:bg-gray-200 text-gray-700 border border-gray-200"
-                    : "bg-transparent hover:bg-gray-100 text-gray-700"
-                }`}
-                onClick={() => {
-                  router.push("/book")
-                  setMobileSidebarOpen(false)
-                }}
-              >
-                <Book className="h-4 w-4" />
-                {lang('sidebar.book')}
-              </Button>
+            {/* New Chat Button */}
+            <div className="px-4 mb-2">
+              <TransitionLink href="/chat" className="block" onClick={() => {
+                setSelectedChatId(null)
+                setMobileSidebarOpen(false)
+              }}>
+                <div className="w-full flex px-2 py-2 justify-start items-center text-sm leading-relaxed rounded-lg hover:bg-gray-200">
+                  <Plus className="h-4 w-4 mr-2" />
+                  {lang('sidebar.newChat')}
+                </div>
+              </TransitionLink>
             </div>
-
-
 
             {/* Chat History - Grouped by Date */}
             <div className="flex-1 mt-3 overflow-y-auto">

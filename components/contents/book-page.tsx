@@ -8,6 +8,7 @@ import { Heart, MessageCircle, Share, Bookmark, ChevronDown } from "lucide-react
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import Layout from "@/components/layout/layout"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
+import Loading from "@/components/ui/loading"
 
 export default function ContentPage() {
   const { lang, language } = useTranslation('book')
@@ -121,9 +122,7 @@ export default function ContentPage() {
   if (!isLoaded) {
     return (
       <Layout currentPage="content">
-        <div className="flex-1 flex items-center justify-center">
-          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-gray-900"></div>
-        </div>
+        <Loading className="flex-1" fullScreen={false} />
       </Layout>
     )
   }

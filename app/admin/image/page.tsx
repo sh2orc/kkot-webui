@@ -160,7 +160,7 @@ export default function ImageSettingsPage() {
 
         {/* Save Button */}
         <div className="flex justify-end">
-          <Button className="bg-black text-white hover:bg-blue-700 hover:text-white">저장</Button>
+          <Button>저장</Button>
         </div>
       </div>
     </AdminLayout>
