@@ -327,7 +327,7 @@ export default function Component({
 
 
           {/* Central Input Area */}
-          <div className="w-full max-w-3xl mb-8">
+          <div className="w-full max-w-2xl mb-8">
             {/* Desktop Input */}
             <div className="hidden md:block">
               <div className="flex-1 flex flex-col relative w-full shadow-lg rounded-3xl border border-gray-50 dark:border-gray-850 hover:border-gray-100 focus-within:border-gray-100 hover:dark:border-gray-800 focus-within:dark:border-gray-800 transition px-1 bg-white/90 dark:bg-gray-400/5 dark:text-gray-100">
@@ -417,7 +417,7 @@ export default function Component({
 
           {/* Prompt Suggestions */}
           {selectedModel && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
               {prompts.map((prompt, index) => (
                 <div
                   key={index}

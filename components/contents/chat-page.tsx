@@ -44,6 +44,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   const [likedMessages, setLikedMessages] = useState<Set<string>>(new Set())
   const [dislikedMessages, setDislikedMessages] = useState<Set<string>>(new Set())
   const [historyLoaded, setHistoryLoaded] = useState(false)
+  const [isStreaming, setIsStreaming] = useState(false)
+  const [regeneratingMessageId, setRegeneratingMessageId] = useState<string | null>(null)
   
   // React Strict Mode 중복 실행 방지를 위한 ref
   const streamingInProgress = useRef(false)
@@ -54,6 +56,18 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
   }
 
+  // Handle abort streaming
+  const handleAbort = () => {
+    if (abortControllerRef.current) {
+      console.log('Aborting current streaming request...')
+      abortControllerRef.current.abort()
+      abortControllerRef.current = null
+    }
+    streamingInProgress.current = false
+    setIsStreaming(false)
+    setRegeneratingMessageId(null)
+  }
+
   // Send message to AI and receive streaming response
   const sendMessageToAI = async (message: string, agentInfo: {id: string, type: string}) => {
     if (!session?.user?.id) {
@@ -61,7 +75,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       return
     }
 
-    // 이미 스트리밍 중이면 중단
+    // Abort if already streaming
     if (streamingInProgress.current) {
       console.log('Streaming already in progress, skipping duplicate call')
       return
@@ -75,15 +89,16 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     }
     sessionStorage.setItem(`lastMessage_${chatId}`, message)
 
-    // 이전 요청이 있다면 중단
+    // Abort previous request if exists
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
     }
 
-    // 새로운 AbortController 생성
+    // Create new AbortController
     const abortController = new AbortController()
     abortControllerRef.current = abortController
     streamingInProgress.current = true
+    setIsStreaming(true)
 
     // Track message count for debugging (server will determine if title generation is needed)
     console.log('Current messages count when starting AI call:', messages.length)
@@ -241,6 +256,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       }
     } finally {
       streamingInProgress.current = false
+      setIsStreaming(false)
+      setRegeneratingMessageId(null)
       abortControllerRef.current = null
       // Clear duplicate prevention after request completes
       setTimeout(() => {
@@ -382,6 +399,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         abortControllerRef.current.abort()
       }
       streamingInProgress.current = false
+      setIsStreaming(false)
     }
   }, [])
 
@@ -488,9 +506,59 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }
 
   const handleSaveEdit = (messageId: string) => {
-    setMessages(messages.map((msg) => (msg.id === messageId ? { ...msg, content: editingContent } : msg)))
+    console.log('=== handleSaveEdit called ===')
+    console.log('Message ID:', messageId)
+    console.log('New content:', editingContent)
+    
+    // 메시지 내용 업데이트
+    const updatedMessages = messages.map((msg) => 
+      msg.id === messageId ? { ...msg, content: editingContent } : msg
+    )
+    setMessages(updatedMessages)
+    
+    // 편집 상태 초기화
     setEditingMessageId(null)
+    const savedContent = editingContent
     setEditingContent("")
+
+    // 편집된 사용자 메시지인 경우 해당 메시지 이후 모든 메시지 삭제하고 재생성
+    const messageIndex = messages.findIndex((msg) => msg.id === messageId)
+    const editedMessage = messages[messageIndex]
+    
+    if (editedMessage && editedMessage.role === "user" && selectedModel && chatId && session?.user?.id) {
+      console.log('User message edited, triggering regeneration with new content')
+      
+      // 스트리밍 중이면 먼저 중단
+      if (isStreaming) {
+        console.log('Streaming in progress, aborting current stream first')
+        handleAbort()
+      }
+      
+      // 해당 사용자 메시지에 대해 재생성 상태 설정
+      setRegeneratingMessageId(messageId)
+      
+      // 해당 사용자 메시지 이후의 모든 메시지 제거 (편집된 사용자 메시지는 유지)
+      setTimeout(() => {
+        setMessages(prev => prev.slice(0, messageIndex + 1))
+        
+        // 스크롤을 현재 위치로 이동
+        setTimeout(() => scrollToBottomSmooth(), 100)
+
+        // 편집된 내용으로 AI 재생성
+        setTimeout(() => {
+          console.log('Calling sendMessageToAI for edited message regeneration')
+          
+          // 중복 방지 로직 초기화
+          streamingInProgress.current = false
+          sessionStorage.removeItem(`lastMessage_${chatId}`)
+          
+          sendMessageToAI(savedContent, {
+            id: selectedModel.id,
+            type: selectedModel.type
+          })
+        }, 300)
+      }, 100) // 메시지 업데이트 후 잠시 대기
+    }
   }
 
   const handleCancelEdit = () => {
@@ -499,28 +567,100 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }
 
   const handleRegenerateResponse = (messageId: string) => {
+    console.log('=== handleRegenerateResponse called ===')
+    console.log('Message ID to regenerate:', messageId)
+    
+    // 스트리밍 중이면 먼저 중단
+    if (isStreaming) {
+      console.log('Streaming in progress, aborting current stream first')
+      handleAbort()
+    }
+    
     // 해당 메시지 이후의 모든 메시지 제거하고 다시 생성
     const messageIndex = messages.findIndex((msg) => msg.id === messageId)
-    if (messageIndex > 0) {
+    if (messageIndex > 0 && selectedModel && chatId && session?.user?.id) {
       const previousUserMessage = messages[messageIndex - 1]
       if (previousUserMessage.role === "user") {
+        console.log('Found previous user message:', previousUserMessage.content)
+        
+        // 해당 사용자 메시지에 대해 재생성 상태 설정
+        setRegeneratingMessageId(previousUserMessage.id)
+        
         // 해당 답변 이후의 모든 메시지 제거
         setMessages(messages.slice(0, messageIndex))
+        
+        // 스크롤을 현재 위치로 이동
+        setTimeout(() => scrollToBottomSmooth(), 100)
 
-        // 로그인 후 답변 재생성 (1초 후)
+        // 재생성을 위한 상태 초기화 및 AI 요청
         setTimeout(() => {
-          const newAssistantMessage: Message = {
-            id: generateUniqueId("assistant"),
-            role: "assistant",
-            content:
-              "시뮬레이션을 위해 제작된 부분에 대해 LLM API 출력 후 답변을 받아 결과를 보여드리게 됩니다. 본인의 카드 약관이나 BC카드 고객센터를 통해 확인하시는 것이 좋습니다.",
-            timestamp: new Date(),
-          }
-          setMessages((prev) => [...prev, newAssistantMessage])
-          // 생성된 답변 추가 후 부드러운 스크롤
-          setTimeout(() => scrollToBottomSmooth(), 100)
-        }, 1000)
+          console.log('Calling sendMessageToAI for regeneration')
+          
+          // 중복 방지 로직 초기화
+          streamingInProgress.current = false
+          sessionStorage.removeItem(`lastMessage_${chatId}`)
+          
+          sendMessageToAI(previousUserMessage.content, {
+            id: selectedModel.id,
+            type: selectedModel.type
+          })
+        }, 300) // 중단 처리 완료를 위해 짧은 지연
       }
+    } else {
+      console.log('Cannot regenerate: missing requirements')
+      console.log('messageIndex:', messageIndex)
+      console.log('selectedModel:', selectedModel)
+      console.log('chatId:', chatId)
+      console.log('session user id:', session?.user?.id)
+    }
+  }
+
+  const handleRegenerateFromUserMessage = (messageId: string) => {
+    console.log('=== handleRegenerateFromUserMessage called ===')
+    console.log('User message ID to regenerate from:', messageId)
+    
+    // 스트리밍 중이면 먼저 중단
+    if (isStreaming) {
+      console.log('Streaming in progress, aborting current stream first')
+      handleAbort()
+    }
+    
+    // 해당 사용자 메시지부터 하위 모든 메시지 제거하고 다시 생성
+    const messageIndex = messages.findIndex((msg) => msg.id === messageId)
+    if (messageIndex >= 0 && selectedModel && chatId && session?.user?.id) {
+      const userMessage = messages[messageIndex]
+      if (userMessage.role === "user") {
+        console.log('Found user message to regenerate from:', userMessage.content)
+        
+        // 해당 사용자 메시지에 대해 재생성 상태 설정
+        setRegeneratingMessageId(messageId)
+        
+        // 해당 사용자 메시지 이후의 모든 메시지 제거 (사용자 메시지는 유지)
+        setMessages(messages.slice(0, messageIndex + 1))
+        
+        // 스크롤을 현재 위치로 이동
+        setTimeout(() => scrollToBottomSmooth(), 100)
+
+        // 재생성을 위한 상태 초기화 및 AI 요청
+        setTimeout(() => {
+          console.log('Calling sendMessageToAI for user message regeneration')
+          
+          // 중복 방지 로직 초기화
+          streamingInProgress.current = false
+          sessionStorage.removeItem(`lastMessage_${chatId}`)
+          
+          sendMessageToAI(userMessage.content, {
+            id: selectedModel.id,
+            type: selectedModel.type
+          })
+        }, 300) // 중단 처리 완료를 위해 짧은 지연
+      }
+    } else {
+      console.log('Cannot regenerate from user message: missing requirements')
+      console.log('messageIndex:', messageIndex)
+      console.log('selectedModel:', selectedModel)
+      console.log('chatId:', chatId)
+      console.log('session user id:', session?.user?.id)
     }
   }
 
@@ -531,6 +671,12 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     console.log('Current messages count:', messages.length)
     console.log('Selected model:', selectedModel)
     console.log('Chat ID:', chatId)
+    
+    // 스트리밍 중이면 제출 금지
+    if (isStreaming) {
+      console.log('Streaming in progress, submit blocked')
+      return
+    }
     
     if (inputValue.trim() && selectedModel && chatId && session?.user?.id) {
       console.log('All conditions met, proceeding with message submission')
@@ -573,7 +719,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           className="messages-container flex-1 overflow-y-auto p-4 pb-[140px]"
           style={{ scrollBehavior: 'auto' }}
         >
-          <div className="max-w-3xl mx-auto">
+          <div className="max-w-2xl mx-auto">
             {messages.map((message) => (
               <div key={message.id} className={`mb-6 ${message.role === "user" ? "flex justify-end" : ""}`}>
                 {message.role === "assistant" && (
@@ -588,6 +734,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                     copiedMessageId={copiedMessageId}
                     likedMessages={likedMessages}
                     dislikedMessages={dislikedMessages}
+                    isStreaming={isStreaming}
                   />
                 )}
 
@@ -600,10 +747,13 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                     onEdit={handleEditMessage}
                     onSave={handleSaveEdit}
                     onCancel={handleCancelEdit}
+                    onRegenerate={handleRegenerateFromUserMessage}
                     editingMessageId={editingMessageId}
                     editingContent={editingContent}
                     setEditingContent={setEditingContent}
                     copiedMessageId={copiedMessageId}
+                    isStreaming={isStreaming}
+                    regeneratingMessageId={regeneratingMessageId}
                   />
                 )}
               </div>
@@ -618,10 +768,12 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           textareaRef={textareaRef}
           isGlobeActive={isGlobeActive}
           isFlaskActive={isFlaskActive}
+          isStreaming={isStreaming}
           handleInputChange={handleInputChange}
           handleKeyDown={handleKeyDown}
           handleKeyUp={handleKeyUp}
           handleSubmit={handleSubmit}
+          handleAbort={handleAbort}
           setIsGlobeActive={setIsGlobeActive}
           setIsFlaskActive={setIsFlaskActive}
         />

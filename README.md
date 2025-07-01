@@ -26,13 +26,14 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Other Models**: Support for Claude, LLaMA, Mistral, and various other models
 
 ### 💬 Chat Interface
-- **Real-time Streaming**: Seamless streaming response for natural conversations
-- **Interactive Features**: Message copy, like/dislike, and regeneration capabilities
-- **Message Management**: User message editing and conversation history
+- **Real-time Streaming**: Seamless streaming response for natural conversations with abort functionality
+- **Interactive Features**: Message copy, like/dislike, and regeneration capabilities with visual feedback
+- **Message Management**: User message editing and conversation history with enhanced UX
 - **Auto Title Generation**: AI-powered automatic chat session title generation
 - **Page Transitions**: Smooth page transitions using View Transitions API
 - **Loading States**: Enhanced loading indicators and state management
 - **Responsive Design**: Optimized for mobile and desktop experiences
+- **Anti-Duplicate**: Intelligent duplicate message prevention and submission controls
 
 ### 🤖 Agent Management
 - **Custom AI Agents**: Create and manage personalized AI agents with specific configurations

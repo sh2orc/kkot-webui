@@ -162,6 +162,34 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     // Generate streaming response
     const stream = new ReadableStream({
       async start(controller) {
+        let controllerClosed = false
+        
+        // Safe controller operations
+        const safeEnqueue = (data: Uint8Array) => {
+          try {
+            if (!controllerClosed && controller.desiredSize !== null) {
+              controller.enqueue(data)
+              return true
+            }
+          } catch (error) {
+            console.log('Controller enqueue failed (likely closed):', error instanceof Error ? error.message : String(error))
+            controllerClosed = true
+          }
+          return false
+        }
+        
+        const safeClose = () => {
+          if (!controllerClosed) {
+            try {
+              controller.close()
+              controllerClosed = true
+            } catch (error) {
+              console.log('Controller close failed (likely already closed):', error instanceof Error ? error.message : String(error))
+              controllerClosed = true
+            }
+          }
+        }
+        
         try {
           let fullResponse = ''
           const assistantMessageId = uuidv4()
@@ -171,10 +199,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           const streamCallbacks = {
             onToken: (token: string) => {
               fullResponse += token
-              console.log('Token received, total length:', fullResponse.length)
-              
-              // Send chunk to client
-              controller.enqueue(
+              // Send chunk to client safely
+              safeEnqueue(
                 new TextEncoder().encode(
                   `data: ${JSON.stringify({ 
                     content: token, 
@@ -298,7 +324,8 @@ Title:`
                         }
                         console.log('Sending title update signal to client:', titleUpdateData)
                         
-                        controller.enqueue(
+                        // Send title update signal safely
+                        safeEnqueue(
                           new TextEncoder().encode(
                             `data: ${JSON.stringify(titleUpdateData)}\n\n`
                           )
@@ -316,8 +343,8 @@ Title:`
                   }
                 }
 
-                // Send completion signal
-                controller.enqueue(
+                // Send completion signal safely
+                safeEnqueue(
                   new TextEncoder().encode(
                     `data: ${JSON.stringify({ 
                       content: '', 
@@ -327,15 +354,16 @@ Title:`
                   )
                 )
 
-                controller.close()
+                safeClose()
               } catch (error) {
                 console.error('Message save error:', error)
-                controller.close()
+                safeClose()
               }
             },
             onError: (error: Error) => {
               console.error('Streaming response error:', error)
-              controller.enqueue(
+              // Send error signal safely
+              safeEnqueue(
                 new TextEncoder().encode(
                   `data: ${JSON.stringify({ 
                     error: 'An error occurred while generating AI response',
@@ -343,7 +371,7 @@ Title:`
                   })}\n\n`
                 )
               )
-              controller.close()
+              safeClose()
             }
           }
 
@@ -398,14 +426,14 @@ Title:`
                     const titleData = await titleResponse.json()
                     console.log('Direct title generated successfully:', titleData.title)
                     
-                    // Send title update signal to client
+                    // Send title update signal to client safely
                     const titleUpdateData = { 
                       titleGenerated: true,
                       title: titleData.title,
                       chatId: chatId
                     }
                     
-                    controller.enqueue(
+                    safeEnqueue(
                       new TextEncoder().encode(
                         `data: ${JSON.stringify(titleUpdateData)}\n\n`
                       )
@@ -423,7 +451,8 @@ Title:`
           }
         } catch (error) {
           console.error('Streaming initialization error:', error)
-          controller.enqueue(
+          // Send error signal safely
+          safeEnqueue(
             new TextEncoder().encode(
               `data: ${JSON.stringify({ 
                 error: 'An error occurred while generating AI response',
@@ -431,7 +460,7 @@ Title:`
               })}\n\n`
             )
           )
-          controller.close()
+          safeClose()
         }
       }
     })

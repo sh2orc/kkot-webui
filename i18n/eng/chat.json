@@ -1,6 +1,7 @@
 {
   "placeholder": "How can I help you today?",
   "mobilePlaceholder": "Type a message...",
+  "waitingResponse": "AI is generating a response...",
   "modelDescription": "This language model provides accurate and helpful answers to various questions",
   "capabilities": "I can help with creative writing, coding, analysis, translation, and various other tasks.",
   "disclaimer": "LLM can make mistakes. Please verify important information",
@@ -39,6 +40,7 @@
     "like": "Like",
     "dislike": "Dislike",
     "regenerate": "Regenerate",
+    "regenerating": "Regenerating...",
     "edit": "Edit",
     "save": "Save",
     "cancel": "Cancel",

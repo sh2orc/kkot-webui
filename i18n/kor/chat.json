@@ -1,6 +1,7 @@
 {
   "placeholder": "오늘 어떻게 도와드릴까요?",
   "mobilePlaceholder": "메시지를 입력하세요...",
+  "waitingResponse": "AI가 답변을 생성 중입니다...",
   "modelDescription": "다양한 질문에 정확하고 유용한 답변을 제공합니다",
   "capabilities": "창의적 글쓰기, 코딩, 분석, 번역 등 다양한 작업을 도와드릴 수 있습니다.",
   "disclaimer": "LLM은 실수할 수 있습니다. 중요한 정보는 다시 확인하세요",
@@ -39,6 +40,7 @@
     "like": "좋아요",
     "dislike": "싫어요",
     "regenerate": "다시 생성",
+    "regenerating": "다시 생성 중...",
     "edit": "수정",
     "save": "저장",
     "cancel": "취소",

@@ -1,6 +1,6 @@
 "use client"
 
-import { Copy, Edit, Check, X } from "lucide-react"
+import { Copy, Edit, Check, X, RefreshCw } from "lucide-react"
 import { useRef, useEffect, useCallback } from "react"
 import { useTranslation } from "@/lib/i18n"
 
@@ -12,10 +12,13 @@ interface UserRequestProps {
   onEdit: (messageId: string, content: string) => void
   onSave: (messageId: string) => void
   onCancel: () => void
+  onRegenerate: (messageId: string) => void
   editingMessageId: string | null
   editingContent: string
   setEditingContent: (content: string) => void
   copiedMessageId: string | null
+  isStreaming?: boolean
+  regeneratingMessageId?: string | null
 }
 
 export function UserRequest({
@@ -26,10 +29,13 @@ export function UserRequest({
   onEdit,
   onSave,
   onCancel,
+  onRegenerate,
   editingMessageId,
   editingContent,
   setEditingContent,
   copiedMessageId,
+  isStreaming = false,
+  regeneratingMessageId = null,
 }: UserRequestProps) {
   const { lang } = useTranslation("chat")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
@@ -77,7 +83,7 @@ export function UserRequest({
   }
 
   return (
-    <div className={`flex items-start text-sm leading-relaxed gap-3 ${editingMessageId === id ? "w-full" : "max-w-[80%]"}`}>
+    <div className={`flex items-start leading-relaxed gap-3 ${editingMessageId === id ? "w-full" : "max-w-[80%]"}`}>
       <div className="w-full">
         {editingMessageId === id ? (
           <div className="bg-gray-100 rounded-lg p-3 w-full">
@@ -136,6 +142,21 @@ export function UserRequest({
                   title={lang("actions.edit")}
                 >
                   <Edit className="h-4 w-4 text-gray-500" />
+                </button>
+                <button
+                  onClick={() => onRegenerate(id)}
+                  className="p-1 rounded-full transition-all duration-600 group hover:bg-blue-50 hover:text-blue-600"
+                  title={
+                    regeneratingMessageId === id 
+                      ? lang("actions.regenerating") 
+                      : lang("actions.regenerate")
+                  }
+                >
+                  <RefreshCw className={`h-4 w-4 transition-all duration-600 ${
+                    regeneratingMessageId === id 
+                      ? 'text-gray-500 animate-slow-spin' 
+                      : 'text-gray-500 group-hover:text-blue-600 group-hover:rotate-180'
+                  }`} />
                 </button>
               </div>
             </div>

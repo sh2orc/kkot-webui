@@ -26,30 +26,30 @@ export default function AuthPage() {
   const { data: session, status } = useSession();
   const { t, lang } = useTranslation('auth');
 
-  // 디버깅을 위한 로그 (간소화)
+  // Debug logging (simplified)
   useEffect(() => {
     console.log('Auth Page - Session Status:', status);
   }, [status]);
 
-  // 이미 로그인된 경우 채팅 페이지로 리다이렉트 (한 번만)
+  // Redirect to chat page if already logged in (once only)
   useEffect(() => {
     if (status === 'authenticated' && session) {
       console.log('Redirecting to /chat...');
       router.replace('/chat');
     }
-  }, [status, session]); // router를 의존성에서 제거
+  }, [status, session]); // router removed from dependencies
 
-  // 세션 로딩 중인 경우 로딩 표시
+  // Show loading while session is loading
   if (status === 'loading') {
     return <Loading />;
   }
 
-  // 이미 인증된 사용자는 리다이렉트 중 표시
+  // Show loading for authenticated users during redirect
   if (status === 'authenticated') {
-    return <Loading text="Redirecting..." />;
+    return <Loading text="Entering KKOT..." />;
   }
 
-  // 안전한 번역 함수 (기본값 제공)
+  // Safe translation function (with fallback)
   const safeTranslate = (key: string, fallback: string = key) => {
     const translated = lang(key);
     return translated === key ? fallback : translated;

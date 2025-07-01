@@ -9,6 +9,7 @@ import { useSession } from "next-auth/react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { AccountMenu } from "@/components/ui/account-menu"
 import { ChatGroupComponent } from "@/components/sidebar/chat-group"
+import { ChatHistorySkeleton } from "@/components/sidebar/chat-history-skeleton"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 import { useBranding } from "@/components/providers/branding-provider"
 import Image from "next/image"
@@ -45,10 +46,10 @@ export default function Sidebar({
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
-  const { data: session } = useSession()
+  const { data: session, status } = useSession()
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
   const [chatGroups, setChatGroups] = useState<ChatGroup[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+  const [isLoading, setIsLoading] = useState(true) // 초기값을 true로 변경
   const { lang, language } = useTranslation('common')
   const { branding } = useBranding()
 
@@ -192,15 +193,39 @@ export default function Sidebar({
     if (initialChatSessions.length > 0) {
       const groups = groupChatSessionsByDate(initialChatSessions)
       setChatGroups(groups)
+      setIsLoading(false) // 초기 데이터가 있으면 로딩 완료
     }
   }, [initialChatSessions, lang])
 
-  // Fetch chat sessions list when session is available (CSR 폴백)
+  // 세션 상태와 데이터 로딩 관리
   useEffect(() => {
-    // SSR 데이터가 없고 세션이 있을 때만 CSR로 데이터 가져오기
-    if (initialChatSessions.length === 0 && session?.user?.id) {
-      fetchChatSessions()
+    if (status === 'loading') {
+      // 세션 로딩 중
+      setIsLoading(true)
+      return
     }
+
+    if (status === 'unauthenticated') {
+      // 인증되지 않은 상태
+      setIsLoading(false)
+      setChatGroups([])
+      return
+    }
+
+    if (status === 'authenticated') {
+      // 인증된 상태
+      if (initialChatSessions.length === 0 && session?.user?.id) {
+        // SSR 데이터가 없고 세션이 있을 때만 CSR로 데이터 가져오기
+        fetchChatSessions()
+      } else if (initialChatSessions.length === 0) {
+        // 초기 데이터도 없고 세션도 없으면 로딩 완료
+        setIsLoading(false)
+      }
+    }
+  }, [status, session?.user?.id, initialChatSessions.length])
+
+  // 전역 함수 등록 및 이벤트 리스너 설정
+  useEffect(() => {
     
     // Expose function globally for sidebar refresh
     if (typeof window !== 'undefined') {
@@ -412,15 +437,7 @@ export default function Sidebar({
             <div className="flex-1 mt-3 overflow-y-auto">
               <div className="px-4">
                 {isLoading ? (
-                  <div className="space-y-2">
-                    <div className="animate-pulse">
-                      <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
-                      <div className="space-y-1">
-                        <div className="h-8 bg-gray-100 rounded"></div>
-                        <div className="h-8 bg-gray-100 rounded"></div>
-                      </div>
-                    </div>
-                  </div>
+                  <ChatHistorySkeleton />
                 ) : chatGroups.length > 0 ? (
                   chatGroups.map((group, groupIndex) => (
                     <ChatGroupComponent
@@ -518,15 +535,7 @@ export default function Sidebar({
             <div className="flex-1 mt-3 overflow-y-auto">
               <div className="px-4">
                 {isLoading ? (
-                  <div className="space-y-2">
-                    <div className="animate-pulse">
-                      <div className="h-4 bg-gray-200 rounded w-20 mb-2"></div>
-                      <div className="space-y-1">
-                        <div className="h-8 bg-gray-100 rounded"></div>
-                        <div className="h-8 bg-gray-100 rounded"></div>
-                      </div>
-                    </div>
-                  </div>
+                  <ChatHistorySkeleton />
                 ) : chatGroups.length > 0 ? (
                   chatGroups.map((group, groupIndex) => (
                     <ChatGroupComponent

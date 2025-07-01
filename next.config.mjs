@@ -1,7 +1,8 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
-  // 개발 환경에서 React Strict Mode 비활성화 (중복 렌더링 방지)
+  // Disable React Strict Mode in development (prevent duplicate rendering)
   reactStrictMode: false,
+  devIndicators: false,
   eslint: {
     ignoreDuringBuilds: true,
   },
