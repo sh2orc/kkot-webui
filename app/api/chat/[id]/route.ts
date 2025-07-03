@@ -304,7 +304,7 @@ Title:`
                         // Clean up title
                         generatedTitle = generatedTitle
                           .replace(/^["'`]|["'`]$/g, '') // Remove quotes
-                          .replace(/^제목:\s*/i, '') // Remove "제목:" prefix
+                          .replace(/^Title:\s*/i, '') // Remove "Title:" prefix
                           .replace(/^\s+|\s+$/g, '') // Remove whitespace
                           .replace(/[^\w\sㄱ-ㅎ가-힣]/g, '') // Remove special characters
                         
@@ -390,9 +390,9 @@ Title:`
           
           // Always force completion handling after streaming is done
           console.log('Forcing completion handling...')
-          console.log('completionHandled:', completionHandled)
-          console.log('fullResponse exists:', !!fullResponse)
-          console.log('fullResponse content preview:', fullResponse.substring(0, 100))
+          // console.log('completionHandled:', completionHandled)
+          // console.log('fullResponse exists:', !!fullResponse)
+          // console.log('fullResponse content preview:', fullResponse.substring(0, 100))
           
           if (fullResponse) {
             if (!completionHandled) {

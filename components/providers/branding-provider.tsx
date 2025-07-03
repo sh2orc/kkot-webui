@@ -17,7 +17,7 @@ interface BrandingContextType {
 
 const defaultBranding: BrandingSettings = {
   appName: 'kkot-webui',
-  faviconUrl: '/images/favicon.png',
+  faviconUrl: '/images/favicon.ico',
   logoUrl: ''
 }
 
@@ -97,7 +97,7 @@ export function BrandingProvider({ children }: BrandingProviderProps) {
         setIsInitialized(true)
       }
     }
-  }, [status, session?.user?.role]) // isInitialized를 의존성에서 제거
+  }, [status, session?.user?.role])
 
   // Update document title and favicon whenever branding settings change
   useEffect(() => {
@@ -119,7 +119,7 @@ export function BrandingProvider({ children }: BrandingProviderProps) {
         } else {
           const favicon = document.createElement('link')
           favicon.rel = 'icon'
-          favicon.type = 'image/png'
+          favicon.type = 'image/x-icon'
           favicon.href = branding.faviconUrl
           document.head.appendChild(favicon)
         }

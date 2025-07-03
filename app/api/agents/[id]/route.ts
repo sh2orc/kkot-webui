@@ -17,9 +17,9 @@ export async function GET(
       )
     }
     
-    // Uint8Array를 Base64 문자열로 변환
+    // Convert Uint8Array to Base64 string
     if (agent.imageData instanceof Uint8Array) {
-      agent.imageData = `data:image/png;base64,${Buffer.from(agent.imageData).toString()}`
+      agent.imageData = Buffer.from(agent.imageData).toString()
     }
     
     return NextResponse.json(agent)
@@ -61,7 +61,7 @@ export async function PUT(
     const agents = await agentManageRepository.findAllWithModelAndServer();
     const updatedAgent = agents.find((a: any) => a.id === params.id);
     
-    // Uint8Array를 Base64 문자열로 변환
+    // Convert Uint8Array to Base64 string
     if (updatedAgent && updatedAgent.imageData instanceof Uint8Array) {
       updatedAgent.imageData = Buffer.from(updatedAgent.imageData).toString('base64');
     }

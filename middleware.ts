@@ -21,11 +21,11 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
-  // 임시로 세션 쿠키 확인 방식으로 변경
+  // Temporarily changed to session cookie check method
   const sessionToken = request.cookies.get('next-auth.session-token')?.value ||
                       request.cookies.get('__Secure-next-auth.session-token')?.value;
 
-  // 디버깅 로그
+  // Debug logs
   console.log(`Middleware - Path: ${pathname}`);
   console.log(`Middleware - Session Cookie:`, !!sessionToken);
 

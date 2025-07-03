@@ -97,7 +97,7 @@ export function UserRequest({
               style={{ minHeight: "60px", maxHeight: "300px" }}
               placeholder={lang("mobilePlaceholder")}
             />
-            <div className="flex gap-1 mt-2">
+            <div className="flex mt-2 sm:gap-1">
               <button
                 onClick={() => onSave(id)}
                 className="p-1 rounded-full hover:bg-gray-200 transition-colors"
@@ -120,16 +120,16 @@ export function UserRequest({
         ) : (
           <div className="flex flex-col">
             <div className="bg-gray-100 rounded-lg p-3">
-              <div className="whitespace-pre-wrap">{content}</div>
+              <div className="whitespace-pre-wrap break-words" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>{content}</div>
             </div>
-            <div className="flex items-center justify-between mt-2">
+            <div className="flex items-center justify-between mt-2 sm:gap-2">
               <div className="text-xs text-gray-400">
                 {(timestamp instanceof Date ? timestamp : new Date(timestamp)).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
               </div>
-              <div className="flex gap-1">
+              <div className="flex sm:gap-1">
                 <button
                   onClick={() => onCopy(content, id)}
-                  className={`p-1 rounded-full transition-all duration-200 ${
+                  className={`sm:p-1 rounded-full transition-all duration-200 ${
                     copiedMessageId === id ? "bg-green-100 text-green-600 scale-110" : "hover:bg-gray-100 text-gray-500"
                   }`}
                   title={copiedMessageId === id ? lang("actions.copied") : lang("actions.copy")}
@@ -138,14 +138,14 @@ export function UserRequest({
                 </button>
                 <button
                   onClick={() => onEdit(id, content)}
-                  className="p-1 rounded-full hover:bg-gray-100 transition-colors"
+                  className="sm:p-1 rounded-full hover:bg-gray-100 transition-colors"
                   title={lang("actions.edit")}
                 >
                   <Edit className="h-4 w-4 text-gray-500" />
                 </button>
                 <button
                   onClick={() => onRegenerate(id)}
-                  className="p-1 rounded-full transition-all duration-600 group hover:bg-blue-50 hover:text-blue-600"
+                  className="rounded-full transition-all duration-600 group hover:bg-blue-50 hover:text-blue-600"
                   title={
                     regeneratingMessageId === id 
                       ? lang("actions.regenerating") 

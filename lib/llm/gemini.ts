@@ -40,7 +40,7 @@ export class GeminiLLM extends BaseLLM {
     
     const response = await dynamicClient.invoke(langChainMessages, functionCallOptions);
     
-    // 토큰 사용량 계산 (추정치)
+    // Calculate token usage (estimated)
     const promptTokens = this.estimateTokenCount(messages);
     const completionTokens = this.estimateTokenCount([{ role: "assistant", content: response.content.toString() }]);
     
@@ -95,7 +95,7 @@ export class GeminiLLM extends BaseLLM {
         }
       }
       
-      // 스트리밍 완료 후 토큰 사용량 계산 (추정치)
+      // Calculate token usage after streaming (estimated)
       const promptTokens = this.estimateTokenCount(messages);
       const completionTokens = this.estimateTokenCount([{ role: "assistant", content: fullContent }]);
       

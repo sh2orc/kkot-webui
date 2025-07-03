@@ -62,6 +62,7 @@
     "jose": "^6.0.11",
     "jsonwebtoken": "^9.0.2",
     "langchain": "^0.3.29",
+    "langsmith": "^0.3.37",
     "lucide-react": "^0.454.0",
     "marked": "^16.0.0",
     "next": "15.2.4",

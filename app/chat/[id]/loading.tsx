@@ -1,5 +1,4 @@
-import Loading from "@/components/ui/loading"
-
-export default function ChatIdLoading() {
-  return <Loading fullScreen={false} text="대화를 불러오는 중..." />
+// Return empty component to prevent loading screen between chat ID transitions
+export default function Loading() {
+  return null
 } 

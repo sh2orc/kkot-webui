@@ -49,7 +49,7 @@ export default function Sidebar({
   const { data: session, status } = useSession()
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
   const [chatGroups, setChatGroups] = useState<ChatGroup[]>([])
-  const [isLoading, setIsLoading] = useState(true) // 초기값을 true로 변경
+  const [isLoading, setIsLoading] = useState(true) // Set initial value to true
   const { lang, language } = useTranslation('common')
   const { branding } = useBranding()
 
@@ -74,10 +74,16 @@ export default function Sidebar({
   const groupChatSessionsByDate = (sessions: any[]): ChatGroup[] => {
     const now = new Date()
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    const sevenDaysAgo = new Date(today)
+    sevenDaysAgo.setDate(today.getDate() - 7)
     const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
     
     const groups: { [key: string]: ChatItem[] } = {
       today: [],
+      yesterday: [],
+      previous7Days: [],
       previous30Days: [],
     }
     const monthGroups: { [key: string]: ChatItem[] } = {}
@@ -110,6 +116,10 @@ export default function Sidebar({
       // Group classification
       if (sessionDateOnly.getTime() === today.getTime()) {
         groups.today.push(chatItem)
+      } else if (sessionDateOnly.getTime() === yesterday.getTime()) {
+        groups.yesterday.push(chatItem)
+      } else if (sessionDate.getTime() >= sevenDaysAgo.getTime()) {
+        groups.previous7Days.push(chatItem)
       } else if (sessionDate.getTime() >= thirtyDaysAgo.getTime()) {
         groups.previous30Days.push(chatItem)
       } else {
@@ -129,6 +139,22 @@ export default function Sidebar({
       result.push({
         label: lang('sidebar.chatGroups.today'),
         items: groups.today
+      })
+    }
+    
+    // Yesterday group
+    if (groups.yesterday.length > 0) {
+      result.push({
+        label: lang('sidebar.chatGroups.yesterday'),
+        items: groups.yesterday
+      })
+    }
+    
+    // Previous 7 days group
+    if (groups.previous7Days.length > 0) {
+      result.push({
+        label: lang('sidebar.chatGroups.previous7Days'),
+        items: groups.previous7Days
       })
     }
     
@@ -188,43 +214,43 @@ export default function Sidebar({
     }
   }
 
-  // 초기 데이터로 채팅 그룹 설정 (SSR 데이터 사용)
+  // Set initial chat groups with SSR data
   useEffect(() => {
     if (initialChatSessions.length > 0) {
       const groups = groupChatSessionsByDate(initialChatSessions)
       setChatGroups(groups)
-      setIsLoading(false) // 초기 데이터가 있으면 로딩 완료
+      setIsLoading(false) // Loading complete when initial data exists
     }
   }, [initialChatSessions, lang])
 
-  // 세션 상태와 데이터 로딩 관리
+  // Session state and data loading management
   useEffect(() => {
     if (status === 'loading') {
-      // 세션 로딩 중
+      // Session loading
       setIsLoading(true)
       return
     }
 
     if (status === 'unauthenticated') {
-      // 인증되지 않은 상태
+      // Unauthenticated state
       setIsLoading(false)
       setChatGroups([])
       return
     }
 
     if (status === 'authenticated') {
-      // 인증된 상태
+      // Authenticated state
       if (initialChatSessions.length === 0 && session?.user?.id) {
-        // SSR 데이터가 없고 세션이 있을 때만 CSR로 데이터 가져오기
+        // Only fetch data with CSR when there's no SSR data and session exists
         fetchChatSessions()
       } else if (initialChatSessions.length === 0) {
-        // 초기 데이터도 없고 세션도 없으면 로딩 완료
+        // Loading complete if there's no initial data and no session
         setIsLoading(false)
       }
     }
   }, [status, session?.user?.id, initialChatSessions.length])
 
-  // 전역 함수 등록 및 이벤트 리스너 설정
+  // Register global functions and set up event listeners
   useEffect(() => {
     
     // Expose function globally for sidebar refresh
@@ -245,8 +271,8 @@ export default function Sidebar({
           const newChatItem: ChatItem = {
             id: chat.id,
             title: chat.title,
-            time: new Date(chat.createdAt).toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' }),
-            timeAgo: '방금 전'
+            time: new Date(chat.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
+            timeAgo: 'Just now'
           }
           
           // Find or create today's group
@@ -326,7 +352,7 @@ export default function Sidebar({
       window.addEventListener('chatTitleUpdated', handleChatTitleUpdate as EventListener)
     }
 
-    // Cleanup on component unmount
+    // Cleanup function
     return () => {
       if (typeof window !== 'undefined') {
         console.log('Cleaning up sidebar event listeners')

@@ -12,6 +12,8 @@ import { toast } from 'sonner';
 import Image from 'next/image';
 import { useTranslation } from '@/lib/i18n';
 import Loading from '@/components/ui/loading';
+import { Alert, AlertDescription } from '@/components/ui/alert';
+import { AlertTriangle } from 'lucide-react';
 
 export default function AuthPage() {
   const [isLoading, setIsLoading] = useState(false);
@@ -22,6 +24,8 @@ export default function AuthPage() {
     password: '', 
     confirmPassword: '' 
   });
+  const [loginError, setLoginError] = useState('');
+  const [registerError, setRegisterError] = useState('');
   const router = useRouter();
   const { data: session, status } = useSession();
   const { t, lang } = useTranslation('auth');
@@ -58,6 +62,7 @@ export default function AuthPage() {
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
+    setLoginError(''); // Reset error message
 
     try {
       const result = await signIn('credentials', {
@@ -68,15 +73,22 @@ export default function AuthPage() {
       });
 
       if (result?.error) {
-        toast.error(await t('messages.loginFailed'));
+        // Use server error message if available, otherwise use default message
+        const errorMessage = result.error || await t('messages.loginFailed');
+        setLoginError(errorMessage);
+        toast.error(errorMessage);
       } else if (result?.ok) {
         toast.success(await t('messages.loginSuccess'));
-        // signIn이 성공하면 useSession이 자동으로 업데이트되고 useEffect에서 리다이렉트 처리
+        // signIn success will automatically update useSession and redirect in useEffect
       } else {
-        toast.error(await t('messages.loginGeneralError'));
+        const errorMessage = await t('messages.loginGeneralError');
+        setLoginError(errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
-      toast.error(await t('messages.loginError'));
+      const errorMessage = await t('messages.loginError');
+      setLoginError(errorMessage);
+      toast.error(errorMessage);
       console.error('Login error:', error);
     } finally {
       setIsLoading(false);
@@ -85,20 +97,27 @@ export default function AuthPage() {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    setRegisterError(''); // Reset error message
     
     if (registerForm.password !== registerForm.confirmPassword) {
-      toast.error(await t('messages.registerPasswordMismatch'));
+      const errorMessage = await t('messages.registerPasswordMismatch');
+      setRegisterError(errorMessage);
+      toast.error(errorMessage);
       return;
     }
 
     if (registerForm.password.length < 6) {
-      toast.error(await t('messages.registerPasswordTooShort'));
+      const errorMessage = await t('messages.registerPasswordTooShort');
+      setRegisterError(errorMessage);
+      toast.error(errorMessage);
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(registerForm.email)) {
-      toast.error(await t('messages.registerInvalidEmail'));
+      const errorMessage = await t('messages.registerInvalidEmail');
+      setRegisterError(errorMessage);
+      toast.error(errorMessage);
       return;
     }
 
@@ -114,15 +133,22 @@ export default function AuthPage() {
       });
 
       if (result?.error) {
-        toast.error(await t('messages.registerFailed') + result.error);
+        // Use server error message if available, otherwise append to default message
+        const errorMessage = result.error || await t('messages.registerFailed');
+        setRegisterError(errorMessage);
+        toast.error(errorMessage);
       } else if (result?.ok) {
         toast.success(await t('messages.registerSuccess'));
-        // signIn이 성공하면 useSession이 자동으로 업데이트되고 useEffect에서 리다이렉트 처리
+        // signIn success will automatically update useSession and redirect in useEffect
       } else {
-        toast.error(await t('messages.registerGeneralError'));
+        const errorMessage = await t('messages.registerGeneralError');
+        setRegisterError(errorMessage);
+        toast.error(errorMessage);
       }
     } catch (error) {
-      toast.error(await t('messages.registerError'));
+      const errorMessage = await t('messages.registerError');
+      setRegisterError(errorMessage);
+      toast.error(errorMessage);
       console.error('Register error:', error);
     } finally {
       setIsLoading(false);
@@ -160,6 +186,12 @@ export default function AuthPage() {
               </CardHeader>
               <form onSubmit={handleLogin}>
                 <CardContent className="space-y-4">
+                  {loginError && (
+                    <Alert variant="destructive" className="mb-4">
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      <AlertDescription>{loginError}</AlertDescription>
+                    </Alert>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="login-email">{safeTranslate('form.email', 'Email')}</Label>
                     <Input
@@ -201,6 +233,12 @@ export default function AuthPage() {
               </CardHeader>
               <form onSubmit={handleRegister}>
                 <CardContent className="space-y-4">
+                  {registerError && (
+                    <Alert variant="destructive" className="mb-4">
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      <AlertDescription>{registerError}</AlertDescription>
+                    </Alert>
+                  )}
                   <div className="space-y-2">
                     <Label htmlFor="register-email">{safeTranslate('form.email', 'Email')}</Label>
                     <Input

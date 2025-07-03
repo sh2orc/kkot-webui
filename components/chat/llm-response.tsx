@@ -6,6 +6,7 @@ import { useTranslation } from "@/lib/i18n"
 import { useState } from "react"
 import { marked } from 'marked'
 import { CodeBlock } from './code-block'
+import { useIsMobile } from '@/hooks/use-mobile'
 
 interface LlmResponseProps {
   id: string
@@ -38,76 +39,32 @@ export function LlmResponse({
   const [thumbsUpClick, setThumbsUpClick] = useState(false)
   const [thumbsDownHover, setThumbsDownHover] = useState(false)
   const { lang } = useTranslation('chat')
+  const isMobile = useIsMobile()
 
-  // 마크다운 전처리 함수
-  function preprocessMarkdown(text: string): string {
-    // 마크다운 구문 내부의 따옴표는 보호하고, 나머지만 변환
-    let processedText = text;
-    
-    // 볼드 마크다운 구문 내부의 한국어 따옴표는 그대로 유지
-    // **"텍스트"** 패턴을 찾아서 임시로 보호
-    const boldQuotePattern = /\*\*([^*]*[""'][^*]*)\*\*/g;
-    const protectedSegments: string[] = [];
-    let segmentIndex = 0;
-    
-    // 볼드 구문 내부의 따옴표를 임시로 보호
-    processedText = processedText.replace(boldQuotePattern, (match, content) => {
-      const placeholder = `__PROTECTED_SEGMENT_${segmentIndex}__`;
-      protectedSegments[segmentIndex] = match;
-      segmentIndex++;
-      return placeholder;
-    });
-    
-    // 이탤릭 마크다운 구문 내부의 한국어 따옴표도 보호
-    const italicQuotePattern = /\*([^*]*[""'][^*]*)\*/g;
-    processedText = processedText.replace(italicQuotePattern, (match, content) => {
-      const placeholder = `__PROTECTED_SEGMENT_${segmentIndex}__`;
-      protectedSegments[segmentIndex] = match;
-      segmentIndex++;
-      return placeholder;
-    });
-    
-    // 일반 텍스트의 한국어 따옴표를 영어 따옴표로 변환
-    processedText = processedText
-      .replace(/"/g, '"')
-      .replace(/"/g, '"')
-      .replace(/'/g, "'")
-      .replace(/'/g, "'")
-      .replace(/…/g, '...')
-      .replace(/—/g, '--')
-      .replace(/–/g, '-');
-    
-    // 보호된 세그먼트를 원래대로 복원
-    protectedSegments.forEach((segment, index) => {
-      processedText = processedText.replace(`__PROTECTED_SEGMENT_${index}__`, segment);
-    });
-    
-    return processedText;
-  }
-
-  // MarkedMarkdown 컴포넌트 정의
+  // MarkedMarkdown component definition
   function MarkedMarkdown({ children }: { children: string }) {
-    // 먼저 원본 텍스트에서 직접 인라인 코드 처리
+    // First handle inline code in original text
     let processedText = children;
     
-    // 백틱으로 둘러싸인 모든 텍스트를 <code> 태그로 변환
+    // Convert all text surrounded by backticks to <code> tags
     processedText = processedText.replace(/`([^`\n]+)`/g, '<span class="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono font-semibold">$1</span>');
     
-    // 이제 marked로 나머지 마크다운 처리
+    // Convert **text** pattern to <span class="font-semibold"> tag
+    processedText = processedText.replace(/\*\*(.*?)\*\*/g, '<span class="font-semibold">$1</span>');
+
+    // Convert unconverted *text* pattern to <em> tag (excluding those already converted with **)
+    processedText = processedText.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<span>$1</span>');
+   
+    // Now process remaining markdown with marked
     let htmlContent = marked(processedText, { 
       gfm: true, 
       breaks: true
     }) as string;
-    
-    // 변환되지 않은 **텍스트** 패턴을 <strong>태그로 변환
-    htmlContent = htmlContent.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
-    
-    // 변환되지 않은 *텍스트* 패턴을 <em>태그로 변환 (이미 **로 변환된 것은 제외)
-    htmlContent = htmlContent.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<em>$1</em>');
-    
+       
     return (
       <div
-        className="prose max-w-none dark:prose-invert prose-headings:font-semibold prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-strong:font-bold prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-code:text-sm dark:prose-code:bg-gray-800"
+        className="prose max-w-none dark:prose-invert prose-headings:font-semibold prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-strong:font-bold prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded dark:prose-code:bg-gray-800"
+        style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}
         dangerouslySetInnerHTML={{ __html: htmlContent }}
       />
     );
@@ -119,16 +76,61 @@ export function LlmResponse({
     setTimeout(() => setThumbsUpClick(false), 500)
   }
 
-  // 코드 블록을 분리해서 처리하는 함수
+  // Function to separate and process code blocks
   const parseContent = (text: string) => {
     const parts: Array<{ type: 'text' | 'code'; content: string; lang?: string }> = [];
-    // 코드 블록 정규식 - 언어 지정이 없는 경우도 처리
-    const codeBlockRegex = /```(\w+)?\n([\s\S]*?)```/g;
+    
+    // Process code blocks even during streaming
+    if (isStreaming) {
+      // Find all positions of triple backticks to check for last open block
+      const allCodeBlockMatches = [...text.matchAll(/```/g)];
+      
+      // If odd number of triple backticks, last one is an open block
+      if (allCodeBlockMatches.length % 2 === 1) {
+        const lastOpenIndex = allCodeBlockMatches[allCodeBlockMatches.length - 1].index!;
+        
+        // Add text before code block if exists
+        if (lastOpenIndex > 0) {
+          parts.push({
+            type: 'text',
+            content: text.slice(0, lastOpenIndex)
+          });
+        }
+        
+        // Process text after code block start
+        const codeBlockText = text.slice(lastOpenIndex + 3);
+        
+        // Extract language identifier (text before first newline)
+        const firstLineBreak = codeBlockText.indexOf('\n');
+        let lang = 'text';
+        let codeContent = codeBlockText;
+        
+        if (firstLineBreak !== -1) {
+          const potentialLang = codeBlockText.slice(0, firstLineBreak).trim();
+          if (potentialLang && !/\s/.test(potentialLang)) {
+            lang = potentialLang;
+            codeContent = codeBlockText.slice(firstLineBreak + 1);
+          }
+        }
+        
+        // Add code block
+        parts.push({
+          type: 'code',
+          content: codeContent,
+          lang
+        });
+        
+        return parts;
+      }
+    }
+    
+    // Process with existing method if not streaming or if complete code block exists
+    const codeBlockRegex = /```(\w+)?\n?([\s\S]*?)```/g;
     let lastIndex = 0;
     let match;
 
     while ((match = codeBlockRegex.exec(text)) !== null) {
-      // 코드 블록 이전의 텍스트 추가
+      // Add text before code block
       if (match.index > lastIndex) {
         parts.push({
           type: 'text',
@@ -136,7 +138,7 @@ export function LlmResponse({
         });
       }
       
-      // 코드 블록 추가 (언어가 없으면 'text'로 기본값 설정)
+      // Add code block
       parts.push({
         type: 'code',
         content: match[2].trim(),
@@ -146,7 +148,7 @@ export function LlmResponse({
       lastIndex = match.index + match[0].length;
     }
     
-    // 마지막 텍스트 부분 추가
+    // Add last text part
     if (lastIndex < text.length) {
       parts.push({
         type: 'text',
@@ -154,7 +156,7 @@ export function LlmResponse({
       });
     }
     
-    // 빈 배열이면 전체를 텍스트로 처리
+    // Process entire text if array is empty
     if (parts.length === 0) {
       parts.push({
         type: 'text',
@@ -169,7 +171,13 @@ export function LlmResponse({
 
   return (
     <div className="leading-[1.7]">
-      <div className={`prose max-w-none dark:prose-invert ${isStreaming ? 'streaming-content' : ''}`}>
+      <div 
+        className={`prose max-w-none text-sm dark:prose-invert ${isStreaming ? 'streaming-content' : ''}`} 
+        style={{ 
+          overflowWrap: 'break-word', 
+          wordBreak: 'break-word',          
+        }}
+      >
         <div className="markdown-content">
           {contentParts.map((part, index) => (
             <div key={index}>
@@ -191,7 +199,7 @@ export function LlmResponse({
         <div className="text-xs text-gray-400 mt-1">
           {(timestamp instanceof Date ? timestamp : new Date(timestamp)).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
         </div>
-        <div className="flex gap-1 mt-2">
+        <div className="flex mt-2">
           <button
             onClick={() => onCopy(content, id)}
             className={`p-1 rounded-full transition-all duration-200 ${

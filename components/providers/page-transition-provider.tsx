@@ -26,6 +26,13 @@ export function PageTransitionProvider({ children }: PageTransitionProviderProps
   const previousPathname = useRef(pathname)
   const scrollPositions = useRef<Map<string, number>>(new Map())
 
+  // 채팅 페이지 간 이동 감지
+  const isChatPageTransition = useCallback((currentPath: string, nextPath: string) => {
+    // 채팅 페이지 간 이동 여부 확인 (예: /chat/123 -> /chat/456)
+    const chatPathRegex = /^\/chat(\/.*)?$/
+    return chatPathRegex.test(currentPath) && chatPathRegex.test(nextPath)
+  }, [])
+
   const startTransition = useCallback((callback: () => void) => {
     // 현재 스크롤 위치 저장
     if (pathname) {
@@ -49,6 +56,10 @@ export function PageTransitionProvider({ children }: PageTransitionProviderProps
         if (savedPosition !== undefined) {
           window.scrollTo(0, savedPosition)
         }
+        // 로딩 상태 클래스 제거 (일정 시간 후)
+        setTimeout(() => {
+          document.body.classList.remove('no-loading')
+        }, 1000)
       })
     } else {
       // View Transitions API를 지원하지 않는 경우 fallback
@@ -63,6 +74,10 @@ export function PageTransitionProvider({ children }: PageTransitionProviderProps
         if (savedPosition !== undefined) {
           window.scrollTo(0, savedPosition)
         }
+        // 로딩 상태 클래스 제거
+        setTimeout(() => {
+          document.body.classList.remove('no-loading')
+        }, 1000)
       }, 300)
     }
   }, [pathname])
@@ -70,9 +85,17 @@ export function PageTransitionProvider({ children }: PageTransitionProviderProps
   // 경로 변경 감지
   useEffect(() => {
     if (pathname !== previousPathname.current) {
+      // 채팅 페이지 간 이동인 경우 로딩 화면 비활성화
+      if (isChatPageTransition(previousPathname.current, pathname)) {
+        document.body.classList.add('no-loading')
+        // 일정 시간 후 클래스 제거
+        setTimeout(() => {
+          document.body.classList.remove('no-loading')
+        }, 1000)
+      }
       previousPathname.current = pathname
     }
-  }, [pathname])
+  }, [pathname, isChatPageTransition])
 
   return (
     <PageTransitionContext.Provider value={{ isTransitioning, startTransition }}>
@@ -89,12 +112,28 @@ export function useTransitionRouter() {
   const { startTransition } = usePageTransition()
 
   const push = useCallback((href: string) => {
+    // 채팅 페이지 간 이동 여부 확인
+    const isChatNavigation = /^\/chat(\/.*)?$/.test(href)
+    
+    // 채팅 페이지 간 이동인 경우 로딩 화면 비활성화
+    if (isChatNavigation) {
+      document.body.classList.add('no-loading')
+    }
+    
     startTransition(() => {
       router.push(href)
     })
   }, [router, startTransition])
 
   const replace = useCallback((href: string) => {
+    // 채팅 페이지 간 이동 여부 확인
+    const isChatNavigation = /^\/chat(\/.*)?$/.test(href)
+    
+    // 채팅 페이지 간 이동인 경우 로딩 화면 비활성화
+    if (isChatNavigation) {
+      document.body.classList.add('no-loading')
+    }
+    
     startTransition(() => {
       router.replace(href)
     })

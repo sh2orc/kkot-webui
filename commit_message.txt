@@ -1,0 +1,9 @@
+refactor: improve code internationalization and standardization
+
+- Convert all code comments to English for better international collaboration
+- Standardize console log messages in English
+- Unify time format display to en-US locale
+- Improve code readability and maintainability
+- Enhance development environment for global collaboration
+
+This commit focuses on making the codebase more accessible to international developers while maintaining consistent documentation and logging standards. 

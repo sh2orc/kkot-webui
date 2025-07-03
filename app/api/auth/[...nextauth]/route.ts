@@ -19,7 +19,7 @@ export const authOptions = {
       async authorize(credentials) {
         try {
           if (!credentials?.email || !credentials?.password) {
-            return null;
+            throw new Error('이메일과 비밀번호를 모두 입력해주세요.');
           }
 
           const db = getDb();
@@ -67,13 +67,13 @@ export const authOptions = {
             const user = await db.select().from(users).where(eq(users.email, email)).limit(1);
             
             if (user.length === 0) {
-              return null;
+              throw new Error('존재하지 않는 이메일입니다.');
             }
 
             const isValidPassword = verifyPassword(password, user[0].password);
             
             if (!isValidPassword) {
-              return null;
+              throw new Error('비밀번호가 일치하지 않습니다.');
             }
 
             return {
@@ -85,7 +85,7 @@ export const authOptions = {
           }
         } catch (error) {
           console.error('Auth error:', error);
-          return null;
+          throw error; // 에러를 상위로 전달하여 클라이언트에서 처리할 수 있도록 함
         }
       }
     })

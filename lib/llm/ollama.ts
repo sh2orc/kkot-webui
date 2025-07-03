@@ -4,7 +4,7 @@ import { LLMFunctionCallOptions, LLMMessage, LLMModelConfig, LLMRequestOptions, 
 import { AIMessageChunk } from "@langchain/core/messages";
 
 /**
- * Ollama LLM 구현체
+ * Ollama LLM implementation
  */
 export class OllamaLLM extends BaseLLM {
   private client: ChatOllama;
@@ -19,7 +19,7 @@ export class OllamaLLM extends BaseLLM {
   }
 
   /**
-   * Ollama 모델에 메시지를 전송하고 응답을 받는 메서드
+   * Send message to Ollama model and receive response
    */
   async chat(messages: LLMMessage[], options?: LLMRequestOptions): Promise<LLMResponse> {
     const langChainMessages = this.convertToLangChainMessages(messages);
@@ -35,7 +35,7 @@ export class OllamaLLM extends BaseLLM {
     
     const response = await dynamicClient.invoke(langChainMessages);
     
-    // 토큰 사용량 계산 (추정치)
+    // Calculate token usage (estimated)
     const promptTokens = this.estimateTokenCount(messages);
     const completionTokens = this.estimateTokenCount([{ role: "assistant", content: response.content.toString() }]);
     
@@ -52,7 +52,7 @@ export class OllamaLLM extends BaseLLM {
   }
 
   /**
-   * Ollama 모델에 스트리밍 요청을 보내는 메서드
+   * Send streaming request to Ollama model
    */
   async streamChat(
     messages: LLMMessage[],
@@ -87,7 +87,7 @@ export class OllamaLLM extends BaseLLM {
         }
       }
       
-      // 스트리밍 완료 후 토큰 사용량 계산 (추정치)
+      // Calculate token usage after streaming (estimated)
       const promptTokens = this.estimateTokenCount(messages);
       const completionTokens = this.estimateTokenCount([{ role: "assistant", content: fullContent }]);
       
@@ -115,7 +115,7 @@ export class OllamaLLM extends BaseLLM {
   }
 
   /**
-   * 토큰 수 추정 (간단한 구현)
+   * Estimate token count (simple implementation)
    */
   private estimateTokenCount(messages: LLMMessage[]): number {
     // Simple estimation: approximately 3 tokens per 4 words in English

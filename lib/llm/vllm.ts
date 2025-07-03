@@ -4,14 +4,14 @@ import { LLMFunctionCallOptions, LLMMessage, LLMModelConfig, LLMRequestOptions, 
 import { AIMessageChunk } from "@langchain/core/messages";
 
 /**
- * vLLM LLM 구현체 (OpenAI 호환 API를 사용)
+ * vLLM LLM implementation (using OpenAI compatible API)
  */
 export class VLLMLLM extends BaseLLM {
   private client: ChatOpenAI;
 
   constructor(config: LLMModelConfig) {
     super(config);
-    // vLLM은 OpenAI 호환 API를 제공하므로 ChatOpenAI 클래스를 사용
+    // vLLM provides OpenAI-compatible API, so we use ChatOpenAI class
     this.client = new ChatOpenAI({
       modelName: config.modelName,
       temperature: config.temperature,
@@ -20,15 +20,15 @@ export class VLLMLLM extends BaseLLM {
       frequencyPenalty: config.frequencyPenalty,
       presencePenalty: config.presencePenalty,
       streaming: config.streaming,
-      openAIApiKey: config.apiKey || "dummy-api-key", // vLLM은 종종 API 키가 필요하지 않음
+      openAIApiKey: config.apiKey || "dummy-api-key", // vLLM often doesn't require API key
       configuration: {
-        baseURL: config.baseUrl || "http://localhost:8000/v1" // vLLM 기본 엔드포인트
+        baseURL: config.baseUrl || "http://localhost:8000/v1" // vLLM default endpoint
       }
     });
   }
 
   /**
-   * vLLM 모델에 메시지를 전송하고 응답을 받는 메서드
+   * Send message to vLLM model and receive response
    */
   async chat(messages: LLMMessage[], options?: LLMRequestOptions): Promise<LLMResponse> {
     const langChainMessages = this.convertToLangChainMessages(messages);
@@ -53,7 +53,7 @@ export class VLLMLLM extends BaseLLM {
       
       const response = await dynamicClient.invoke(langChainMessages, functionCallOptions);
       
-      // 토큰 사용량 계산 (추정치)
+      // Calculate token usage (estimated)
       const promptTokens = this.estimateTokenCount(messages);
       const completionTokens = this.estimateTokenCount([{ role: "assistant", content: response.content.toString() }]);
       
@@ -74,7 +74,7 @@ export class VLLMLLM extends BaseLLM {
   }
 
   /**
-   * vLLM 모델에 스트리밍 요청을 보내는 메서드
+   * Send streaming request to vLLM model
    */
   async streamChat(
     messages: LLMMessage[],
@@ -117,7 +117,7 @@ export class VLLMLLM extends BaseLLM {
         }
       }
       
-      // 스트리밍 완료 후 토큰 사용량 계산 (추정치)
+      // Calculate token usage after streaming (estimated)
       const promptTokens = this.estimateTokenCount(messages);
       const completionTokens = this.estimateTokenCount([{ role: "assistant", content: fullContent }]);
       
@@ -145,7 +145,7 @@ export class VLLMLLM extends BaseLLM {
   }
 
   /**
-   * 함수 호출 옵션 준비
+   * Prepare function call options
    */
   private prepareFunctionCallOptions(functionOptions?: LLMFunctionCallOptions): Record<string, any> {
     if (!functionOptions) return {};
@@ -166,7 +166,7 @@ export class VLLMLLM extends BaseLLM {
   }
 
   /**
-   * 토큰 수 추정 (간단한 구현)
+   * Estimate token count (simple implementation)
    */
   private estimateTokenCount(messages: LLMMessage[]): number {
     // Simple estimation: approximately 3 tokens per 4 words in English

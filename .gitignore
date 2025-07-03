@@ -33,3 +33,9 @@ next-env.d.ts
 #sqlite database 
 *.db
 *.db*
+
+package-lock.json
+
+.next
+node_modules
+

@@ -11,6 +11,7 @@ import { ChatInput } from "@/components/chat/chat-input"
 import { useTranslation } from "@/lib/i18n"
 import { useModel } from "@/components/providers/model-provider"
 import { Skeleton } from "@/components/ui/skeleton"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 interface Message {
   id: string
@@ -23,7 +24,7 @@ interface ChatPageProps {
   chatId?: string
 }
 
-// 메모이제이션된 메시지 래퍼 컴포넌트
+// Memoized message wrapper component
 const MessageWrapper = memo(({ 
   message, 
   isNewMessage, 
@@ -106,51 +107,51 @@ const MessageWrapper = memo(({
     </div>
   )
 }, (prevProps, nextProps) => {
-  // 메시지 내용이 변경되지 않았고, 해당 메시지와 관련된 상태만 변경되었을 때만 리렌더링
+  // Only rerender if message content hasn't changed and only state related to this message has changed
   const message = prevProps.message
   const nextMessage = nextProps.message
   
-  // 메시지 자체가 변경되었으면 리렌더링
+  // Message content has changed, rerender
   if (message.id !== nextMessage.id || message.content !== nextMessage.content) {
     return false
   }
   
-  // 현재 메시지가 스트리밍 중이면 리렌더링
+  // Current message is streaming, rerender
   if (nextProps.streamingMessageId === message.id) {
     return false
   }
   
-  // 현재 메시지가 편집 중이면 리렌더링
+  // Current message is being edited, rerender
   if (nextProps.editingMessageId === message.id) {
     return false
   }
   
-  // 현재 메시지가 재생성 중이면 리렌더링
+  // Current message is being regenerated, rerender
   if (nextProps.regeneratingMessageId === message.id) {
     return false
   }
   
-  // 현재 메시지가 복사되었으면 리렌더링
+  // Current message has been copied, rerender
   if (nextProps.copiedMessageId === message.id) {
     return false
   }
   
-  // 현재 메시지가 새 메시지이면 리렌더링
+  // Current message is new, rerender
   if (nextProps.isNewMessage !== prevProps.isNewMessage) {
     return false
   }
   
-  // 좋아요/싫어요 상태가 변경되었으면 리렌더링
+  // Like/dislike state has changed, rerender
   if (nextProps.likedMessages.has(message.id) !== prevProps.likedMessages.has(message.id) ||
       nextProps.dislikedMessages.has(message.id) !== prevProps.dislikedMessages.has(message.id)) {
     return false
   }
   
-  // 그 외의 경우는 리렌더링하지 않음
+  // Don't rerender in other cases
   return true
 })
 
-// 채팅 메시지 스켈레톤 컴포넌트
+// Chat message skeleton component
 const ChatMessageSkeleton = () => {
   return (
     <div className="space-y-6 animate-pulse">
@@ -215,6 +216,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   const { data: session } = useSession()
   const { lang } = useTranslation('chat')
   const { selectedModel } = useModel()
+  const isMobile = useIsMobile()
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const messagesContainerRef = useRef<HTMLDivElement>(null)
@@ -236,20 +238,28 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   const [regeneratingMessageId, setRegeneratingMessageId] = useState<string | null>(null)
   const [newMessageIds, setNewMessageIds] = useState<Set<string>>(new Set())
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
-  const [dynamicPadding, setDynamicPadding] = useState(160) // 기본 패딩 160px
+  // Set safer initial value
+  const [dynamicPadding, setDynamicPadding] = useState(() => {
+    // Use default value on server side, detect screen size on client
+    if (typeof window === 'undefined') return 240
+    return window.innerWidth < 768 ? 320 : 160
+  })
   
-  // React Strict Mode 중복 실행 방지를 위한 ref
+  // Ref to prevent React Strict Mode duplicate execution
   const streamingInProgress = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
   const isScrollingToBottom = useRef(false)
   const lastScrollHeight = useRef(0)
 
-  // Unique ID generation function
-  const generateUniqueId = (prefix: string) => {
-    return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
-  }
+  // Reset padding when isMobile changes
+  useEffect(() => {
+    if (isMobile !== undefined) {
+      const basePadding = isMobile ? 320 : 160
+      setDynamicPadding(basePadding)
+    }
+  }, [isMobile])
 
-  // 메시지 컨테이너의 높이를 감지하여 동적 패딩 조정
+  // Detect message container height and adjust dynamic padding
   const adjustDynamicPadding = useCallback(() => {
     if (messagesContainerRef.current) {
       const container = messagesContainerRef.current
@@ -257,47 +267,54 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       const scrollHeight = container.scrollHeight
       const scrollTop = container.scrollTop
       
-      // 스크롤이 거의 맨 아래에 있을 때만 패딩 조정
+      // Only adjust padding when scroll is near bottom
       const isNearBottom = scrollHeight - scrollTop - containerHeight < 80
       
       if (isNearBottom) {
-        // 마지막 메시지의 코드 블록만 확인 (과도한 패딩 방지)
+        // Check only code blocks in the last message (to prevent excessive padding)
         const lastMessage = container.querySelector('.max-w-3xl > div:last-child')
         let additionalPadding = 0
         
         if (lastMessage) {
           const codeBlocks = lastMessage.querySelectorAll('.code-block')
           if (codeBlocks.length > 0) {
-            // 마지막 메시지의 코드 블록 높이만 고려
+            // Consider only the height of code blocks in the last message
             const lastCodeBlock = codeBlocks[codeBlocks.length - 1]
             const rect = lastCodeBlock.getBoundingClientRect()
             
-            // 코드 블록 높이가 150px 이상일 때만 추가 패딩
+            // Add additional padding only when code block height is over 150px
             if (rect.height > 150) {
-              additionalPadding = Math.min(rect.height * 0.3, 100) // 최대 100px 추가
+              additionalPadding = Math.min(rect.height * 0.3, 100) // Max 100px additional padding
             }
           }
         }
         
-                 // 기본 패딩 + 제한된 추가 패딩
-         const newPadding = Math.max(160, 160 + additionalPadding)
+        // Base padding + limited additional padding
+        const basePadding = isMobile ? 320 : 160
+        const newPadding = Math.max(basePadding, basePadding + additionalPadding)
         
-        // 임계값을 높여서 불필요한 패딩 변경 방지
+        // Increase threshold to prevent unnecessary padding changes
         const threshold = 30
         
         if (Math.abs(newPadding - dynamicPadding) > threshold) {
           setDynamicPadding(newPadding)
         }
-             } else {
-         // 스크롤이 위에 있을 때는 기본 패딩으로 복원
-         if (dynamicPadding > 160) {
-           setDynamicPadding(160)
-         }
-       }
+      } else {
+        // Restore base padding when scroll is at top
+        const basePadding = isMobile ? 320 : 160
+        if (dynamicPadding > basePadding) {
+          setDynamicPadding(basePadding)
+        }
+      }
     }
-  }, [dynamicPadding])
+  }, [dynamicPadding, isMobile])
 
-  // Handle abort streaming
+  // Generate unique ID
+  const generateUniqueId = (prefix: string) => {
+    return `${prefix}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`
+  }
+
+  // Adjust padding and scroll when streaming stops
   const handleAbort = () => {
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
@@ -308,21 +325,23 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     setRegeneratingMessageId(null)
     setStreamingMessageId(null)
     
-    // 스트리밍 중단 시 패딩 조정 및 스크롤
+    // Adjust padding and scroll
     adjustDynamicPadding()
     scrollToBottomSmooth()
   }
 
-  // Send message to AI and receive streaming response
+  // Continue with new request after short delay
   const sendMessageToAI = async (message: string, agentInfo: {id: string, type: string}, isRegeneration: boolean = false) => {
     if (!session?.user?.id) {
       console.error('User authentication required')
       return
     }
 
-    // Abort if already streaming
+    // Abort if already streaming and start new request
     if (streamingInProgress.current) {
-      return
+      handleAbort()
+      // Wait briefly after message update
+      await new Promise(resolve => setTimeout(resolve, 100))
     }
 
     // Simple duplicate prevention using message content
@@ -343,7 +362,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     streamingInProgress.current = true
     setIsStreaming(true)
     
-    // 스트리밍 시작 시 패딩 조정 및 스크롤
+    // Adjust padding and scroll
     adjustDynamicPadding()
     scrollToBottomSmooth()
 
@@ -407,7 +426,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                     if (data.messageId && !assistantMessageId) {
                       assistantMessageId = data.messageId
                       setStreamingMessageId(assistantMessageId)
-                      // 새 메시지 ID 추가
+                      // Add new message ID
                       setNewMessageIds(prev => new Set([...prev, assistantMessageId]))
                       // Initialize AI response message
                       setMessages(prev => [...prev, {
@@ -416,7 +435,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                         content: '',
                         timestamp: new Date(),
                       }])
-                      // 새 AI 응답 메시지 생성 시 즉시 스크롤
+                      // Scroll immediately when new AI response message is generated
                       adjustDynamicPadding()
                       scrollToBottomSmooth()
                     }
@@ -431,7 +450,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                             : m
                         )
                       )
-                      // 스트리밍 중 스크롤 유지 및 패딩 조정 (빈도 조정)
+                      // Maintain scroll position and adjust padding during streaming (frequency adjusted)
                       if (assistantContent.length % 100 === 0) {
                         adjustDynamicPadding()
                         scrollToBottomSmooth()
@@ -479,13 +498,18 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       setStreamingMessageId(null)
       abortControllerRef.current = null
       
-      // 스트리밍 완료 시 최종 패딩 조정 및 스크롤
+      // Final padding adjustment and forced scroll when streaming completes
       adjustDynamicPadding()
-      scrollToBottomSmooth()
+      scrollToBottomSmooth(true) // Force scroll
       
-      // 스트리밍 완료 후 잠시 후 기본 패딩으로 복원
+      // Scroll one more time after streaming completes (after DOM updates)
       setTimeout(() => {
-        setDynamicPadding(160)
+        scrollToBottomSmooth(true)
+      }, 100)
+      
+      // Restore base padding after streaming completes
+      setTimeout(() => {
+        setDynamicPadding(isMobile ? 320 : 160)
       }, 2000)
       
       // Clear duplicate prevention after request completes
@@ -497,17 +521,17 @@ export default function ChatPage({ chatId }: ChatPageProps) {
 
   // Load messages based on chat ID
   useEffect(() => {
-    // 새로운 채팅 로드 시 상태 초기화
+    // Reset history load state when loading new chat
     setHistoryLoaded(false)
     setShowSkeleton(false)
     
     let isCancelled = false
     let skeletonTimer: NodeJS.Timeout | null = null
     
-    // 스켈레톤 UI 지연 표시 (200ms 후에 표시)
+    // Show skeleton UI with delay (after 200ms)
     skeletonTimer = setTimeout(() => {
       if (!isCancelled) {
-        // requestAnimationFrame을 사용해 렌더링 블로킹 방지
+        // Use requestAnimationFrame to prevent render blocking
         requestAnimationFrame(() => {
           setShowSkeleton(true)
         })
@@ -532,9 +556,9 @@ export default function ChatPage({ chatId }: ChatPageProps) {
               ...msg,
               timestamp: new Date(msg.timestamp)
             }))
-            // 메시지가 많을 때 배치 처리로 렌더링 성능 개선
+            // Improve rendering performance with batch processing for many messages
             if (messagesWithDateTimestamp.length > 50) {
-              // 많은 메시지가 있을 때는 배치로 처리
+              // Process in batches when there are many messages
               setMessages([])
               requestAnimationFrame(() => {
                 setMessages(messagesWithDateTimestamp)
@@ -579,10 +603,10 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           }
         } finally {
           if (!isCancelled) {
-            // 메시지가 많을 때 렌더링 블로킹 방지
+            // Prevent render blocking when there are many messages
             requestAnimationFrame(() => {
               setHistoryLoaded(true) // Mark history load as completed
-              setShowSkeleton(false) // 스켈레톤 UI 숨김
+              setShowSkeleton(false) // Hide skeleton UI
             })
           }
         }
@@ -605,7 +629,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             setShowSkeleton(false)
           })
         }
-      }, 100) // 스켈레톤이 잠깐 보이도록 100ms 지연
+      }, 100) // Show skeleton briefly for 100ms
     }
 
     // Cleanup function
@@ -615,7 +639,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         clearTimeout(skeletonTimer)
       }
     }
-  }, [chatId, session?.user?.id])
+  }, [chatId, session?.user?.id, isMobile])
 
   // Handle session status changes
   useEffect(() => {
@@ -626,12 +650,6 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       setMessages([])
     }
   }, [session?.user?.id])
-
-    // Reset history load state when chat ID changes - 이제 메인 useEffect에서 처리됨
-  // useEffect(() => {
-  //   setHistoryLoaded(false)
-  //   setShowSkeleton(false)
-  // }, [chatId])
 
   // Handle scroll on message change (also works when chat ID changes)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
@@ -647,10 +665,10 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         setTimeout(() => scrollToBottomSmooth(), 50)
       }
       
-      // 메시지 변경 시 패딩 조정
+      // Adjust padding when messages change
       setTimeout(() => adjustDynamicPadding(), 100)
       
-      // 애니메이션 완료 후 새 메시지 ID 정리
+      // Clean up new message IDs after animation completes
       setTimeout(() => {
         setNewMessageIds(new Set())
       }, 500)
@@ -660,28 +678,29 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   // Reset to initial load state when chatId changes
   useEffect(() => {
     setIsInitialLoad(true)
-    setDynamicPadding(160) // 패딩도 초기화
-  }, [chatId])
+    const basePadding = isMobile !== undefined ? (isMobile ? 320 : 160) : 240
+    setDynamicPadding(basePadding) // Reset padding too
+  }, [chatId, isMobile])
 
-  // 컴포넌트 마운트시에도 즉시 맨 아래로 이동
+  // Also scroll to bottom immediately on component mount
   useEffect(() => {
     setTimeout(() => scrollToBottomInstant(), 0)
   }, [])
 
-  // 스크롤 이벤트 리스너 추가 - 사용자가 스크롤하면 자동 스크롤 방지
+  // Add scroll event listener - prevent auto scroll when user scrolls
   useEffect(() => {
     const container = messagesContainerRef.current
     if (!container) return
 
     const handleScroll = () => {
-      // 사용자가 직접 스크롤하는 경우 자동 스크롤 플래그 해제
+      // Disable auto scroll flag when user scrolls manually
       if (!isScrollingToBottom.current) {
         const { scrollTop, scrollHeight, clientHeight } = container
         const isAtBottom = scrollHeight - scrollTop - clientHeight < 80
         
-        // 맨 아래가 아닌 곳으로 스크롤했다면 자동 스크롤 비활성화
+        // Disable auto scroll if not at bottom
         if (!isAtBottom) {
-          // 사용자가 위로 스크롤했으므로 자동 스크롤 일시 중단
+          // User scrolled up, temporarily disable auto scroll
         }
       }
     }
@@ -693,7 +712,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     }
   }, [])
 
-  // 컴포넌트 언마운트 시 스트리밍 정리
+  // Clean up streaming on component unmount
   useEffect(() => {
     return () => {
       if (abortControllerRef.current) {
@@ -704,7 +723,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     }
   }, [])
 
-  // 애니메이션 없이 즉시 맨 아래로 이동
+  // Move to bottom immediately without animation
   const scrollToBottomInstant = () => {
     if (messagesContainerRef.current && !isScrollingToBottom.current) {
       const container = messagesContainerRef.current
@@ -718,21 +737,21 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     }
   }
 
-  // 부드러운 스크롤로 맨 아래로 이동
-  const scrollToBottomSmooth = () => {
+  // Move to bottom smoothly with animation
+  const scrollToBottomSmooth = (force: boolean = false) => {
     if (messagesContainerRef.current && !isScrollingToBottom.current) {
       const container = messagesContainerRef.current
       const newScrollHeight = container.scrollHeight
       
-      // 스크롤 높이가 변하지 않았다면 스크롤하지 않음
-      if (newScrollHeight <= lastScrollHeight.current + 10) {
+      // Don't scroll if scroll height hasn't changed (ignore if force is true)
+      if (!force && newScrollHeight <= lastScrollHeight.current + 10) {
         return
       }
       
       isScrollingToBottom.current = true
       lastScrollHeight.current = newScrollHeight
       
-      // 스크롤 높이에 동적 패딩을 고려하여 확실히 맨 아래로 이동
+      // Consider dynamic padding to ensure scroll to bottom
       container.scrollTo({
         top: newScrollHeight + dynamicPadding + 100,
         behavior: 'smooth'
@@ -745,12 +764,16 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }
 
   const adjustHeight = () => {
-    // 높이는 고정으로 사용
+    // Use fixed height
   }
 
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputValue(e.target.value)
-    // 높이 조정 제거
+    
+    // Automatically adjust textarea height
+    const target = e.target as HTMLTextAreaElement
+    target.style.height = 'auto'
+    target.style.height = Math.min(target.scrollHeight, window.innerHeight * 0.3) + 'px'
   }, [])
 
   const handleKeyUp = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
@@ -953,9 +976,9 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }
 
   const handleSubmit = useCallback(() => {
-    // 스트리밍 중이면 제출 금지
+    // 스트리밍 중이면 먼저 중단
     if (isStreaming) {
-      return
+      handleAbort()
     }
     
     if (inputValue.trim() && selectedModel && chatId && session?.user?.id) {
@@ -976,18 +999,29 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       // 메시지 추가 후 즉시 스크롤
       scrollToBottomSmooth()
 
-      // 스크롤 초기화
+      // 입력창 높이 초기화
       if (textareaRef.current) {
-        textareaRef.current.style.height = "48px"
+        textareaRef.current.style.height = "auto"
+        textareaRef.current.style.height = "52px"
       }
 
-      // AI에게 메시지 전송
-      sendMessageToAI(messageContent, {
-        id: selectedModel.id,
-        type: selectedModel.type
-      })
+      // 스트리밍이 중단되었다면 잠시 대기 후 새 메시지 전송
+      const sendMessage = () => {
+        sendMessageToAI(messageContent, {
+          id: selectedModel.id,
+          type: selectedModel.type
+        })
+      }
+      
+      if (isStreaming) {
+        // 스트리밍 중단 처리 완료를 위해 짧은 지연 후 전송
+        setTimeout(sendMessage, 100)
+      } else {
+        // 즉시 전송
+        sendMessage()
+      }
     }
-  }, [inputValue, messages, selectedModel, chatId, session?.user?.id, isStreaming, generateUniqueId, scrollToBottomSmooth, sendMessageToAI])
+  }, [inputValue, messages, selectedModel, chatId, session?.user?.id, isStreaming, generateUniqueId, scrollToBottomSmooth, sendMessageToAI, handleAbort])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Shift") {
@@ -1038,7 +1072,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   return (
     <>
       {/* 메시지 컨테이너 */}
-      <div className="flex-1 flex flex-col relative overflow-hidden">
+      <div className="flex-1 flex flex-col px-3 sm:px-0 relative overflow-hidden">
         <div 
           ref={messagesContainerRef}
           className="messages-container flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 transition-all duration-200 ease-out mobile-scroll touch-scroll"
@@ -1048,7 +1082,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             overflowAnchor: 'none'
           }}
         >
-          <div className="max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto">
+          <div className="sm:px-3 max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto">
             {!historyLoaded && showSkeleton ? (
               <ChatMessageSkeleton />
             ) : !historyLoaded && !showSkeleton ? (

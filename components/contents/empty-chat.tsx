@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import type React from "react"
 
 import { Button } from "@/components/ui/button"
-import { Mic, Globe, Plus, FlaskRoundIcon as Flask, Zap, Send } from "lucide-react"
+import { Mic, Globe, Plus, FlaskRoundIcon as Flask, Zap, Send, Play } from "lucide-react"
 import { useRef, useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
@@ -37,7 +37,7 @@ export default function Component({
   const [isFlaskActive, setIsFlaskActive] = useState(false)
   const [isShiftPressed, setIsShiftPressed] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
-  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [isInitialLoading, setIsInitialLoading] = useState(false)
   const [showSkeleton, setShowSkeleton] = useState(false)
   
   // Ref to prevent duplicate submissions
@@ -55,9 +55,6 @@ export default function Component({
   
   // Set initial data if available
   useEffect(() => {
-    let skeletonTimer: NodeJS.Timeout | null = null
-    let loadingTimer: NodeJS.Timeout | null = null
-    
     if (initialAgents || initialPublicModels) {
       setInitialData(
         initialAgents || [], 
@@ -66,24 +63,14 @@ export default function Component({
       )
     }
     
-    // 스켈레톤 UI 지연 표시 (300ms 후에 표시)
-    skeletonTimer = setTimeout(() => {
-      if (isInitialLoading) {
-        setShowSkeleton(true)
-      }
-    }, 300)
-    
-    // 초기 로딩 완료 처리
-    loadingTimer = setTimeout(() => {
-      setIsInitialLoading(false)
-      setShowSkeleton(false)
-    }, 1000) // 1초 후 로딩 완료
+    // Set loading state to false to prevent skeleton UI from showing
+    setIsInitialLoading(false)
+    setShowSkeleton(false)
     
     return () => {
-      if (skeletonTimer) clearTimeout(skeletonTimer)
-      if (loadingTimer) clearTimeout(loadingTimer)
+      // Cleanup function
     }
-  }, [initialAgents, initialPublicModels, defaultModel, setInitialData, isInitialLoading])
+  }, [initialAgents, initialPublicModels, defaultModel, setInitialData])
 
 
 
@@ -107,8 +94,9 @@ export default function Component({
   ]
 
   const adjustTextareaHeight = useCallback((textarea: HTMLTextAreaElement) => {
-    textarea.style.height = "48px"
-    const newHeight = Math.min(textarea.scrollHeight, 400)
+    textarea.style.height = "auto"
+    const maxHeight = window.innerHeight * 0.3
+    const newHeight = Math.min(textarea.scrollHeight, maxHeight)
     textarea.style.height = `${newHeight}px`
     
     // Hide scrollbar for single line, show scrollbar only for multiple lines
@@ -125,6 +113,11 @@ export default function Component({
   const handleInputChange = useCallback((e: React.ChangeEvent<HTMLTextAreaElement>) => {
     const value = e.target.value
     setInputValue(value)
+    
+    // Automatically adjust textarea height
+    const target = e.target as HTMLTextAreaElement
+    target.style.height = 'auto'
+    target.style.height = Math.min(target.scrollHeight, window.innerHeight * 0.3) + 'px'
     
     // Check state show/hide only when empty (minimize state changes)
     const isEmpty = value.trim().length === 0
@@ -228,7 +221,8 @@ export default function Component({
         
         // Reset height
         if (textareaRef.current) {
-          textareaRef.current.style.height = "48px"
+          textareaRef.current.style.height = "auto"
+          textareaRef.current.style.height = "52px"
         }
         
       } catch (error) {
@@ -304,7 +298,7 @@ export default function Component({
       return <img src={imageSrc} alt={(model as Agent).name || ''} />
     }
     
-    // 첫 글자 가져오기
+    // Get first character
     const letter = model.type === 'agent' 
       ? ((model as Agent).name || '').charAt(0).toUpperCase()
       : ((model as PublicModel).provider || '').charAt(0).toUpperCase()
@@ -312,7 +306,7 @@ export default function Component({
     return letter || 'AI'
   }
   
-  // 배경색 결정 함수
+  // Background color determination function
   const getAvatarBackground = (model: Agent | PublicModel | null) => {
     if (!model) return 'bg-red-500'
     
@@ -330,7 +324,7 @@ export default function Component({
     }
   }
 
-  // 스켈레톤 UI 컴포넌트
+  // Skeleton UI component
   const EmptyChatSkeleton = () => (
     <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-4xl mx-auto w-full pb-32 md:pb-6 animate-pulse">
       {/* 환영 메시지 스켈레톤 */}
@@ -409,7 +403,12 @@ export default function Component({
                     <textarea
                       ref={textareaRef}
                       placeholder={lang("placeholder")}
-                      className="w-full rounded-lg border border-gray-200 p-3 resize-none focus:outline-none focus:ring-1 focus:ring-gray-200 focus:border-gray-400 text-sm leading-6 min-h-[48px] max-h-[300px]"
+                      className="w-full rounded-lg border border-gray-200 p-3 resize-none focus:outline-none focus:ring-1 focus:ring-gray-200 focus:border-gray-400 text-sm leading-6 min-h-[48px]"
+                      style={{
+                        height: 'auto',
+                        minHeight: '48px',
+                        maxHeight: window.innerHeight * 0.3 + 'px'
+                      }}
                       value={inputValue}
                       onChange={handleInputChange}
                       onInput={handleInput}
@@ -450,9 +449,11 @@ export default function Component({
                       <Button
                         onClick={handleSubmit}
                         disabled={!inputValue.trim() || isSubmitting || !selectedModel}
-                        className="h-10 w-10 p-0 rounded-full bg-blue-600 hover:bg-blue-700 hover:text-white text-white disabled:bg-gray-300 disabled:text-gray-500"
+                        className="absolute right-2 bottom-2 rounded-full"
+                        style={{ height: '20px', width: '20px', padding: '0', minHeight: '20px', minWidth: '20px' }}
+                        variant="default"
                       >
-                        <Send className="h-5 w-5" />
+                        <Play className="h-4 w-4" style={{ height: '12px', width: '12px' }} />
                       </Button>
                     </div>
                   </div>
@@ -467,7 +468,12 @@ export default function Component({
                   <textarea
                     ref={textareaRef}
                     placeholder={lang("mobilePlaceholder")}
-                    className="w-full rounded-2xl border border-gray-200 p-3 pr-12 resize-none focus:outline-none focus:ring-1 focus:ring-gray-200 focus:border-gray-400 text-sm leading-6 min-h-[48px] max-h-[120px]"
+                    className="w-full rounded-2xl border border-gray-200 p-3 pr-12 resize-none focus:outline-none focus:ring-1 focus:ring-gray-200 focus:border-gray-400 text-sm leading-6 min-h-[48px] bg"
+                    style={{
+                      height: 'auto',
+                      minHeight: '48px',
+                      maxHeight: window.innerHeight * 0.3 + 'px'
+                    }}
                     value={inputValue}
                     onChange={handleInputChange}
                     onInput={handleInput}
@@ -478,9 +484,11 @@ export default function Component({
                   <Button
                     onClick={handleSubmit}
                     disabled={!inputValue.trim() || isSubmitting || !selectedModel}
-                    className="absolute right-2 bottom-2 h-8 w-8 p-0 rounded-full bg-blue-600 hover:bg-blue-700 text-white disabled:bg-gray-300 disabled:text-gray-500"
+                    className="absolute right-3 bottom-3.5 rounded-full"
+                    style={{ height: '32px', width: '32px', padding: '0', minHeight: '32px', minWidth: '32px' }}
+                    variant="default"
                   >
-                    <Send className="h-4 w-4" />
+                    <Play className="h-4 w-4"/>
                   </Button>
                 </div>
               </div>

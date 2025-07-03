@@ -8,6 +8,11 @@ html, body {
   height: 100%;
 }
 
+/* 로딩 화면 제어를 위한 클래스 */
+body.no-loading [data-nextjs-loading-state] {
+  display: none !important;
+}
+
 @layer utilities {
   .text-balance {
     text-wrap: balance;
@@ -745,7 +750,7 @@ div.prose strong,
 .code-block .react-syntax-highlighter td:first-child span {
   font-style: normal !important;
   font-weight: normal !important;
-  font-size: 0.75rem !important;
+  font-size: 0.9rem !important;
   text-align: right !important;
   padding-right: 0.75rem !important;
   min-width: 2rem !important;
@@ -822,17 +827,14 @@ div.prose strong,
   /* 모바일에서 코드 블록 개선 */
   @media (max-width: 640px) {
     .code-block {
-      font-size: 0.7rem !important;
-      margin: 1rem -0.75rem !important; /* 좌우 여백 제거, 위아래 여백 증가 */
+      font-size: 0.7rem !important;      
       border-radius: 8px !important;
-      overflow: hidden !important;
-      max-width: calc(100% + 1.5rem) !important; /* 패딩 영역까지 확장 */
-      width: calc(100% + 1.5rem) !important;
+      overflow-x: auto !important;      
     }
     
     .code-block-header {
-      padding: 8px 12px !important;
-      min-height: 40px !important;
+      padding: 4px 12px !important;
+      min-height: 30px !important;
       font-size: 0.75rem !important;
     }
     
@@ -895,6 +897,7 @@ div.prose strong,
     /* 모바일에서 메시지 컨테이너 패딩 조정 */
     .messages-container {
       padding: 0.75rem !important;
+      padding-bottom: 8rem !important; /* 모바일에서 하단 패딩 강제 증가 */
     }
     
     /* 코드 블록이 포함된 메시지의 패딩 조정 */
@@ -1044,4 +1047,12 @@ div.prose strong,
     font-size: 0.7rem !important;
     overflow-x: auto !important;
   }
+}
+
+/* 코드 블럭 주석 스타일 오버라이드 - 이탤릭 제거 */
+.code-block-syntax .token.comment,
+.code-block-syntax .token.prolog,
+.code-block-syntax .token.doctype,
+.code-block-syntax .token.cdata {
+  font-style: normal !important;
 }
