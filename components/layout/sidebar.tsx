@@ -484,10 +484,13 @@ export default function Sidebar({
       {/* Mobile Sidebar Overlay */}
       {mobileSidebarOpen && (
         <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-gray-600 bg-opacity-75" onClick={() => setMobileSidebarOpen(false)}></div>
-          <div className="relative flex flex-col w-60 h-full bg-[#f5f5f5] border-r border-gray-200">
+          <div 
+            className="absolute inset-0 bg-gray-600 bg-opacity-75 mobile-overlay" 
+            onClick={() => setMobileSidebarOpen(false)}
+          ></div>
+          <div className="relative flex flex-col w-64 sm:w-72 h-full bg-[#f5f5f5] border-r border-gray-200 touch-scroll">
             {/* Header */}
-            <div className="p-0 h-[3rem] flex items-center px-4">
+            <div className="p-0 h-[3rem] flex items-center px-4 touch-target">
               <div className="flex items-center justify-between w-full">
                 <TransitionLink 
                   href="/"
@@ -504,7 +507,12 @@ export default function Sidebar({
                   />
                   <span className="whitespace-nowrap font-semibold text-gray-500">꽃 kkot</span>
                 </TransitionLink>
-                <Button variant="ghost" size="icon" className="h-6 w-6 focus:outline-none focus:ring-0" onClick={() => setMobileSidebarOpen(false)}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="h-8 w-8 touch-target focus:outline-none focus:ring-0" 
+                  onClick={() => setMobileSidebarOpen(false)}
+                >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
               </div>
@@ -514,7 +522,10 @@ export default function Sidebar({
             <div className="p-1 px-2 my-2">
               <div className="relative">
                 <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input placeholder={lang('sidebar.searchPlaceholder')} className="pl-10 bg-white border-gray-200 focus:outline-none focus:ring-0 focus:border-gray-300" />
+                <Input 
+                  placeholder={lang('sidebar.searchPlaceholder')} 
+                  className="pl-10 bg-white border-gray-200 focus:outline-none focus:ring-0 focus:border-gray-300 mobile-input h-10" 
+                />
               </div>
             </div>
 
@@ -524,7 +535,7 @@ export default function Sidebar({
                 setSelectedChatId(null)
                 setMobileSidebarOpen(false)
               }}>
-                <div className="w-full flex px-2 py-2 justify-start items-center text-sm leading-relaxed rounded-lg hover:bg-gray-200">
+                <div className="w-full flex px-3 py-3 justify-start items-center text-sm leading-relaxed rounded-lg hover:bg-gray-200 touch-target">
                   <Plus className="h-4 w-4 mr-2" />
                   {lang('sidebar.newChat')}
                 </div>
@@ -532,7 +543,7 @@ export default function Sidebar({
             </div>
 
             {/* Chat History - Grouped by Date */}
-            <div className="flex-1 mt-3 overflow-y-auto">
+            <div className="flex-1 mt-3 overflow-y-auto touch-scroll">
               <div className="px-4">
                 {isLoading ? (
                   <ChatHistorySkeleton />
@@ -560,14 +571,14 @@ export default function Sidebar({
             {/* Bottom Settings */}
             <div className="p-4">
               <AccountMenu align="start" side="top">
-                <Button variant="ghost" className="w-full justify-start h-10 px-2 transition-all duration-300 focus:outline-none focus:ring-0">
+                <Button variant="ghost" className="w-full justify-start h-12 px-3 transition-all duration-300 focus:outline-none focus:ring-0 touch-target">
                   <Avatar className="h-8 w-8">
                     <AvatarFallback className="bg-orange-500 text-white text-xs">
                       {session?.user?.name ? session.user.name.charAt(0).toUpperCase() : 
                        session?.user?.email ? session.user.email.charAt(0).toUpperCase() : 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-sm font-medium">
+                  <span className="text-sm font-medium ml-3">
                     {session?.user?.name || session?.user?.email?.split('@')[0] || '사용자'}
                   </span>
                 </Button>
@@ -576,6 +587,20 @@ export default function Sidebar({
           </div>
         </div>
       )}
+      
+      {/* Mobile Swipe Indicator */}
+      <div className="md:hidden">
+        <div className="swipe-indicator" />
+        <div 
+          className="swipe-area" 
+          onTouchStart={(e) => {
+            const touch = e.touches[0];
+            if (touch.clientX < 20) {
+              setMobileSidebarOpen(true);
+            }
+          }}
+        />
+      </div>
     </>
   )
 }

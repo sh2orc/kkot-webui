@@ -14,7 +14,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     console.log('Chat ID:', chatId)
     const body = await request.json()
     console.log('Request body:', body)
-    const { message, agentId, modelId, modelType, userId } = body
+    const { message, agentId, modelId, modelType, userId, isRegeneration } = body
 
     if (!message?.trim()) {
       return NextResponse.json({ error: 'Message is required' }, { status: 400 })
@@ -36,26 +36,31 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Access denied to this chat' }, { status: 403 })
     }
 
-    // Check if this exact message already exists to prevent duplicates
-    const existingMessages = await chatMessageRepository.findBySessionId(chatId)
-    const duplicateMessage = existingMessages.find((msg: any) => 
-      msg.role === 'user' && 
-      msg.content === message &&
-      // Check if message was created within last 10 seconds (to handle rapid duplicates)
-      new Date().getTime() - new Date(msg.createdAt).getTime() < 10000
-    )
-    
-    if (duplicateMessage) {
-      console.log('Duplicate message detected, skipping save:', message.substring(0, 50))
-    } else {
-      // Save user message
-      const userMessage = {
-        sessionId: chatId,
-        role: 'user' as const,
-        content: message
+    // Save user message only if it's not a regeneration
+    if (!isRegeneration) {
+      // Check if this exact message already exists to prevent duplicates
+      const existingMessages = await chatMessageRepository.findBySessionId(chatId)
+      const duplicateMessage = existingMessages.find((msg: any) => 
+        msg.role === 'user' && 
+        msg.content === message &&
+        // Check if message was created within last 10 seconds (to handle rapid duplicates)
+        new Date().getTime() - new Date(msg.createdAt).getTime() < 10000
+      )
+      
+      if (duplicateMessage) {
+        console.log('Duplicate message detected, skipping save:', message.substring(0, 50))
+      } else {
+        // Save user message
+        const userMessage = {
+          sessionId: chatId,
+          role: 'user' as const,
+          content: message
+        }
+        console.log('Saving user message:', userMessage)
+        await chatMessageRepository.create(userMessage)
       }
-      console.log('Saving user message:', userMessage)
-      await chatMessageRepository.create(userMessage)
+    } else {
+      console.log('Regeneration mode: skipping user message save')
     }
 
     // Retrieve existing message history (refresh after potential save)
@@ -518,5 +523,46 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   } catch (error) {
     console.error('Message retrieval error:', error)
     return NextResponse.json({ error: 'Failed to retrieve messages' }, { status: 500 })
+  }
+}
+
+// Delete messages from a specific message onwards
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  console.log('=== Chat DELETE request received ===')
+  try {
+    const resolvedParams = await params
+    const chatId = resolvedParams.id
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
+    const fromMessageId = searchParams.get('fromMessageId')
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
+    }
+
+    if (!fromMessageId) {
+      return NextResponse.json({ error: 'fromMessageId parameter is required' }, { status: 400 })
+    }
+
+    // Check chat session existence and verify permissions
+    const session = await chatSessionRepository.findById(chatId)
+    if (!session || session.length === 0) {
+      return NextResponse.json({ error: 'Chat session not found' }, { status: 404 })
+    }
+
+    // Check session owner
+    if (session[0].userId !== userId) {
+      return NextResponse.json({ error: 'Access denied to this chat' }, { status: 403 })
+    }
+
+    // Delete messages from the specified message onwards
+    await chatMessageRepository.deleteFromMessageOnwards(chatId, fromMessageId)
+
+    console.log('Messages deleted successfully from message:', fromMessageId)
+    return NextResponse.json({ success: true })
+
+  } catch (error) {
+    console.error('Message deletion error:', error)
+    return NextResponse.json({ error: 'Failed to delete messages' }, { status: 500 })
   }
 } 

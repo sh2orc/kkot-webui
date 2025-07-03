@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { useTranslation } from "@/lib/i18n"
 import { useModel, type Agent, type PublicModel } from "@/components/providers/model-provider"
+import { Skeleton } from "@/components/ui/skeleton"
 
 // Types are imported from model-provider
 
@@ -36,6 +37,8 @@ export default function Component({
   const [isFlaskActive, setIsFlaskActive] = useState(false)
   const [isShiftPressed, setIsShiftPressed] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isInitialLoading, setIsInitialLoading] = useState(true)
+  const [showSkeleton, setShowSkeleton] = useState(false)
   
   // Ref to prevent duplicate submissions
   const submitInProgress = useRef(false)
@@ -52,6 +55,9 @@ export default function Component({
   
   // Set initial data if available
   useEffect(() => {
+    let skeletonTimer: NodeJS.Timeout | null = null
+    let loadingTimer: NodeJS.Timeout | null = null
+    
     if (initialAgents || initialPublicModels) {
       setInitialData(
         initialAgents || [], 
@@ -59,7 +65,25 @@ export default function Component({
         defaultModel
       )
     }
-  }, [initialAgents, initialPublicModels, defaultModel, setInitialData])
+    
+    // 스켈레톤 UI 지연 표시 (300ms 후에 표시)
+    skeletonTimer = setTimeout(() => {
+      if (isInitialLoading) {
+        setShowSkeleton(true)
+      }
+    }, 300)
+    
+    // 초기 로딩 완료 처리
+    loadingTimer = setTimeout(() => {
+      setIsInitialLoading(false)
+      setShowSkeleton(false)
+    }, 1000) // 1초 후 로딩 완료
+    
+    return () => {
+      if (skeletonTimer) clearTimeout(skeletonTimer)
+      if (loadingTimer) clearTimeout(loadingTimer)
+    }
+  }, [initialAgents, initialPublicModels, defaultModel, setInitialData, isInitialLoading])
 
 
 
@@ -306,28 +330,76 @@ export default function Component({
     }
   }
 
+  // 스켈레톤 UI 컴포넌트
+  const EmptyChatSkeleton = () => (
+    <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-4xl mx-auto w-full pb-32 md:pb-6 animate-pulse">
+      {/* 환영 메시지 스켈레톤 */}
+      <div className="text-center mb-8 space-y-3">
+        <div className="h-6 w-72 bg-gray-200 dark:bg-gray-700 rounded animate-skeleton-pulse mx-auto"></div>
+        <div className="h-4 w-56 bg-gray-200 dark:bg-gray-700 rounded animate-skeleton-pulse mx-auto" style={{animationDelay: '0.1s'}}></div>
+      </div>
+
+      {/* 입력 영역 스켈레톤 */}
+      <div className="w-full max-w-3xl mb-8">
+        <div className="hidden md:block">
+          <div className="border border-gray-200 dark:border-gray-700 rounded-3xl p-4 space-y-3">
+            <div className="space-y-2">
+              <div className="h-4 w-full bg-gray-200 dark:bg-gray-700 rounded animate-skeleton-pulse" style={{animationDelay: '0.2s'}}></div>
+              <div className="h-4 w-3/4 bg-gray-200 dark:bg-gray-700 rounded animate-skeleton-pulse" style={{animationDelay: '0.3s'}}></div>
+            </div>
+            <div className="flex items-center justify-between pt-2">
+              <div className="h-3 w-6 bg-gray-200 dark:bg-gray-700 rounded animate-skeleton-pulse" style={{animationDelay: '0.4s'}}></div>
+              <div className="flex items-center gap-2">
+                <div className="h-3 w-3 bg-gray-200 dark:bg-gray-700 rounded animate-skeleton-pulse" style={{animationDelay: '0.5s'}}></div>
+                <div className="h-3 w-3 bg-gray-200 dark:bg-gray-700 rounded animate-skeleton-pulse" style={{animationDelay: '0.6s'}}></div>
+                <div className="h-3 w-3 bg-gray-200 dark:bg-gray-700 rounded animate-skeleton-pulse" style={{animationDelay: '0.7s'}}></div>
+                <div className="h-3 w-6 bg-blue-200 dark:bg-blue-800 rounded animate-skeleton-pulse" style={{animationDelay: '0.8s'}}></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* 프롬프트 제안 스켈레톤 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
+        {[...Array(4)].map((_, index) => (
+          <div key={index} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-2">
+            <div className="h-4 w-3/4 bg-gray-200 dark:bg-gray-700 rounded animate-skeleton-pulse" style={{animationDelay: `${0.9 + index * 0.1}s`}}></div>
+            <div className="h-3 w-full bg-gray-200 dark:bg-gray-700 rounded animate-skeleton-pulse" style={{animationDelay: `${1.0 + index * 0.1}s`}}></div>
+            <div className="h-3 w-5/6 bg-gray-200 dark:bg-gray-700 rounded animate-skeleton-pulse" style={{animationDelay: `${1.1 + index * 0.1}s`}}></div>
+            <div className="h-3 w-2/3 bg-gray-200 dark:bg-gray-700 rounded animate-skeleton-pulse" style={{animationDelay: `${1.2 + index * 0.1}s`}}></div>
+          </div>
+        ))}
+      </div>
+    </div>
+  )
+
   return (
     <>
       {/* Main Content */}
       <div className="flex-1 flex flex-col relative">
-        {/* Initial State Content */}
-        <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-4xl mx-auto w-full pb-32 md:pb-6">
-          {/* 사용자 환영 메시지 */}
-          {currentSession?.user && (
-            <div className="text-center mb-8">
-              <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                안녕하세요, {currentSession.user.name}님! 👋
-              </h1>
-              <p className="text-lg text-gray-600">
-                오늘은 어떤 것을 도와드릴까요?
-              </p>
-            </div>
-          )}
+        {isInitialLoading && showSkeleton ? (
+          <EmptyChatSkeleton />
+        ) : (
+          <>
+            {/* Initial State Content */}
+            <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-4xl mx-auto w-full pb-32 md:pb-6">
+              {/* 사용자 환영 메시지 */}
+              {currentSession?.user && (
+                <div className="text-center mb-8">
+                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                    안녕하세요, {currentSession.user.name}님! 👋
+                  </h1>
+                  <p className="text-lg text-gray-600">
+                    오늘은 어떤 것을 도와드릴까요?
+                  </p>
+                </div>
+              )}
 
 
 
           {/* Central Input Area */}
-          <div className="w-full max-w-2xl mb-8">
+          <div className="w-full max-w-3xl mb-8">
             {/* Desktop Input */}
             <div className="hidden md:block">
               <div className="flex-1 flex flex-col relative w-full shadow-lg rounded-3xl border border-gray-50 dark:border-gray-850 hover:border-gray-100 focus-within:border-gray-100 hover:dark:border-gray-800 focus-within:dark:border-gray-800 transition px-1 bg-white/90 dark:bg-gray-400/5 dark:text-gray-100">
@@ -417,7 +489,7 @@ export default function Component({
 
           {/* Prompt Suggestions */}
           {selectedModel && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-2xl">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
               {prompts.map((prompt, index) => (
                 <div
                   key={index}
@@ -433,18 +505,20 @@ export default function Component({
           
         </div>
 
-        {/* Keyboard Shortcut Hint */}
-        {isExpanded && (
-          <div className="hidden md:block absolute bottom-4 right-4">
-            <div className="bg-gray-100 text-gray-600 text-xs px-3 py-2 rounded-lg">
-              <kbd className="bg-white px-2 py-1 rounded border text-xs mr-1">Enter</kbd>
-              {lang("shortcuts.send")} |
-              <kbd className="bg-white px-2 py-1 rounded border text-xs mx-1">Shift</kbd>
-              +
-              <kbd className="bg-white px-2 py-1 rounded border text-xs ml-1">Enter</kbd>
-              {lang("shortcuts.lineBreak")}
-            </div>
-          </div>
+            {/* Keyboard Shortcut Hint */}
+            {isExpanded && (
+              <div className="hidden md:block absolute bottom-4 right-4">
+                <div className="bg-gray-100 text-gray-600 text-xs px-3 py-2 rounded-lg">
+                  <kbd className="bg-white px-2 py-1 rounded border text-xs mr-1">Enter</kbd>
+                  {lang("shortcuts.send")} |
+                  <kbd className="bg-white px-2 py-1 rounded border text-xs mx-1">Shift</kbd>
+                  +
+                  <kbd className="bg-white px-2 py-1 rounded border text-xs ml-1">Enter</kbd>
+                  {lang("shortcuts.lineBreak")}
+                </div>
+              </div>
+            )}
+          </>
         )}
       </div>
     </>

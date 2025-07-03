@@ -84,24 +84,34 @@ const config: Config = {
   					height: '0'
   				}
   			},
-  			'skeleton-pulse': {
-  				'0%, 100%': {
-  					opacity: '1',
-  					backgroundColor: '#e5e7eb'
-  				},
-  				'50%': {
-  					opacity: '0.5',
-  					backgroundColor: '#f3f4f6'
-  				}
-  			}
+  						'skeleton-pulse': {
+				'0%, 100%': {
+					opacity: '1'
+				},
+				'50%': {
+					opacity: '0.4'
+				}
+			},
+			'skeleton-wave': {
+				'0%': {
+					transform: 'translateX(-100%)'
+				},
+				'50%': {
+					transform: 'translateX(100%)'
+				},
+				'100%': {
+					transform: 'translateX(100%)'
+				}
+			}
   		},
-  		animation: {
-  			'accordion-down': 'accordion-down 0.2s ease-out',
-  			'accordion-up': 'accordion-up 0.2s ease-out',
-  			'skeleton-pulse': 'skeleton-pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite'
-  		}
+  				animation: {
+			'accordion-down': 'accordion-down 0.2s ease-out',
+			'accordion-up': 'accordion-up 0.2s ease-out',
+			'skeleton-pulse': 'skeleton-pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite',
+			'skeleton-wave': 'skeleton-wave 1.6s linear infinite'
+		}
   	}
   },
-  plugins: [require("tailwindcss-animate")],
+  plugins: [require("tailwindcss-animate"), require("@tailwindcss/typography")],
 };
 export default config;

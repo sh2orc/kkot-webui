@@ -1,7 +1,7 @@
 // This file is for server-side only
 import 'server-only';
 
-import { eq, and, ne } from 'drizzle-orm';
+import { eq, and, ne, inArray } from 'drizzle-orm';
 import { getDb } from './config';
 import * as schema from './schema';
 
@@ -140,6 +140,46 @@ export const chatMessageRepository = {
       content: messageData.content,
       createdAt: now as any
     }).returning();
+  },
+
+  /**
+   * Delete message by ID
+   */
+  delete: async (id: string | number) => {
+    return await db.delete(schema.chatMessages).where(eq(schema.chatMessages.id, id as any));
+  },
+
+  /**
+   * Delete messages from a specific message onwards in a session
+   */
+  deleteFromMessageOnwards: async (sessionId: string | number, fromMessageId: string | number) => {
+    // First, get all messages for the session ordered by creation time
+    const allMessages = await db.select().from(schema.chatMessages)
+      .where(eq(schema.chatMessages.sessionId, sessionId as any))
+      .orderBy(schema.chatMessages.createdAt);
+    
+    // Find the index of the target message
+    const fromMessageIndex = allMessages.findIndex((msg: any) => msg.id === fromMessageId);
+    
+    if (fromMessageIndex === -1) {
+      throw new Error('Message not found');
+    }
+    
+    // Get all message IDs from the target message onwards
+    const messagesToDelete = allMessages.slice(fromMessageIndex);
+    const messageIds = messagesToDelete.map((msg: any) => msg.id);
+    
+    if (messageIds.length === 0) {
+      return [];
+    }
+    
+    // Delete all messages from the target message onwards
+    return await db.delete(schema.chatMessages)
+      .where(
+        messageIds.length === 1 
+          ? eq(schema.chatMessages.id, messageIds[0] as any)
+          : inArray(schema.chatMessages.id, messageIds as any[])
+      );
   }
 };
 

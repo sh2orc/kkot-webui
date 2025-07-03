@@ -17,24 +17,24 @@ html, body {
 @layer base {
   :root {
     --background: 0 0% 100%;
-    --foreground: 0 0% 3.9%;
+    --foreground: 222.2 84% 4.9%;
     --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: 222.2 84% 4.9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 0 0% 9%;
-    --primary-foreground: 0 0% 98%;
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9%;
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 210 40% 9%;
+    --popover-foreground: 222.2 84% 4.9%;
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 210 40% 96%;
+    --secondary-foreground: 222.2 84% 4.9%;
+    --muted: 210 40% 96%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+    --accent: 210 40% 96%;
+    --accent-foreground: 222.2 84% 4.9%;
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 210 40% 40%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
     --chart-1: 12 76% 61%;
     --chart-2: 173 58% 39%;
     --chart-3: 197 37% 24%;
@@ -51,25 +51,25 @@ html, body {
     --sidebar-ring: 217.2 91.2% 59.8%;
   }
   .dark {
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 0 0% 98%;
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 210 40% 14.9%;
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+    --accent: 217.2 32.6% 17.5%;
     --accent-foreground: 210 40% 98%;
     --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 210 40% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
     --chart-1: 220 70% 50%;
     --chart-2: 160 60% 45%;
     --chart-3: 30 80% 55%;
@@ -118,6 +118,7 @@ html, body {
   .messages-container {
     scroll-behavior: smooth;
     overflow-anchor: none;
+    transition: all 0.2s ease-out;
   }
   
   .messages-container::-webkit-scrollbar {
@@ -239,6 +240,23 @@ html, body {
     animation: slow-spin 2s linear infinite;
   }
   
+  /* 스켈레톤 애니메이션 */
+  @keyframes skeleton-pulse {
+    0% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.5;
+    }
+    100% {
+      opacity: 1;
+    }
+  }
+  
+  .animate-skeleton-pulse {
+    animation: skeleton-pulse 2s ease-in-out infinite;
+  }
+  
   /* 좋아요 버튼 애니메이션 */
   @keyframes thumbs-up-hover {
     0% {
@@ -284,5 +302,746 @@ html, body {
   
   .thumbs-down-hover {
     animation: thumbs-down-hover 0.3s ease-in-out;
+  }
+}
+
+/* 마크다운 렌더링을 위한 추가 스타일 */
+.prose {
+  /* 코드 블록 스타일링 */
+  pre {
+    @apply bg-gray-100 dark:bg-gray-800 rounded-lg p-3 overflow-x-auto;
+  }
+  
+  /* 인라인 코드 스타일링 */
+  code:not(pre code) {
+    @apply bg-gray-100 dark:bg-gray-800 px-1 py-0.5 rounded text-sm;
+    display: inline !important;
+    white-space: nowrap;
+    font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  }
+  
+  /* 명시적 인라인 코드 스타일 */
+  .inline-code {
+    display: inline !important;
+    white-space: nowrap !important;
+    vertical-align: baseline !important;
+  }
+  
+  /* 테이블 스타일링 */
+  table {
+    @apply min-w-full border-collapse;
+  }
+  
+  th, td {
+    @apply border border-gray-300 dark:border-gray-600 px-3 py-2;
+  }
+  
+  th {
+    @apply bg-gray-50 dark:bg-gray-700 font-semibold;
+  }
+  
+  /* 링크 스타일링 */
+  a {
+    @apply text-blue-600 dark:text-blue-400 hover:underline;
+  }
+  
+  /* 인용문 스타일링 */
+  blockquote {
+    @apply border-l-4 border-gray-300 dark:border-gray-600 pl-4 italic text-gray-700 dark:text-gray-300;
+  }
+  
+  /* 리스트 스타일링 */
+  ul, ol {
+    @apply pl-5 my-2;
+  }
+  
+  ul {
+    list-style-type: disc;
+  }
+  
+  ol {
+    list-style-type: decimal;
+  }
+  
+  li {
+    @apply mb-1;
+    display: list-item;
+  }
+  
+  /* 헤딩 스타일링 */
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-semibold mt-4 mb-2;
+  }
+  
+  h1 { @apply text-2xl; }
+  h2 { @apply text-xl; }
+  h3 { @apply text-lg; }
+  h4 { @apply text-base; }
+  
+  /* 단락 간격 */
+  p {
+    @apply mb-3;
+  }
+}
+
+/* 스트리밍 중 애니메이션 효과 */
+.streaming-content {
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Message fade-in animation */
+@keyframes messageSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.98);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.message-enter {
+  animation: messageSlideIn 0.4s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+}
+
+/* 코드 하이라이팅을 위한 추가 스타일 */
+.hljs {
+  @apply bg-gray-100 dark:bg-gray-800 !important;
+}
+
+/* not-prose 클래스로 prose 스타일링 우회 */
+.prose .not-prose {
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+  margin: 0;
+  padding: 0;
+}
+
+.prose .not-prose * {
+  margin: 0;
+  padding: 0;
+  color: inherit;
+  font-size: inherit;
+  font-weight: inherit;
+  line-height: inherit;
+}
+
+/* 코드 블록 컨테이너 스타일 */
+.code-content {
+  background: var(--code-bg, #f8f8f2);
+  border-radius: 0 0 0.5rem 0.5rem;
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  max-width: 100% !important;
+  width: 100% !important;
+}
+
+.dark .code-content {
+  --code-bg: #1e1e1e;
+}
+
+/* 코드 블록이 max-w-3xl 컨테이너를 넘지 않도록 강제 제한 */
+.code-block {
+  max-width: 100% !important;
+  width: 100% !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.code-block > div {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+  max-width: 100% !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* 코드 블록 내부의 모든 요소가 부모를 넘지 않도록 제한 */
+.code-block * {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* SyntaxHighlighter 강제 스타일 */
+.code-block pre[class*="language-"],
+.code-block pre,
+.code-block code {
+  overflow-x: auto !important;
+  white-space: pre !important;
+  word-wrap: normal !important;
+  word-break: keep-all !important;
+  max-width: none !important;
+}
+
+/* 모바일에서 코드 블록 줄바꿈 허용 */
+@media (max-width: 640px) {
+  .code-block pre[class*="language-"],
+  .code-block pre,
+  .code-block code {
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+}
+
+/* 코드 블록 스크롤바 스타일 */
+.code-block > div::-webkit-scrollbar {
+  height: 8px;
+}
+
+.code-block > div::-webkit-scrollbar-track {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 0 0 0.5rem 0.5rem;
+}
+
+.code-block > div::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.3);
+  border-radius: 4px;
+}
+
+.code-block > div::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.5);
+}
+
+.dark .code-block > div::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.dark .code-block > div::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.3);
+}
+
+.dark .code-block > div::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.5);
+}
+
+/* 코드 블록 헤더 강제 스타일링 */
+.code-block-header {
+  padding: 8px 16px !important;
+  font-size: 0.85rem !important;
+  color: #9ca3af !important;
+  /* min-height: 32px !important; */
+  display: flex !important;
+  align-items: center !important;
+  justify-content: space-between !important;
+}
+
+/* SyntaxHighlighter 내부 pre/code 태그 스타일 재정의 */
+.code-content pre {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  border: none !important;
+  overflow-x: visible !important;
+  white-space: pre !important;
+  width: max-content !important;
+  min-width: 100% !important;
+}
+
+.code-content code {
+  background: transparent !important;
+  padding: 0 !important;
+  border: none !important;
+  white-space: pre !important;
+  display: block !important;
+}
+
+/* SyntaxHighlighter 컨테이너 강제 스타일 */
+.code-content > div {
+  overflow-x: auto !important;
+  overflow-y: hidden !important;
+}
+
+/* SyntaxHighlighter 내부 모든 요소 */
+.code-block * {
+  white-space: pre !important;
+}
+
+/* SyntaxHighlighter가 max-w-3xl을 넘지 않도록 강제 제한 */
+.code-block div[class*="react-syntax-highlighter"],
+.code-block div[class*="react-syntax-highlighter"] *,
+.code-block pre[class*="language-"],
+.code-block pre,
+.code-block code {
+  overflow-x: auto !important;
+  white-space: pre !important;
+  word-wrap: normal !important;
+  word-break: keep-all !important;
+  width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+/* 모바일에서 SyntaxHighlighter 줄바꿈 허용 */
+@media (max-width: 640px) {
+  .code-block div[class*="react-syntax-highlighter"],
+  .code-block div[class*="react-syntax-highlighter"] *,
+  .code-block pre[class*="language-"],
+  .code-block pre,
+  .code-block code {
+    white-space: pre-wrap !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+  }
+}
+
+/* SyntaxHighlighter 내부 요소들도 제한 */
+.code-block .token-line,
+.code-block .token {
+  box-sizing: border-box !important;
+}
+
+/* 마크다운 스타일링 강제 적용 */
+.prose strong,
+.prose-sm strong,
+.prose-invert strong,
+div.prose strong {
+  font-weight: 700 !important;
+  color: inherit !important;
+}
+
+.prose em,
+.prose-sm em,
+.prose-invert em,
+div.prose em {
+  font-style: italic !important;
+  color: inherit !important;
+}
+
+/* 마크다운 볼드 요소 강제 스타일 */
+.markdown-bold,
+strong.markdown-bold {
+  font-weight: 700 !important;
+  color: inherit !important;
+}
+
+/* 모든 possible strong 태그에 대한 강제 스타일 */
+.prose strong,
+.prose-sm strong,
+.prose-invert strong,
+div.prose strong,
+.prose strong.markdown-bold,
+strong {
+  font-weight: 700 !important;
+  font-family: inherit !important;
+  font-synthesis: weight !important;
+}
+
+/* 특별히 마크다운 볼드를 위한 스타일 */
+strong.markdown-bold {
+  font-weight: 900 !important;
+  font-variation-settings: 'wght' 700 !important;
+}
+
+/* ReactMarkdown strong 요소 강제 스타일 */
+.prose strong,
+.markdown-content strong,
+.prose .markdown-content strong,
+.markdown-content .prose strong,
+.prose .react-markdown strong,
+.react-markdown strong,
+.prose div strong,
+div.prose strong,
+.prose-sm strong,
+.prose-invert strong {
+  font-weight: 900 !important;
+  color: inherit !important;
+  font-family: inherit !important;
+  display: inline !important;
+  font-synthesis: weight !important;
+  font-variation-settings: 'wght' 900 !important;
+}
+
+.prose h1 {
+  font-size: 1.5rem !important;
+  font-weight: 700 !important;
+  margin-top: 1.5rem !important;
+  margin-bottom: 1rem !important;
+  line-height: 1.25 !important;
+}
+
+.prose h2 {
+  font-size: 1.25rem !important;
+  font-weight: 700 !important;
+  margin-top: 1.25rem !important;
+  margin-bottom: 0.75rem !important;
+  line-height: 1.25 !important;
+}
+
+.prose h3 {
+  font-size: 1.125rem !important;
+  font-weight: 700 !important;
+  margin-top: 1rem !important;
+  margin-bottom: 0.5rem !important;
+  line-height: 1.25 !important;
+}
+
+/* 라인 번호 스타일 커스터마이징 */
+.code-content .react-syntax-highlighter-line-number,
+.code-content .linenumber,
+.code-content span[style*="color"][style*="opacity"] {
+  font-style: normal !important;
+  font-size: 0.75rem !important;
+  font-weight: normal !important;
+  opacity: 0.6 !important;
+  padding-right: 0.75rem !important;
+  user-select: none !important;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+  text-align: right !important;
+  display: inline-block !important;
+  min-width: 2rem !important;
+  vertical-align: top !important;
+}
+
+/* 라이트 모드 라인 번호 */
+.code-content .react-syntax-highlighter-line-number,
+.code-content .linenumber {
+  color: #6b7280 !important;
+}
+
+/* 다크 모드 라인 번호 */
+.dark .code-content .react-syntax-highlighter-line-number,
+.dark .code-content .linenumber {
+  color: #9ca3af !important;
+}
+
+/* 더 구체적인 라인 번호 타겟팅 */
+.code-content pre code .token-line .token:first-child {
+  font-style: normal !important;
+  font-size: 0.75rem !important;
+  font-weight: normal !important;
+}
+
+/* 모든 가능한 라인 번호 셀렉터 */
+.code-content [class*="line-number"],
+.code-content [class*="linenumber"],
+.code-content td:first-child {
+  font-style: normal !important;
+  font-size: 0.75rem !important;
+  font-weight: normal !important;
+  opacity: 0.6 !important;
+}
+
+/* SyntaxHighlighter 라인 번호 강제 스타일 */
+.code-block .react-syntax-highlighter .linenumber,
+.code-block .react-syntax-highlighter span[style*="color"][style*="opacity"],
+.code-block .react-syntax-highlighter span[data-line-number],
+.code-block .react-syntax-highlighter td:first-child,
+.code-block .react-syntax-highlighter td:first-child span {
+  font-style: normal !important;
+  font-weight: normal !important;
+  font-size: 0.75rem !important;
+  text-align: right !important;
+  padding-right: 0.75rem !important;
+  min-width: 2rem !important;
+  display: inline-block !important;
+  vertical-align: top !important;
+}
+
+/* 코드 라인과 라인 번호 정렬 */
+.code-block .react-syntax-highlighter .token-line {
+  display: flex !important;
+  align-items: flex-start !important;
+}
+
+.code-block .react-syntax-highlighter .token-line > span:first-child {
+  flex-shrink: 0 !important;
+  text-align: right !important;
+  padding-right: 0.75rem !important;
+  min-width: 2rem !important;
+}
+
+.code-block .react-syntax-highlighter .token-line > span:not(:first-child) {
+  flex: 1 !important;
+  white-space: pre-wrap !important;
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+}
+
+/* 코드 블록 내 모든 텍스트가 monospace 폰트를 사용하도록 강제 */
+.code-block * {
+  font-family: ui-monospace, SFMono-Regular, "SF Mono", Monaco, Consolas, "Liberation Mono", "Courier New", monospace !important;
+}
+
+/* 들여쓰기 공백 문자 처리 */
+.code-block .react-syntax-highlighter .token-line {
+  white-space: pre !important;
+  tab-size: 2 !important;
+}
+
+/* 모바일에서 들여쓰기 유지 */
+@media (max-width: 640px) {
+  .code-block .react-syntax-highlighter .token-line {
+    white-space: pre-wrap !important;
+    tab-size: 2 !important;
+  }
+}
+
+/* 라인 번호 스타일 커스터마이징 */
+.linenumber{
+  font-style: normal !important;
+  font-weight: normal !important;
+  font-size: 0.75rem !important;
+}
+
+/* 모바일 반응형 개선 */
+@layer base {
+  /* 터치 친화적인 최소 터치 영역 */
+  .touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+  
+  /* 모바일에서 스크롤 개선 */
+  .mobile-scroll {
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+  }
+  
+  /* 모바일 키보드 대응 */
+  @media (max-width: 640px) {
+    .mobile-keyboard-adjust {
+      padding-bottom: env(keyboard-inset-height, 0px);
+    }
+  }
+  
+  /* 모바일에서 코드 블록 개선 */
+  @media (max-width: 640px) {
+    .code-block {
+      font-size: 0.7rem !important;
+      margin: 1rem -0.75rem !important; /* 좌우 여백 제거, 위아래 여백 증가 */
+      border-radius: 8px !important;
+      overflow: hidden !important;
+      max-width: calc(100% + 1.5rem) !important; /* 패딩 영역까지 확장 */
+      width: calc(100% + 1.5rem) !important;
+    }
+    
+    .code-block-header {
+      padding: 8px 12px !important;
+      min-height: 40px !important;
+      font-size: 0.75rem !important;
+    }
+    
+    .code-content {
+      padding: 0.75rem !important;
+      overflow-x: auto !important;
+      -webkit-overflow-scrolling: touch !important;
+    }
+    
+    /* 모바일에서 코드 블록 내부 스타일 */
+    .code-block pre {
+      font-size: 0.7rem !important;
+      line-height: 1.4 !important;
+      white-space: pre-wrap !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+      margin: 0 !important;
+    }
+    
+    .code-block code {
+      font-size: 0.7rem !important;
+      white-space: pre-wrap !important;
+      word-break: break-word !important;
+      overflow-wrap: break-word !important;
+    }
+    
+    /* 모바일에서 라인 번호 조정 */
+    .code-block .react-syntax-highlighter-line-number {
+      font-size: 0.65rem !important;
+      min-width: 1.5rem !important;
+      padding-right: 0.5rem !important;
+      text-align: right !important;
+      display: inline-block !important;
+      vertical-align: top !important;
+    }
+    
+    /* 모바일에서 라인과 라인 번호 정렬 */
+    .code-block .react-syntax-highlighter .token-line > span:first-child {
+      min-width: 1.5rem !important;
+      padding-right: 0.5rem !important;
+    }
+    
+    /* SyntaxHighlighter 컨테이너 모바일 최적화 */
+    .code-block div[class*="react-syntax-highlighter"] {
+      font-size: 0.7rem !important;
+      overflow-x: auto !important;
+    }
+    
+    .code-block div[class*="react-syntax-highlighter"] > div {
+      padding: 0.75rem !important;
+    }
+  }
+  
+  /* 모바일에서 메시지 간격 조정 */
+  @media (max-width: 640px) {
+    .message-spacing {
+      margin-bottom: 1rem;
+    }
+    
+    /* 모바일에서 메시지 컨테이너 패딩 조정 */
+    .messages-container {
+      padding: 0.75rem !important;
+    }
+    
+    /* 코드 블록이 포함된 메시지의 패딩 조정 */
+    .prose {
+      padding: 0 !important;
+    }
+  }
+  
+  /* 모바일에서 사이드바 스와이프 영역 */
+  .swipe-area {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 20px;
+    height: 100vh;
+    z-index: 40;
+    background: transparent;
+  }
+  
+  /* 모바일에서 오버레이 개선 */
+  .mobile-overlay {
+    backdrop-filter: blur(2px);
+    -webkit-backdrop-filter: blur(2px);
+  }
+  
+  /* 터치 스크롤 개선 */
+  .touch-scroll {
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-behavior: smooth;
+    overscroll-behavior: contain;
+  }
+  
+  /* 모바일에서 입력창 개선 */
+  @media (max-width: 640px) {
+    .mobile-input {
+      font-size: 16px; /* iOS 줌 방지 */
+      line-height: 1.5;
+    }
+  }
+}
+
+/* 모바일 사이드바 스와이프 제스처 */
+@media (max-width: 768px) {
+  .swipe-gesture {
+    touch-action: pan-x;
+  }
+  
+  .swipe-indicator {
+    position: fixed;
+    top: 50%;
+    left: 0;
+    width: 4px;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.1);
+    border-radius: 0 4px 4px 0;
+    transform: translateY(-50%);
+    z-index: 30;
+    transition: all 0.2s ease;
+  }
+  
+  .swipe-indicator:hover {
+    background: rgba(0, 0, 0, 0.2);
+    width: 6px;
+  }
+  
+  /* 모바일 터치 최적화 */
+  .touch-manipulation {
+    touch-action: manipulation;
+  }
+  
+  /* 모바일 텍스트 크기 조정 */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -moz-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  
+  /* 모바일 입력 필드 최적화 */
+  textarea, input {
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    border-radius: 8px;
+    font-size: 16px; /* iOS 줌 방지 */
+  }
+  
+  /* 모바일 채팅 컨테이너 최적화 */
+  .messages-container {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior: contain;
+    scroll-behavior: smooth;
+  }
+  
+  /* 모바일 버튼 터치 영역 확대 */
+  button, [role="button"] {
+    min-height: 44px;
+    min-width: 44px;
+    touch-action: manipulation;
+  }
+  
+  /* 모바일 채팅 입력창 최적화 */
+  .chat-input-container {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  /* 모바일 키보드 대응 */
+  .mobile-keyboard-adjust {
+    padding-bottom: env(keyboard-inset-height, 0px);
+  }
+  
+  /* 모바일에서 스크롤 바운스 방지 */
+  body {
+    overscroll-behavior: contain;
+  }
+  
+  /* 모바일 코드 블록 전용 스타일 */
+  .mobile-code-block {
+    font-size: 0.7rem !important;
+    border-radius: 6px !important;
+    margin: 1rem -0.75rem !important; /* 좌우 여백 제거, 위아래 여백 증가 */
+    max-width: calc(100% + 1.5rem) !important;
+    width: calc(100% + 1.5rem) !important;
+  }
+  
+  .mobile-code-block pre,
+  .mobile-code-block code {
+    font-size: 0.7rem !important;
+    white-space: pre-wrap !important;
+    word-break: break-word !important;
+    overflow-wrap: break-word !important;
+    line-height: 1.5 !important;
+    margin: 0 !important;
+  }
+  
+  .mobile-code-block .code-block-header {
+    padding: 8px 12px !important;
+    font-size: 0.7rem !important;
+    min-height: 36px !important;
+  }
+  
+  .mobile-code-block .code-content {
+    padding: 0.75rem !important;
+  }
+  
+  .mobile-code-block div[class*="react-syntax-highlighter"] {
+    font-size: 0.7rem !important;
+    overflow-x: auto !important;
   }
 }
