@@ -60,5 +60,9 @@
   "saveButton": "Save",
   "error": {
     "no_model_selected": "No model selected. Please select a model from the model selection menu above."
+  },
+  "welcome": {
+    "greeting": "Hello, {name}! 👋",
+    "helpMessage": "How can I help you today?"
   }
 } 

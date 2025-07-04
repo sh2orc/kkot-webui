@@ -60,5 +60,9 @@
   "saveButton": "저장",
   "error": {
     "no_model_selected": "모델이 선택되지 않았습니다. 상단의 모델 선택 메뉴에서 모델을 선택해주세요."
+  },
+  "welcome": {
+    "greeting": "안녕하세요, {name}님! 👋",
+    "helpMessage": "오늘은 어떤 것을 도와드릴까요?"
   }
 } 

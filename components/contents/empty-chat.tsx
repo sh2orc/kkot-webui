@@ -382,10 +382,10 @@ export default function Component({
               {currentSession?.user && (
                 <div className="text-center mb-8">
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">
-                    안녕하세요, {currentSession.user.name}님! 👋
+                    {lang("welcome.greeting").replace("{name}", currentSession.user.name)}
                   </h1>
                   <p className="text-lg text-gray-600">
-                    오늘은 어떤 것을 도와드릴까요?
+                    {lang("welcome.helpMessage")}
                   </p>
                 </div>
               )}
