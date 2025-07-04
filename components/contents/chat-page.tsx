@@ -1357,28 +1357,10 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }, [messages, newMessageIds, copiedMessageId, likedMessages, dislikedMessages, isStreaming, editingMessageId, editingContent, regeneratingMessageId, streamingMessageId, handleCopyMessage, handleLikeMessage, handleDislikeMessage, handleRegenerateResponse, handleEditMessage, handleSaveEdit, handleCancelEdit, handleRegenerateFromUserMessage]
   )
 
-  // 세션 상태에 따른 처리
-  if (sessionStatus === "loading") {
-    return (
-      <div className="flex-1 flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900 dark:border-gray-100"></div>
-      </div>
-    )
-  }
-
+  // 인증되지 않은 경우 리다이렉트
   if (sessionStatus === "unauthenticated") {
     router.push('/auth')
     return null
-  }
-
-  if (!selectedModel) {
-    return (
-      <div className="flex-1 flex items-center justify-center text-center px-4">
-        <div className="text-gray-600 dark:text-gray-400">
-          {lang('error.no_model_selected')}
-        </div>
-      </div>
-    )
   }
 
   return (
