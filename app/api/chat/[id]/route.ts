@@ -12,12 +12,62 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const resolvedParams = await params
     const chatId = resolvedParams.id
     console.log('Chat ID:', chatId)
-    const body = await request.json()
-    console.log('Request body:', body)
-    const { message, agentId, modelId, modelType, userId, isRegeneration } = body
+    
+    // Check if request has FormData (for image uploads) or JSON
+    const contentType = request.headers.get('content-type')
+    let message: string
+    let agentId: string | undefined
+    let modelId: string | undefined
+    let modelType: string
+    let userId: string
+    let isRegeneration: boolean
+    let images: File[] = []
+    
+    if (contentType?.includes('multipart/form-data')) {
+      // Handle FormData (with images)
+      const formData = await request.formData()
+      console.log('FormData received')
+      
+      message = formData.get('message') as string || ''
+      agentId = (formData.get('agentId') as string)?.trim() || undefined
+      modelId = (formData.get('modelId') as string)?.trim() || undefined
+      modelType = formData.get('modelType') as string
+      userId = formData.get('userId') as string
+      isRegeneration = formData.get('isRegeneration') === 'true'
+      
+      // Extract images
+      const imageFiles = formData.getAll('images') as File[]
+      images = imageFiles.filter(file => file.size > 0) // Filter out empty files
+      
+      console.log('Images received:', images.length)
+    } else {
+      // Handle JSON (text only)
+      const body = await request.json()
+      console.log('JSON body received:', body)
+      
+      message = body.message
+      agentId = body.agentId
+      modelId = body.modelId
+      modelType = body.modelType
+      userId = body.userId
+      isRegeneration = body.isRegeneration
+    }
 
-    if (!message?.trim()) {
-      return NextResponse.json({ error: 'Message is required' }, { status: 400 })
+    if (!message?.trim() && images.length === 0) {
+      return NextResponse.json({ error: 'Message or images are required' }, { status: 400 })
+    }
+
+    // 이미지 개수 제한 확인
+    if (images.length > 3) {
+      return NextResponse.json({ error: 'Maximum 3 images allowed per message' }, { status: 400 })
+    }
+
+    // 텍스트 길이 제한 확인 (이미지가 있을 때 더 엄격)
+    const maxTextLength = images.length > 0 ? 500 : 4000
+    if (message && message.trim().length > maxTextLength) {
+      return NextResponse.json({ 
+        error: `The message is too long. Please try with shorter text${images.length > 0 ? ' or fewer images' : ''}.` 
+      }, { status: 400 })
     }
 
     if (!userId) {
@@ -50,11 +100,37 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (duplicateMessage) {
         console.log('Duplicate message detected, skipping save:', message.substring(0, 50))
       } else {
+        // Prepare user message content (include image info if present)
+        let userMessageContent = message
+        
+        // If images are present, store as JSON with image metadata and data
+        if (images.length > 0) {
+          const imageInfos = await Promise.all(
+            images.map(async (image) => {
+              const arrayBuffer = await image.arrayBuffer()
+              const base64 = Buffer.from(arrayBuffer).toString('base64')
+              return {
+                type: 'image',
+                name: image.name,
+                size: image.size,
+                mimeType: image.type,
+                data: `data:${image.type};base64,${base64}` // Store base64 data for display
+              }
+            })
+          )
+          
+          userMessageContent = JSON.stringify({
+            text: message || '', // Default to empty string if no text
+            images: imageInfos,
+            hasImages: true
+          })
+        }
+        
         // Save user message
         const userMessage = {
           sessionId: chatId,
           role: 'user' as const,
-          content: message
+          content: userMessageContent
         }
         console.log('Saving user message:', userMessage)
         await chatMessageRepository.create(userMessage)
@@ -95,6 +171,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
             presencePenalty: parseFloat(agent.presencePenalty || '0.0'),
             frequencyPenalty: parseFloat(agent.frequencyPenalty || '0.0')
           }
+        }
+        
+        // Reduce token limit when images are present
+        if (images.length > 0) {
+          llmParams.maxTokens = Math.min(llmParams.maxTokens || 2048, 1000)
         }
         
         // Retrieve model information
@@ -143,24 +224,79 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     console.log('LLM client created')
 
     // Construct message array
-    const messages: Array<{role: 'user' | 'assistant' | 'system', content: string}> = []
+    const messages: Array<{role: 'user' | 'assistant' | 'system', content: string | any}> = []
     
     // Add system prompt (if exists)
     if (systemPrompt) {
       messages.push({ role: 'system', content: systemPrompt })
     }
 
-    // Add existing message history (only recent 10, excluding just added message)
-    const historyToUse = messageHistory.slice(0, -1).slice(-10)
+    // Add existing message history (limit more aggressively when images present)
+    const maxHistory = images.length > 0 ? 1 : 5
+    const historyToUse = messageHistory.slice(0, -1).slice(-maxHistory)
     for (const historyMessage of historyToUse) {
+      let historyContent = historyMessage.content
+      
+      // Handle multimodal messages in history - extract only text for LLM context
+      if (historyMessage.role === 'user') {
+        try {
+          const parsed = JSON.parse(historyMessage.content)
+          if (parsed.hasImages && parsed.text !== undefined) {
+            // For history, use only text content to avoid confusion
+            historyContent = parsed.text || historyMessage.content
+          }
+        } catch (e) {
+          // If not JSON, use as is
+          historyContent = historyMessage.content
+        }
+      }
+      
+      // Limit text length in history messages to save tokens
+      if (typeof historyContent === 'string' && historyContent.length > 2000) {
+        historyContent = historyContent.substring(0, 2000) + "..."
+      }
+      
       messages.push({
         role: historyMessage.role as 'user' | 'assistant',
-        content: historyMessage.content
+        content: historyContent
       })
     }
 
-    // Add current user message
-    messages.push({ role: 'user', content: message })
+    // Add current user message (with images if present)
+    if (images.length > 0) {
+      console.log('Processing multimodal message with', images.length, 'images')
+      // Convert images to base64 for multimodal message
+      const imageContents = await Promise.all(
+        images.map(async (image) => {
+          const arrayBuffer = await image.arrayBuffer()
+          const base64 = Buffer.from(arrayBuffer).toString('base64')
+          console.log(`Converted image ${image.name} to base64, size: ${base64.length} chars`)
+          return {
+            type: 'image_url',
+            image_url: {
+              url: `data:${image.type};base64,${base64}`
+            }
+          }
+        })
+      )
+      
+      // Create multimodal message content
+      const multimodalContent = [
+        ...(message?.trim() ? [{ type: 'text', text: message }] : []),
+        ...imageContents
+      ]
+      
+      console.log('Multimodal content structure:', multimodalContent.map(item => ({ 
+        type: item.type, 
+        hasTextData: 'text' in item && !!item.text,
+        hasImageData: 'image_url' in item && !!item.image_url
+      })))
+      messages.push({ role: 'user', content: multimodalContent })
+    } else {
+      console.log('Processing text-only message')
+      // Text-only message
+      messages.push({ role: 'user', content: message })
+    }
     
     console.log('Final message array:', messages)
 
@@ -247,11 +383,21 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                 const shouldGenerateTitle = assistantMessages.length === 1
                 console.log('Should generate title:', shouldGenerateTitle)
                 
-                if (shouldGenerateTitle) {
+                                  if (shouldGenerateTitle) {
                   // Generate title for the first AI response
                   try {
                     console.log('Generating title after first AI response...')
-                    const userMessage = totalMessages.find((msg: any) => msg.role === 'user')?.content || message
+                    let userMessage = totalMessages.find((msg: any) => msg.role === 'user')?.content || message
+                    
+                    // Extract text from multimodal message if needed
+                    try {
+                      const parsed = JSON.parse(userMessage)
+                      if (parsed.hasImages && parsed.text !== undefined) {
+                        userMessage = parsed.text || message
+                      }
+                    } catch (e) {
+                      // If not JSON, use as is
+                    }
                     
                     // Generate title directly without API call
                     console.log('Starting direct title generation...')
@@ -367,11 +513,23 @@ Title:`
             },
             onError: (error: Error) => {
               console.error('Streaming response error:', error)
+              
+              // Provide more specific error messages
+              let errorMessage = 'An error occurred while generating AI response'
+              
+              if (error.message.includes('multimodal') || error.message.includes('vision') || error.message.includes('image')) {
+                errorMessage = 'This model does not support image analysis. Please try with a text-only message or switch to a vision-capable model (like GPT-4 Vision).'
+              } else if (error.message.includes('context') || error.message.includes('token')) {
+                errorMessage = 'The message is too long. Please try with shorter text or fewer images.'
+              } else if (error.message.includes('format') || error.message.includes('content')) {
+                errorMessage = 'Invalid message format. Please try again with a different image or text.'
+              }
+              
               // Send error signal safely
               safeEnqueue(
                 new TextEncoder().encode(
                   `data: ${JSON.stringify({ 
-                    error: 'An error occurred while generating AI response',
+                    error: errorMessage,
                     done: true 
                   })}\n\n`
                 )
@@ -382,11 +540,28 @@ Title:`
 
           // Streaming call
           console.log('Starting streaming call...')
-          await llmClient.streamChat(messages, streamCallbacks, {
-            stream: true,
-            maxTokens: llmParams.maxTokens || 2048
-          })
-          console.log('Streaming call completed, fullResponse length:', fullResponse.length)
+          try {
+            // 이미지가 있을 때 토큰 제한 조정
+            let dynamicMaxTokens = llmParams.maxTokens || 2048
+            if (images.length > 0) {
+              // 이미지 개수에 따라 토큰 수 조정 (이미지가 많을수록 응답 토큰 줄임)
+              dynamicMaxTokens = Math.max(1024, dynamicMaxTokens - (images.length * 200))
+              console.log(`Adjusted maxTokens for ${images.length} images: ${dynamicMaxTokens}`)
+            }
+            
+            await llmClient.streamChat(messages, streamCallbacks, {
+              stream: true,
+              maxTokens: dynamicMaxTokens
+            })
+            console.log('Streaming call completed, fullResponse length:', fullResponse.length)
+          } catch (streamError) {
+            console.error('Stream chat error:', streamError)
+            // Handle streaming error with onError callback
+            if (streamCallbacks.onError) {
+              await streamCallbacks.onError(streamError as Error)
+            }
+            throw streamError
+          }
           
           // Always force completion handling after streaming is done
           console.log('Forcing completion handling...')
@@ -456,11 +631,25 @@ Title:`
           }
         } catch (error) {
           console.error('Streaming initialization error:', error)
+          
+          // Provide more specific error messages
+          let errorMessage = 'An error occurred while generating AI response'
+          
+          if (error instanceof Error) {
+            if (error.message.includes('multimodal') || error.message.includes('vision') || error.message.includes('image')) {
+              errorMessage = 'This model does not support image analysis. Please try with a text-only message or switch to a vision-capable model (like GPT-4 Vision).'
+            } else if (error.message.includes('context') || error.message.includes('token')) {
+              errorMessage = 'The message is too long. Please try with shorter text or fewer images.'
+            } else if (error.message.includes('format') || error.message.includes('content')) {
+              errorMessage = 'Invalid message format. Please try again with a different image or text.'
+            }
+          }
+          
           // Send error signal safely
           safeEnqueue(
             new TextEncoder().encode(
               `data: ${JSON.stringify({ 
-                error: 'An error occurred while generating AI response',
+                error: errorMessage,
                 done: true 
               })}\n\n`
             )
@@ -526,22 +715,21 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-// Delete messages from a specific message onwards
-export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
-  console.log('=== Chat DELETE request received ===')
+// Update chat session title
+export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  console.log('=== Chat [id] API PUT request received ===')
   try {
     const resolvedParams = await params
     const chatId = resolvedParams.id
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
-    const fromMessageId = searchParams.get('fromMessageId')
+    const body = await request.json()
+    const { title, userId } = body
 
     if (!userId) {
       return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
     }
 
-    if (!fromMessageId) {
-      return NextResponse.json({ error: 'fromMessageId parameter is required' }, { status: 400 })
+    if (!title?.trim()) {
+      return NextResponse.json({ error: 'Title is required' }, { status: 400 })
     }
 
     // Check chat session existence and verify permissions
@@ -555,14 +743,61 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
       return NextResponse.json({ error: 'Access denied to this chat' }, { status: 403 })
     }
 
-    // Delete messages from the specified message onwards
-    await chatMessageRepository.deleteFromMessageOnwards(chatId, fromMessageId)
+    // Update chat session title
+    const updateResult = await chatSessionRepository.update(chatId, { title: title.trim() })
+    console.log('Title update result:', updateResult)
 
-    console.log('Messages deleted successfully from message:', fromMessageId)
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ 
+      success: true,
+      title: title.trim(),
+      chatId: chatId
+    })
 
   } catch (error) {
-    console.error('Message deletion error:', error)
-    return NextResponse.json({ error: 'Failed to delete messages' }, { status: 500 })
+    console.error('Chat title update error:', error)
+    return NextResponse.json({ error: 'Failed to update chat title' }, { status: 500 })
+  }
+}
+
+// Delete chat session
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  console.log('=== Chat [id] API DELETE request received ===')
+  try {
+    const resolvedParams = await params
+    const chatId = resolvedParams.id
+    const { searchParams } = new URL(request.url)
+    const userId = searchParams.get('userId')
+    const fromMessageId = searchParams.get('fromMessageId')
+
+    if (!userId) {
+      return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
+    }
+
+    // Check chat session existence and verify permissions
+    const session = await chatSessionRepository.findById(chatId)
+    if (!session || session.length === 0) {
+      return NextResponse.json({ error: 'Chat session not found' }, { status: 404 })
+    }
+
+    // Check session owner
+    if (session[0].userId !== userId) {
+      return NextResponse.json({ error: 'Access denied to this chat' }, { status: 403 })
+    }
+
+    // If fromMessageId is provided, delete messages from that point onwards
+    if (fromMessageId) {
+      await chatMessageRepository.deleteFromMessageOnwards(chatId, fromMessageId)
+      console.log('Messages deleted successfully from message:', fromMessageId)
+      return NextResponse.json({ success: true })
+    } else {
+      // Delete entire chat session (this will cascade delete all messages)
+      await chatSessionRepository.delete(chatId)
+      console.log('Chat session deleted successfully:', chatId)
+      return NextResponse.json({ success: true })
+    }
+
+  } catch (error) {
+    console.error('Chat deletion error:', error)
+    return NextResponse.json({ error: 'Failed to delete chat' }, { status: 500 })
   }
 } 

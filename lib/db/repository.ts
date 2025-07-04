@@ -425,6 +425,7 @@ export const llmModelRepository = {
         isPublic: schema.llmModels.isPublic,
         capabilities: schema.llmModels.capabilities,
         contextLength: schema.llmModels.contextLength,
+        supportsMultimodal: schema.llmModels.supportsMultimodal,
         createdAt: schema.llmModels.createdAt,
         updatedAt: schema.llmModels.updatedAt,
         serverName: schema.llmServers.name,
@@ -455,6 +456,7 @@ export const llmModelRepository = {
         isPublic: schema.llmModels.isPublic,
         capabilities: schema.llmModels.capabilities,
         contextLength: schema.llmModels.contextLength,
+        supportsMultimodal: schema.llmModels.supportsMultimodal,
         createdAt: schema.llmModels.createdAt,
         updatedAt: schema.llmModels.updatedAt,
         serverName: schema.llmServers.name,
@@ -520,6 +522,7 @@ export const llmModelRepository = {
     isPublic?: boolean;
     capabilities?: any;
     contextLength?: number;
+    supportsMultimodal?: boolean;
   }) => {
     const existing = await llmModelRepository.findByServerAndModelId(modelData.serverId, modelData.modelId);
     const now = new Date();
@@ -533,6 +536,7 @@ export const llmModelRepository = {
       if (typeof modelData.isPublic === 'boolean') data.isPublic = modelData.isPublic ? 1 : 0;
       if (modelData.capabilities !== undefined) data.capabilities = JSON.stringify(modelData.capabilities);
       if (modelData.contextLength !== undefined) data.contextLength = modelData.contextLength;
+      if (typeof modelData.supportsMultimodal === 'boolean') data.supportsMultimodal = modelData.supportsMultimodal ? 1 : 0;
       
       return await db.update(schema.llmModels)
         .set(data)
@@ -551,6 +555,7 @@ export const llmModelRepository = {
         isPublic: 0 as any,  // New models are private by default
         capabilities: modelData.capabilities ? JSON.stringify(modelData.capabilities) : null,
         contextLength: modelData.contextLength,
+        supportsMultimodal: modelData.supportsMultimodal ? 1 : 0 as any,
         createdAt: now as any,
         updatedAt: now as any
       }).returning();
@@ -565,6 +570,7 @@ export const llmModelRepository = {
     isPublic: boolean;
     capabilities: any;
     contextLength: number;
+    supportsMultimodal: boolean;
   }>) => {
     const data: any = { updatedAt: new Date() };
     
@@ -572,6 +578,7 @@ export const llmModelRepository = {
     if (typeof modelData.isPublic === 'boolean') data.isPublic = modelData.isPublic ? 1 : 0;
     if (modelData.capabilities !== undefined) data.capabilities = JSON.stringify(modelData.capabilities);
     if (modelData.contextLength !== undefined) data.contextLength = modelData.contextLength;
+    if (typeof modelData.supportsMultimodal === 'boolean') data.supportsMultimodal = modelData.supportsMultimodal ? 1 : 0;
     
     return await db.update(schema.llmModels)
       .set(data)

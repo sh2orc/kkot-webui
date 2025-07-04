@@ -16,14 +16,24 @@ async function fetchOpenAIModels(server: any) {
       const data = await response.json();
       return data.data.filter((model: any) => 
         model.id.includes('gpt') || model.id.includes('dall-e') || model.id.includes('whisper')
-      ).map((model: any) => ({
-        modelId: model.id,
-        capabilities: {
-          chat: model.id.includes('gpt'),
-          image: model.id.includes('dall-e'),
-          audio: model.id.includes('whisper')
-        }
-      }));
+      ).map((model: any) => {
+        // GPT-4 계열 모델의 멀티모달 지원 자동 감지
+        const supportsMultimodal = model.id.includes('gpt-4') && (
+          model.id.includes('vision') || 
+          model.id.includes('gpt-4o') ||
+          model.id.includes('gpt-4-turbo')
+        );
+        
+        return {
+          modelId: model.id,
+          supportsMultimodal,
+          capabilities: {
+            chat: model.id.includes('gpt'),
+            image: model.id.includes('dall-e'),
+            audio: model.id.includes('whisper')
+          }
+        };
+      });
     }
   } catch (err) {
     console.error('Failed to fetch OpenAI models:', err);
@@ -40,6 +50,7 @@ async function fetchOllamaModels(server: any) {
       const data = await response.json();
       return data.models?.map((model: any) => ({
         modelId: model.name,
+        supportsMultimodal: false, // Ollama 모델들은 기본적으로 멀티모달 지원 안함
         capabilities: {
           chat: true,
           image: false,
@@ -87,7 +98,8 @@ export default async function ModelSettingsPage() {
           modelId: model.modelId,
           provider: server.provider,
           capabilities: model.capabilities,
-          contextLength: model.contextLength
+          contextLength: model.contextLength,
+          supportsMultimodal: model.supportsMultimodal
           // enabled and isPublic are not passed
           // - New models: set to disabled (false) by default
           // - Existing models: maintain current status
@@ -124,7 +136,7 @@ export default async function ModelSettingsPage() {
     models: modelsByServer[server.id] || []
   }))
   
-  console.log('최종 서버별 모델 수:', serversWithModels.map(s => ({ name: s.name, modelCount: s.models.length })));
+  console.log('최종 서버별 모델 수:', serversWithModels.map((s: any) => ({ name: s.name, modelCount: s.models.length })));
   console.log('=== Model 페이지 로드 완료 ===');
   
   return <ModelManagementForm initialServers={serversWithModels} />

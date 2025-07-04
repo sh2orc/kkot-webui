@@ -424,6 +424,7 @@ export default function Sidebar({
                     alt="Logo"
                     width={130}
                     height={24}
+                    priority
                     className="h-8 w-auto"
                   />
 
@@ -529,6 +530,7 @@ export default function Sidebar({
                     alt="Logo"
                     width={130}
                     height={24}
+                    priority
                     className="h-8 w-auto"
                   />
                   <span className="whitespace-nowrap font-semibold text-gray-500">꽃 kkot</span>

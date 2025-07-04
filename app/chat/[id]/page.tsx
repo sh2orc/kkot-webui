@@ -1,6 +1,11 @@
-import ChatPage from "@/components/contents/chat-page"
+"use client"
 
-export default async function Page({ params }: { params: Promise<{ id: string }> }) {
-  const resolvedParams = await params
-  return <ChatPage chatId={resolvedParams.id} />
+import ChatPage from "@/components/contents/chat-page"
+import { useParams } from "next/navigation"
+
+export default function Page() {
+  const params = useParams()
+  const chatId = params.id as string
+  
+  return <ChatPage chatId={chatId} />
 }

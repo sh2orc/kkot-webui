@@ -27,6 +27,7 @@ interface LLMModel {
   provider: string
   enabled: boolean
   isPublic: boolean
+  supportsMultimodal: boolean
   capabilities?: any
   contextLength?: number
   updatedAt: string
@@ -124,7 +125,7 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
   }
 
   // Update model settings
-  const updateModel = (modelId: string, field: 'enabled' | 'isPublic', value: boolean) => {
+  const updateModel = (modelId: string, field: 'enabled' | 'isPublic' | 'supportsMultimodal', value: boolean) => {
     setServers(prev => prev.map(server => ({
       ...server,
       models: server.models.map(model => 
@@ -153,7 +154,8 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
           body: JSON.stringify({
             id: model.id,
             enabled: model.enabled,
-            isPublic: model.isPublic
+            isPublic: model.isPublic,
+            supportsMultimodal: model.supportsMultimodal
           })
         })
         
@@ -169,10 +171,10 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
         description: `${modelsToUpdate.length}${lang('saveSuccessMessage')}`
       })
       
-      // 저장 완료 후 버튼 상태 즉시 업데이트
+      // Update button state immediately after saving
       setIsSaving(false)
       
-      // 저장 후 페이지 새로고침하여 서버 상태 동기화
+      // Refresh page after saving to sync server state
       setTimeout(() => {
         console.log('Model settings saved successfully, refreshing page')
         router.refresh()
@@ -240,6 +242,7 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
                     <TableHead>{lang('tableHeaders.serverModel')}</TableHead>
                     <TableHead className="text-center">{lang('tableHeaders.enabled')}</TableHead>
                     <TableHead className="text-center">{lang('tableHeaders.public')}</TableHead>
+                    <TableHead className="text-center">{lang('tableHeaders.multimodal')}</TableHead>
                     <TableHead>{lang('tableHeaders.updatedAt')}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -260,6 +263,12 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
                         <Switch
                           checked={model.isPublic}
                           onCheckedChange={(checked) => updateModel(model.id, 'isPublic', checked)}
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Switch
+                          checked={model.supportsMultimodal}
+                          onCheckedChange={(checked) => updateModel(model.id, 'supportsMultimodal', checked)}
                         />
                       </TableCell>
                       <TableCell className="text-sm text-gray-500">

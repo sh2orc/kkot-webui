@@ -28,6 +28,7 @@
     "serverModel": "Server / Model ID",
     "enabled": "Enabled",
     "public": "Public",
+    "multimodal": "Vision",
     "updatedAt": "Updated"
   },
   "noModelsMessage": "No models available. Click the sync button to fetch models.",

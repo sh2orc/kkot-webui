@@ -1,4 +1,4 @@
-import { LLMMessage, LLMModelConfig, LLMRequestOptions, LLMResponse, LLMStreamCallbacks } from "./types";
+import { LLMMessage, LLMModelConfig, LLMRequestOptions, LLMResponse, LLMStreamCallbacks, MessageContent, isMultimodalMessage, extractTextFromContent } from "./types";
 import { BaseMessage, HumanMessage, SystemMessage, AIMessage, FunctionMessage } from "@langchain/core/messages";
 
 /**
@@ -13,7 +13,8 @@ export abstract class BaseLLM {
       temperature: config.temperature ?? 0.7,
       maxTokens: config.maxTokens ?? 1024,
       topP: config.topP ?? 1.0,
-      streaming: config.streaming ?? false
+      streaming: config.streaming ?? false,
+      supportsMultimodal: config.supportsMultimodal ?? false
     };
   }
 
@@ -37,26 +38,76 @@ export abstract class BaseLLM {
   ): Promise<void>;
 
   /**
-   * Convert LLM messages to LangChain messages
+   * Convert LLM messages to LangChain messages with multimodal support
    */
   protected convertToLangChainMessages(messages: LLMMessage[]): BaseMessage[] {
     return messages.map(message => {
+      const content = this.convertMessageContent(message.content);
+      
       switch (message.role) {
         case "system":
-          return new SystemMessage(message.content);
+          return new SystemMessage({ content });
         case "user":
-          return new HumanMessage(message.content);
+          return new HumanMessage({ content });
         case "assistant":
-          return new AIMessage(message.content);
+          return new AIMessage({ content });
         case "function":
           return new FunctionMessage({
-            content: message.content,
+            content: typeof content === "string" ? content : JSON.stringify(content),
             name: message.name || "function"
           });
         default:
-          return new HumanMessage(message.content);
+          return new HumanMessage({ content });
       }
     });
+  }
+
+  /**
+   * Convert MessageContent to LangChain compatible format
+   */
+  private convertMessageContent(content: MessageContent): any {
+    if (typeof content === "string") {
+      return content;
+    }
+    
+    // For multimodal content, convert to LangChain format
+    return content.map(item => {
+      if (item.type === "text") {
+        return {
+          type: "text",
+          text: item.text
+        };
+      } else if (item.type === "image") {
+        return {
+          type: "image_url",
+          image_url: item.image_url
+        };
+      }
+      return item;
+    });
+  }
+
+  /**
+   * Check if the model supports multimodal input
+   */
+  protected supportsMultimodal(): boolean {
+    return this.config.supportsMultimodal ?? false;
+  }
+
+  /**
+   * Validate multimodal message compatibility
+   */
+  protected validateMultimodalMessage(message: LLMMessage): void {
+    if (isMultimodalMessage(message) && !this.supportsMultimodal()) {
+      throw new Error(`Model ${this.config.modelName} does not support multimodal input. Please use a text-only message or switch to a multimodal model.`);
+    }
+  }
+
+  /**
+   * Validate all messages for multimodal compatibility
+   */
+  protected validateMessages(messages: LLMMessage[]): void {
+    messages.forEach(message => this.validateMultimodalMessage(message));
   }
 
   /**

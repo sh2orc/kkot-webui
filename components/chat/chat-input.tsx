@@ -3,10 +3,11 @@
 import type React from "react"
 
 import { Button } from "@/components/ui/button"
-import { Mic, Globe, Plus, FlaskRoundIcon as Flask, Play, Square } from "lucide-react"
+import { Mic, Globe, Plus, FlaskRoundIcon as Flask, Play, Square, Image as ImageIcon, X } from "lucide-react"
 import type { RefObject } from "react"
 import { useTranslation } from "@/lib/i18n"
-import { memo } from "react"
+import { memo, useState, useRef, useEffect } from "react"
+import { toast } from "sonner"
 
 interface ChatInputProps {
   inputValue: string
@@ -14,13 +15,18 @@ interface ChatInputProps {
   isGlobeActive: boolean
   isFlaskActive: boolean
   isStreaming: boolean
+  isSubmitting?: boolean
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
   handleKeyDown: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void
   handleKeyUp: (e: React.KeyboardEvent<HTMLTextAreaElement>) => void
+  handleCompositionStart?: () => void
+  handleCompositionEnd?: () => void
   handleSubmit: () => void
   handleAbort: () => void
   setIsGlobeActive: (active: boolean) => void
   setIsFlaskActive: (active: boolean) => void
+  onImageUpload?: (images: File[]) => void
+  clearImages?: boolean
 }
 
 export const ChatInput = memo(function ChatInput({
@@ -29,19 +35,214 @@ export const ChatInput = memo(function ChatInput({
   isGlobeActive,
   isFlaskActive,
   isStreaming,
+  isSubmitting = false,
   handleInputChange,
   handleKeyDown,
   handleKeyUp,
+  handleCompositionStart,
+  handleCompositionEnd,
   handleSubmit,
   handleAbort,
   setIsGlobeActive,
   setIsFlaskActive,
+  onImageUpload,
+  clearImages,
 }: ChatInputProps) {
   const { lang } = useTranslation("chat")
+  const [uploadedImages, setUploadedImages] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Clear images function
+  const clearImagesHandler = () => {
+    setUploadedImages([])
+    setImagePreviews([])
+  }
+
+  // Clear images when clearImages prop changes
+  useEffect(() => {
+    if (clearImages) {
+      clearImagesHandler()
+    }
+  }, [clearImages])
+
+  // Image resize and compression function
+  const resizeAndCompressImage = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')!
+      const img = new Image()
+      
+      img.onload = () => {
+        // Set maximum size (reduced to 512px)
+        const maxSize = 512
+        let { width, height } = img
+        
+        // Maintain aspect ratio while resizing
+        if (width > height) {
+          if (width > maxSize) {
+            height = (height * maxSize) / width
+            width = maxSize
+          }
+        } else {
+          if (height > maxSize) {
+            width = (width * maxSize) / height
+            height = maxSize
+          }
+        }
+        
+        canvas.width = width
+        canvas.height = height
+        
+        // Draw image
+        ctx.drawImage(img, 0, 0, width, height)
+        
+        // Convert to compressed image (JPEG, quality 0.6 for more compression)
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            })
+            resolve(compressedFile)
+          } else {
+            resolve(file) // Return original if compression fails
+          }
+        }, 'image/jpeg', 0.6)
+      }
+      
+      img.src = URL.createObjectURL(file)
+    })
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+
+    // Filter image files only
+    const imageFiles = files.filter(file => file.type.startsWith('image/'))
+    if (imageFiles.length === 0) {
+      toast.error("Only image files can be uploaded.")
+      return
+    }
+
+    // Total image count limit (max 3)
+    if (uploadedImages.length + imageFiles.length > 3) {
+      toast.error("You can upload up to 3 images.")
+      return
+    }
+
+    try {
+      // Resize and compress all images
+      const processedImages = await Promise.all(
+        imageFiles.map(file => resizeAndCompressImage(file))
+      )
+
+      // Check file size after compression (2MB)
+      const maxSize = 2 * 1024 * 1024
+      const oversizedFiles = processedImages.filter(file => file.size > maxSize)
+      if (oversizedFiles.length > 0) {
+        toast.error("Image is still too large after compression. Please select a different image.")
+        return
+      }
+
+      // Create image previews
+      const newPreviews: string[] = []
+      const processedFiles: File[] = []
+
+      processedImages.forEach((file, index) => {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const result = e.target?.result as string
+          newPreviews.push(result)
+          processedFiles.push(file)
+          
+          // Update state when all images are loaded
+          if (newPreviews.length === processedImages.length) {
+            setUploadedImages(prev => [...prev, ...processedFiles])
+            setImagePreviews(prev => [...prev, ...newPreviews])
+            
+            // Notify parent component of image upload
+            if (onImageUpload) {
+              onImageUpload([...uploadedImages, ...processedFiles])
+            }
+            
+            // Compression success notification
+            const originalSize = imageFiles.reduce((sum, file) => sum + file.size, 0)
+            const compressedSize = processedFiles.reduce((sum, file) => sum + file.size, 0)
+            const savedPercent = Math.round((1 - compressedSize / originalSize) * 100)
+            
+            if (savedPercent > 10) {
+              toast.success(`Images compressed by ${savedPercent}% and uploaded successfully.`)
+            }
+          }
+        }
+        reader.readAsDataURL(file)
+      })
+    } catch (error) {
+      console.error('Image processing error:', error)
+      toast.error("An error occurred while processing the images.")
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const removeImage = (index: number) => {
+    const newImages = uploadedImages.filter((_, i) => i !== index)
+    const newPreviews = imagePreviews.filter((_, i) => i !== index)
+    
+    setUploadedImages(newImages)
+    setImagePreviews(newPreviews)
+    
+    // Notify parent component of update
+    if (onImageUpload) {
+      onImageUpload(newImages)
+    }
+  }
+
+  const handleSubmitClick = () => {
+    // Check text length (stricter when images are present)
+    const maxTextLength = uploadedImages.length > 0 ? 500 : 4000
+    if (inputValue.trim().length > maxTextLength) {
+      toast.error(`Message is too long. ${uploadedImages.length > 0 ? 'When sending with images, ' : ''}Maximum ${maxTextLength} characters allowed.`)
+      return
+    }
+
+    handleSubmit()
+    // Clear images after submitting
+    if (uploadedImages.length > 0) {
+      clearImagesHandler()
+    }
+  }
+
   return (
-    <div className="absolute bottom-0 left-0 right-0 p-3 pt-0 sm:pt-0 bg-white chat-input-container mobile-keyboard-adjust">
-      <div className="max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto">
+    <div className="absolute bottom-0 left-0 right-0 p-0 chat-input-container mobile-keyboard-adjust">
+      <div className="max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto bg-white">
         <div className="flex-1 flex flex-col relative w-full shadow-lg rounded-xl border border-gray-200 hover:border-gray-300 focus-within:border-gray-300 transition bg-white">
+          {/* Image previews */}
+          {imagePreviews.length > 0 && (
+            <div className="flex flex-wrap gap-2 p-3 border-b border-gray-200">
+              {imagePreviews.map((preview, index) => (
+                <div key={index} className="relative">
+                  <img
+                    src={preview}
+                    alt={`Uploaded image ${index + 1}`}
+                    className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                  />
+                  <button
+                    onClick={() => removeImage(index)}
+                    className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+
           <div className="flex flex-col p-2 sm:p-3">
             {/* Text area */}
             <div className="relative flex items-end">
@@ -58,6 +259,8 @@ export const ChatInput = memo(function ChatInput({
                 onChange={handleInputChange}
                 onKeyDown={handleKeyDown}
                 onKeyUp={handleKeyUp}
+                onCompositionStart={handleCompositionStart}
+                onCompositionEnd={handleCompositionEnd}
                 onInput={(e) => {
                   const target = e.target as HTMLTextAreaElement;
                   target.style.height = 'auto';
@@ -68,8 +271,8 @@ export const ChatInput = memo(function ChatInput({
                 variant="default"
                 size="icon"
                 className={`absolute right-0 bottom-2 sm:bottom-3 h-6 w-6 sm:h-9 sm:w-9 rounded-full text-white bg-black hover:bg-gray-800 hover:text-white touch-manipulation`}
-                onClick={isStreaming ? handleAbort : handleSubmit}
-                disabled={!isStreaming && !inputValue.trim()}
+                onClick={isStreaming ? handleAbort : handleSubmitClick}
+                disabled={!isStreaming && (!inputValue.trim() && uploadedImages.length === 0) || isSubmitting}
               >
                 {isStreaming ? (
                   <Square className="h-4 w-4" />
@@ -79,11 +282,41 @@ export const ChatInput = memo(function ChatInput({
               </Button>
             </div>
 
+            {/* Text length indicator */}
+            {(inputValue.length > 500 || uploadedImages.length > 0) && (
+              <div className="text-xs text-gray-500 mt-1 px-1">
+                {inputValue.length}/{uploadedImages.length > 0 ? 1000 : 4000} characters
+                {uploadedImages.length > 0 && (
+                  <span className="ml-2 text-orange-600">
+                    {uploadedImages.length} images (text limit: 1000 characters)
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* Bottom controls */}
             <div className="flex items-center justify-between mt-0 sm:mt-3 hidden sm:flex">
-              <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 touch-manipulation">
-                <Plus className="h-4 w-4" />
-              </Button>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 touch-manipulation">
+                  <Plus className="h-4 w-4" />
+                </Button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  onChange={handleImageUpload}
+                  className="hidden"
+                />
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 sm:h-9 sm:w-9 touch-manipulation"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <ImageIcon className="h-4 w-4" />
+                </Button>
+              </div>
               <div className="flex items-center gap-2 sm:gap-2">
                 <Button variant="ghost" 
                   size="icon" 
@@ -110,10 +343,29 @@ export const ChatInput = memo(function ChatInput({
             </div>
           </div>
         </div>
-        <div className="text-xs text-center text-gray-400 mb-2 mt-3 ">
+        <div className="text-xs text-center text-gray-400 pb-2 mt-3 ">
           {lang("disclaimer")}
         </div>
       </div>
     </div>
   )
 })
+
+// New type definition - Image information
+export interface ImagePreview {
+  file: File
+  preview: string
+}
+
+// Image utility functions
+export const createImageContent = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = (e) => {
+      const result = e.target?.result as string
+      resolve(result)
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}

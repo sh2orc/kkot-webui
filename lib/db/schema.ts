@@ -56,6 +56,8 @@ export const chatMessages = getDbType() === 'sqlite'
       sessionId: text('session_id').references(() => chatSessions.id, { onDelete: 'cascade' }),
       role: text('role', { enum: ['user', 'assistant'] }).notNull(),
       content: text('content').notNull(),
+      contentType: text('content_type').default('text'), // 'text' or 'multimodal'
+      attachments: text('attachments'), // JSON string for multimodal content
       createdAt: integer('created_at', { mode: 'timestamp' }),
     })
   : pgTable('chat_messages', {
@@ -63,6 +65,8 @@ export const chatMessages = getDbType() === 'sqlite'
       sessionId: serial('session_id').references(() => chatSessions.id, { onDelete: 'cascade' }),
       role: varchar('role', { length: 50 }).notNull(),
       content: pgText('content').notNull(),
+      contentType: varchar('content_type', { length: 50 }).default('text'),
+      attachments: pgText('attachments'),
       createdAt: timestamp('created_at').defaultNow(),
     });
 
@@ -230,6 +234,7 @@ export const llmModels = getDbType() === 'sqlite'
       isPublic: integer('is_public', { mode: 'boolean' }).default(false), // Whether to expose to general users
       capabilities: text('capabilities'), // JSON string for model capabilities
       contextLength: integer('context_length'),
+      supportsMultimodal: integer('supports_multimodal', { mode: 'boolean' }).default(false), // Multimodal support
       createdAt: integer('created_at', { mode: 'timestamp' }),
       updatedAt: integer('updated_at', { mode: 'timestamp' }),
     })
@@ -242,6 +247,7 @@ export const llmModels = getDbType() === 'sqlite'
       isPublic: boolean('is_public').default(false),
       capabilities: pgText('capabilities'),
       contextLength: integer('context_length'),
+      supportsMultimodal: boolean('supports_multimodal').default(false), // Multimodal support
       createdAt: timestamp('created_at').defaultNow(),
       updatedAt: timestamp('updated_at').defaultNow(),
     });
@@ -264,6 +270,7 @@ export const agentManage = getDbType() === 'sqlite'
       description: text('description'),
       enabled: integer('enabled', { mode: 'boolean' }).default(true),
       parameterEnabled: integer('parameter_enabled', { mode: 'boolean' }).default(true),
+      supportsMultimodal: integer('supports_multimodal', { mode: 'boolean' }).default(false), // Multimodal support
       createdAt: integer('created_at', { mode: 'timestamp' }),
       updatedAt: integer('updated_at', { mode: 'timestamp' }),
     })
@@ -283,6 +290,7 @@ export const agentManage = getDbType() === 'sqlite'
       description: pgText('description'),
       enabled: boolean('enabled').default(true),
       parameterEnabled: boolean('parameter_enabled').default(true),
+      supportsMultimodal: boolean('supports_multimodal').default(false), // Multimodal support
       createdAt: timestamp('created_at').defaultNow(),
       updatedAt: timestamp('updated_at').defaultNow(),
     }); 

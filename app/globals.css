@@ -124,6 +124,16 @@ body.no-loading [data-nextjs-loading-state] {
     scroll-behavior: smooth;
     overflow-anchor: none;
     transition: all 0.2s ease-out;
+    /* 렌더링 최적화를 위한 containment 설정 */
+    contain: layout style;
+    /* 최소 높이 설정으로 스크롤 중 빈 공간 방지 */
+    min-height: 100%;
+    /* 하드웨어 가속 활성화 */
+    transform: translateZ(0);
+    will-change: scroll-position;
+    /* 긴 콘텐츠 렌더링 최적화 - 스크롤 계산 정확성을 위해 조정 */
+    /* content-visibility: auto; */
+    /* contain-intrinsic-size: 0 1000px; */
   }
   
   .messages-container::-webkit-scrollbar {
@@ -141,6 +151,30 @@ body.no-loading [data-nextjs-loading-state] {
   
   .messages-container::-webkit-scrollbar-thumb:hover {
     background: #9ca3af;
+  }
+  
+  /* 메시지 래퍼 렌더링 최적화 */
+  .messages-container > div {
+    /* 메시지 컨테이너 내부 요소들의 렌더링 안정성 */
+    contain: layout;
+    /* 레이아웃 시프트 방지 */
+    min-height: 1px;
+    /* 긴 메시지에서 레이아웃 안정성 확보 */
+    content-visibility: auto;
+    contain-intrinsic-size: 0 400px;
+  }
+  
+  /* 메시지 아이템 렌더링 최적화 */
+  .message-item {
+    /* 각 메시지 아이템의 렌더링 최적화 */
+    contain: layout style;
+    /* 레이아웃 변경 시 부드러운 전환 */
+    transition: opacity 0.2s ease-out;
+    /* 긴 메시지 렌더링 최적화 */
+    content-visibility: auto;
+    contain-intrinsic-size: 0 200px;
+    /* 메시지 아이템 최소 높이 보장 */
+    min-height: 40px;
   }
   
   /* Number input styling */
@@ -465,6 +499,12 @@ body.no-loading [data-nextjs-loading-state] {
   width: 100% !important;
   overflow: hidden !important;
   box-sizing: border-box !important;
+  /* 코드 블록의 렌더링 최적화 */
+  contain: layout style;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 300px;
+  /* 코드 블록 최소 높이 보장 */
+  min-height: 100px;
 }
 
 .code-block > div {
@@ -544,6 +584,20 @@ body.no-loading [data-nextjs-loading-state] {
   display: flex !important;
   align-items: center !important;
   justify-content: space-between !important;
+}
+
+/* 코드 블록 헤더 버튼 컨테이너 오른쪽 정렬 */
+.code-block-header > div:last-child {
+  margin-left: auto !important;
+  flex-shrink: 0 !important;
+}
+
+/* 모바일에서 코드 블록 헤더 패딩 조정 */
+@media (max-width: 640px) {
+  .code-block-header {
+    padding: 2px 8px !important;
+    font-size: 0.75rem !important;
+  }
 }
 
 /* SyntaxHighlighter 내부 pre/code 태그 스타일 재정의 */
@@ -1001,7 +1055,7 @@ div.prose strong,
   
   /* 모바일 채팅 입력창 최적화 */
   .chat-input-container {
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: 0px;
   }
   
   /* 모바일 키보드 대응 */

@@ -1,16 +1,26 @@
 import { ChatOpenAI } from "@langchain/openai";
 import { BaseLLM } from "./base";
-import { LLMFunctionCallOptions, LLMMessage, LLMModelConfig, LLMRequestOptions, LLMResponse, LLMStreamCallbacks } from "./types";
+import { LLMFunctionCallOptions, LLMMessage, LLMModelConfig, LLMRequestOptions, LLMResponse, LLMStreamCallbacks, extractTextFromContent } from "./types";
 import { AIMessageChunk } from "@langchain/core/messages";
 
 /**
- * OpenAI LLM implementation
+ * OpenAI LLM implementation with multimodal support
  */
 export class OpenAILLM extends BaseLLM {
   private client: ChatOpenAI;
 
   constructor(config: LLMModelConfig) {
     super(config);
+    
+    // GPT-4 vision models support multimodal input
+    const supportsMultimodal = config.modelName.includes('gpt-4') && (
+      config.modelName.includes('vision') || 
+      config.modelName.includes('gpt-4o') ||
+      config.modelName.includes('gpt-4-turbo')
+    );
+    
+    this.config.supportsMultimodal = config.supportsMultimodal ?? supportsMultimodal;
+    
     this.client = new ChatOpenAI({
       modelName: config.modelName,
       temperature: config.temperature,
@@ -30,6 +40,9 @@ export class OpenAILLM extends BaseLLM {
    * Method to send messages to the OpenAI model and receive a response
    */
   async chat(messages: LLMMessage[], options?: LLMRequestOptions): Promise<LLMResponse> {
+    // Validate multimodal messages
+    this.validateMessages(messages);
+    
     const langChainMessages = this.convertToLangChainMessages(messages);
     
     const functionCallOptions = this.prepareFunctionCallOptions(options?.functions);
@@ -76,6 +89,9 @@ export class OpenAILLM extends BaseLLM {
     callbacks: LLMStreamCallbacks,
     options?: LLMRequestOptions
   ): Promise<void> {
+    // Validate multimodal messages
+    this.validateMessages(messages);
+    
     const langChainMessages = this.convertToLangChainMessages(messages);
     
     const streamingClient = new ChatOpenAI({
@@ -161,11 +177,30 @@ export class OpenAILLM extends BaseLLM {
   }
 
   /**
-   * Estimate token count (simple implementation)
+   * Estimate token count for multimodal messages
    */
   private estimateTokenCount(messages: LLMMessage[]): number {
-    // Simple estimation: approximately 3 tokens per 4 characters for English text
-    const totalChars = messages.reduce((sum, msg) => sum + msg.content.length, 0);
-    return Math.ceil(totalChars / 4);
+    let totalTokens = 0;
+    
+    for (const message of messages) {
+      if (typeof message.content === "string") {
+        // Simple estimation: approximately 3 tokens per 4 characters for English text
+        totalTokens += Math.ceil(message.content.length / 4);
+      } else {
+        // For multimodal content, estimate tokens for text and images
+        for (const content of message.content) {
+          if (content.type === "text") {
+            totalTokens += Math.ceil(content.text.length / 4);
+          } else if (content.type === "image") {
+            // Image tokens estimation based on OpenAI's pricing
+            // High detail: ~765 tokens, Low detail: ~85 tokens
+            const detail = content.image_url.detail || "auto";
+            totalTokens += detail === "high" ? 765 : 85;
+          }
+        }
+      }
+    }
+    
+    return totalTokens;
   }
 } 

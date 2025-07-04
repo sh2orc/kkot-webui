@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS llm_models (
     is_public INTEGER DEFAULT 0,
     capabilities TEXT, -- JSON string
     context_length INTEGER,
+    supports_multimodal INTEGER DEFAULT 0, -- 멀티모달 지원 여부
     created_at INTEGER,
     updated_at INTEGER,
     FOREIGN KEY (server_id) REFERENCES llm_servers(id) ON DELETE CASCADE
@@ -18,4 +19,5 @@ CREATE TABLE IF NOT EXISTS llm_models (
 -- 인덱스 생성
 CREATE INDEX IF NOT EXISTS idx_llm_models_server_id ON llm_models(server_id);
 CREATE INDEX IF NOT EXISTS idx_llm_models_provider ON llm_models(provider);
-CREATE UNIQUE INDEX IF NOT EXISTS idx_llm_models_server_model ON llm_models(server_id, model_id); 
+CREATE INDEX IF NOT EXISTS idx_llm_models_multimodal ON llm_models(supports_multimodal);
+CREATE UNIQUE INDEX IF NOT EXISTS idx_llm_models_server_model ON llm_models(server_id, model_id);

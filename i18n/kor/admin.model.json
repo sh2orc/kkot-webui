@@ -28,6 +28,7 @@
     "serverModel": "서버 / 모델 ID",
     "enabled": "활성화",
     "public": "공개",
+    "multimodal": "이미지 인식",
     "updatedAt": "갱신일"
   },
   "noModelsMessage": "모델이 없습니다. 동기화 버튼을 눌러 모델을 가져오세요.",

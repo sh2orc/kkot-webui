@@ -57,5 +57,8 @@
       "answer2": "Yes! BC Card's payback service generally has minimum payment amount criteria. While it varies by card product, the following conditions apply in most cases:\n\n1. Payback benefits are generally applied when you spend 300,000 KRW or more per month.\n2. For some premium cards, you may need to spend 500,000 KRW or more per month to receive benefits.\n3. During special promotional periods, minimum payment amount criteria may be lowered or eliminated.\n\nSince the exact minimum payment amount varies depending on the BC Card product you hold, it's recommended to check through your card terms or BC Card customer service."
     }
   },
-  "saveButton": "Save"
+  "saveButton": "Save",
+  "error": {
+    "no_model_selected": "No model selected. Please select a model from the model selection menu above."
+  }
 } 

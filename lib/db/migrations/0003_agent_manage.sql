@@ -18,6 +18,7 @@ CREATE TABLE agent_manage (
   description TEXT,
   enabled INTEGER DEFAULT 1,
   parameter_enabled INTEGER DEFAULT 1,
+  supports_multimodal INTEGER DEFAULT 0, -- 멀티모달 지원 여부
   created_at INTEGER DEFAULT (unixepoch()),
   updated_at INTEGER DEFAULT (unixepoch()),
   FOREIGN KEY (model_id) REFERENCES llm_models(id) ON DELETE CASCADE
@@ -30,4 +31,7 @@ CREATE INDEX IF NOT EXISTS idx_agent_manage_model_id ON agent_manage(model_id);
 CREATE INDEX IF NOT EXISTS idx_agent_manage_enabled ON agent_manage(enabled);
 
 -- Create index for agent_id (IF NOT EXISTS 추가)
-CREATE INDEX IF NOT EXISTS idx_agent_manage_agent_id ON agent_manage(agent_id); 
+CREATE INDEX IF NOT EXISTS idx_agent_manage_agent_id ON agent_manage(agent_id);
+
+-- Create index for multimodal support
+CREATE INDEX IF NOT EXISTS idx_agent_manage_multimodal ON agent_manage(supports_multimodal); 

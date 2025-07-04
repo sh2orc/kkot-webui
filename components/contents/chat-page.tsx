@@ -68,7 +68,7 @@ const MessageWrapper = memo(({
 }) => {
   return (
     <div 
-      className={`mb-6 ${isNewMessage ? 'message-enter' : ''} ${message.role === "user" ? "flex justify-end" : ""}`}
+      className={`message-item mb-6 ${isNewMessage ? 'message-enter' : ''} ${message.role === "user" ? "flex justify-end" : ""}`}
     >
       {message.role === "assistant" && (
         <LlmResponse
@@ -155,7 +155,7 @@ const MessageWrapper = memo(({
 const ChatMessageSkeleton = () => {
   return (
     <div className="space-y-6 animate-pulse">
-      {/* 첫 번째 AI 응답 스켈레톤 */}
+      {/* First AI response skeleton */}
       <div className="flex justify-start mb-6">
         <div className="w-full max-w-[90%] space-y-2">
           <div className="flex items-center space-x-2">
@@ -172,7 +172,7 @@ const ChatMessageSkeleton = () => {
         </div>
       </div>
 
-      {/* 두 번째 AI 응답 스켈레톤 */}
+      {/* Second AI response skeleton */}
       <div className="flex justify-start mb-6">
         <div className="w-full max-w-[90%] space-y-2">
           <div className="flex items-center space-x-2">
@@ -188,7 +188,7 @@ const ChatMessageSkeleton = () => {
         </div>
       </div>
 
-      {/* 세 번째 AI 응답 스켈레톤 */}
+      {/* Third AI response skeleton */}
       <div className="flex justify-start mb-6">
         <div className="w-full max-w-[90%] space-y-2">
           <div className="flex items-center space-x-2">
@@ -213,7 +213,7 @@ const ChatMessageSkeleton = () => {
 export default function ChatPage({ chatId }: ChatPageProps) {
   const router = useRouter()
   const searchParams = useSearchParams()
-  const { data: session } = useSession()
+  const { data: session, status: sessionStatus } = useSession()
   const { lang } = useTranslation('chat')
   const { selectedModel } = useModel()
   const isMobile = useIsMobile()
@@ -238,6 +238,10 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   const [regeneratingMessageId, setRegeneratingMessageId] = useState<string | null>(null)
   const [newMessageIds, setNewMessageIds] = useState<Set<string>>(new Set())
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
+  const [uploadedImages, setUploadedImages] = useState<File[]>([])
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isComposing, setIsComposing] = useState(false)
+  const [clearImagesTrigger, setClearImagesTrigger] = useState(false)
   // Set safer initial value
   const [dynamicPadding, setDynamicPadding] = useState(() => {
     // Use default value on server side, detect screen size on client
@@ -250,6 +254,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   const abortControllerRef = useRef<AbortController | null>(null)
   const isScrollingToBottom = useRef(false)
   const lastScrollHeight = useRef(0)
+  const lastSubmittedMessage = useRef<string | null>(null)
+  const lastSubmittedTime = useRef<number>(0)
 
   // Reset padding when isMobile changes
   useEffect(() => {
@@ -327,11 +333,16 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     
     // Adjust padding and scroll
     adjustDynamicPadding()
-    scrollToBottomSmooth()
+    scrollToBottomSmooth(true) // Set force=true to ensure scroll to bottom
   }
 
+  // Handle image upload from ChatInput
+  const handleImageUpload = useCallback((images: File[]) => {
+    setUploadedImages(images)
+  }, [])
+
   // Continue with new request after short delay
-  const sendMessageToAI = async (message: string, agentInfo: {id: string, type: string}, isRegeneration: boolean = false) => {
+  const sendMessageToAI = async (message: string, agentInfo: {id: string, type: string}, isRegeneration: boolean = false, images?: File[]) => {
     if (!session?.user?.id) {
       console.error('User authentication required')
       return
@@ -344,12 +355,32 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       await new Promise(resolve => setTimeout(resolve, 100))
     }
 
-    // Simple duplicate prevention using message content
-    const lastMessage = sessionStorage.getItem(`lastMessage_${chatId}`)
-    if (lastMessage === message) {
-      return
+    // Enhanced duplicate prevention using message content + timestamp
+    const currentTime = Date.now()
+    const messageKey = `${message}_${images?.length || 0}_${isRegeneration}`
+    const lastMessageData = sessionStorage.getItem(`lastMessage_${chatId}`)
+    
+    if (lastMessageData) {
+      try {
+        const { message: lastMsg, timestamp: lastTime } = JSON.parse(lastMessageData)
+        // Block if same message within 2 seconds
+        if (lastMsg === messageKey && currentTime - lastTime < 2000) {
+          console.log('Duplicate AI request blocked:', messageKey)
+          return
+        }
+      } catch (e) {
+        // If parsing fails, continue with old logic
+        if (lastMessageData === messageKey) {
+          console.log('Duplicate AI request blocked (fallback):', messageKey)
+          return
+        }
+      }
     }
-    sessionStorage.setItem(`lastMessage_${chatId}`, message)
+    
+    sessionStorage.setItem(`lastMessage_${chatId}`, JSON.stringify({
+      message: messageKey,
+      timestamp: currentTime
+    }))
 
     // Abort previous request if exists
     if (abortControllerRef.current) {
@@ -364,25 +395,47 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     
     // Adjust padding and scroll
     adjustDynamicPadding()
-    scrollToBottomSmooth()
+    scrollToBottomSmooth(true) // Set force=true to ensure scroll to bottom
 
     try {
+      let response: Response
 
-      const response = await fetch(`/api/chat/${chatId}`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          message: message,
-          agentId: agentInfo.type === 'agent' ? agentInfo.id : undefined,
-          modelId: agentInfo.type === 'model' ? agentInfo.id : undefined,
-          modelType: agentInfo.type,
-          userId: session.user.id,
-          isRegeneration: isRegeneration,
-        }),
-        signal: abortController.signal
-      })
+      if (images && images.length > 0) {
+        // Use FormData when images are present
+        const formData = new FormData()
+        formData.append('message', message)
+        formData.append('agentId', agentInfo.id)
+        formData.append('modelType', agentInfo.type)
+        formData.append('isRegeneration', isRegeneration.toString())
+        
+        // Add image files
+        images.forEach((image) => {
+          formData.append('images', image)
+        })
+        
+        // Add userId for authentication
+        formData.append('userId', session?.user?.id || '')
+        
+        response = await fetch(`/api/chat/${chatId}`, {
+          method: 'POST',
+          body: formData
+        })
+      } else {
+        // Use JSON for text-only messages
+        response = await fetch(`/api/chat/${chatId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            message,
+            agentId: agentInfo.id,
+            modelType: agentInfo.type,
+            isRegeneration,
+            userId: session?.user?.id
+          })
+        })
+      }
 
       if (!response.ok) {
         const errorText = await response.text()
@@ -437,7 +490,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                       }])
                       // Scroll immediately when new AI response message is generated
                       adjustDynamicPadding()
-                      scrollToBottomSmooth()
+                      scrollToBottomSmooth(true) // Set force=true to ensure scroll to bottom
                     }
 
                     if (data.content) {
@@ -453,7 +506,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                       // Maintain scroll position and adjust padding during streaming (frequency adjusted)
                       if (assistantContent.length % 100 === 0) {
                         adjustDynamicPadding()
-                        scrollToBottomSmooth()
+                        scrollToBottomSmooth(true) // Set force=true to ensure scroll to bottom
                       }
                     }
 
@@ -504,8 +557,18 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       
       // Scroll one more time after streaming completes (after DOM updates)
       setTimeout(() => {
-        scrollToBottomSmooth(true)
+        scrollToBottomSmooth()
       }, 100)
+      
+      // Additional scroll handling - wait for DOM to fully render after streaming
+      setTimeout(() => {
+        scrollToBottomSmooth()
+      }, 100)
+      
+      // Final scroll adjustment
+      setTimeout(() => {
+        scrollToBottomSmooth()
+      }, 500)
       
       // Restore base padding after streaming completes
       setTimeout(() => {
@@ -515,28 +578,26 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       // Clear duplicate prevention after request completes
       setTimeout(() => {
         sessionStorage.removeItem(`lastMessage_${chatId}`)
-      }, 5000) // Clear after 5 seconds
+      }, 3000) // Clear after 3 seconds
     }
   }
 
-  // Load messages based on chat ID
+  // Load chat history when chatId or session changes
   useEffect(() => {
-    // Reset history load state when loading new chat
-    setHistoryLoaded(false)
-    setShowSkeleton(false)
-    
     let isCancelled = false
-    let skeletonTimer: NodeJS.Timeout | null = null
     
-    // Show skeleton UI with delay (after 200ms)
-    skeletonTimer = setTimeout(() => {
-      if (!isCancelled) {
-        // Use requestAnimationFrame to prevent render blocking
-        requestAnimationFrame(() => {
-          setShowSkeleton(true)
-        })
-      }
-    }, 200)
+    console.log('=== ChatPage useEffect triggered ===')
+    console.log('chatId:', chatId)
+    console.log('session?.user?.id:', session?.user?.id)
+    console.log('sessionStatus:', sessionStatus)
+    
+    // Initialize loading state
+    setHistoryLoaded(false)
+    setShowSkeleton(true)
+    
+    // Ensure minimum skeleton UI display time (300ms)
+    const minSkeletonDisplayTime = 300
+    const skeletonStartTime = Date.now()
     
     if (chatId && session?.user?.id) {
       // Get chat history from API
@@ -544,11 +605,15 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         if (isCancelled) return
 
         try {
+          console.log('=== Fetching chat history ===')
+          console.log('URL:', `/api/chat/${chatId}?userId=${session.user.id}`)
           const response = await fetch(`/api/chat/${chatId}?userId=${session.user.id}`)
+          console.log('Response status:', response.status)
           if (isCancelled) return
           
           if (response.ok) {
             const data = await response.json()
+            console.log('Chat history data:', data)
             if (isCancelled) return
             
             // Convert timestamp to Date object
@@ -556,46 +621,61 @@ export default function ChatPage({ chatId }: ChatPageProps) {
               ...msg,
               timestamp: new Date(msg.timestamp)
             }))
-            // Improve rendering performance with batch processing for many messages
-            if (messagesWithDateTimestamp.length > 50) {
-              // Process in batches when there are many messages
-              setMessages([])
-              requestAnimationFrame(() => {
+            console.log('Processed messages:', messagesWithDateTimestamp)
+            
+            // Process messages in a non-blocking way
+            const processMessages = () => {
+              return new Promise<void>((resolve) => {
+                if (isCancelled) {
+                  resolve()
+                  return
+                }
+                
+                // Process messages consistently regardless of count
+                // Set messages directly instead of initializing with empty array
                 setMessages(messagesWithDateTimestamp)
+                console.log('Messages set, length:', messagesWithDateTimestamp.length)
+                
+                // Auto-generate AI response if last message is user message AND there's agent info in localStorage
+                // This only happens for newly created chats where user message was just sent
+                const agentInfo = localStorage.getItem(`chat_${chatId}_agent`)
+                if (messagesWithDateTimestamp.length > 0 && !streamingInProgress.current && agentInfo) {
+                  const lastMessage = messagesWithDateTimestamp[messagesWithDateTimestamp.length - 1]
+                  
+                  // Only generate response if:
+                  // 1. Last message is from user
+                  // 2. There's exactly 1 message (first conversation)
+                  // 3. Agent info exists in localStorage
+                  if (lastMessage.role === 'user' && messagesWithDateTimestamp.length === 1) {
+                    if (!isCancelled) {
+                      const parsedAgentInfo = JSON.parse(agentInfo)
+                      
+                      // Call streaming API
+                      sendMessageToAI(lastMessage.content, parsedAgentInfo)
+                      
+                      // Clean up localStorage after use (delay to prevent race condition)
+                      setTimeout(() => {
+                        localStorage.removeItem(`chat_${chatId}_agent`)
+                      }, 1000)
+                    }
+                  } else {
+                    // Clean up localStorage if it exists but we're not using it
+                    localStorage.removeItem(`chat_${chatId}_agent`)
+                  }
+                }
+                
+                // Always resolve the promise
+                resolve()
               })
-            } else {
-              setMessages(messagesWithDateTimestamp)
             }
             
-            // Auto-generate AI response if last message is user message AND there's agent info in localStorage
-            // This only happens for newly created chats where user message was just sent
-            const agentInfo = localStorage.getItem(`chat_${chatId}_agent`)
-            if (messagesWithDateTimestamp.length > 0 && !streamingInProgress.current && agentInfo) {
-              const lastMessage = messagesWithDateTimestamp[messagesWithDateTimestamp.length - 1]
-              
-              // Only generate response if:
-              // 1. Last message is from user
-              // 2. There's exactly 1 message (first conversation)
-              // 3. Agent info exists in localStorage
-              if (lastMessage.role === 'user' && messagesWithDateTimestamp.length === 1) {
-                if (!isCancelled) {
-                  const parsedAgentInfo = JSON.parse(agentInfo)
-                  
-                  // Call streaming API
-                  sendMessageToAI(lastMessage.content, parsedAgentInfo)
-                  
-                  // Clean up localStorage after use (delay to prevent race condition)
-                  setTimeout(() => {
-                    localStorage.removeItem(`chat_${chatId}_agent`)
-                  }, 1000)
-                }
-              } else {
-                // Clean up localStorage if it exists but we're not using it
-                localStorage.removeItem(`chat_${chatId}_agent`)
-              }
-            }
+            // Process messages asynchronously
+            await processMessages()
           } else {
             console.error('Failed to load chat history')
+            console.error('Response status:', response.status)
+            const errorText = await response.text()
+            console.error('Error response:', errorText)
           }
         } catch (error) {
           if (!isCancelled) {
@@ -603,25 +683,47 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           }
         } finally {
           if (!isCancelled) {
-            // Prevent render blocking when there are many messages
-            requestAnimationFrame(() => {
-              setHistoryLoaded(true) // Mark history load as completed
-              setShowSkeleton(false) // Hide skeleton UI
-            })
+            // Ensure minimum skeleton UI display time (300ms)
+            const elapsedTime = Date.now() - skeletonStartTime
+            const remainingTime = Math.max(0, minSkeletonDisplayTime - elapsedTime)
+            
+            setTimeout(() => {
+              if (!isCancelled) {
+                // Prevent render blocking when there are many messages
+                requestAnimationFrame(() => {
+                  setHistoryLoaded(true) // Mark history load as completed
+                  setShowSkeleton(false) // Hide skeleton UI
+                  console.log('=== History loading completed ===')
+                  console.log('historyLoaded: true, showSkeleton: false')
+                  
+                  // Move to bottom immediately after content is loaded (without animation)
+                  // 여러 단계로 스크롤 처리하여 확실하게 맨 밑으로 이동
+                  setTimeout(() => {
+                    scrollToBottomInstant()
+                  }, 100)
+                  
+                  // 추가 스크롤 처리 - DOM 완전 렌더링 후
+                  setTimeout(() => {
+                    scrollToBottomInstant()
+                  }, 300)
+                  
+                  // 최종 스크롤 처리
+                  setTimeout(() => {
+                    scrollToBottomInstant()
+                  }, 600)
+                })
+              }
+            }, remainingTime)
           }
         }
       }
 
       loadChatHistory()
-      
-      // Move to bottom immediately after loading messages (without animation)
-      setTimeout(() => {
-        if (!isCancelled) {
-          scrollToBottomInstant()
-        }
-      }, 0)
     } else {
-      // chatId나 session이 없으면 즉시 로딩 완료 처리
+      // chatId나 session이 없으면 최소 시간 후 로딩 완료 처리
+      const elapsedTime = Date.now() - skeletonStartTime
+      const remainingTime = Math.max(0, minSkeletonDisplayTime - elapsedTime)
+      
       setTimeout(() => {
         if (!isCancelled) {
           requestAnimationFrame(() => {
@@ -629,15 +731,12 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             setShowSkeleton(false)
           })
         }
-      }, 100) // Show skeleton briefly for 100ms
+      }, remainingTime)
     }
 
     // Cleanup function
     return () => {
       isCancelled = true
-      if (skeletonTimer) {
-        clearTimeout(skeletonTimer)
-      }
     }
   }, [chatId, session?.user?.id, isMobile])
 
@@ -657,21 +756,25 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   useEffect(() => {
     if (messages.length > 0) {
       if (isInitialLoad) {
-        // Move to bottom immediately on first load
-        setTimeout(() => scrollToBottomInstant(), 50)
+        // Move to bottom immediately on first load (without animation)
+        setTimeout(() => scrollToBottomInstant(), 100)
+        setTimeout(() => scrollToBottomInstant(), 300)
+        setTimeout(() => scrollToBottomInstant(), 600)
         setIsInitialLoad(false)
       } else {
         // Smooth scroll when new message is added
-        setTimeout(() => scrollToBottomSmooth(), 50)
+        setTimeout(() => scrollToBottomSmooth(true), 100)
+        setTimeout(() => scrollToBottomInstant(), 300)
+        setTimeout(() => scrollToBottomInstant(), 600)
       }
       
       // Adjust padding when messages change
-      setTimeout(() => adjustDynamicPadding(), 100)
+      setTimeout(() => adjustDynamicPadding(), 200)
       
       // Clean up new message IDs after animation completes
       setTimeout(() => {
         setNewMessageIds(new Set())
-      }, 500)
+      }, 1000)
     }
   }, [messages, isInitialLoad, adjustDynamicPadding])
   
@@ -682,33 +785,75 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     setDynamicPadding(basePadding) // Reset padding too
   }, [chatId, isMobile])
 
-  // Also scroll to bottom immediately on component mount
-  useEffect(() => {
-    setTimeout(() => scrollToBottomInstant(), 0)
-  }, [])
-
   // Add scroll event listener - prevent auto scroll when user scrolls
   useEffect(() => {
     const container = messagesContainerRef.current
     if (!container) return
 
+    let scrollTimeout: NodeJS.Timeout | null = null
+
     const handleScroll = () => {
-      // Disable auto scroll flag when user scrolls manually
-      if (!isScrollingToBottom.current) {
-        const { scrollTop, scrollHeight, clientHeight } = container
-        const isAtBottom = scrollHeight - scrollTop - clientHeight < 80
-        
-        // Disable auto scroll if not at bottom
-        if (!isAtBottom) {
-          // User scrolled up, temporarily disable auto scroll
-        }
+      // 스크롤 이벤트 디바운싱으로 성능 최적화
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout)
       }
+      
+      scrollTimeout = setTimeout(() => {
+        // Disable auto scroll flag when user scrolls manually
+        if (!isScrollingToBottom.current) {
+          const { scrollTop, scrollHeight, clientHeight } = container
+          const isAtBottom = scrollHeight - scrollTop - clientHeight < 80
+          
+          // 긴 메시지에서 스크롤 중 렌더링 안정성 확보
+          if (!isAtBottom) {
+            // 스크롤이 상단으로 이동할 때 렌더링 강제 업데이트 방지
+            container.style.contentVisibility = 'auto'
+          }
+        }
+      }, 16) // 60fps에 맞춰 디바운싱
     }
 
     container.addEventListener('scroll', handleScroll, { passive: true })
     
     return () => {
       container.removeEventListener('scroll', handleScroll)
+      if (scrollTimeout) {
+        clearTimeout(scrollTimeout)
+      }
+    }
+  }, [])
+
+  // ResizeObserver를 사용하여 콘텐츠 크기 변경 감지 및 자동 스크롤
+  useEffect(() => {
+    const container = messagesContainerRef.current
+    if (!container) return
+
+    const resizeObserver = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        // 콘텐츠 크기가 변경되었을 때 사용자가 하단 근처에 있으면 자동 스크롤
+        const { scrollTop, scrollHeight, clientHeight } = container
+        const isNearBottom = scrollHeight - scrollTop - clientHeight < 200
+        
+        if (isNearBottom && !isScrollingToBottom.current) {
+          // 짧은 지연 후 스크롤 (DOM 업데이트 대기)
+          setTimeout(() => {
+            scrollToBottomInstant()
+          }, 50)
+        }
+      }
+    })
+
+    // 메시지 컨테이너 관찰
+    resizeObserver.observe(container)
+    
+    // 내부 콘텐츠 컨테이너도 관찰
+    const innerContainer = container.querySelector('.max-w-full')
+    if (innerContainer) {
+      resizeObserver.observe(innerContainer)
+    }
+
+    return () => {
+      resizeObserver.disconnect()
     }
   }, [])
 
@@ -725,15 +870,40 @@ export default function ChatPage({ chatId }: ChatPageProps) {
 
   // Move to bottom immediately without animation
   const scrollToBottomInstant = () => {
-    if (messagesContainerRef.current && !isScrollingToBottom.current) {
+    if (messagesContainerRef.current) {
       const container = messagesContainerRef.current
       isScrollingToBottom.current = true
-      container.scrollTop = container.scrollHeight
-      lastScrollHeight.current = container.scrollHeight
       
-      setTimeout(() => {
-        isScrollingToBottom.current = false
-      }, 100)
+      // 여러 번 시도하여 확실하게 맨 밑으로 스크롤
+      const scrollToMax = () => {
+        // 스크롤 높이를 다시 계산하여 최신 값 사용
+        const maxScrollTop = container.scrollHeight - container.clientHeight
+        container.scrollTop = Math.max(0, maxScrollTop)
+        lastScrollHeight.current = container.scrollHeight
+      }
+      
+      // 즉시 스크롤
+      scrollToMax()
+      
+      // DOM 업데이트를 위한 다중 시도
+      requestAnimationFrame(() => {
+        scrollToMax()
+        
+        requestAnimationFrame(() => {
+          scrollToMax()
+          
+          // 100ms 후 한 번 더
+          setTimeout(() => {
+            scrollToMax()
+            
+            // 300ms 후 최종 확인
+            setTimeout(() => {
+              scrollToMax()
+              isScrollingToBottom.current = false
+            }, 300)
+          }, 100)
+        })
+      })
     }
   }
 
@@ -751,15 +921,31 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       isScrollingToBottom.current = true
       lastScrollHeight.current = newScrollHeight
       
-      // Consider dynamic padding to ensure scroll to bottom
+      // 실제 최대 스크롤 위치 계산
+      const maxScrollTop = Math.max(0, newScrollHeight - container.clientHeight)
+      
+      // 부드럽게 스크롤
       container.scrollTo({
-        top: newScrollHeight + dynamicPadding + 100,
+        top: maxScrollTop,
         behavior: 'smooth'
       })
       
+      // 스크롤 완료 후 여러 번 확인
       setTimeout(() => {
-        isScrollingToBottom.current = false
-      }, 300)
+        const currentMaxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight)
+        if (container.scrollTop < currentMaxScrollTop - 20) {
+          container.scrollTop = currentMaxScrollTop
+        }
+        
+        // 한 번 더 확인
+        setTimeout(() => {
+          const finalMaxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight)
+          if (container.scrollTop < finalMaxScrollTop - 20) {
+            container.scrollTop = finalMaxScrollTop
+          }
+          isScrollingToBottom.current = false
+        }, 300)
+      }, 600) // 애니메이션 완료 대기
     }
   }
 
@@ -780,6 +966,14 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     if (e.key === "Shift") {
       setIsShiftPressed(false)
     }
+  }, [])
+
+  const handleCompositionStart = useCallback(() => {
+    setIsComposing(true)
+  }, [])
+
+  const handleCompositionEnd = useCallback(() => {
+    setIsComposing(false)
   }, [])
 
   const handleCopyMessage = useCallback((content: string, messageId: string) => {
@@ -870,6 +1064,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           // 중복 방지 로직 초기화
           streamingInProgress.current = false
           sessionStorage.removeItem(`lastMessage_${chatId}`)
+          lastSubmittedMessage.current = null
+          lastSubmittedTime.current = 0
           
           sendMessageToAI(savedContent, {
             id: selectedModel.id,
@@ -910,6 +1106,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           // 중복 방지 로직 초기화
           streamingInProgress.current = false
           sessionStorage.removeItem(`lastMessage_${chatId}`)
+          lastSubmittedMessage.current = null
+          lastSubmittedTime.current = 0
           
           sendMessageToAI(previousUserMessage.content, {
             id: selectedModel.id,
@@ -965,6 +1163,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           // 중복 방지 로직 초기화
           streamingInProgress.current = false
           sessionStorage.removeItem(`lastMessage_${chatId}`)
+          lastSubmittedMessage.current = null
+          lastSubmittedTime.current = 0
           
           sendMessageToAI(userMessage.content, {
             id: selectedModel.id,
@@ -975,41 +1175,114 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     }
   }
 
-  const handleSubmit = useCallback(() => {
+  const handleSubmit = useCallback(async () => {
+    // 이미 전송 중인 경우 차단
+    if (isSubmitting) {
+      console.log('Already submitting, preventing duplicate')
+      return
+    }
+    
+    // 중복 메시지 검사 (같은 메시지가 1초 이내에 전송되는 경우)
+    const currentTime = Date.now()
+    const messageToCheck = inputValue.trim() || 'IMAGE_ONLY'
+    
+    if (lastSubmittedMessage.current === messageToCheck && 
+        currentTime - lastSubmittedTime.current < 1000) {
+      console.log('Duplicate message detected, preventing submission')
+      return
+    }
+    
     // 스트리밍 중이면 먼저 중단
     if (isStreaming) {
       handleAbort()
     }
     
-    if (inputValue.trim() && selectedModel && chatId && session?.user?.id) {
-      // 메시지 추가
+    if ((inputValue.trim() || uploadedImages.length > 0) && selectedModel && chatId && session?.user?.id) {
+      // 전송 중 플래그 설정
+      setIsSubmitting(true)
+      
+      // 중복 방지 정보 업데이트
+      lastSubmittedMessage.current = messageToCheck
+      lastSubmittedTime.current = currentTime
+      
+      // 전송할 이미지와 메시지 콘텐츠 준비
+      const imagesToSend = [...uploadedImages]
+      const messageContent = inputValue
+      
+      // 사용자 메시지 콘텐츠 생성 (이미지 정보 포함)
+      let userMessageContent = inputValue || ''
+      
+      // 이미지가 있는 경우 JSON 형태로 저장 (UserRequest에서 파싱하여 표시)
+      if (imagesToSend.length > 0) {
+        const imageInfos = await Promise.all(
+          imagesToSend.map(async (image) => {
+            // 사용자 메시지 표시를 위해 base64 데이터도 포함
+            const reader = new FileReader()
+            const base64 = await new Promise<string>((resolve) => {
+              reader.onload = (e) => resolve(e.target?.result as string)
+              reader.readAsDataURL(image)
+            })
+            
+            return {
+              type: 'image',
+              name: image.name,
+              size: image.size,
+              mimeType: image.type,
+              data: base64
+            }
+          })
+        )
+        
+        userMessageContent = JSON.stringify({
+          text: inputValue || '',
+          images: imageInfos,
+          hasImages: true
+        })
+      }
+
+      // 메시지 추가 (이미지 정보 포함)
       const newUserMessage: Message = {
         id: generateUniqueId("user"),
         role: "user",
-        content: inputValue,
+        content: userMessageContent,
         timestamp: new Date(),
       }
 
       // 새 메시지 ID 추가
       setNewMessageIds(prev => new Set([...prev, newUserMessage.id]))
       setMessages([...messages, newUserMessage])
-      const messageContent = inputValue
+      
+      // 입력 상태 초기화
       setInputValue("")
+      setUploadedImages([]) // 이미지 상태 초기화
+      
+      // ChatInput의 이미지도 초기화
+      setClearImagesTrigger(prev => !prev)
+      
+      // 텍스트 입력창 강제 초기화 (한글 IME 조합 중인 글자 제거)
+      // IME 조합 완료를 위해 약간의 지연 후 초기화
+      setTimeout(() => {
+        if (textareaRef.current) {
+          textareaRef.current.value = ""
+          textareaRef.current.style.height = "auto"
+          textareaRef.current.style.height = "52px"
+          
+          // React 상태와 동기화
+          setInputValue("")
+        }
+      }, 0)
       
       // 메시지 추가 후 즉시 스크롤
       scrollToBottomSmooth()
-
-      // 입력창 높이 초기화
-      if (textareaRef.current) {
-        textareaRef.current.style.height = "auto"
-        textareaRef.current.style.height = "52px"
-      }
 
       // 스트리밍이 중단되었다면 잠시 대기 후 새 메시지 전송
       const sendMessage = () => {
         sendMessageToAI(messageContent, {
           id: selectedModel.id,
           type: selectedModel.type
+        }, false, imagesToSend).finally(() => {
+          // 전송 완료 후 플래그 해제
+          setIsSubmitting(false)
         })
       }
       
@@ -1021,7 +1294,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         sendMessage()
       }
     }
-  }, [inputValue, messages, selectedModel, chatId, session?.user?.id, isStreaming, generateUniqueId, scrollToBottomSmooth, sendMessageToAI, handleAbort])
+  }, [inputValue, uploadedImages, messages, selectedModel, chatId, session?.user?.id, isStreaming, isSubmitting, generateUniqueId, scrollToBottomSmooth, sendMessageToAI, handleAbort])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Shift") {
@@ -1035,14 +1308,29 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       } else {
         // Enter만 누르면 submit 동작
         e.preventDefault()
-        handleSubmit()
+        
+        // IME 조합 중인지 확인
+        if (e.nativeEvent.isComposing || isComposing) {
+          // 조합 중이면 잠시 대기
+          return
+        }
+        
+        // 한글 IME 조합 완료를 위한 짧은 지연
+        setTimeout(() => {
+          handleSubmit()
+        }, 10)
       }
     }
-  }, [handleSubmit])
+  }, [handleSubmit, isComposing])
 
   // 메시지 렌더링을 조건부 렌더링 밖에서 정의하여 Hook 순서 유지
-  const renderedMessages = useMemo(() => 
-    messages.map((message) => (
+  const renderedMessages = useMemo(() => {
+    console.log('=== Rendering messages ===')
+    console.log('messages.length:', messages.length)
+    console.log('historyLoaded:', historyLoaded)
+    console.log('showSkeleton:', showSkeleton)
+    
+    return messages.map((message, index) => (
       <MessageWrapper
         key={message.id}
         message={message}
@@ -1065,9 +1353,33 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         onRegenerateFromUser={handleRegenerateFromUserMessage}
         setEditingContent={setEditingContent}
       />
-    )), 
-    [messages, newMessageIds, copiedMessageId, likedMessages, dislikedMessages, isStreaming, editingMessageId, editingContent, regeneratingMessageId, streamingMessageId, handleCopyMessage, handleLikeMessage, handleDislikeMessage, handleRegenerateResponse, handleEditMessage, handleSaveEdit, handleCancelEdit, handleRegenerateFromUserMessage]
+    ))
+  }, [messages, newMessageIds, copiedMessageId, likedMessages, dislikedMessages, isStreaming, editingMessageId, editingContent, regeneratingMessageId, streamingMessageId, handleCopyMessage, handleLikeMessage, handleDislikeMessage, handleRegenerateResponse, handleEditMessage, handleSaveEdit, handleCancelEdit, handleRegenerateFromUserMessage]
   )
+
+  // 세션 상태에 따른 처리
+  if (sessionStatus === "loading") {
+    return (
+      <div className="flex-1 flex items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-gray-900 dark:border-gray-100"></div>
+      </div>
+    )
+  }
+
+  if (sessionStatus === "unauthenticated") {
+    router.push('/auth')
+    return null
+  }
+
+  if (!selectedModel) {
+    return (
+      <div className="flex-1 flex items-center justify-center text-center px-4">
+        <div className="text-gray-600 dark:text-gray-400">
+          {lang('error.no_model_selected')}
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
@@ -1083,13 +1395,24 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           }}
         >
           <div className="sm:px-3 max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto">
-            {!historyLoaded && showSkeleton ? (
-              <ChatMessageSkeleton />
-            ) : !historyLoaded && !showSkeleton ? (
-              <div></div>
-            ) : (
-              renderedMessages
-            )}
+            {(() => {
+              console.log('=== Render condition check ===')
+              console.log('!historyLoaded && showSkeleton:', !historyLoaded && showSkeleton)
+              console.log('!historyLoaded && !showSkeleton:', !historyLoaded && !showSkeleton)
+              console.log('else (should render messages):', historyLoaded)
+              console.log('renderedMessages length:', renderedMessages.length)
+              
+              if (!historyLoaded && showSkeleton) {
+                console.log('Rendering skeleton')
+                return <ChatMessageSkeleton />
+              } else if (!historyLoaded && !showSkeleton) {
+                console.log('Rendering empty div')
+                return <div></div>
+              } else {
+                console.log('Rendering messages')
+                return renderedMessages
+              }
+            })()}
             <div ref={messagesEndRef} className="h-4" />
           </div>
         </div>
@@ -1101,13 +1424,18 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             isGlobeActive={isGlobeActive}
             isFlaskActive={isFlaskActive}
             isStreaming={isStreaming}
+            isSubmitting={isSubmitting}
             handleInputChange={handleInputChange}
             handleKeyDown={handleKeyDown}
             handleKeyUp={handleKeyUp}
+            handleCompositionStart={handleCompositionStart}
+            handleCompositionEnd={handleCompositionEnd}
             handleSubmit={handleSubmit}
             handleAbort={handleAbort}
             setIsGlobeActive={setIsGlobeActive}
             setIsFlaskActive={setIsFlaskActive}
+            onImageUpload={handleImageUpload}
+            clearImages={clearImagesTrigger}
           />
       </div>
     </>

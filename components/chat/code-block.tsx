@@ -230,23 +230,23 @@ export function CodeBlock({ children, className, inline }: CodeBlockProps) {
            </span>
          </div>
         
-        <div className="flex items-center gap-1 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0">
+        <div className="flex items-center sm:gap-3 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity flex-shrink-0">
           <button
             onClick={handleCopy}
-            className={`p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors touch-manipulation ${
+            className={`flex items-center justify-center sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors touch-manipulation ${
               copied ? 'text-green-600 dark:text-green-400' : 'text-gray-600 dark:text-gray-400'
             }`}
             title={copied ? 'Copied!' : 'Copy code'}
           >
-            {copied ? <Check className="h-3 w-3 sm:h-4 sm:w-4" /> : <Copy className="h-3 w-3 sm:h-4 sm:w-4" />}
+            {copied ? <Check className="h-3 w-3 sm:h-5 sm:w-5" /> : <Copy className="h-3 w-3 sm:h-5 sm:w-5" />}
           </button>
           
           <button
             onClick={handleDownload}
-            className="p-1.5 sm:p-2 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-gray-600 dark:text-gray-400 touch-manipulation"
+            className="flex items-center justify-center sm:p-3 rounded hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors text-gray-600 dark:text-gray-400 touch-manipulation"
             title="Download as file"
           >
-            <Download className="h-3 w-3 sm:h-4 sm:w-4" />
+            <Download className="h-3 w-3 sm:h-5 sm:w-5" />
           </button>
         </div>
       </div>

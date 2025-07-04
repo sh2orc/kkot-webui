@@ -22,12 +22,14 @@ CREATE TABLE IF NOT EXISTS chat_sessions (
   FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
 );
 
--- Chat messages table
+-- Chat messages table with multimodal support
 CREATE TABLE IF NOT EXISTS chat_messages (
   id TEXT PRIMARY KEY,
   session_id TEXT NOT NULL,
   role TEXT NOT NULL,
   content TEXT NOT NULL,
+  content_type TEXT DEFAULT 'text', -- 'text' or 'multimodal'
+  attachments TEXT, -- JSON string for multimodal content
   created_at TIMESTAMP,
   FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
 );
@@ -97,6 +99,10 @@ CREATE TABLE IF NOT EXISTS system_settings (
   value TEXT,
   updated_at TIMESTAMP
 );
+
+-- Create indexes
+CREATE INDEX IF NOT EXISTS idx_chat_messages_session_id ON chat_messages(session_id);
+CREATE INDEX IF NOT EXISTS idx_chat_messages_content_type ON chat_messages(content_type);
 
 -- Add default data
 INSERT OR IGNORE INTO system_settings (id, key, value, updated_at) 

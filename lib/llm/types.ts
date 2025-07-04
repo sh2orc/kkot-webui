@@ -15,12 +15,31 @@ export interface LLMModelConfig {
   streaming?: boolean;
   apiKey?: string;
   baseUrl?: string;
+  supportsMultimodal?: boolean;
 }
 
-// LLM message type
+// Image content type for multimodal messages
+export interface ImageContent {
+  type: "image";
+  image_url: {
+    url: string;
+    detail?: "low" | "high" | "auto";
+  };
+}
+
+// Text content type for multimodal messages
+export interface TextContent {
+  type: "text";
+  text: string;
+}
+
+// Content type for multimodal messages
+export type MessageContent = string | (TextContent | ImageContent)[];
+
+// LLM message type with multimodal support
 export type LLMMessage = {
   role: "system" | "user" | "assistant" | "function";
-  content: string;
+  content: MessageContent;
   name?: string;
 };
 
@@ -64,4 +83,34 @@ export interface LLMRequestOptions {
   streamCallbacks?: LLMStreamCallbacks;
   abortSignal?: AbortSignal;
   maxTokens?: number;
-} 
+  supportsMultimodal?: boolean;
+}
+
+// Helper function to create image content
+export const createImageContent = (url: string, detail?: "low" | "high" | "auto"): ImageContent => ({
+  type: "image",
+  image_url: { url, detail }
+});
+
+// Helper function to create text content
+export const createTextContent = (text: string): TextContent => ({
+  type: "text",
+  text
+});
+
+// Helper function to check if message is multimodal
+export const isMultimodalMessage = (message: LLMMessage): boolean => {
+  return Array.isArray(message.content);
+};
+
+// Helper function to extract text from multimodal content
+export const extractTextFromContent = (content: MessageContent): string => {
+  if (typeof content === "string") {
+    return content;
+  }
+  
+  return content
+    .filter((item): item is TextContent => item.type === "text")
+    .map(item => item.text)
+    .join("");
+}; 

@@ -192,7 +192,7 @@ export function ModelProvider({ children }: { children: ReactNode }) {
     if (!isInitialized) {
       fetchModelsAndAgents()
     }
-  }, []) // 빈 의존성 배열 - 컴포넌트 마운트 시 한 번만 실행
+  }, []) // Empty dependency array - runs once on mount
 
   return (
     <ModelContext.Provider

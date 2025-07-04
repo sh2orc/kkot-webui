@@ -1,8 +1,9 @@
 "use client"
 
-import { Copy, Edit, Check, X, RefreshCw } from "lucide-react"
-import { useRef, useEffect, useCallback } from "react"
+import { Copy, Edit, Check, X, RefreshCw, Image, ZoomIn } from "lucide-react"
+import { useRef, useEffect, useCallback, useMemo, useState } from "react"
 import { useTranslation } from "@/lib/i18n"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface UserRequestProps {
   id: string
@@ -39,6 +40,31 @@ export function UserRequest({
 }: UserRequestProps) {
   const { lang } = useTranslation("chat")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const [selectedImage, setSelectedImage] = useState<{src: string, name: string} | null>(null)
+
+  // Parse message content to extract text and image information
+  const parsedContent = useMemo(() => {
+    try {
+      const parsed = JSON.parse(content)
+      if (parsed.hasImages && parsed.images && Array.isArray(parsed.images)) {
+        return {
+          text: parsed.text || '',
+          images: parsed.images,
+          hasImages: true
+        }
+      }
+    } catch (e) {
+      // If JSON parsing fails, treat as plain text
+    }
+    return {
+      text: content,
+      images: [],
+      hasImages: false
+    }
+  }, [content])
+
+  // Get display text for editing and viewing
+  const displayText = parsedContent.hasImages ? parsedContent.text : content
 
   // Function to automatically adjust textarea height
   const adjustTextareaHeight = useCallback(() => {
@@ -64,6 +90,18 @@ export function UserRequest({
 
   const handleContentChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setEditingContent(e.target.value)
+  }
+
+  const handleCopy = () => {
+    // Copy only the display text, not the full JSON
+    const textToCopy = parsedContent.hasImages ? parsedContent.text : content
+    onCopy(textToCopy, id)
+  }
+
+  const handleEdit = () => {
+    // Edit only the display text, not the full JSON  
+    const textToEdit = parsedContent.hasImages ? parsedContent.text : content
+    onEdit(id, textToEdit)
   }
 
   const handleInput = (e: React.FormEvent<HTMLTextAreaElement>) => {
@@ -120,7 +158,50 @@ export function UserRequest({
         ) : (
           <div className="flex flex-col">
             <div className="bg-gray-100 rounded-lg p-3">
-              <div className="whitespace-pre-wrap break-words" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>{content}</div>
+              {/* Display images if present */}
+              {parsedContent.hasImages && parsedContent.images.length > 0 && (
+                <div className="flex flex-wrap gap-2 mb-3">
+                  {parsedContent.images.map((image: any, index: number) => (
+                    <div key={index} className="relative group">
+                      {image.data ? (
+                        /* Image thumbnail */
+                        <div 
+                          className="relative cursor-pointer rounded-lg overflow-hidden border border-gray-300 hover:border-gray-400 transition-colors w-full sm:w-[400px]"
+                          style={{ width: 'min(40vw, 400px)' }}
+                          onClick={() => setSelectedImage({src: image.data, name: image.name || `Image ${index + 1}`})}
+                        >
+                          <img
+                            src={image.data}
+                            alt={image.name || `Image ${index + 1}`}
+                            className="w-full h-auto object-cover rounded-lg"
+                          />
+                          {/* Overlay with zoom icon */}
+                          <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-20 flex items-center justify-center transition-all duration-200 rounded-lg">
+                            <ZoomIn className="h-6 w-6 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-200" />
+                          </div>
+                        </div>
+                      ) : (
+                        /* Fallback for images without data */
+                        <div className="flex items-center gap-2 bg-gray-200 rounded-lg px-2 py-1">
+                          <Image className="h-4 w-4 text-gray-600" />
+                          <span className="text-sm text-gray-600">
+                            {image.name || `Image ${index + 1}`}
+                          </span>
+                          <span className="text-xs text-gray-500">
+                            ({Math.round(image.size / 1024)}KB)
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+              {/* Display text content only if there's actual text */}
+              {displayText && displayText.trim() && (
+                <div className="whitespace-pre-wrap break-words" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+                  {displayText}
+                </div>
+              )}
             </div>
             <div className="flex items-center justify-between mt-2 sm:gap-2">
               <div className="text-xs text-gray-400">
@@ -128,7 +209,7 @@ export function UserRequest({
               </div>
               <div className="flex sm:gap-1">
                 <button
-                  onClick={() => onCopy(content, id)}
+                  onClick={handleCopy}
                   className={`sm:p-1 rounded-full transition-all duration-200 ${
                     copiedMessageId === id ? "bg-green-100 text-green-600 scale-110" : "hover:bg-gray-100 text-gray-500"
                   }`}
@@ -137,7 +218,7 @@ export function UserRequest({
                   {copiedMessageId === id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
                 </button>
                 <button
-                  onClick={() => onEdit(id, content)}
+                  onClick={handleEdit}
                   className="sm:p-1 rounded-full hover:bg-gray-100 transition-colors"
                   title={lang("actions.edit")}
                 >
@@ -163,6 +244,28 @@ export function UserRequest({
           </div>
         )}
       </div>
+
+      {/* Image Modal */}
+      <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
+        <DialogContent className="max-w-4xl w-full p-0">
+          <DialogHeader className="p-6 pb-0">
+            <DialogTitle className="text-lg font-semibold">
+              {selectedImage?.name}
+            </DialogTitle>
+          </DialogHeader>
+          <div className="p-6 pt-2">
+            {selectedImage && (
+              <div className="flex justify-center">
+                <img
+                  src={selectedImage.src}
+                  alt={selectedImage.name}
+                  className="max-w-full max-h-[70vh] object-contain rounded-lg"
+                />
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
