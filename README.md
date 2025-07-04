@@ -20,20 +20,24 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Password Security**: Bcrypt-based password hashing with salt
 
 ### 🤖 Multi-LLM Support
-- **OpenAI API**: Support for GPT-4o and other OpenAI models
-- **Google Gemini**: Integrated Gemini API support
-- **Ollama**: Local Ollama server connectivity
+- **OpenAI API**: Support for GPT-4o, GPT-4V (Vision), and other OpenAI models
+- **Google Gemini**: Integrated Gemini API support with multimodal capabilities
+- **Ollama**: Local Ollama server connectivity with vision model support
+- **Vision Models**: Native support for image analysis and multimodal conversations
 - **Other Models**: Support for Claude, LLaMA, Mistral, and various other models
 
 ### 💬 Chat Interface
 - **Real-time Streaming**: Seamless streaming response for natural conversations with abort functionality
+- **Multimodal Support**: Image upload and processing with drag & drop functionality
 - **Interactive Features**: Message copy, like/dislike, and regeneration capabilities with visual feedback
 - **Message Management**: User message editing and conversation history with enhanced UX
 - **Auto Title Generation**: AI-powered automatic chat session title generation
 - **Page Transitions**: Smooth page transitions using View Transitions API
-- **Loading States**: Enhanced loading indicators and state management
-- **Responsive Design**: Optimized for mobile and desktop experiences
+- **Loading States**: Enhanced loading indicators and state management with skeleton UI
+- **Responsive Design**: Optimized for mobile and desktop experiences with dynamic padding
 - **Anti-Duplicate**: Intelligent duplicate message prevention and submission controls
+- **Performance Optimization**: Memoized components and efficient scroll management
+- **Vision Models**: Support for GPT-4V and other vision-capable models
 
 ### 🤖 Agent Management
 - **Custom AI Agents**: Create and manage personalized AI agents with specific configurations
@@ -67,8 +71,11 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - Radix UI components utilization
 - Dark/Light theme support
 - Smooth page transitions with View Transitions API
-- Enhanced loading states and animations
+- Enhanced loading states and animations with skeleton UI
 - Intuitive navigation and user experience
+- Drag & drop file upload interface
+- Dynamic responsive design with mobile-first approach
+- Performance-optimized rendering with memoization
 
 ### 🌐 Internationalization
 - Multi-language support (Korean, English)
@@ -215,6 +222,22 @@ kkot-webui/
 
 ## 🆕 Latest Features
 
+### 🖼️ Multimodal Chat Support
+- **Image Upload**: Drag & drop image upload with preview functionality
+- **Vision Model Integration**: Support for GPT-4V, Gemini Vision, and other vision models
+- **Image Processing**: Automatic image compression and format optimization
+- **Multimodal Messages**: Seamless text and image combination in conversations
+- **File Type Validation**: Comprehensive file type and size validation
+- **Mobile Camera Support**: Direct camera capture on mobile devices
+
+### ⚡ Performance Optimization
+- **Memoized Components**: React.memo optimization for message rendering
+- **Efficient Scrolling**: Smart scroll management with dynamic padding
+- **Streaming Optimization**: Enhanced streaming response handling
+- **Skeleton Loading**: Improved loading states with realistic skeleton UI
+- **Memory Management**: Optimized memory usage for large conversations
+- **Render Optimization**: Conditional rendering to prevent unnecessary updates
+
 ### 🎬 Page Transitions
 - **View Transitions API**: Smooth page transitions using modern web standards
 - **Fallback Support**: Graceful degradation for browsers without View Transitions API
@@ -233,11 +256,12 @@ kkot-webui/
 - **Smart Fallbacks**: Intelligent fallback mechanisms for title generation
 - **Length Optimization**: Automatically optimized title lengths for UI display
 
-### ⚡ Enhanced Loading States
-- **Unified Loading Component**: Consistent loading indicators across the application
-- **Contextual Loading**: Different loading states for different scenarios
-- **Performance Optimization**: Efficient loading state management
-- **Accessibility**: Screen reader friendly loading indicators
+### 📱 Mobile Experience
+- **Responsive Design**: Optimized for mobile and tablet devices
+- **Touch Interactions**: Enhanced touch gestures and interactions
+- **Dynamic Padding**: Adaptive padding based on screen size and content
+- **Mobile-First Approach**: Designed with mobile users in mind
+- **Keyboard Handling**: Improved virtual keyboard support
 
 ### 🌐 Server-side Internationalization
 - **Server-only Utilities**: Dedicated server-side translation functions
@@ -248,8 +272,9 @@ kkot-webui/
 ### 🎨 UI/UX Improvements
 - **Chat Layout**: Dedicated layout for chat pages with optimized navigation
 - **Loading Animations**: Smooth loading animations throughout the application
-- **Responsive Design**: Enhanced mobile and desktop experience
-- **Accessibility**: Improved accessibility features and ARIA labels
+- **Enhanced Accessibility**: Improved accessibility features and ARIA labels
+- **Visual Feedback**: Better visual feedback for user interactions
+- **Error States**: Comprehensive error handling with user-friendly messages
 
 ## 🌟 Contributing
 
@@ -287,10 +312,14 @@ This project is completely open source and welcomes contributions from everyone.
 - [x] **Auto title generation** - AI-powered chat session titles
 - [x] **Enhanced loading states** - Unified loading components and states
 - [x] **Server-side i18n** - Performance-optimized translation utilities
+- [x] **Multimodal chat support** - Image upload and vision model integration
+- [x] **Performance optimization** - Memoized components and efficient rendering
+- [x] **Mobile experience** - Responsive design with mobile-first approach
+- [x] **Streaming optimization** - Enhanced streaming with abort functionality
 
 ### 🚧 In Progress / Planned
 - [ ] Plugin system development
-- [ ] Mobile app development
+- [ ] Mobile app development (PWA)
 - [ ] Automatic API documentation generation
 - [ ] Team collaboration features
 - [ ] OAuth provider integration (Google, GitHub)
@@ -299,6 +328,10 @@ This project is completely open source and welcomes contributions from everyone.
 - [ ] Voice input/output support
 - [ ] Advanced prompt templates
 - [ ] API rate limiting and usage analytics
+- [ ] File attachment support (PDF, DOC, etc.)
+- [ ] Advanced image editing tools
+- [ ] Conversation export/import functionality
+- [ ] Real-time collaboration features
 
 ## 📄 License
 
