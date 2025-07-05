@@ -1,23 +1,22 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { revalidatePath } from 'next/cache'
 import { agentManageRepository, llmModelRepository } from '@/lib/db/server'
 
 // GET - Fetch all agents and public models
 export async function GET() {
   try {
-    // 1. 모든 에이전트 조회 (우선순위 높음)
+    // 1. Fetch all agents (high priority)
     const agents = await agentManageRepository.findAllWithModelAndServer()
     
-    // 이미지 데이터를 base64로 변환하여 반환
+    // Convert image data to base64 and return
     const processedAgents = agents.map((agent: any) => {
-      console.log(`에이전트 ${agent.name} 이미지 데이터 처리:`, {
+      console.log(`Agent ${agent.name} image data processing:`, {
         hasImageData: !!agent.imageData,
         imageDataType: typeof agent.imageData,
         isUint8Array: agent.imageData instanceof Uint8Array,
         length: agent.imageData?.length
       })
       
-      // 이미지 데이터 존재 여부 체크 (더 유연하게)
+      // Check for image data existence (more flexible)
       const hasImageData = agent.imageData && (
         (agent.imageData instanceof Uint8Array && agent.imageData.length > 0) ||
         (typeof agent.imageData === 'string' && agent.imageData.length > 0)
@@ -25,55 +24,55 @@ export async function GET() {
       
       let imageData = null;
       
-      // 이미지가 있는 경우 이미지 데이터를 불러옴
+      // Load image data if available
       if (hasImageData) {
         try {
-          console.log(`에이전트 ${agent.name} 이미지 변환 시작`)
+          console.log(`Agent ${agent.name} image conversion started`)
           
           if (agent.imageData instanceof Uint8Array) {
-            // Uint8Array인 경우
+            // For Uint8Array type
             const base64String = Buffer.from(agent.imageData).toString();
             imageData = `data:image/png;base64,${base64String}`;
           } else if (typeof agent.imageData === 'string') {
-            // 이미 문자열인 경우
+            // For string type
             if (agent.imageData.startsWith('data:image/')) {
-              // 이미 완전한 data URL인 경우
+              // Already a complete data URL
               imageData = agent.imageData;
             } else {
-              // base64 문자열인 경우
+              // Base64 string
               imageData = `data:image/png;base64,${agent.imageData}`;
             }
           }
           
-          console.log(`에이전트 ${agent.name} 이미지 변환 완료:`, imageData?.substring(0, 50))
+          console.log(`Agent ${agent.name} image conversion completed:`, imageData?.substring(0, 50))
         } catch (error) {
-          console.error('이미지 변환 오류:', error);
+          console.error('Image conversion error:', error);
         }
       } else {
-        console.log(`에이전트 ${agent.name}: 이미지 없음`)
+        console.log(`Agent ${agent.name}: No image`)
       }
       
       return {
         ...agent,
-        imageData: imageData, // 변환된 이미지 데이터
-        hasImage: !!imageData, // 이미지 존재 여부 플래그
-        type: 'agent' // 타입 구분을 위한 필드 추가
+        imageData: imageData, // Converted image data
+        hasImage: !!imageData, // Flag indicating image existence
+        type: 'agent' // Field added for type distinction
       }
     })
     
-    console.log("에이전트 목록:", processedAgents.map((a: any) => ({ id: a.id, name: a.name })));
+    console.log("Agent list:", processedAgents.map((a: any) => ({ id: a.id, name: a.name })));
     
-    // 2. 공개(isPublic=true) 모델 조회
+    // 2. Fetch public models (isPublic=true)
     const publicModels = await llmModelRepository.findPublic()
     
-    // 공개 모델에 대한 capabilities JSON 파싱
+    // Parse capabilities JSON for public models
     const parsedPublicModels = publicModels.map((model: any) => ({
       ...model,
       capabilities: model.capabilities ? JSON.parse(model.capabilities) : null,
-      type: 'model' // 타입 구분을 위한 필드 추가
+      type: 'model' // Field added for type distinction
     }))
     
-    // 에이전트와 공개 모델을 합쳐서 반환 (에이전트가 우선)
+    // Return agents and public models combined (agents have priority)
     return NextResponse.json({
       agents: processedAgents,
       publicModels: parsedPublicModels
@@ -81,7 +80,7 @@ export async function GET() {
   } catch (error) {
     console.error('Failed to fetch agents and public models:', error)
     return NextResponse.json(
-      { error: '에이전트와 공개 모델을 불러오는 중 오류가 발생했습니다.' },
+      { error: 'An error occurred while loading agents and public models.' },
       { status: 500 }
     )
   }
@@ -109,49 +108,49 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 이미지 처리: base64 문자열을 올바른 형식으로 변환
+    // Image processing: convert base64 string to proper format
     let imageData = body.imageData;
     
     if (imageData) {
-      console.log('이미지 데이터 처리 시작');
-      console.log('원본 이미지 데이터 타입:', typeof imageData);
-      console.log('원본 이미지 데이터 길이:', imageData.length);
+      console.log('Image data processing started');
+      console.log('Original image data type:', typeof imageData);
+      console.log('Original image data length:', imageData.length);
       
-      // 이미지 데이터가 data:image/ 형식으로 시작하면 base64 부분만 추출
+      // Extract base64 part if image data starts with data:image/ format
       if (typeof imageData === 'string' && imageData.startsWith('data:image/')) {
         imageData = imageData.split(',')[1];
-        console.log('data URL에서 base64 부분 추출');
+        console.log('Extracted base64 part from data URL');
       }
       
-      // base64 문자열 유효성 검증
+      // Validate base64 string
       if (typeof imageData === 'string' && imageData.length > 0) {
         try {
-          // base64 디코딩 테스트
+          // Test base64 decoding
           const buffer = Buffer.from(imageData, 'base64');
-          console.log('base64 디코딩 성공, 크기:', buffer.length, '바이트');
+          console.log('Base64 decoding successful, size:', buffer.length, 'bytes');
           
-          // 이미지 데이터가 너무 작으면 오류
+          // Error if image data is too small
           if (buffer.length < 100) {
-            console.error('이미지 데이터가 너무 작음:', buffer.length, '바이트');
+            console.error('Image data is too small:', buffer.length, 'bytes');
             return NextResponse.json(
-              { error: '이미지 데이터가 너무 작습니다.' },
+              { error: 'Image data is too small.' },
               { status: 400 }
             );
           }
           
-          // SQLite의 경우 Uint8Array로 저장, PostgreSQL의 경우 문자열로 저장
-          // 데이터베이스 스키마에 따라 적절한 형식으로 변환
-          imageData = imageData; // base64 문자열 그대로 저장
+          // For SQLite store as Uint8Array, for PostgreSQL store as string
+          // Convert to appropriate format according to database schema
+          imageData = imageData; // Store base64 string as is
           
         } catch (error) {
-          console.error('base64 디코딩 실패:', error);
+          console.error('Base64 decoding failed:', error);
           return NextResponse.json(
-            { error: '유효하지 않은 이미지 데이터입니다.' },
+            { error: 'Invalid image data.' },
             { status: 400 }
           );
         }
       } else {
-        console.log('이미지 데이터가 없거나 유효하지 않음');
+        console.log('No image data or invalid data');
         imageData = null;
       }
     }
@@ -167,7 +166,7 @@ export async function POST(request: NextRequest) {
       maxTokens: body.maxTokens,
       presencePenalty: body.presencePenalty,
       frequencyPenalty: body.frequencyPenalty,
-      imageData: imageData, // 처리된 이미지 데이터
+      imageData: imageData, // Processed image data
       description: body.description,
       enabled: body.enabled,
       parameterEnabled: body.parameterEnabled
@@ -178,14 +177,12 @@ export async function POST(request: NextRequest) {
     const agents = await agentManageRepository.findAllWithModelAndServer()
     const fullAgent = agents.find((a: any) => a.id === createdAgent.id)
     
-    // Uint8Array를 Base64 문자열로 변환
+    // Convert Uint8Array to Base64 string
     if (fullAgent && fullAgent.imageData instanceof Uint8Array) {
       fullAgent.imageData = `data:image/png;base64,${Buffer.from(fullAgent.imageData).toString('base64')}`
     }
     
-    // 페이지 캐시 무효화
-    revalidatePath('/admin/agent')
-    
+  
     return NextResponse.json(fullAgent)
   } catch (error) {
     console.error('Failed to create agent:', error)
@@ -234,52 +231,52 @@ export async function PUT(request: NextRequest) {
     if (body.enabled !== undefined) updateData.enabled = body.enabled
     if (body.parameterEnabled !== undefined) updateData.parameterEnabled = body.parameterEnabled
     
-    // 이미지 데이터 처리
+    // Process image data
     if (body.imageData !== undefined) {
       let imageData = body.imageData;
       
       if (imageData) {
-        console.log('이미지 데이터 업데이트 처리 시작');
-        console.log('원본 이미지 데이터 타입:', typeof imageData);
-        console.log('원본 이미지 데이터 길이:', imageData.length);
+        console.log('Image data update processing started');
+        console.log('Original image data type:', typeof imageData);
+        console.log('Original image data length:', imageData.length);
         
-        // 이미지 데이터가 data:image/ 형식으로 시작하면 base64 부분만 추출
+        // Extract base64 part if image data starts with data:image/ format
         if (typeof imageData === 'string' && imageData.startsWith('data:image/')) {
           imageData = imageData.split(',')[1];
-          console.log('data URL에서 base64 부분 추출');
+          console.log('Extracted base64 part from data URL');
         }
         
-        // base64 문자열 유효성 검증
+        // Validate base64 string
         if (typeof imageData === 'string' && imageData.length > 0) {
           try {
-            // base64 디코딩 테스트
+            // Test base64 decoding
             const buffer = Buffer.from(imageData, 'base64');
-            console.log('base64 디코딩 성공, 크기:', buffer.length, '바이트');
+            console.log('Base64 decoding successful, size:', buffer.length, 'bytes');
             
-            // 이미지 데이터가 너무 작으면 오류
+            // Error if image data is too small
             if (buffer.length < 100) {
-              console.error('이미지 데이터가 너무 작음:', buffer.length, '바이트');
+              console.error('Image data is too small:', buffer.length, 'bytes');
               return NextResponse.json(
-                { error: '이미지 데이터가 너무 작습니다.' },
+                { error: 'Image data is too small.' },
                 { status: 400 }
               );
             }
             
-            updateData.imageData = imageData; // base64 문자열 그대로 저장
+            updateData.imageData = imageData; // Store base64 string as is
             
           } catch (error) {
-            console.error('base64 디코딩 실패:', error);
+            console.error('Base64 decoding failed:', error);
             return NextResponse.json(
-              { error: '유효하지 않은 이미지 데이터입니다.' },
+              { error: 'Invalid image data.' },
               { status: 400 }
             );
           }
         } else {
-          console.log('이미지 데이터 제거');
+          console.log('Removing image data');
           updateData.imageData = null;
         }
       } else {
-        console.log('이미지 데이터 제거');
+        console.log('Removing image data');
         updateData.imageData = null;
       }
     }
@@ -290,13 +287,10 @@ export async function PUT(request: NextRequest) {
     const agents = await agentManageRepository.findAllWithModelAndServer()
     const updatedAgent = agents.find((a: any) => a.id === body.id)
     
-    // Uint8Array를 Base64 문자열로 변환
+    // Convert Uint8Array to Base64 string
     if (updatedAgent && updatedAgent.imageData instanceof Uint8Array) {
       updatedAgent.imageData = `data:image/png;base64,${Buffer.from(updatedAgent.imageData).toString()}`
-    }
-    
-    // 페이지 캐시 무효화
-    revalidatePath('/admin/agent')
+    }   
     
     return NextResponse.json(updatedAgent)
   } catch (error) {
@@ -321,10 +315,7 @@ export async function DELETE(request: NextRequest) {
     }
     
     await agentManageRepository.delete(body.id)
-    
-    // 페이지 캐시 무효화
-    revalidatePath('/admin/agent')
-    
+       
     return NextResponse.json({ success: true })
   } catch (error) {
     console.error('Failed to delete agent:', error)

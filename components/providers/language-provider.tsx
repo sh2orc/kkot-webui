@@ -20,7 +20,7 @@ export default function LanguageProvider({ children }: LanguageProviderProps) {
   const [language, setCurrentLanguage] = useState<Language>(defaultLanguage)
   const [isLoading, setIsLoading] = useState(true)
 
-  // 모든 번역 모듈 목록
+  // List of all translation modules
   const translationModules = [
     'auth',
     'common',
@@ -29,6 +29,7 @@ export default function LanguageProvider({ children }: LanguageProviderProps) {
     'admin.connection', 
     'admin.model',
     'admin.agent',
+    'admin.api',
     'admin.evaluation',
     'admin.tools',
     'admin.documents',
@@ -44,19 +45,19 @@ export default function LanguageProvider({ children }: LanguageProviderProps) {
     'language'
   ]
 
-  // 언어 변경 함수 (상태 즉시 변경 가능)
+  // Language change function (can change state immediately)
   const setLanguage = (lang: Language) => {
     setCurrentLanguage(lang)
     setStoredLanguage(lang)
   }
 
-  // 컴포넌트 초기화 시 모든 언어의 모든 번역 모듈을 미리 로드
+  // Preload all translation modules for all languages during component initialization
   useEffect(() => {
     async function initializeAllTranslations() {
       const storedLang = getStoredLanguage()
       setCurrentLanguage(storedLang)
       
-      // 모든 지원되는 언어의 모든 번역 모듈을 동시에 로드
+      // Load all translation modules for all supported languages simultaneously
       const loadPromises = supportedLanguages.map(language => 
         preloadTranslationModules(language, translationModules)
       )
@@ -66,9 +67,9 @@ export default function LanguageProvider({ children }: LanguageProviderProps) {
     }
     
     initializeAllTranslations()
-  }, []) // 빈 의존성 배열 - 컴포넌트 생성 시에만 한 번만 실행
+  }, []) // Empty dependency array - runs only once when component is created
 
-  // 로딩 중이면 로딩 상태 표시
+  // Show loading state while translations are being loaded
   if (isLoading) {
     return <Loading />
   }

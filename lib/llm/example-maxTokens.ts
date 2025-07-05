@@ -17,7 +17,7 @@ async function exampleMaxTokensUsage() {
   const messages: LLMMessage[] = [
     {
       role: 'user',
-      content: '인공지능에 대해 간단히 설명해주세요.'
+      content: 'Please explain artificial intelligence briefly.'
     }
   ];
 
@@ -39,7 +39,7 @@ async function exampleMaxTokensUsage() {
     const longMessages: LLMMessage[] = [
       {
         role: 'user',
-        content: '인공지능의 역사, 현재 상황, 미래 전망에 대해 자세히 설명해주세요.'
+        content: 'Please explain in detail about the history, current state, and future prospects of artificial intelligence.'
       }
     ];
     const response3 = await llmClient.chat(longMessages, { maxTokens: 2000 });

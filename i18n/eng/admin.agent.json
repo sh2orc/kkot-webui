@@ -65,7 +65,22 @@
     "maxTokens": "Max Tokens",
     "presencePenalty": "Presence Penalty",
     "frequencyPenalty": "Frequency Penalty",
-    "enabled": "Enabled"
+    "enabled": "Enabled",
+    "agentId": "Agent ID",
+    "agentIdPlaceholder": "Enter unique ID for API calls",
+    "agentIdHelp": "Only English letters, numbers, hyphens(-), underscores(_) allowed (3-50 characters)",
+    "checking": "Checking...",
+    "imageLoadFailed": "Load Failed",
+    "imageSize": "Size: {{size}}MB",
+    "imageHelp": "Image files will be encoded as base64 and stored.",
+    "imageFormats": "Supported formats: JPG, PNG, GIF (max 10MB)",
+    "enableAgent": "Enable Agent",
+    "enableAgentHelp": "When disabled, this agent cannot be used in API calls",
+    "enableParameters": "Enable Parameters",
+    "enableParametersHelp": "When disabled, default parameter values will be used",
+    "modelRegisterFirst": "Please register Foundation models first",
+    "showParameters": "Show Parameters",
+    "hideParameters": "Hide Parameters"
   },
   
   "cancel": "Cancel",

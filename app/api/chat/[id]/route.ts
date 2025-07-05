@@ -173,9 +173,9 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           }
         }
         
-        // Reduce token limit when images are present
+        // Increase token limit when images are present for better multimodal responses
         if (images.length > 0) {
-          llmParams.maxTokens = Math.min(llmParams.maxTokens || 2048, 1000)
+          llmParams.maxTokens = Math.max(llmParams.maxTokens || 2048, 4096)
         }
         
         // Retrieve model information

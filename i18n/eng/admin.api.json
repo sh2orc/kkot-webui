@@ -1,0 +1,174 @@
+{
+  "title": "API Management",
+  "description": "Manage external API access and OpenAI compatible service settings.",
+  "apiService": {
+    "title": "API Service Settings",
+    "description": "Global API service activation and basic settings",
+    "enabled": {
+      "label": "Enable API Service",
+      "description": "Allow external access to the system through API"
+    },
+    "openaiCompatible": {
+      "label": "OpenAI Compatible API",
+      "description": "Provide endpoints compatible with OpenAI API format"
+    },
+    "corsSettings": {
+      "title": "CORS Settings",
+      "description": "Configure settings to allow API calls directly from web browsers",
+      "enabled": {
+        "label": "Enable CORS",
+        "description": "Allow direct API calls from web browsers"
+      },
+      "origins": {
+        "label": "Allowed Domains",
+        "description": "List of domains allowed to access API. * allows all domains.",
+        "placeholder": "https://example.com or *",
+        "addButton": "Add Domain"
+      }
+    },
+    "rateLimiting": {
+      "title": "Rate Limiting Settings",
+      "description": "Configure request limits to prevent API abuse",
+      "enabled": {
+        "label": "Enable Rate Limiting",
+        "description": "Limit request count to prevent API abuse"
+      },
+      "requests": {
+        "label": "Max Requests per Hour",
+        "description": "Maximum number of requests allowed per hour per API key"
+      },
+      "window": {
+        "label": "Rate Limit Window (seconds)",
+        "description": "Time unit for applying rate limits"
+      }
+    },
+    "authentication": {
+      "title": "Authentication Settings",
+      "description": "Configure authentication settings for API requests",
+      "requireAuth": {
+        "label": "Require Authentication",
+        "description": "Require authentication key for all API requests"
+      }
+    }
+  },
+  "apiKeys": {
+    "title": "API Key Management",
+    "description": "Create and manage API keys for access",
+    "createKey": {
+      "title": "Create New API Key",
+      "button": "Generate Key",
+      "name": {
+        "label": "Key Name",
+        "placeholder": "Name describing the key's purpose"
+      },
+      "permissions": {
+        "label": "Permissions",
+        "description": "API features this key can access",
+        "options": {
+          "chat": "Chat/Conversation",
+          "models": "Model List",
+          "embeddings": "Embeddings"
+        }
+      },
+      "rateLimitTier": {
+        "label": "Rate Limit Tier",
+        "description": "Rate limit tier for this key",
+        "options": {
+          "basic": "Basic (100/hour, 1000/day)",
+          "premium": "Premium (1000/hour, 10000/day)",
+          "unlimited": "Unlimited"
+        }
+      },
+      "expiresAt": {
+        "label": "Expiration Date",
+        "description": "Key expiration date (optional)"
+      }
+    },
+    "table": {
+      "headers": {
+        "name": "Name",
+        "key": "Key",
+        "permissions": "Permissions",
+        "tier": "Tier",
+        "lastUsed": "Last Used",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "status": {
+        "active": "Active",
+        "inactive": "Inactive",
+        "expired": "Expired"
+      },
+      "actions": {
+        "view": "View",
+        "edit": "Edit",
+        "delete": "Delete",
+        "regenerate": "Regenerate"
+      }
+    },
+    "keyGenerated": {
+      "title": "API Key Generated",
+      "description": "This key will not be shown again, please store it in a secure location.",
+      "copyButton": "Copy",
+      "copied": "Copied!"
+    }
+  },
+  "usage": {
+    "title": "API Usage Statistics",
+    "description": "Usage and statistics information by API key",
+    "summary": {
+      "totalRequests": "Total Requests",
+      "totalKeys": "Total Keys",
+      "activeKeys": "Active Keys",
+      "errorRate": "Error Rate"
+    },
+    "chart": {
+      "title": "Requests by Hour",
+      "requests": "Requests",
+      "errors": "Errors"
+    },
+    "table": {
+      "headers": {
+        "key": "Key",
+        "endpoint": "Endpoint",
+        "requests": "Requests",
+        "errors": "Errors",
+        "avgResponse": "Avg Response Time",
+        "lastUsed": "Last Used"
+      }
+    }
+  },
+  "endpoints": {
+    "title": "Available Endpoints",
+    "description": "List of OpenAI compatible API endpoints",
+    "baseUrl": "Base URL",
+    "examples": {
+      "title": "Usage Examples",
+      "curl": "cURL Example",
+      "javascript": "JavaScript Example",
+      "python": "Python Example"
+    }
+  },
+  "messages": {
+    "saveSuccess": "API settings saved successfully.",
+    "saveError": "Error occurred while saving API settings.",
+    "loadError": "Failed to load saved settings. Using default values.",
+    "loading": "Loading settings...",
+    "saving": "Saving...",
+    "save": "Save Settings",
+    "keyCreated": "API key created successfully.",
+    "keyDeleted": "API key deleted successfully.",
+    "keyUpdated": "API key updated successfully.",
+    "confirmDelete": "Are you sure you want to delete this API key?",
+    "confirmRegenerate": "Are you sure you want to regenerate this key? The existing key will no longer be usable."
+  },
+  "validation": {
+    "keyNameRequired": "Key name is required.",
+    "invalidOrigins": "Invalid domain format.",
+    "rateLimitMin": "Rate limit must be at least 1.",
+    "windowMin": "Time window must be at least 60 seconds.",
+    "domainRequired": "Please enter a domain.",
+    "requestsMin": "At least 1 request is required.",
+    "windowMinSeconds": "Must be at least 60 seconds."
+  }
+} 

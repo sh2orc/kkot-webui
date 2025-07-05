@@ -1,5 +1,3 @@
-DROP TABLE IF EXISTS llm_models;
-
 -- LLM 모델 관리 테이블 생성
 CREATE TABLE IF NOT EXISTS llm_models (
     id TEXT PRIMARY KEY,

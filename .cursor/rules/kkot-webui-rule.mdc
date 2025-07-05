@@ -1,8 +1,3 @@
----
-description: 
-globs: 
-alwaysApply: false
----
 # KKOT WebUI - Cursor Rules
 
 ## Project Overview
@@ -46,11 +41,210 @@ KKOT WebUI is a universal web interface for various LLM services (OpenAI, Gemini
 - **Providers**: BrandingProvider, LanguageProvider, ModelProvider
 - **Client Providers**: Suspense-based hierarchical provider structure
 
+### Authentication & Authorization
+- **Authentication**: NextAuth.js v4 with JWT strategy
+- **Session Management**: JWT-based session with 24-hour expiry
+- **Password Security**: PBKDF2 with 10,000 iterations and 16-byte salt
+- **Route Protection**: Custom middleware for protected routes
+- **User Management**: Built-in registration/login with role-based access
+- **Admin System**: First user automatically assigned admin role
+
 ### Internationalization
 - **i18n**: Custom i18n system (Korean/English)
 - **Translation Files**: JSON-based modular translation files
 - **Dynamic Loading**: Dynamic loading and caching of translation modules
 - **Context**: Global language state management via LanguageContext
+
+## Database Structure & Backend Architecture
+
+### Database Schema Overview
+The project uses a multi-database architecture supporting both SQLite and PostgreSQL with identical schema definitions.
+
+#### Core Tables
+
+##### 1. Users (`users`)
+- **Purpose**: User management and authentication
+- **Fields**:
+  - `id`: Primary key (TEXT for SQLite, SERIAL for PostgreSQL)
+  - `username`: Unique username
+  - `email`: User email
+  - `password`: Hashed password (PBKDF2)
+  - `role`: User role ('user', 'admin')
+  - `createdAt`, `updatedAt`: Timestamps
+
+##### 2. Chat Sessions (`chat_sessions`)
+- **Purpose**: Chat session management
+- **Fields**:
+  - `id`: Primary key
+  - `userId`: Foreign key to users table
+  - `title`: Session title
+  - `createdAt`, `updatedAt`: Timestamps
+- **Relationships**: 
+  - One-to-many with users
+  - One-to-many with chat messages
+
+##### 3. Chat Messages (`chat_messages`)
+- **Purpose**: Individual chat messages storage
+- **Fields**:
+  - `id`: Primary key
+  - `sessionId`: Foreign key to chat_sessions
+  - `role`: Message role ('user', 'assistant')
+  - `content`: Message content
+  - `contentType`: Content type ('text', 'multimodal')
+  - `attachments`: JSON string for multimodal content
+  - `createdAt`: Timestamp
+- **Relationships**: Many-to-one with chat sessions
+
+#### LLM Management Tables
+
+##### 4. LLM Servers (`llm_servers`)
+- **Purpose**: LLM server configuration and management
+- **Fields**:
+  - `id`: Primary key
+  - `provider`: Provider type ('openai', 'gemini', 'ollama', 'vllm', 'custom')
+  - `name`: Server name
+  - `baseUrl`: Server URL
+  - `apiKey`: API key (encrypted)
+  - `models`: JSON string of available models
+  - `enabled`: Boolean flag
+  - `isDefault`: Default server flag
+  - `settings`: JSON string for provider-specific settings
+  - `createdAt`, `updatedAt`: Timestamps
+
+##### 5. LLM Models (`llm_models`)
+- **Purpose**: Individual model configuration
+- **Fields**:
+  - `id`: Primary key
+  - `serverId`: Foreign key to llm_servers
+  - `modelId`: Actual model ID (e.g., 'gpt-4')
+  - `provider`: Provider type
+  - `enabled`: Boolean flag
+  - `isPublic`: Public availability flag
+  - `capabilities`: JSON string for model capabilities
+  - `contextLength`: Context window size
+  - `supportsMultimodal`: Multimodal support flag
+  - `createdAt`, `updatedAt`: Timestamps
+- **Relationships**: Many-to-one with llm_servers
+
+##### 6. Agent Management (`agent_manage`)
+- **Purpose**: AI agent configuration and management
+- **Fields**:
+  - `id`: Primary key
+  - `agentId`: Unique agent identifier
+  - `modelId`: Foreign key to llm_models
+  - `name`: Agent name
+  - `systemPrompt`: System prompt
+  - `temperature`: Temperature setting
+  - `topK`, `topP`: Sampling parameters
+  - `maxTokens`: Maximum tokens
+  - `presencePenalty`, `frequencyPenalty`: Penalty settings
+  - `imageData`: Binary image data (BLOB)
+  - `description`: Agent description
+  - `enabled`: Boolean flag
+  - `parameterEnabled`: Parameter customization flag
+  - `supportsMultimodal`: Multimodal support flag
+  - `createdAt`, `updatedAt`: Timestamps
+- **Relationships**: Many-to-one with llm_models
+
+#### API Management Tables
+
+##### 7. API Management (`api_management`)
+- **Purpose**: Global API service configuration
+- **Fields**:
+  - `id`: Primary key (typically 'default')
+  - `apiEnabled`: API service enabled flag
+  - `corsEnabled`: CORS enabled flag
+  - `corsOrigins`: CORS origins configuration
+  - `rateLimitEnabled`: Rate limiting enabled flag
+  - `rateLimitRequests`: Rate limit requests count
+  - `rateLimitWindow`: Rate limit window (seconds)
+  - `requireAuth`: Authentication requirement flag
+  - `openaiCompatible`: OpenAI API compatibility flag
+  - `createdAt`, `updatedAt`: Timestamps
+
+##### 8. API Keys (`api_keys`)
+- **Purpose**: API key management for external access
+- **Fields**:
+  - `id`: Primary key
+  - `name`: Key name
+  - `keyHash`: Hashed API key
+  - `keyPrefix`: Key prefix for display
+  - `userId`: Foreign key to users (optional)
+  - `permissions`: JSON array of permissions
+  - `rateLimitTier`: Rate limit tier ('basic', 'premium', 'unlimited')
+  - `maxRequestsPerHour`, `maxRequestsPerDay`: Rate limits
+  - `expiresAt`: Expiration timestamp
+  - `lastUsedAt`: Last usage timestamp
+  - `isActive`: Active flag
+  - `createdAt`, `updatedAt`: Timestamps
+- **Relationships**: Many-to-one with users (optional)
+
+##### 9. API Usage (`api_usage`)
+- **Purpose**: API usage tracking and analytics
+- **Fields**:
+  - `id`: Primary key
+  - `apiKeyId`: Foreign key to api_keys
+  - `endpoint`: API endpoint
+  - `method`: HTTP method
+  - `statusCode`: Response status code
+  - `tokensUsed`: Tokens consumed
+  - `responseTimeMs`: Response time
+  - `errorMessage`: Error message (if any)
+  - `ipAddress`: Client IP address
+  - `userAgent`: Client user agent
+  - `createdAt`: Timestamp
+- **Relationships**: Many-to-one with api_keys
+
+#### Settings Tables
+
+##### 10. System Settings (`system_settings`)
+- **Purpose**: Global system configuration
+- **Fields**:
+  - `id`: Primary key
+  - `key`: Setting key
+  - `value`: Setting value (JSON string)
+  - `updatedAt`: Timestamp
+
+##### 11. Service Settings Tables
+- **Web Search Settings (`web_search_settings`)**: SearchXNG, Google, Bing configuration
+- **Image Settings (`image_settings`)**: OpenAI, Stability AI, local image generation
+- **Audio Settings (`audio_settings`)**: OpenAI, ElevenLabs, local audio processing
+
+### Repository Pattern Implementation
+
+#### Repository Structure (`lib/db/repository.ts`)
+- **Purpose**: Data access layer abstraction
+- **Pattern**: Repository pattern with transaction support
+- **Functions**:
+  - `userRepository`: User CRUD operations
+  - `chatSessionRepository`: Chat session management
+  - `chatMessageRepository`: Message operations with cascade delete
+  - `apiConnectionRepository`: API connection management
+  - `llmServerRepository`: LLM server operations
+  - `agentRepository`: Agent management
+  - `apiManagementRepository`: API management operations
+
+#### Key Repository Features
+- **Type Safety**: Leverages Drizzle ORM type inference
+- **Transaction Support**: Atomic operations for complex changes
+- **Cascade Operations**: Proper foreign key relationships
+- **ID Generation**: Custom ID generation for consistent formatting
+- **Multi-DB Support**: Handles both SQLite and PostgreSQL
+
+### Migration System
+
+#### Migration Files (`lib/db/migrations/`)
+- **0000_initial.sql**: Base schema creation
+- **0001_llm_servers.sql**: LLM server management
+- **0002_llm_models.sql**: LLM model configuration
+- **0003_agent_manage.sql**: Agent management system
+- **0004_api_management.sql**: API management and usage tracking
+
+#### Migration Process
+- **Automatic**: Runs on application startup
+- **Version Control**: Tracks applied migrations
+- **Rollback**: Supports rollback functionality
+- **Multi-DB**: Handles both SQLite and PostgreSQL schemas
 
 ## Coding Rules
 
@@ -140,6 +334,7 @@ const form = useForm<z.infer<typeof schema>>({
 - **Caching**: Performance optimization with `translationCache`
 - **Hook Usage**: Component-specific translations via `useTranslation(module)`
 - **Key Structure**: Hierarchical translation keys with dot notation (e.g., `admin.general.title`)
+- **Translation Modules**: All translation modules must be defined in `components/providers/language-provider.tsx` in the `translationModules` array when adding new i18n modules
 
 ```typescript
 // Translation usage example
@@ -148,7 +343,29 @@ const title = await t('settings.title'); // Async
 const label = lang('form.label'); // Sync (when cached)
 ```
 
-### 8. LLM Integration Rules
+### 8. Authentication Rules
+- **NextAuth Configuration**: JWT strategy with custom credential provider
+- **Password Hashing**: Use `hashPassword()` and `verifyPassword()` from `lib/auth.ts`
+- **Route Protection**: Protected routes via middleware configuration
+- **Session Handling**: 24-hour session expiry with automatic renewal
+- **Error Handling**: Proper error messages for auth failures
+- **Admin Check**: First user registration automatically gets admin role
+
+```typescript
+// Authentication usage example
+import { hashPassword, verifyPassword } from '@/lib/auth'
+
+// Password hashing
+const hashedPassword = hashPassword(plainPassword)
+
+// Password verification
+const isValid = verifyPassword(plainPassword, hashedPassword)
+
+// NextAuth session access
+const { data: session, status } = useSession()
+```
+
+### 9. LLM Integration Rules
 - **Factory Pattern**: Create provider instances via `LLMFactory.create(config)`
 - **Base Class**: Provider-specific implementations inheriting from `BaseLLM`
 - **Config Management**: Standardized configuration via `LLMModelConfig` type
@@ -164,13 +381,90 @@ const llm = LLMFactory.create({
 });
 ```
 
-### 9. Error Handling
+### 10. Middleware Rules
+- **Route Protection**: Configure protected routes in `config.matcher`
+- **Authentication Check**: Verify NextAuth session tokens
+- **API Response**: Return 401 for unauthorized API requests
+- **Redirect Logic**: Redirect unauthenticated users to `/auth`
+- **Public Routes**: Allow access to `/auth` and static assets
+
+```typescript
+// Middleware configuration example
+export const config = {
+  matcher: [
+    '/api/agents/:path*',
+    '/admin/:path*',
+    '/chat/:path*',
+    '/',
+  ],
+};
+```
+
+### 11. Backend Development Rules
+
+#### Database Operations
+- **Repository Usage**: Always use repository pattern for data access
+- **Transaction Handling**: Use transactions for multi-table operations
+- **Error Handling**: Proper error catching and logging
+- **Validation**: Server-side validation for all data operations
+- **Image Data**: Image data should be stored in the database as Base64 encoding instead of BLOB. When reading images from the database, use Buffer.from(agent.imageData).toString() to convert to Base64 string, then add the data:image/png;base64, prefix to convert to image URL format.
+
+```typescript
+// Database operation example
+import { userRepository } from '@/lib/db/repository';
+
+// Create user with proper error handling
+try {
+  const user = await userRepository.create({
+    username: 'Taeyoung',
+    email: 'sh2orc@gmail.com',
+    password: hashedPassword,
+    role: 'user'
+  });
+} catch (error) {
+  console.error('User creation failed:', error);
+  throw new Error('Failed to create user');
+}
+```
+
+#### API Development
+- **OpenAPI Compatible**: Follow OpenAI API compatibility standards
+- **Rate Limiting**: Implement rate limiting for API endpoints
+- **API Key Management**: Secure API key handling and validation
+- **Usage Tracking**: Track API usage for analytics and billing
+
+```typescript
+// API endpoint with rate limiting
+import { apiKeyRepository } from '@/lib/db/repository';
+
+export async function POST(request: NextRequest) {
+  // Validate API key
+  const apiKey = request.headers.get('Authorization')?.replace('Bearer ', '');
+  const keyData = await apiKeyRepository.validateKey(apiKey);
+  
+  if (!keyData) {
+    return NextResponse.json({ error: 'Invalid API key' }, { status: 401 });
+  }
+  
+  // Check rate limits
+  const rateLimitOk = await checkRateLimit(keyData.id);
+  if (!rateLimitOk) {
+    return NextResponse.json({ error: 'Rate limit exceeded' }, { status: 429 });
+  }
+  
+  // Process request
+  // ...
+}
+```
+
+### 12. Error Handling
 - Use try-catch blocks
 - User-friendly error messages
 - Utilize logging system
 - Notifications via Sonner toast
+- Authentication error handling with proper redirects
 
-### 10. Performance Optimization
+### 13. Performance Optimization
 - Use dynamic imports
 - Image optimization (next/image)
 - Appropriate memoization
@@ -181,8 +475,29 @@ const llm = LLMFactory.create({
 ### 1. Directory Structure
 ```
 app/                    # Next.js App Router
+├── auth/              # Authentication pages (login/register)
 ├── admin/             # Admin panel (subdirectories by feature)
+│   ├── general/       # General settings
+│   ├── connection/    # API connections
+│   ├── model/         # Model management
+│   ├── agent/         # Agent management
+│   ├── api/           # API management
+│   ├── mcp/           # MCP integration
+│   ├── evaluation/    # Model evaluation
+│   ├── documents/     # Document management
+│   ├── websearch/     # Web search settings
+│   ├── image/         # Image generation
+│   ├── audio/         # Audio processing
+│   ├── pipeline/      # AI pipelines
+│   └── database/      # Database settings
 ├── api/               # API routes (RESTful structure)
+│   ├── auth/          # NextAuth API routes ([...nextauth]/route.ts)
+│   ├── agents/        # Agent management API
+│   ├── api-management/ # API management API
+│   ├── llm-servers/   # LLM server management API
+│   ├── llm-models/    # LLM model management API
+│   ├── chat/          # Chat API with streaming
+│   └── profile/       # User profile API
 ├── chat/              # Chat interface
 └── [other pages]/
 
@@ -196,12 +511,25 @@ components/            # Reusable components
 └── ui/                # Base UI components (Radix UI based)
 
 lib/                   # Utilities and configuration
+├── auth.ts            # Authentication utilities (hashing, verification)
 ├── db/                # Database-related (schema, repository)
+│   ├── schema.ts      # Database schema definitions
+│   ├── repository.ts  # Repository pattern implementation
+│   ├── migrations/    # Migration files
+│   ├── config.ts      # Database configuration
+│   └── server.ts      # Server-side database utilities
 ├── llm/               # LLM integration (factory, providers)
+│   ├── factory.ts     # LLM factory pattern
+│   ├── base.ts        # Base LLM class
+│   ├── openai.ts      # OpenAI integration
+│   ├── gemini.ts      # Gemini integration
+│   ├── ollama.ts      # Ollama integration
+│   └── vllm.ts        # vLLM integration
 └── [other utilities]/
 
 hooks/                 # Custom React hooks
 i18n/                  # Internationalization translation files
+scripts/               # Utility scripts (migrations, etc.)
 ```
 
 ### 2. Component Organization Rules
@@ -269,7 +597,13 @@ export async function POST(request: NextRequest) {
 - **Model Connection**: LLM model and agent connection
 - **Profile Management**: Agent metadata management
 
-### 4. Database Schema
+### 4. API Management (`app/admin/api/`)
+- **OpenAI Compatibility**: OpenAI API compatible endpoints
+- **Rate Limiting**: Request rate limiting implementation
+- **Usage Tracking**: API usage analytics and monitoring
+- **Key Management**: API key generation and validation
+
+### 5. Database Schema
 - **Multi-DB**: Simultaneous SQLite/PostgreSQL support
 - **Repository**: Data access layer separation
 - **Migration**: Schema updates via `npm run db:migrate`
@@ -280,7 +614,7 @@ export async function POST(request: NextRequest) {
 - **Build Optimization**: Ignore ESLint/TypeScript errors (during build)
 - **File Watching**: Polling-based file watching (3-second interval)
 - **Caching**: Disable caching in development mode
-- **External Packages**: Server component external package settings for `better-sqlite3`, `drizzle-orm`
+- **External Packages**: Server component external package settings for  `drizzle-orm`
 
 ### Environment Variable Management
 - **DB Settings**: `DB_TYPE`, `DATABASE_URL`
@@ -288,10 +622,16 @@ export async function POST(request: NextRequest) {
 - **JWT**: Token secret management
 
 ## Security Considerations
+- **Authentication**: NextAuth JWT-based authentication with secure session management
+- **Password Security**: PBKDF2 hashing with 10,000 iterations and random salt
+- **Route Protection**: Middleware-based authentication for all protected routes
+- **Session Management**: 24-hour session expiry with automatic token refresh
+- **Admin Access**: Role-based access control for admin features
 - **Server-only**: `'server-only'` import for server-exclusive modules
 - **API Keys**: Secure key management via environment variables
 - **File Upload**: File type and size validation
 - **SQL Safety**: SQL injection prevention via Drizzle ORM
+- **Environment Variables**: Secure storage of NEXTAUTH_SECRET and database credentials
 
 ## Performance Optimization
 - **Dynamic Imports**: Page-specific code splitting
@@ -299,27 +639,41 @@ export async function POST(request: NextRequest) {
 - **Image Optimization**: Use Next.js Image component
 - **Suspense**: Asynchronous component loading optimization
 
-## Pull Request Creation
+### 9. API Management Rules
+- **API Configuration**: Global API settings via `apiManagementRepository`
+- **API Key Management**: Secure key generation with `generateApiKey()` function
+- **Rate Limiting**: Tiered rate limiting system ('basic', 'premium', 'unlimited')
+- **Usage Tracking**: Comprehensive API usage analytics
+- **OpenAI Compatibility**: OpenAI-compatible API endpoints
+- **CORS Control**: Configurable CORS settings for cross-origin requests
+- **Authentication**: Optional authentication requirements for API endpoints
 
-### Steps
+```typescript
+// API management usage example
+// Get API management settings
+const apiSettings = await apiManagementRepository.findById();
 
-1. Check if there is an issue link. If not, ask: “Is there a related issue link?”
-2. Unless instructed otherwise, assume the target merge branch is `main`.
-3. Run:
+// Create API key
+const { key, keyHash, keyPrefix } = generateApiKey();
+await apiKeysRepository.create({
+  name: 'API Key Name',
+  keyHash,
+  keyPrefix,
+  permissions: ['chat', 'models'],
+  rateLimitTier: 'basic',
+  maxRequestsPerHour: 100,
+  maxRequestsPerDay: 1000
+});
 
-   ```
-   git diff origin/main...HEAD | cat
-   ```
-
-   to review the changes.
-4. Create a draft PR with:
-
-   ```bash
-   git push origin HEAD && \
-   echo -e "Draft PR {{changes}}\n\nRelated: {{issue_link}}" | \
-   gh pr create --draft --title "Update {{feature}}" --body-file - && \
-   gh pr view --web
-   ```
-
+// Record API usage
+await apiUsageRepository.create({
+  apiKeyId: 'key-id',
+  endpoint: '/api/v1/chat/completions',
+  method: 'POST',
+  statusCode: 200,
+  tokensUsed: 150,
+  responseTimeMs: 850
+});
+```
 
 Follow these rules to write code that aligns with the KKOT WebUI project architecture. 

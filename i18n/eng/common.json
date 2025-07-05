@@ -63,5 +63,9 @@
     "archivedChats": "Archived Chats",
     "adminSettings": "Admin Settings",
     "logout": "Logout"
+  },
+  "roles": {
+    "admin": "Administrator",
+    "user": "User"
   }
 } 

@@ -1,8 +1,6 @@
 -- Drop and recreate agent_manage table
-DROP TABLE IF EXISTS agent_manage;
-
 -- Add agent_manage table
-CREATE TABLE agent_manage (
+CREATE TABLE IF NOT EXISTS agent_manage (
   id TEXT PRIMARY KEY DEFAULT (lower(hex(randomblob(8)))),
   agent_id TEXT NOT NULL UNIQUE,
   model_id TEXT NOT NULL,

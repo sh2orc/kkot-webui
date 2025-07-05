@@ -65,7 +65,22 @@
     "maxTokens": "최대 토큰",
     "presencePenalty": "Presence Penalty",
     "frequencyPenalty": "Frequency Penalty",
-    "enabled": "활성화"
+    "enabled": "활성화",
+    "agentId": "에이전트 ID",
+    "agentIdPlaceholder": "API 호출에 사용할 고유 ID 입력",
+    "agentIdHelp": "영문자, 숫자, 하이픈(-), 언더스코어(_)만 허용 (3-50자)",
+    "checking": "확인 중...",
+    "imageLoadFailed": "로드 실패",
+    "imageSize": "크기: {{size}}MB",
+    "imageHelp": "이미지 파일은 base64로 인코딩되어 저장됩니다.",
+    "imageFormats": "지원 형식: JPG, PNG, GIF (최대 10MB)",
+    "enableAgent": "에이전트 활성화",
+    "enableAgentHelp": "비활성화 시 API 호출에서 사용할 수 없습니다",
+    "enableParameters": "매개변수 활성화",
+    "enableParametersHelp": "비활성화 시 기본 매개변수 값이 사용됩니다",
+    "modelRegisterFirst": "먼저 기반 모델을 등록해주세요",
+    "showParameters": "매개변수 보기",
+    "hideParameters": "매개변수 숨기기"
   },
   
   "cancel": "취소",

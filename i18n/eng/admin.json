@@ -55,6 +55,10 @@
       "database": {
         "label": "Database Settings",
         "description": "Database configuration"
+      },
+      "api": {
+        "label": "API Management",
+        "description": "External API access and OpenAI compatible service settings"
       }
     },
     "systemStatus": {
@@ -78,6 +82,7 @@
     "image": "Image",
     "audio": "Audio",
     "pipeline": "Pipeline",
-    "database": "Database"
+    "database": "Database",
+    "api": "API"
   }
 } 

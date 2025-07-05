@@ -4,7 +4,7 @@ import { LLMFunctionCallOptions, LLMMessage, LLMModelConfig, LLMRequestOptions, 
 import { AIMessageChunk } from "@langchain/core/messages";
 
 /**
- * Gemini LLM 구현체
+ * Gemini LLM Implementation
  */
 export class GeminiLLM extends BaseLLM {
   private client: ChatGoogleGenerativeAI;
@@ -21,7 +21,7 @@ export class GeminiLLM extends BaseLLM {
   }
 
   /**
-   * Gemini 모델에 메시지를 전송하고 응답을 받는 메서드
+   * Method to send messages to Gemini model and receive responses
    */
   async chat(messages: LLMMessage[], options?: LLMRequestOptions): Promise<LLMResponse> {
     const langChainMessages = this.convertToLangChainMessages(messages);
@@ -57,7 +57,7 @@ export class GeminiLLM extends BaseLLM {
   }
 
   /**
-   * Gemini 모델에 스트리밍 요청을 보내는 메서드
+   * Method to send streaming requests to Gemini model
    */
   async streamChat(
     messages: LLMMessage[],
@@ -123,7 +123,7 @@ export class GeminiLLM extends BaseLLM {
   }
 
   /**
-   * 함수 호출 옵션 준비
+   * Prepare function call options
    */
   private prepareFunctionCallOptions(functionOptions?: LLMFunctionCallOptions): Record<string, any> {
     if (!functionOptions) return {};
@@ -142,7 +142,7 @@ export class GeminiLLM extends BaseLLM {
   }
 
   /**
-   * 토큰 수 추정 (간단한 구현)
+   * Estimate token count (simple implementation)
    */
   private estimateTokenCount(messages: LLMMessage[]): number {
     // Simple estimation: approximately 3 tokens per 4 words in English

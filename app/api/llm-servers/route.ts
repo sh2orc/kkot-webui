@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { llmServerRepository } from '@/lib/db/server';
 
-// GET: 모든 LLM 서버 설정 조회
+// GET: Retrieve all LLM server settings
 export async function GET(request: NextRequest) {
   try {
     const url = new URL(request.url);
@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
     const enabled = url.searchParams.get('enabled');
 
     if (id) {
-      // 특정 ID로 조회
+      // Query by specific ID
       const server = await llmServerRepository.findById(id);
       if (server && server.length > 0) {
         const result = server[0];
@@ -20,9 +20,9 @@ export async function GET(request: NextRequest) {
           settings: result.settings ? JSON.parse(result.settings) : {}
         });
       }
-      return NextResponse.json({ message: 'LLM 서버를 찾을 수 없습니다.', id }, { status: 404 });
+      return NextResponse.json({ message: 'LLM server not found.', id }, { status: 404 });
     } else if (provider) {
-      // 특정 프로바이더로 조회
+      // Query by specific provider
       const servers = await llmServerRepository.findByProvider(provider);
       return NextResponse.json(servers.map(server => ({
         ...server,
@@ -30,7 +30,7 @@ export async function GET(request: NextRequest) {
         settings: server.settings ? JSON.parse(server.settings) : {}
       })));
     } else if (enabled === 'true') {
-      // 활성화된 서버만 조회
+      // Query only enabled servers
       const servers = await llmServerRepository.findEnabled();
       return NextResponse.json(servers.map(server => ({
         ...server,
@@ -38,7 +38,7 @@ export async function GET(request: NextRequest) {
         settings: server.settings ? JSON.parse(server.settings) : {}
       })));
     } else {
-      // 모든 서버 조회
+      // Query all servers
       const servers = await llmServerRepository.findAll();
       return NextResponse.json(servers.map(server => ({
         ...server,
@@ -49,26 +49,26 @@ export async function GET(request: NextRequest) {
   } catch (error) {
     console.error('LLM server query error:', error);
     return NextResponse.json(
-      { error: 'LLM 서버를 조회하는 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'An error occurred while querying LLM servers.', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
 }
 
-// POST: 새 LLM 서버 추가
+// POST: Add new LLM server
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
 
-    // 필수 필드 검증
+    // Validate required fields
     if (!body.provider || !body.name || !body.baseUrl) {
       return NextResponse.json(
-        { error: 'provider, name, baseUrl는 필수입니다.' },
+        { error: 'provider, name, baseUrl are required.' },
         { status: 400 }
       );
     }
 
-    // 서버 생성
+    // Create server
     const result = await llmServerRepository.create({
       provider: body.provider,
       name: body.name,
@@ -81,7 +81,7 @@ export async function POST(request: NextRequest) {
     });
     
     return NextResponse.json({
-      message: 'LLM 서버가 추가되었습니다.',
+      message: 'LLM server has been added.',
       data: {
         ...result[0],
         models: result[0].models ? JSON.parse(result[0].models) : [],
@@ -91,25 +91,25 @@ export async function POST(request: NextRequest) {
   } catch (error) {
     console.error('LLM server addition error:', error);
     return NextResponse.json(
-      { error: 'LLM 서버를 추가하는 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'An error occurred while adding LLM server.', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
 }
 
-// PUT: LLM 서버 업데이트
+// PUT: Update LLM server
 export async function PUT(request: NextRequest) {
   try {
     const body = await request.json();
     
     if (!body.id) {
       return NextResponse.json(
-        { error: 'id는 필수입니다.' },
+        { error: 'id is required.' },
         { status: 400 }
       );
     }
 
-    // 서버 업데이트
+    // Update server
     const result = await llmServerRepository.update(body.id, {
       provider: body.provider,
       name: body.name,
@@ -123,13 +123,13 @@ export async function PUT(request: NextRequest) {
 
     if (result.length === 0) {
       return NextResponse.json(
-        { error: 'LLM 서버를 찾을 수 없습니다.' },
+        { error: 'LLM server not found.' },
         { status: 404 }
       );
     }
     
     return NextResponse.json({
-      message: 'LLM 서버가 업데이트되었습니다.',
+      message: 'LLM server has been updated.',
       data: {
         ...result[0],
         models: result[0].models ? JSON.parse(result[0].models) : [],
@@ -139,13 +139,13 @@ export async function PUT(request: NextRequest) {
   } catch (error) {
     console.error('LLM server update error:', error);
     return NextResponse.json(
-      { error: 'LLM 서버를 업데이트하는 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'An error occurred while updating LLM server.', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }
 }
 
-// DELETE: LLM 서버 삭제
+// DELETE: Delete LLM server
 export async function DELETE(request: NextRequest) {
   try {
     const url = new URL(request.url);
@@ -153,7 +153,7 @@ export async function DELETE(request: NextRequest) {
     
     if (!id) {
       return NextResponse.json(
-        { error: 'id는 필수입니다.' },
+        { error: 'id is required.' },
         { status: 400 }
       );
     }
@@ -161,12 +161,12 @@ export async function DELETE(request: NextRequest) {
     await llmServerRepository.delete(id);
     
     return NextResponse.json({
-      message: 'LLM 서버가 삭제되었습니다.'
+      message: 'LLM server has been deleted.'
     });
   } catch (error) {
     console.error('LLM server deletion error:', error);
     return NextResponse.json(
-      { error: 'LLM 서버를 삭제하는 중 오류가 발생했습니다.', details: error instanceof Error ? error.message : 'Unknown error' },
+      { error: 'An error occurred while deleting LLM server.', details: error instanceof Error ? error.message : 'Unknown error' },
       { status: 500 }
     );
   }

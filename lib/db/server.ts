@@ -68,11 +68,11 @@ ensureDbInitialized().catch(err => {
 });
 
 /**
- * 서버 컴포넌트에서 DB를 사용하기 위한 유틸리티
+ * Utility for using DB in server components
  * 
- * 서버 컴포넌트나 API 라우트에서 DB 작업을 수행할 때 사용합니다.
+ * Server components or API routes can use this to perform DB operations.
  * 
- * 사용 예시:
+ * Usage example:
  * ```
  * import { db } from '@/lib/db/server';
  * 

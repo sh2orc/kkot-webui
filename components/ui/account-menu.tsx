@@ -71,7 +71,7 @@ export function AccountMenu({ children, align = "start", side = "top" }: Account
                 </p>
                 {session.user.role && (
                   <p className="text-xs leading-none text-muted-foreground">
-                    Role: {session.user.role === 'admin' ? 'Administrator' : 'User'}
+                    {session.user.role === 'admin' ? lang("roles.admin") : lang("roles.user")}
                   </p>
                 )}
               </div>

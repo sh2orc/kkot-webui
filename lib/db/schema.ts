@@ -293,4 +293,101 @@ export const agentManage = getDbType() === 'sqlite'
       supportsMultimodal: boolean('supports_multimodal').default(false), // Multimodal support
       createdAt: timestamp('created_at').defaultNow(),
       updatedAt: timestamp('updated_at').defaultNow(),
-    }); 
+    });
+
+// API management table
+export const apiManagement = getDbType() === 'sqlite'
+  ? sqliteTable('api_management', {
+      id: text('id').primaryKey(),
+      apiEnabled: integer('api_enabled', { mode: 'boolean' }).default(false),
+      openaiCompatible: integer('openai_compatible', { mode: 'boolean' }).default(true),
+      corsEnabled: integer('cors_enabled', { mode: 'boolean' }).default(true),
+      corsOrigins: text('cors_origins').default('*'),
+      rateLimitEnabled: integer('rate_limit_enabled', { mode: 'boolean' }).default(true),
+      rateLimitRequests: integer('rate_limit_requests').default(1000),
+      rateLimitWindow: integer('rate_limit_window').default(3600),
+      requireAuth: integer('require_auth', { mode: 'boolean' }).default(true),
+      createdAt: integer('created_at', { mode: 'timestamp' }),
+      updatedAt: integer('updated_at', { mode: 'timestamp' }),
+    })
+  : pgTable('api_management', {
+      id: varchar('id', { length: 255 }).primaryKey(),
+      apiEnabled: boolean('api_enabled').default(false),
+      openaiCompatible: boolean('openai_compatible').default(true),
+      corsEnabled: boolean('cors_enabled').default(true),
+      corsOrigins: varchar('cors_origins', { length: 500 }).default('*'),
+      rateLimitEnabled: boolean('rate_limit_enabled').default(true),
+      rateLimitRequests: integer('rate_limit_requests').default(1000),
+      rateLimitWindow: integer('rate_limit_window').default(3600),
+      requireAuth: boolean('require_auth').default(true),
+      createdAt: timestamp('created_at').defaultNow(),
+      updatedAt: timestamp('updated_at').defaultNow(),
+    });
+
+// API Keys table
+export const apiKeys = getDbType() === 'sqlite'
+  ? sqliteTable('api_keys', {
+      id: text('id').primaryKey(),
+      name: text('name').notNull(),
+      keyHash: text('key_hash').notNull().unique(),
+      keyPrefix: text('key_prefix').notNull(),
+      userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+      permissions: text('permissions').default('["chat", "models"]'), // JSON array
+      rateLimitTier: text('rate_limit_tier').default('basic'), // basic, premium, unlimited
+      maxRequestsPerHour: integer('max_requests_per_hour').default(100),
+      maxRequestsPerDay: integer('max_requests_per_day').default(1000),
+      allowedIps: text('allowed_ips'), // JSON array of allowed IPs
+      expiresAt: integer('expires_at', { mode: 'timestamp' }),
+      lastUsedAt: integer('last_used_at', { mode: 'timestamp' }),
+      isActive: integer('is_active', { mode: 'boolean' }).default(true),
+      createdAt: integer('created_at', { mode: 'timestamp' }),
+      updatedAt: integer('updated_at', { mode: 'timestamp' }),
+    })
+  : pgTable('api_keys', {
+      id: varchar('id', { length: 255 }).primaryKey(),
+      name: varchar('name', { length: 255 }).notNull(),
+      keyHash: varchar('key_hash', { length: 255 }).notNull().unique(),
+      keyPrefix: varchar('key_prefix', { length: 50 }).notNull(),
+      userId: varchar('user_id', { length: 255 }).references(() => users.id, { onDelete: 'cascade' }),
+      permissions: pgText('permissions').default('["chat", "models"]'),
+      rateLimitTier: varchar('rate_limit_tier', { length: 50 }).default('basic'),
+      maxRequestsPerHour: integer('max_requests_per_hour').default(100),
+      maxRequestsPerDay: integer('max_requests_per_day').default(1000),
+      allowedIps: pgText('allowed_ips'),
+      expiresAt: timestamp('expires_at'),
+      lastUsedAt: timestamp('last_used_at'),
+      isActive: boolean('is_active').default(true),
+      createdAt: timestamp('created_at').defaultNow(),
+      updatedAt: timestamp('updated_at').defaultNow(),
+    });
+
+// API Usage table
+export const apiUsage = getDbType() === 'sqlite'
+  ? sqliteTable('api_usage', {
+      id: text('id').primaryKey(),
+      apiKeyId: text('api_key_id').references(() => apiKeys.id, { onDelete: 'cascade' }),
+      endpoint: text('endpoint').notNull(),
+      method: text('method').notNull(),
+      statusCode: integer('status_code').notNull(),
+      tokensUsed: integer('tokens_used').default(0),
+      responseTimeMs: integer('response_time_ms').default(0),
+      errorMessage: text('error_message'),
+      ipAddress: text('ip_address'),
+      userAgent: text('user_agent'),
+      createdAt: integer('created_at', { mode: 'timestamp' }),
+    })
+  : pgTable('api_usage', {
+      id: varchar('id', { length: 255 }).primaryKey(),
+      apiKeyId: varchar('api_key_id', { length: 255 }).references(() => apiKeys.id, { onDelete: 'cascade' }),
+      endpoint: varchar('endpoint', { length: 255 }).notNull(),
+      method: varchar('method', { length: 10 }).notNull(),
+      statusCode: integer('status_code').notNull(),
+      tokensUsed: integer('tokens_used').default(0),
+      responseTimeMs: integer('response_time_ms').default(0),
+      errorMessage: pgText('error_message'),
+      ipAddress: varchar('ip_address', { length: 45 }),
+      userAgent: varchar('user_agent', { length: 500 }),
+      createdAt: timestamp('created_at').defaultNow(),
+    });
+
+ 

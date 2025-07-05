@@ -75,6 +75,14 @@ export function ModelDropdown() {
     }
   }
 
+  // Debug logging
+  useEffect(() => {
+    console.log('ModelDropdown - selectedModel:', selectedModel)
+    console.log('ModelDropdown - selectedModel type:', selectedModel?.type)
+    console.log('ModelDropdown - fallback text:', getFallbackText(selectedModel))
+    console.log('ModelDropdown - avatar background:', getAvatarBackground(selectedModel))
+  }, [selectedModel])
+
   return (
     <Popover open={open} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
@@ -86,18 +94,30 @@ export function ModelDropdown() {
         >
           {selectedModel && (
             <div className="flex items-center gap-2">
-              <Avatar className="h-6 w-6">
-                {selectedModel.type === 'agent' && (selectedModel as Agent).imageData && (
+              <Avatar 
+                key={`${selectedModel.id}-${selectedModel.type}`}
+                className="h-6 w-6 flex-shrink-0"
+              >
+                {selectedModel.type === 'agent' && (selectedModel as Agent).imageData ? (
                   <AvatarImage 
                     src={(selectedModel as Agent).imageData} 
                     alt={(selectedModel as Agent).name || ''} 
                   />
-                )}
-                <AvatarFallback className={`${getAvatarBackground(selectedModel)} text-white text-xs`}>
+                ) : null}
+                <AvatarFallback 
+                  delayMs={0}
+                  className={`${getAvatarBackground(selectedModel)} text-white text-xs flex items-center justify-center font-medium`}
+                  style={{ 
+                    minHeight: '24px', 
+                    minWidth: '24px',
+                    fontSize: '12px',
+                    lineHeight: '1'
+                  }}
+                >
                   {getFallbackText(selectedModel)}
                 </AvatarFallback>
               </Avatar>
-              <span>{renderSelectedModelText()}</span>
+              <span className="truncate">{renderSelectedModelText()}</span>
             </div>
           )}
           {!selectedModel && <span>{lang("selectModel")}</span>}
@@ -172,8 +192,16 @@ export function ModelDropdown() {
                       }}
                       className="flex items-center gap-2"
                     >
-                      <Avatar className="h-6 w-6">
-                        <AvatarFallback className={`${getAvatarBackground(model)} text-white text-xs`}>
+                      <Avatar className="h-6 w-6 flex-shrink-0">
+                        <AvatarFallback 
+                          className={`${getAvatarBackground(model)} text-white text-xs flex items-center justify-center font-medium`}
+                          style={{ 
+                            minHeight: '24px', 
+                            minWidth: '24px',
+                            fontSize: '12px',
+                            lineHeight: '1'
+                          }}
+                        >
                           {getFallbackText(model)}
                         </AvatarFallback>
                       </Avatar>

@@ -19,7 +19,7 @@ export const authOptions = {
       async authorize(credentials) {
         try {
           if (!credentials?.email || !credentials?.password) {
-            throw new Error('이메일과 비밀번호를 모두 입력해주세요.');
+            throw new Error('Please enter both email and password.');
           }
 
           const db = getDb();
@@ -29,26 +29,26 @@ export const authOptions = {
           const action = credentials.action as string;
 
           if (action === 'register') {
-            // 회원가입 처리
-            // 기존 사용자 확인
+            // Handle registration
+            // Check for existing user
             const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
             
             if (existingUser.length > 0) {
-              throw new Error('이미 존재하는 이메일입니다.');
+              throw new Error('Email already exists.');
             }
 
-            // 전체 사용자 수 확인 (첫 번째 사용자인지 확인)
+            // Check total user count (to determine if this is the first user)
             const allUsers = await db.select().from(users);
             const isFirstUser = allUsers.length === 0;
 
-            // 사용자 생성
+            // Create user
             const userId = generateUserId();
             const hashedPassword = hashPassword(password);
             const userRole = isFirstUser ? 'admin' : 'user';
 
             await db.insert(users).values({
               id: userId,
-              username: username || email.split('@')[0], // 사용자명 또는 이메일에서 추출
+              username: username || email.split('@')[0], // Username or extracted from email
               email,
               password: hashedPassword,
               role: userRole,
@@ -63,17 +63,17 @@ export const authOptions = {
               role: userRole
             };
           } else {
-            // 로그인 처리
+            // Handle login
             const user = await db.select().from(users).where(eq(users.email, email)).limit(1);
             
             if (user.length === 0) {
-              throw new Error('존재하지 않는 이메일입니다.');
+              throw new Error('Email does not exist.');
             }
 
             const isValidPassword = verifyPassword(password, user[0].password);
             
             if (!isValidPassword) {
-              throw new Error('비밀번호가 일치하지 않습니다.');
+              throw new Error('Password is incorrect.');
             }
 
             return {
@@ -85,17 +85,17 @@ export const authOptions = {
           }
         } catch (error) {
           console.error('Auth error:', error);
-          throw error; // 에러를 상위로 전달하여 클라이언트에서 처리할 수 있도록 함
+          throw error; // Pass error to higher level for client-side handling
         }
       }
     })
   ],
   session: {
     strategy: 'jwt' as const,
-    maxAge: 24 * 60 * 60, // 24시간
+    maxAge: 24 * 60 * 60, // 24 hours
   },
   jwt: {
-    maxAge: 24 * 60 * 60, // 24시간
+    maxAge: 24 * 60 * 60, // 24 hours
   },
   cookies: {
     sessionToken: {

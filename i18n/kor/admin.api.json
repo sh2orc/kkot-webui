@@ -1,0 +1,174 @@
+{
+  "title": "API 관리",
+  "description": "외부 API 접근 및 OpenAI compatible 서비스 설정을 관리합니다.",
+  "apiService": {
+    "title": "API 서비스 설정",
+    "description": "전체 API 서비스 활성화 및 기본 설정",
+    "enabled": {
+      "label": "API 서비스 활성화",
+      "description": "외부에서 API를 통해 시스템에 접근할 수 있도록 허용"
+    },
+    "openaiCompatible": {
+      "label": "OpenAI Compatible API",
+      "description": "OpenAI API 형식과 호환되는 엔드포인트 제공"
+    },
+    "corsSettings": {
+      "title": "CORS 설정",
+      "description": "웹 브라우저에서 직접 API 호출을 허용하도록 설정",
+      "enabled": {
+        "label": "CORS 허용",
+        "description": "웹 브라우저에서 직접 API 호출을 허용"
+      },
+      "origins": {
+        "label": "허용 도메인",
+        "description": "API 접근을 허용할 도메인 목록입니다. *은 모든 도메인을 허용합니다.",
+        "placeholder": "https://example.com 또는 *",
+        "addButton": "도메인 추가"
+      }
+    },
+    "rateLimiting": {
+      "title": "요청 제한 설정",
+      "description": "API 남용 방지를 위한 요청 수 제한 설정",
+      "enabled": {
+        "label": "요청 제한 활성화",
+        "description": "API 남용 방지를 위한 요청 수 제한"
+      },
+      "requests": {
+        "label": "시간당 최대 요청 수",
+        "description": "각 API 키당 허용되는 시간당 요청 수"
+      },
+      "window": {
+        "label": "제한 시간 윈도우 (초)",
+        "description": "요청 제한을 적용할 시간 단위"
+      }
+    },
+    "authentication": {
+      "title": "인증 설정",
+      "description": "API 요청에 대한 인증 설정",
+      "requireAuth": {
+        "label": "인증 필수",
+        "description": "모든 API 요청에 대해 인증 키 필요"
+      }
+    }
+  },
+  "apiKeys": {
+    "title": "API 키 관리",
+    "description": "API 접근을 위한 키 생성 및 관리",
+    "createKey": {
+      "title": "새 API 키 생성",
+      "button": "키 생성",
+      "name": {
+        "label": "키 이름",
+        "placeholder": "키 용도를 설명하는 이름"
+      },
+      "permissions": {
+        "label": "권한",
+        "description": "이 키가 접근할 수 있는 API 기능",
+        "options": {
+          "chat": "채팅/대화",
+          "models": "모델 목록",
+          "embeddings": "임베딩"
+        }
+      },
+      "rateLimitTier": {
+        "label": "요청 제한 등급",
+        "description": "키별 요청 제한 등급",
+        "options": {
+          "basic": "기본 (100/시간, 1000/일)",
+          "premium": "프리미엄 (1000/시간, 10000/일)",
+          "unlimited": "무제한"
+        }
+      },
+      "expiresAt": {
+        "label": "만료일",
+        "description": "키 만료 날짜 (선택사항)"
+      }
+    },
+    "table": {
+      "headers": {
+        "name": "이름",
+        "key": "키",
+        "permissions": "권한",
+        "tier": "등급",
+        "lastUsed": "마지막 사용",
+        "status": "상태",
+        "actions": "작업"
+      },
+      "status": {
+        "active": "활성",
+        "inactive": "비활성",
+        "expired": "만료됨"
+      },
+      "actions": {
+        "view": "보기",
+        "edit": "수정",
+        "delete": "삭제",
+        "regenerate": "재생성"
+      }
+    },
+    "keyGenerated": {
+      "title": "API 키가 생성되었습니다",
+      "description": "이 키는 다시 표시되지 않으므로 안전한 곳에 저장하세요.",
+      "copyButton": "복사",
+      "copied": "복사됨!"
+    }
+  },
+  "usage": {
+    "title": "API 사용량 통계",
+    "description": "API 키별 사용량 및 통계 정보",
+    "summary": {
+      "totalRequests": "총 요청 수",
+      "totalKeys": "총 키 수",
+      "activeKeys": "활성 키 수",
+      "errorRate": "오류율"
+    },
+    "chart": {
+      "title": "시간별 요청 수",
+      "requests": "요청 수",
+      "errors": "오류"
+    },
+    "table": {
+      "headers": {
+        "key": "키",
+        "endpoint": "엔드포인트",
+        "requests": "요청 수",
+        "errors": "오류 수",
+        "avgResponse": "평균 응답시간",
+        "lastUsed": "마지막 사용"
+      }
+    }
+  },
+  "endpoints": {
+    "title": "사용 가능한 엔드포인트",
+    "description": "OpenAI compatible API 엔드포인트 목록",
+    "baseUrl": "기본 URL",
+    "examples": {
+      "title": "사용 예시",
+      "curl": "cURL 예시",
+      "javascript": "JavaScript 예시",
+      "python": "Python 예시"
+    }
+  },
+  "messages": {
+    "saveSuccess": "API 설정이 성공적으로 저장되었습니다.",
+    "saveError": "API 설정 저장 중 오류가 발생했습니다.",
+    "loadError": "저장된 설정을 불러오는데 실패했습니다. 기본값을 사용합니다.",
+    "loading": "설정을 불러오는 중...",
+    "saving": "저장 중...",
+    "save": "설정 저장",
+    "keyCreated": "API 키가 성공적으로 생성되었습니다.",
+    "keyDeleted": "API 키가 삭제되었습니다.",
+    "keyUpdated": "API 키가 업데이트되었습니다.",
+    "confirmDelete": "이 API 키를 삭제하시겠습니까?",
+    "confirmRegenerate": "이 키를 재생성하시겠습니까? 기존 키는 더 이상 사용할 수 없습니다."
+  },
+  "validation": {
+    "keyNameRequired": "키 이름은 필수입니다.",
+    "invalidOrigins": "유효하지 않은 도메인 형식입니다.",
+    "rateLimitMin": "요청 제한은 1 이상이어야 합니다.",
+    "windowMin": "시간 윈도우는 60초 이상이어야 합니다.",
+    "domainRequired": "도메인을 입력해주세요.",
+    "requestsMin": "최소 1개의 요청이 필요합니다.",
+    "windowMinSeconds": "최소 60초 이상이어야 합니다."
+  }
+} 

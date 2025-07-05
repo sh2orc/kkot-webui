@@ -10,6 +10,40 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 
 > 🔗 **GitHub Repository**: [https://github.com/sh2orc/kkot-webui](https://github.com/sh2orc/kkot-webui)
 
+## 🏗️ Technology Stack
+
+### Frontend
+- **Framework**: Next.js 15.2.4 (App Router)
+- **Language**: TypeScript
+- **Styling**: Tailwind CSS with tailwind-merge
+- **UI Components**: Radix UI component system
+- **Icons**: Lucide React
+- **Theme**: next-themes (dark/light mode)
+- **Animations**: tailwindcss-animate
+- **Notifications**: Sonner toast
+- **Forms**: React Hook Form + Zod validation
+
+### Backend & Database
+- **Database**: SQLite (development), PostgreSQL (production)
+- **ORM**: Drizzle ORM with better-sqlite3
+- **Migration**: Automatic migration system
+- **Authentication**: NextAuth.js v4 with JWT strategy
+- **Password Security**: PBKDF2 hashing
+- **Route Protection**: Custom middleware
+- **API Management**: OpenAI-compatible API endpoints
+
+### AI & LLM Integration
+- **LangChain**: Core, Community, OpenAI, Google GenAI
+- **Factory Pattern**: Multi-provider LLM management
+- **Supported Providers**: OpenAI, Gemini, Ollama, vLLM
+- **Streaming**: Real-time response streaming
+- **Multimodal**: Image processing capabilities
+
+### State Management & Context
+- **State Management**: React Context API
+- **Providers**: Hierarchical provider structure
+- **Internationalization**: Custom i18n system (Korean/English)
+
 ## ✨ Key Features
 
 ### 🔐 Authentication & Security
@@ -17,14 +51,16 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **User Management**: Built-in user registration and login system
 - **Admin System**: First user automatically becomes admin
 - **Route Protection**: Middleware-based route protection for secure access
-- **Password Security**: Bcrypt-based password hashing with salt
+- **Password Security**: PBKDF2-based password hashing with salt
+- **Session Management**: 24-hour session expiry with automatic renewal
 
 ### 🤖 Multi-LLM Support
 - **OpenAI API**: Support for GPT-4o, GPT-4V (Vision), and other OpenAI models
 - **Google Gemini**: Integrated Gemini API support with multimodal capabilities
 - **Ollama**: Local Ollama server connectivity with vision model support
+- **vLLM**: Support for vLLM inference server
 - **Vision Models**: Native support for image analysis and multimodal conversations
-- **Other Models**: Support for Claude, LLaMA, Mistral, and various other models
+- **Factory Pattern**: Unified LLM provider management
 
 ### 💬 Chat Interface
 - **Real-time Streaming**: Seamless streaming response for natural conversations with abort functionality
@@ -37,34 +73,46 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Responsive Design**: Optimized for mobile and desktop experiences with dynamic padding
 - **Anti-Duplicate**: Intelligent duplicate message prevention and submission controls
 - **Performance Optimization**: Memoized components and efficient scroll management
-- **Vision Models**: Support for GPT-4V and other vision-capable models
 
 ### 🤖 Agent Management
 - **Custom AI Agents**: Create and manage personalized AI agents with specific configurations
 - **Agent Profiles**: Upload custom images and descriptions for each agent
 - **Model Integration**: Connect agents to different LLM models and providers
 - **Parameter Control**: Fine-tune temperature, maxTokens limits, and other model parameters
+- **Multimodal Support**: Configure agents for image processing capabilities
 - **Token Management**: Configurable maxTokens settings for response length control
 
 ### ⚙️ Comprehensive Admin Panel
 - **General Settings**: User registration, API keys, JWT configuration, OAuth authentication
-- **Connection Management**: Multiple API server management for OpenAI and Ollama
-- **Model Configuration**: Model selection, token limits, temperature settings
-- **Agent Management**: Create, edit, and delete custom AI agents
+- **Connection Management**: Multiple API server management for OpenAI, Gemini, Ollama, vLLM
+- **Model Configuration**: Model selection, token limits, temperature settings, multimodal capabilities
+- **Agent Management**: Create, edit, and delete custom AI agents with image upload
+- **API Management**: OpenAI-compatible API endpoints with rate limiting and usage tracking
 - **MCP Integration**: Model Context Protocol support
 - **Evaluation Tools**: Model performance evaluation features
 - **Document Management**: Document processing and management
-- **Web Search**: Internet search functionality integration
-- **Image Generation**: AI image generation API integration
-- **Audio Processing**: Speech recognition and TTS settings
+- **Web Search**: Internet search functionality integration (SearchXNG, Google, Bing)
+- **Image Generation**: AI image generation API integration (OpenAI, Stability AI)
+- **Audio Processing**: Speech recognition and TTS settings (OpenAI, ElevenLabs)
 - **Pipeline Management**: AI workflow configuration
-- **Database Integration**: Database connectivity and management
+- **Database Management**: Database connectivity and schema management
 
-### 🗄️ Database & Storage
-- **SQLite Integration**: Local database with automatic migrations
-- **PostgreSQL Support**: Production-ready database configuration
+### 🗄️ Database & Backend Architecture
+- **Multi-Database Support**: SQLite for development, PostgreSQL for production
+- **Schema Management**: Automatic migrations with version control
+- **Repository Pattern**: Clean data access layer with transaction support
+- **API Management**: RESTful API design with OpenAI compatibility
+- **Rate Limiting**: Configurable rate limiting for API endpoints
+- **Usage Tracking**: Comprehensive API usage analytics and monitoring
 - **Data Persistence**: Chat history, agent configurations, and settings storage
-- **Migration System**: Automated database schema updates
+
+### 🌐 API Management System
+- **OpenAI Compatibility**: Full OpenAI API compatibility for seamless integration
+- **API Key Management**: Secure API key generation and validation
+- **Rate Limiting**: Configurable rate limits per API key
+- **Usage Analytics**: Detailed tracking of API usage and performance
+- **CORS Configuration**: Flexible CORS settings for web applications
+- **Authentication Options**: Optional authentication for API endpoints
 
 ### 🎨 Modern UI/UX
 - Clean design based on Tailwind CSS
@@ -76,6 +124,14 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - Drag & drop file upload interface
 - Dynamic responsive design with mobile-first approach
 - Performance-optimized rendering with memoization
+
+### 🌐 API Management System
+- **OpenAI Compatibility**: Full OpenAI API compatibility for seamless integration
+- **API Key Management**: Secure API key generation and validation
+- **Rate Limiting**: Configurable rate limits per API key
+- **Usage Analytics**: Detailed tracking of API usage and performance
+- **CORS Configuration**: Flexible CORS settings for web applications
+- **Authentication Options**: Optional authentication for API endpoints
 
 ### 🌐 Internationalization
 - Multi-language support (Korean, English)
@@ -150,20 +206,71 @@ npm run build
 npm run start
 ```
 
+## 🏗️ Database Schema
+
+### Core Tables
+
+#### Users
+- **Purpose**: User management and authentication
+- **Key Fields**: id, username, email, password (hashed), role, timestamps
+- **Relationships**: One-to-many with chat sessions
+
+#### Chat Sessions
+- **Purpose**: Chat conversation management
+- **Key Fields**: id, userId, title, timestamps
+- **Relationships**: Many-to-one with users, one-to-many with messages
+
+#### Chat Messages
+- **Purpose**: Individual message storage
+- **Key Fields**: id, sessionId, role, content, contentType, attachments
+- **Relationships**: Many-to-one with chat sessions
+
+### LLM Management Tables
+
+#### LLM Servers
+- **Purpose**: LLM server configuration
+- **Key Fields**: id, provider, name, baseUrl, apiKey, models, enabled, settings
+- **Relationships**: One-to-many with LLM models
+
+#### LLM Models
+- **Purpose**: Model configuration and capabilities
+- **Key Fields**: id, serverId, modelId, provider, capabilities, contextLength, supportsMultimodal
+- **Relationships**: Many-to-one with LLM servers, one-to-many with agents
+
+#### Agent Management
+- **Purpose**: AI agent configuration
+- **Key Fields**: id, agentId, modelId, name, systemPrompt, parameters, imageData
+- **Relationships**: Many-to-one with LLM models
+
+### API Management Tables
+
+#### API Management
+- **Purpose**: Global API service configuration
+- **Key Fields**: id, apiEnabled, corsEnabled, rateLimitEnabled, openaiCompatible
+
+#### API Keys
+- **Purpose**: API key management for external access
+- **Key Fields**: id, name, keyHash, permissions, rateLimitTier, usage limits
+
+#### API Usage
+- **Purpose**: API usage tracking and analytics
+- **Key Fields**: id, apiKeyId, endpoint, method, statusCode, tokensUsed, responseTime
+
 ## 📁 Project Structure
 
 ```
 kkot-webui/
 ├── app/                    # Next.js App Router
 │   ├── auth/              # Authentication pages
-│   ├── chat/              # Chat pages
-│   ├── admin/             # Admin settings
+│   ├── chat/              # Chat interface
+│   ├── admin/             # Admin panel
 │   │   ├── general/       # General settings
 │   │   ├── connection/    # API connections
-│   │   ├── model/         # Model configuration
+│   │   ├── model/         # Model management
+│   │   ├── agent/         # Agent management
+│   │   ├── api/           # API management
 │   │   ├── mcp/           # MCP integration
 │   │   ├── evaluation/    # Model evaluation
-│   │   ├── tools/         # Tools management
 │   │   ├── documents/     # Document management
 │   │   ├── websearch/     # Web search settings
 │   │   ├── image/         # Image generation
@@ -173,180 +280,188 @@ kkot-webui/
 │   ├── api/               # API routes
 │   │   ├── auth/          # NextAuth API routes
 │   │   ├── agents/        # Agent management API
-│   │   ├── chat/          # Chat API with title generation
+│   │   ├── api-management/ # API management API
+│   │   ├── llm-servers/   # LLM server management API
+│   │   ├── llm-models/    # LLM model management API
+│   │   ├── chat/          # Chat API with streaming
 │   │   └── profile/       # User profile API
 │   ├── book/              # Content pages
 │   ├── setting/           # User settings
 │   └── layout.tsx         # Root layout
 ├── components/            # React components
+│   ├── admin/             # Admin components
 │   ├── chat/              # Chat-related components
 │   ├── layout/            # Layout components
 │   ├── sidebar/           # Sidebar components
 │   ├── contents/          # Page content components
-│   ├── admin/             # Admin components
-│   ├── providers/         # Context providers (including page transitions)
-│   └── ui/                # Reusable UI components (loading, transitions)
-├── i18n/                  # Internationalization
-│   ├── eng/               # English translations
-│   └── kor/               # Korean translations
+│   ├── providers/         # Context providers
+│   └── ui/                # Reusable UI components
 ├── lib/                   # Utility functions
 │   ├── auth.ts            # Authentication utilities
 │   ├── db/                # Database configuration
-│   ├── llm/               # LLM integration with maxTokens support
+│   │   ├── schema.ts      # Database schema definitions
+│   │   ├── repository.ts  # Repository pattern implementation
+│   │   ├── migrations/    # Migration files
+│   │   └── server.ts      # Server-side database utilities
+│   ├── llm/               # LLM integration
+│   │   ├── factory.ts     # LLM factory pattern
+│   │   ├── base.ts        # Base LLM class
+│   │   ├── openai.ts      # OpenAI integration
+│   │   ├── gemini.ts      # Gemini integration
+│   │   ├── ollama.ts      # Ollama integration
+│   │   └── vllm.ts        # vLLM integration
 │   ├── i18n.ts            # Client-side internationalization
-│   └── i18n-server.ts     # Server-side internationalization utilities
+│   └── i18n-server.ts     # Server-side internationalization
+├── i18n/                  # Translation files
+│   ├── eng/               # English translations
+│   └── kor/               # Korean translations
 ├── hooks/                 # Custom React hooks
 ├── middleware.ts          # Route protection middleware
-├── types/                 # TypeScript type definitions
-├── styles/                # Style files
-└── public/                # Static assets
+├── scripts/               # Utility scripts
+│   └── migrate.ts         # Database migration script
+└── types/                 # TypeScript type definitions
 ```
 
-## 🔧 Tech Stack
+## 🔧 Development
 
-- **Framework**: Next.js 15.2.4
-- **Language**: TypeScript
-- **Authentication**: NextAuth.js v4 with JWT strategy
-- **Database**: SQLite with Drizzle ORM (PostgreSQL support)
-- **Password Security**: bcryptjs with PBKDF2 hashing
-- **Styling**: Tailwind CSS
-- **UI Components**: Radix UI
-- **Icons**: Lucide React
-- **Form Management**: React Hook Form + Zod
-- **Validation**: Zod schema validation
-- **Theme**: next-themes
-- **Internationalization**: Custom i18n system
-- **State Management**: React Context API
-- **File Handling**: Multipart form data support
-- **Route Protection**: Custom middleware for authentication
+### Database Operations
 
-## 🆕 Latest Features
+```bash
+# Run migrations
+npm run db:migrate
 
-### 🖼️ Multimodal Chat Support
-- **Image Upload**: Drag & drop image upload with preview functionality
-- **Vision Model Integration**: Support for GPT-4V, Gemini Vision, and other vision models
-- **Image Processing**: Automatic image compression and format optimization
-- **Multimodal Messages**: Seamless text and image combination in conversations
-- **File Type Validation**: Comprehensive file type and size validation
-- **Mobile Camera Support**: Direct camera capture on mobile devices
+# Reset database (development only)
+npm run db:reset
 
-### ⚡ Performance Optimization
-- **Memoized Components**: React.memo optimization for message rendering
-- **Efficient Scrolling**: Smart scroll management with dynamic padding
-- **Streaming Optimization**: Enhanced streaming response handling
-- **Skeleton Loading**: Improved loading states with realistic skeleton UI
-- **Memory Management**: Optimized memory usage for large conversations
-- **Render Optimization**: Conditional rendering to prevent unnecessary updates
+# Generate migration
+npm run db:generate
+```
 
-### 🎬 Page Transitions
-- **View Transitions API**: Smooth page transitions using modern web standards
-- **Fallback Support**: Graceful degradation for browsers without View Transitions API
-- **Scroll Position Memory**: Maintains scroll position across page transitions
-- **Custom Transition Components**: TransitionLink component for seamless navigation
+### API Development
 
-### 🔢 Token Management
-- **maxTokens Configuration**: Fine-grained control over response length
-- **Per-Agent Settings**: Individual token limits for each AI agent
-- **Dynamic Token Control**: Runtime adjustment of token limits in chat sessions
-- **Example Usage**: Comprehensive examples for different token scenarios
+The project includes OpenAI-compatible API endpoints:
 
-### 🏷️ Auto Title Generation
-- **AI-Powered Titles**: Automatic generation of meaningful chat session titles
-- **Multi-language Support**: Titles generated in the same language as the conversation
-- **Smart Fallbacks**: Intelligent fallback mechanisms for title generation
-- **Length Optimization**: Automatically optimized title lengths for UI display
+```bash
+# Chat completions (OpenAI compatible)
+POST /api/v1/chat/completions
 
-### 📱 Mobile Experience
-- **Responsive Design**: Optimized for mobile and tablet devices
-- **Touch Interactions**: Enhanced touch gestures and interactions
-- **Dynamic Padding**: Adaptive padding based on screen size and content
-- **Mobile-First Approach**: Designed with mobile users in mind
-- **Keyboard Handling**: Improved virtual keyboard support
+# List models
+GET /api/v1/models
 
-### 🌐 Server-side Internationalization
-- **Server-only Utilities**: Dedicated server-side translation functions
-- **Module Caching**: Efficient caching of translation modules
-- **Preloading Support**: Ability to preload translation modules for better performance
-- **Error Handling**: Robust error handling with fallback mechanisms
+# API key management
+POST /api/v1/api-keys
+GET /api/v1/api-keys
+DELETE /api/v1/api-keys/{id}
+```
 
-### 🎨 UI/UX Improvements
-- **Chat Layout**: Dedicated layout for chat pages with optimized navigation
-- **Loading Animations**: Smooth loading animations throughout the application
-- **Enhanced Accessibility**: Improved accessibility features and ARIA labels
-- **Visual Feedback**: Better visual feedback for user interactions
-- **Error States**: Comprehensive error handling with user-friendly messages
+### Environment Variables
 
-## 🌟 Contributing
+```bash
+# Database
+DB_TYPE=sqlite|postgresql
+DATABASE_URL=your-database-url
 
-This project is completely open source and welcomes contributions from everyone. Your contributions help us add more features faster!
+# Authentication
+NEXTAUTH_SECRET=your-secret-key
+NEXTAUTH_URL=http://localhost:3000
 
-### How to Contribute
+# LLM API Keys
+OPENAI_API_KEY=your-openai-key
+GOOGLE_API_KEY=your-google-key
+```
 
-1. Fork this repository
-2. Create a new feature branch (`git checkout -b feature/amazing-feature`)
-3. Commit your changes (`git commit -m 'Add some amazing feature'`)
-4. Push to the branch (`git push origin feature/amazing-feature`)
-5. Create a Pull Request
+## 🛡️ Security Features
 
-### Contributing Guidelines
+- **Authentication**: NextAuth.js with JWT strategy
+- **Password Security**: PBKDF2 hashing with salt
+- **Route Protection**: Middleware-based authentication
+- **Session Management**: Secure session handling
+- **API Security**: API key validation and rate limiting
+- **Admin Access**: Role-based access control
+- **CORS Configuration**: Flexible CORS settings
+- **SQL Injection Prevention**: Drizzle ORM protection
 
-- Maintain consistent code style
-- Write tests for new features
-- Update documentation
-- Check for existing issues to avoid duplicates
+## 🚀 Performance Optimizations
 
-## 🎯 Roadmap
+- **Code Splitting**: Dynamic imports for better performance
+- **Image Optimization**: Next.js Image component
+- **Caching**: Translation and component caching
+- **Streaming**: Real-time response streaming
+- **Database Indexing**: Optimized database queries
+- **Memoization**: React component memoization
 
-### ✅ Completed Features
-- [x] **User authentication system** - NextAuth-based secure login/registration
-- [x] **Real-time streaming response support** - Implemented streaming chat API
-- [x] **Conversation history storage and management** - Chat sessions with persistent storage
-- [x] **Extended multi-language support** - Korean/English support with i18n system
-- [x] **Agent management system** - Create, edit, and manage custom AI agents
-- [x] **Model provider integration** - Unified interface for multiple LLM providers
-- [x] **Database integration** - SQLite/PostgreSQL support with migrations
-- [x] **Admin panel enhancements** - Comprehensive settings and management interface
-- [x] **Route protection** - Middleware-based authentication and authorization
-- [x] **Page transitions** - View Transitions API with smooth animations
-- [x] **Token management** - maxTokens configuration for response control
-- [x] **Auto title generation** - AI-powered chat session titles
-- [x] **Enhanced loading states** - Unified loading components and states
-- [x] **Server-side i18n** - Performance-optimized translation utilities
-- [x] **Multimodal chat support** - Image upload and vision model integration
-- [x] **Performance optimization** - Memoized components and efficient rendering
-- [x] **Mobile experience** - Responsive design with mobile-first approach
-- [x] **Streaming optimization** - Enhanced streaming with abort functionality
+## 📖 API Documentation
 
-### 🚧 In Progress / Planned
-- [ ] Plugin system development
-- [ ] Mobile app development (PWA)
-- [ ] Automatic API documentation generation
-- [ ] Team collaboration features
-- [ ] OAuth provider integration (Google, GitHub)
-- [ ] Advanced model evaluation metrics
-- [ ] RAG (Retrieval-Augmented Generation) integration
-- [ ] Voice input/output support
-- [ ] Advanced prompt templates
-- [ ] API rate limiting and usage analytics
-- [ ] File attachment support (PDF, DOC, etc.)
-- [ ] Advanced image editing tools
-- [ ] Conversation export/import functionality
-- [ ] Real-time collaboration features
+### OpenAI Compatible Endpoints
+
+#### Chat Completions
+```bash
+POST /api/v1/chat/completions
+Authorization: Bearer your-api-key
+Content-Type: application/json
+
+{
+  "model": "gpt-4",
+  "messages": [
+    {"role": "user", "content": "Hello!"}
+  ],
+  "temperature": 0.7,
+  "max_tokens": 2048,
+  "stream": true
+}
+```
+
+#### List Models
+```bash
+GET /api/v1/models
+Authorization: Bearer your-api-key
+```
+
+### Internal API Endpoints
+
+#### Agent Management
+```bash
+# Create agent
+POST /api/agents
+# Update agent
+PUT /api/agents/{id}
+# Delete agent
+DELETE /api/agents/{id}
+# List agents
+GET /api/agents
+```
+
+#### Chat Management
+```bash
+# Create chat session
+POST /api/chat
+# Get chat messages
+GET /api/chat/{id}
+# Update chat title
+PUT /api/chat/{id}/title
+```
+
+## 🤝 Contributing
+
+We welcome contributions! Please see our [Contributing Guide](CONTRIBUTING.md) for details.
 
 ## 📄 License
 
-This project is distributed under the MIT License. See the [LICENSE](LICENSE) file for more details.
+This project is licensed under the Apache License 2.0 - see the [LICENSE](LICENSE) file for details.
 
-## 🤝 Support & Contact
+## 🔗 Links
 
-- **Issue Reports**: [GitHub Issues](https://github.com/sh2orc/kkot-webui/issues)
-- **Feature Requests**: [GitHub Discussions](https://github.com/sh2orc/kkot-webui/discussions)
-- **Email**: sh2orc@gmail.com
+- **GitHub Repository**: [https://github.com/sh2orc/kkot-webui](https://github.com/sh2orc/kkot-webui)
+- **Documentation**: [Coming Soon]
+- **Issues**: [https://github.com/sh2orc/kkot-webui/issues](https://github.com/sh2orc/kkot-webui/issues)
 
-## 🙏 Acknowledgments
+## 📞 Support
 
-We sincerely thank all contributors who help improve this project. Your contributions make AI benefits accessible to more people around the world.
+If you encounter any issues or have questions, please:
+1. Check the [Issues](https://github.com/sh2orc/kkot-webui/issues) page
+2. Create a new issue if your problem isn't already reported
+3. Provide detailed information about your environment and the issue
 
 ---
 
-**Make AI conversations easier and more enjoyable with KKOT WebUI!** 🚀 
+Made with ❤️ by the KKOT WebUI team 

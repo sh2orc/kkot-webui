@@ -40,7 +40,7 @@ export async function POST(request: NextRequest) {
           ) || [];
           modelCount = models.length;
           isConnected = true;
-          message = `Connection successful (${modelCount} models found)`;
+          message = `successful`;
         } else {
           const errorData = await response.json().catch(() => ({}));
           message = errorData.error?.message || `Connection failed: ${response.status} ${response.statusText}`;
@@ -59,7 +59,7 @@ export async function POST(request: NextRequest) {
           const data = await response.json();
           modelCount = data.models?.length || 0;
           isConnected = true;
-          message = `Connection successful (${modelCount} models found)`;
+          message = `successful`;
         } else {
           message = `Connection failed: ${response.status} ${response.statusText}`;
         }
@@ -84,7 +84,7 @@ export async function POST(request: NextRequest) {
           const data = await response.json();
           modelCount = data.models?.length || 0;
           isConnected = true;
-          message = `Connection successful (${modelCount} models found)`;
+          message = `successful`;
         } else {
           const errorData = await response.json().catch(() => ({}));
           message = errorData.error?.message || `Connection failed: ${response.status} ${response.statusText}`;

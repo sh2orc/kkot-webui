@@ -11,7 +11,7 @@ import { Switch } from "@/components/ui/switch"
 import { Textarea } from "@/components/ui/textarea"
 import { useTranslation } from "@/lib/i18n"
 import { useToast } from "@/hooks/use-toast"
-import { ArrowLeft, Save, Upload, Image as ImageIcon, X } from "lucide-react"
+import { ArrowLeft, Save, Upload, Image as ImageIcon, X, ChevronDown, ChevronUp } from "lucide-react"
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar"
 import {
   Select,
@@ -21,6 +21,11 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Slider } from "@/components/ui/slider"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 
 interface AgentData {
   id?: string
@@ -84,7 +89,7 @@ export default function AgentRegisterForm({
     imageData: '',
     description: '',
     enabled: true,
-    parameterEnabled: true
+    parameterEnabled: false
   }
   
   // Form state
@@ -109,7 +114,7 @@ export default function AgentRegisterForm({
       setFormData({
         ...initialAgentData,
         agentId: initialAgentData.agentId || initialAgentData.id || '', // Use id if agentId doesn't exist in existing data
-        parameterEnabled: (initialAgentData as any).parameterEnabled ?? true // Default to true if parameterEnabled doesn't exist in existing data
+        parameterEnabled: (initialAgentData as any).parameterEnabled ?? false // Default to false if parameterEnabled doesn't exist
       })
     }
     
@@ -320,8 +325,6 @@ export default function AgentRegisterForm({
     }
   }
 
-
-
   // Handle image upload
   const handleImageUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -357,25 +360,66 @@ export default function AgentRegisterForm({
     try {
       console.log("Starting image processing...");
       
-      // Use simple FileReader (remove resize logic)
+      // Create image element to get dimensions
+      const img = new Image();
+      const imageUrl = URL.createObjectURL(file);
+      
       const processedDataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = (e) => {
-          const result = e.target?.result;
-          if (result && typeof result === 'string') {
-            console.log("File read successful");
-            console.log("data URL length:", result.length);
-            console.log("data URL start:", result.substring(0, 50) + "...");
-            resolve(result);
-          } else {
-            reject(new Error('File read result is not valid'));
+        img.onload = () => {
+          try {
+            // Get original dimensions
+            const originalWidth = img.width;
+            const originalHeight = img.height;
+            console.log("Original dimensions:", originalWidth, "x", originalHeight);
+            
+            // Calculate new dimensions maintaining aspect ratio
+            let newWidth = originalWidth;
+            let newHeight = originalHeight;
+            
+            // If either dimension exceeds 80px, resize proportionally
+            if (originalWidth > 80 || originalHeight > 80) {
+              const ratio = originalWidth / originalHeight;
+              if (ratio >= 1) {
+                // Width is larger
+                newWidth = 80;
+                newHeight = 80 / ratio;
+              } else {
+                // Height is larger
+                newHeight = 80;
+                newWidth = 80 * ratio;
+              }
+            }
+            
+            // Create canvas for resizing
+            const canvas = document.createElement('canvas');
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+            
+            // Draw resized image
+            const ctx = canvas.getContext('2d');
+            if (!ctx) throw new Error('Failed to get canvas context');
+            
+            ctx.drawImage(img, 0, 0, newWidth, newHeight);
+            
+            // Convert to data URL
+            const dataUrl = canvas.toDataURL(file.type);
+            console.log("Resized dimensions:", newWidth, "x", newHeight);
+            
+            // Cleanup
+            URL.revokeObjectURL(imageUrl);
+            
+            resolve(dataUrl);
+          } catch (error) {
+            reject(error);
           }
         };
-        reader.onerror = (error) => {
-          console.error("FileReader error:", error);
-          reject(new Error('File read failed'));
+        
+        img.onerror = () => {
+          URL.revokeObjectURL(imageUrl);
+          reject(new Error('Failed to load image'));
         };
-        reader.readAsDataURL(file);
+        
+        img.src = imageUrl;
       });
       
       console.log("Image processing completed");
@@ -420,6 +464,8 @@ export default function AgentRegisterForm({
     }
   };
 
+  const [isParametersOpen, setIsParametersOpen] = useState(false);
+
   return (
     <AdminLayout>
       <div className="space-y-6">
@@ -458,7 +504,7 @@ export default function AgentRegisterForm({
               </div>
               
               <div className="grid gap-2">
-                <Label htmlFor="agentId">Agent ID</Label>
+                <Label htmlFor="agentId">{lang('form.agentId')}</Label>
                 <Input
                   id="agentId"
                   value={formData.agentId || ''}
@@ -471,7 +517,7 @@ export default function AgentRegisterForm({
                     }
                   }}
                   onBlur={(e) => handleAgentIdBlur(e.target.value)}
-                  placeholder="Enter unique ID for API calls"
+                  placeholder={lang('form.agentIdPlaceholder')}
                   className={
                     agentIdValidation.isValid === false ? 'border-red-500' :
                     agentIdValidation.isValid === true ? 'border-green-500' : ''
@@ -483,7 +529,7 @@ export default function AgentRegisterForm({
                       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                       <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                     </svg>
-                    Checking...
+                    {lang('form.checking')}
                   </p>
                 )}
                 {agentIdValidation.isValid === true && (
@@ -503,7 +549,7 @@ export default function AgentRegisterForm({
                   </p>
                 )}
                 <p className="text-xs text-gray-500">
-                  Only English letters, numbers, hyphens(-), underscores(_) allowed (3-50 characters)
+                  {lang('form.agentIdHelp')}
                 </p>
               </div>
               
@@ -570,73 +616,10 @@ export default function AgentRegisterForm({
                               console.error("Image URL length:", previewImage.length);
                               console.error("Image URL start:", previewImage.substring(0, 100) + "...");
                               
-                              if (previewImage.includes('base64,')) {
-                                const base64Part = previewImage.split('base64,')[1];
-                                console.error("base64 part length:", base64Part.length);
-                                console.error("base64 start:", base64Part.substring(0, 50) + "...");
-                                console.error("base64 end:", "..." + base64Part.substring(base64Part.length - 50));
-                                
-                                // base64 validity test - test with more data
-                                try {
-                                  const testDecode = atob(base64Part.substring(0, 1000));
-                                  console.log("base64 decode test successful (1000 chars)");
-                                  
-                                  // Full base64 decode test
-                                  const fullDecode = atob(base64Part);
-                                  console.log("Full base64 decode successful, size:", fullDecode.length, "bytes");
-                                  
-                                  // Check PNG header
-                                  const pngHeader = fullDecode.substring(0, 8);
-                                  const pngSignature = [137, 80, 78, 71, 13, 10, 26, 10]; // PNG signature
-                                  let isPng = true;
-                                  for (let i = 0; i < 8; i++) {
-                                    if (pngHeader.charCodeAt(i) !== pngSignature[i]) {
-                                      isPng = false;
-                                      break;
-                                    }
-                                  }
-                                  console.log("PNG header validity:", isPng);
-                                  if (!isPng) {
-                                    console.error("PNG header is not correct");
-                                    console.error("Actual header:", Array.from(pngHeader).map(c => c.charCodeAt(0)));
-                                  }
-                                  
-                                } catch (decodeError) {
-                                  console.error("base64 decode failed:", decodeError);
-                                }
-                                
-                                // base64 character validity check
-                                const validBase64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
-                                const isValidBase64 = validBase64Regex.test(base64Part);
-                                console.error("base64 character validity:", isValidBase64);
-                                
-                                if (!isValidBase64) {
-                                  console.error("Invalid base64 characters found");
-                                  // Find invalid characters in first 100 chars
-                                  const sample = base64Part.substring(0, 100);
-                                  for (let i = 0; i < sample.length; i++) {
-                                    const char = sample[i];
-                                    if (!/[A-Za-z0-9+/=]/.test(char)) {
-                                      console.error(`Invalid character found at position ${i}: '${char}' (code: ${char.charCodeAt(0)})`);
-                                    }
-                                  }
-                                }
-                              }
-                              
-                              // Check image data type
-                              if (previewImage.startsWith('data:image/')) {
-                                const mimeType = previewImage.split(';')[0].split(':')[1];
-                                console.error("MIME type:", mimeType);
-                              }
-                              
-                              // Check browser limits
-                              console.error("Browser data URL length limits (Chrome: ~2MB, Firefox: ~2MB)");
-                              console.error("Current image size:", (previewImage.length / 1024 / 1024).toFixed(2), "MB");
-                              
                               e.currentTarget.style.display = 'none';
                               const container = e.currentTarget.parentNode as HTMLElement;
                               if (container) {
-                                container.innerHTML = '<div class="h-full w-full flex items-center justify-center text-red-500"><div class="text-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-1"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg><div class="text-xs">Load Failed<br/>Size: ' + (previewImage.length / 1024 / 1024).toFixed(1) + 'MB</div></div></div>';
+                                container.innerHTML = '<div class="h-full w-full flex items-center justify-center text-red-500"><div class="text-center"><svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="mx-auto mb-1"><rect width="18" height="18" x="3" y="3" rx="2" ry="2"></rect><circle cx="9" cy="9" r="2"></circle><path d="m21 15-3.086-3.086a2 2 0 0 0-2.828 0L6 21"></path></svg><div class="text-xs">' + lang('form.imageLoadFailed') + '<br/>' + lang('form.imageSize').replace('{{size}}', (previewImage.length / 1024 / 1024).toFixed(1)) + '</div></div></div>';
                               }
                             }}
                           />
@@ -679,9 +662,9 @@ export default function AgentRegisterForm({
                       {lang('form.uploadImage')}
                     </Button>
                     <p className="text-xs text-gray-500 mt-2">
-                      Image files will be encoded as base64 and stored.
+                      {lang('form.imageHelp')}
                       <br />
-                      Supported formats: JPG, PNG, GIF (max 10MB)
+                      {lang('form.imageFormats')}
                     </p>
                   </div>
                 </div>
@@ -715,10 +698,10 @@ export default function AgentRegisterForm({
                   onCheckedChange={(checked) => setFormData(prev => ({ ...prev, enabled: checked }))}
                 />
                 <Label htmlFor="enabled" className="text-sm font-medium">
-                  Enable Agent
+                  {lang('form.enableAgent')}
                 </Label>
                 <span className="text-xs text-gray-500 ml-2">
-                  When disabled, this agent cannot be used in API calls
+                  {lang('form.enableAgentHelp')}
                 </span>
               </div>
             </div>
@@ -726,185 +709,228 @@ export default function AgentRegisterForm({
         </Card>
 
         <Card>
-          <CardHeader>
-            <CardTitle>{lang('form.parameters')}</CardTitle>
+          <CardHeader className="pb-4">
+            <div className="flex items-center justify-between">
+              <CardTitle>{lang('form.parameters')}</CardTitle>
+              <div className="flex items-center space-x-2">
+                <Switch
+                  id="parameterEnabled"
+                  checked={(formData as any).parameterEnabled ?? false}
+                  onCheckedChange={(checked) => {
+                    setFormData(prev => ({ ...prev, parameterEnabled: checked } as any))
+                    if (checked) {
+                      setIsParametersOpen(true)
+                    }
+                  }}
+                />
+                <Label htmlFor="parameterEnabled" className="text-sm font-medium">
+                  {lang('form.enableParameters')}
+                </Label>
+                <span className="text-xs text-gray-500 ml-2">
+                  {lang('form.enableParametersHelp')}
+                </span>
+              </div>
+            </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="temperature">
-                  {lang('form.temperature')}
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Slider
-                    id="temperature"
-                    min={0}
-                    max={2}
-                    step={0.1}
-                    value={[parseFloat(formData.temperature)]}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, temperature: value[0].toString() }))}
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    value={formData.temperature}
-                    onChange={(e) => setFormData(prev => ({ ...prev, temperature: e.target.value }))}
-                    min={0}
-                    max={2}
-                    step={0.1}
-                    className="w-20"
-                  />
+          <CardContent>
+            <Collapsible
+              open={isParametersOpen}
+              onOpenChange={setIsParametersOpen}
+              className="space-y-2"
+            >
+              <CollapsibleTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full flex items-center justify-between p-1"
+                  disabled={!(formData as any).parameterEnabled}
+                >
+                  <span className="text-sm">
+                    {isParametersOpen ? lang('form.hideParameters') : lang('form.showParameters')}
+                  </span>
+                  {isParametersOpen ? (
+                    <ChevronUp className="h-4 w-4" />
+                  ) : (
+                    <ChevronDown className="h-4 w-4" />
+                  )}
+                </Button>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="temperature">
+                      {lang('form.temperature')}
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        id="temperature"
+                        min={0}
+                        max={2}
+                        step={0.1}
+                        value={[parseFloat(formData.temperature)]}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, temperature: value[0].toString() }))}
+                        className="flex-1"
+                        disabled={!(formData as any).parameterEnabled}
+                      />
+                      <Input
+                        type="number"
+                        value={formData.temperature}
+                        onChange={(e) => setFormData(prev => ({ ...prev, temperature: e.target.value }))}
+                        min={0}
+                        max={2}
+                        step={0.1}
+                        className="w-20"
+                        disabled={!(formData as any).parameterEnabled}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="topP">
+                      {lang('form.topP')}
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        id="topP"
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        value={[parseFloat(formData.topP)]}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, topP: value[0].toString() }))}
+                        className="flex-1"
+                        disabled={!(formData as any).parameterEnabled}
+                      />
+                      <Input
+                        type="number"
+                        value={formData.topP}
+                        onChange={(e) => setFormData(prev => ({ ...prev, topP: e.target.value }))}
+                        min={0}
+                        max={1}
+                        step={0.05}
+                        className="w-20"
+                        disabled={!(formData as any).parameterEnabled}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="topP">
-                  {lang('form.topP')}
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Slider
-                    id="topP"
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    value={[parseFloat(formData.topP)]}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, topP: value[0].toString() }))}
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    value={formData.topP}
-                    onChange={(e) => setFormData(prev => ({ ...prev, topP: e.target.value }))}
-                    min={0}
-                    max={1}
-                    step={0.05}
-                    className="w-20"
-                  />
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="topK">
+                      {lang('form.topK')}
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        id="topK"
+                        min={1}
+                        max={100}
+                        step={1}
+                        value={[formData.topK]}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, topK: value[0] }))}
+                        className="flex-1"
+                        disabled={!(formData as any).parameterEnabled}
+                      />
+                      <Input
+                        type="number"
+                        value={formData.topK}
+                        onChange={(e) => setFormData(prev => ({ ...prev, topK: parseInt(e.target.value) || 50 }))}
+                        min={1}
+                        max={100}
+                        step={1}
+                        className="w-20"
+                        disabled={!(formData as any).parameterEnabled}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="maxTokens">
+                      {lang('form.maxTokens')}
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        id="maxTokens"
+                        min={256}
+                        max={32768}
+                        step={256}
+                        value={[formData.maxTokens]}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, maxTokens: value[0] }))}
+                        className="flex-1"
+                        disabled={!(formData as any).parameterEnabled}
+                      />
+                      <Input
+                        type="number"
+                        value={formData.maxTokens}
+                        onChange={(e) => setFormData(prev => ({ ...prev, maxTokens: parseInt(e.target.value) || 2048 }))}
+                        min={256}
+                        max={32768}
+                        step={256}
+                        className="w-20"
+                        disabled={!(formData as any).parameterEnabled}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="topK">
-                  {lang('form.topK')}
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Slider
-                    id="topK"
-                    min={1}
-                    max={100}
-                    step={1}
-                    value={[formData.topK]}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, topK: value[0] }))}
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    value={formData.topK}
-                    onChange={(e) => setFormData(prev => ({ ...prev, topK: parseInt(e.target.value) || 50 }))}
-                    min={1}
-                    max={100}
-                    step={1}
-                    className="w-20"
-                  />
+                
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="grid gap-2">
+                    <Label htmlFor="presencePenalty">
+                      {lang('form.presencePenalty')}
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        id="presencePenalty"
+                        min={-2}
+                        max={2}
+                        step={0.1}
+                        value={[parseFloat(formData.presencePenalty)]}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, presencePenalty: value[0].toString() }))}
+                        className="flex-1"
+                        disabled={!(formData as any).parameterEnabled}
+                      />
+                      <Input
+                        type="number"
+                        value={formData.presencePenalty}
+                        onChange={(e) => setFormData(prev => ({ ...prev, presencePenalty: e.target.value }))}
+                        min={-2}
+                        max={2}
+                        step={0.1}
+                        className="w-20"
+                        disabled={!(formData as any).parameterEnabled}
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="grid gap-2">
+                    <Label htmlFor="frequencyPenalty">
+                      {lang('form.frequencyPenalty')}
+                    </Label>
+                    <div className="flex items-center gap-2">
+                      <Slider
+                        id="frequencyPenalty"
+                        min={-2}
+                        max={2}
+                        step={0.1}
+                        value={[parseFloat(formData.frequencyPenalty)]}
+                        onValueChange={(value) => setFormData(prev => ({ ...prev, frequencyPenalty: value[0].toString() }))}
+                        className="flex-1"
+                        disabled={!(formData as any).parameterEnabled}
+                      />
+                      <Input
+                        type="number"
+                        value={formData.frequencyPenalty}
+                        onChange={(e) => setFormData(prev => ({ ...prev, frequencyPenalty: e.target.value }))}
+                        min={-2}
+                        max={2}
+                        step={0.1}
+                        className="w-20"
+                        disabled={!(formData as any).parameterEnabled}
+                      />
+                    </div>
+                  </div>
                 </div>
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="maxTokens">
-                  {lang('form.maxTokens')}
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Slider
-                    id="maxTokens"
-                    min={256}
-                    max={32768}
-                    step={256}
-                    value={[formData.maxTokens]}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, maxTokens: value[0] }))}
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    value={formData.maxTokens}
-                    onChange={(e) => setFormData(prev => ({ ...prev, maxTokens: parseInt(e.target.value) || 2048 }))}
-                    min={256}
-                    max={32768}
-                    step={256}
-                    className="w-20"
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="grid grid-cols-2 gap-4">
-              <div className="grid gap-2">
-                <Label htmlFor="presencePenalty">
-                  {lang('form.presencePenalty')}
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Slider
-                    id="presencePenalty"
-                    min={-2}
-                    max={2}
-                    step={0.1}
-                    value={[parseFloat(formData.presencePenalty)]}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, presencePenalty: value[0].toString() }))}
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    value={formData.presencePenalty}
-                    onChange={(e) => setFormData(prev => ({ ...prev, presencePenalty: e.target.value }))}
-                    min={-2}
-                    max={2}
-                    step={0.1}
-                    className="w-20"
-                  />
-                </div>
-              </div>
-              
-              <div className="grid gap-2">
-                <Label htmlFor="frequencyPenalty">
-                  {lang('form.frequencyPenalty')}
-                </Label>
-                <div className="flex items-center gap-2">
-                  <Slider
-                    id="frequencyPenalty"
-                    min={-2}
-                    max={2}
-                    step={0.1}
-                    value={[parseFloat(formData.frequencyPenalty)]}
-                    onValueChange={(value) => setFormData(prev => ({ ...prev, frequencyPenalty: value[0].toString() }))}
-                    className="flex-1"
-                  />
-                  <Input
-                    type="number"
-                    value={formData.frequencyPenalty}
-                    onChange={(e) => setFormData(prev => ({ ...prev, frequencyPenalty: e.target.value }))}
-                    min={-2}
-                    max={2}
-                    step={0.1}
-                    className="w-20"
-                  />
-                </div>
-              </div>
-            </div>
-            
-            <div className="flex items-center space-x-2 pt-4 border-t">
-              <Switch
-                id="parameterEnabled"
-                checked={(formData as any).parameterEnabled ?? true}
-                onCheckedChange={(checked) => setFormData(prev => ({ ...prev, parameterEnabled: checked } as any))}
-              />
-              <Label htmlFor="parameterEnabled" className="text-sm font-medium">
-                Enable Parameters
-              </Label>
-              <span className="text-xs text-gray-500 ml-2">
-                When disabled, default parameter values will be used
-              </span>
-            </div>
+              </CollapsibleContent>
+            </Collapsible>
           </CardContent>
         </Card>
 
@@ -918,7 +944,7 @@ export default function AgentRegisterForm({
           <Button 
             onClick={handleSave} 
             disabled={isLoading || enabledModels.length === 0}
-            title={enabledModels.length === 0 ? "Please register Foundation models first" : ""}
+            title={enabledModels.length === 0 ? lang('form.modelRegisterFirst') : ""}
           >
             <Save className="h-4 w-4 mr-2" />
             {isLoading ? lang('saving') : lang('save')}

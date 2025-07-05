@@ -9,10 +9,53 @@ import { useTranslation } from "@/lib/i18n"
 import { Database, RefreshCw, AlertTriangle, CheckCircle } from "lucide-react"
 
 export default function DatabaseSettingsPage() {
-  const { lang } = useTranslation('admin.database')
+  const { t } = useTranslation('admin.database')
   const [dbStatus, setDbStatus] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [translations, setTranslations] = useState<any>({})
+
+  // 번역 로드
+  useEffect(() => {
+    const loadTranslations = async () => {
+      try {
+        const title = await t('title')
+        const description = await t('description')
+        const statusTitle = await t('status.title')
+        const statusDescription = await t('status.description')
+        const statusTest = await t('status.test')
+        const statusTesting = await t('status.testing')
+        const statusConnected = await t('status.connected')
+        const statusError = await t('status.error')
+        const statusType = await t('status.type')
+        const statusUrl = await t('status.url')
+        const statusUsers = await t('status.users')
+        const statusLastChecked = await t('status.lastChecked')
+        const settingsTitle = await t('settings.title')
+        const settingsDescription = await t('settings.description')
+
+        setTranslations({
+          title,
+          description,
+          statusTitle,
+          statusDescription,
+          statusTest,
+          statusTesting,
+          statusConnected,
+          statusError,
+          statusType,
+          statusUrl,
+          statusUsers,
+          statusLastChecked,
+          settingsTitle,
+          settingsDescription
+        })
+      } catch (error) {
+        console.error('Translation loading error:', error)
+      }
+    }
+    loadTranslations()
+  }, [t])
 
   // DB 상태 테스트 함수
   const testDbConnection = async () => {
@@ -26,10 +69,10 @@ export default function DatabaseSettingsPage() {
       if (data.success) {
         setDbStatus(data.results)
       } else {
-        setError(data.message || '알 수 없는 오류가 발생했습니다.')
+        setError(data.message || 'Unknown error occurred')
       }
     } catch (err: any) {
-      setError(err.message || '데이터베이스 연결 테스트 중 오류가 발생했습니다.')
+      setError(err.message || 'Database connection test failed')
     } finally {
       setIsLoading(false)
     }
@@ -40,12 +83,23 @@ export default function DatabaseSettingsPage() {
     testDbConnection()
   }, [])
 
+  // 번역이 로드되지 않은 경우 로딩 표시
+  if (!translations.title) {
+    return (
+      <AdminLayout>
+        <div className="flex justify-center py-8">
+          <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+        </div>
+      </AdminLayout>
+    )
+  }
+
   return (
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">{lang('title')}</h1>
-          <p className="text-gray-600 mt-1">{lang('description')}</p>
+          <h1 className="text-2xl font-bold">{translations.title}</h1>
+          <p className="text-gray-600 mt-1">{translations.description}</p>
         </div>
 
         {/* 데이터베이스 상태 카드 */}
@@ -54,7 +108,7 @@ export default function DatabaseSettingsPage() {
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Database className="h-5 w-5 text-blue-600" />
-                <CardTitle>{lang('status.title')}</CardTitle>
+                <CardTitle>{translations.statusTitle}</CardTitle>
               </div>
               <Button 
                 variant="outline" 
@@ -63,43 +117,43 @@ export default function DatabaseSettingsPage() {
                 disabled={isLoading}
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                {isLoading ? lang('status.testing') : lang('status.test')}
+                {isLoading ? translations.statusTesting : translations.statusTest}
               </Button>
             </div>
-            <CardDescription>{lang('status.description')}</CardDescription>
+            <CardDescription>{translations.statusDescription}</CardDescription>
           </CardHeader>
           <CardContent>
             {error ? (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>{lang('status.error')}</AlertTitle>
+                <AlertTitle>{translations.statusError}</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             ) : dbStatus ? (
               <div className="space-y-4">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="font-medium">{lang('status.connected')}</span>
+                  <span className="font-medium">{translations.statusConnected}</span>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">{lang('status.type')}</h3>
+                    <h3 className="text-sm font-medium text-gray-500">{translations.statusType}</h3>
                     <p className="font-medium">{dbStatus.dbType || 'sqlite'}</p>
                   </div>
                   
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">{lang('status.url')}</h3>
+                    <h3 className="text-sm font-medium text-gray-500">{translations.statusUrl}</h3>
                     <p className="font-medium">{dbStatus.dbUrl || '기본값'}</p>
                   </div>
                   
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">{lang('status.users')}</h3>
+                    <h3 className="text-sm font-medium text-gray-500">{translations.statusUsers}</h3>
                     <p className="font-medium">{dbStatus.existingUsers?.length || 0}명</p>
                   </div>
                   
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">{lang('status.lastChecked')}</h3>
+                    <h3 className="text-sm font-medium text-gray-500">{translations.statusLastChecked}</h3>
                     <p className="font-medium">{new Date(dbStatus.timestamp).toLocaleString()}</p>
                   </div>
                 </div>
@@ -115,8 +169,8 @@ export default function DatabaseSettingsPage() {
         {/* 데이터베이스 설정 카드 */}
         <Card>
           <CardHeader>
-            <CardTitle>{lang('settings.title')}</CardTitle>
-            <CardDescription>{lang('settings.description')}</CardDescription>
+            <CardTitle>{translations.settingsTitle}</CardTitle>
+            <CardDescription>{translations.settingsDescription}</CardDescription>
           </CardHeader>
           <CardContent>
             <p className="text-gray-500">데이터베이스 설정 기능은 개발 중입니다.</p>

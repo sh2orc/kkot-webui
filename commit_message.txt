@@ -1,9 +1,12 @@
-refactor: improve code internationalization and standardization
+feat: implement API management system with OpenAI compatibility
 
-- Convert all code comments to English for better international collaboration
-- Standardize console log messages in English
-- Unify time format display to en-US locale
-- Improve code readability and maintainability
-- Enhance development environment for global collaboration
+- Add API management global settings (api_management table)
+- Implement API key management with secure hashing (api_keys table)
+- Create API usage tracking and analytics (api_usage table)
+- Support tiered rate limiting (basic, premium, unlimited)
+- Add OpenAI-compatible API endpoints
+- Implement CORS configuration options
+- Add API key validation and authentication
+- Create migration script for API management tables
 
-This commit focuses on making the codebase more accessible to international developers while maintaining consistent documentation and logging standards. 
+This commit adds a comprehensive API management system that enables the application to serve as an OpenAI-compatible API provider with secure key management, usage tracking, and configurable rate limiting. 

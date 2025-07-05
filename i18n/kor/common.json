@@ -63,5 +63,9 @@
     "archivedChats": "보관된 채팅",
     "adminSettings": "관리자 설정",
     "logout": "로그아웃"
+  },
+  "roles": {
+    "admin": "관리자",
+    "user": "유저"
   }
 } 

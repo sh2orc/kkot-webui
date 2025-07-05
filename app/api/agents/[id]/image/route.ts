@@ -8,15 +8,15 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    console.log("에이전트 이미지 요청:", id);
+    console.log("Agent image request:", id);
     
-    // 에이전트 정보 조회
+    // Fetch agent information
     const agentData = await agentManageRepository.findById(id);
     
     if (!agentData || agentData.length === 0 || !agentData[0].imageData) {
-      console.log("이미지 없음:", id);
+      console.log("No image:", id);
       return NextResponse.json(
-        { error: '이미지를 찾을 수 없습니다.' },
+        { error: 'Image not found.' },
         { status: 404 }
       );
     }
@@ -25,170 +25,170 @@ export async function GET(
     let imageData;
     
     try {
-      console.log('원본 이미지 데이터 타입:', typeof agent.imageData);
-      console.log('원본 이미지 데이터 길이:', agent.imageData instanceof Uint8Array ? agent.imageData.length : agent.imageData?.length);
-      console.log('원본 이미지 데이터 샘플:', 
+      console.log('Original image data type:', typeof agent.imageData);
+      console.log('Original image data length:', agent.imageData instanceof Uint8Array ? agent.imageData.length : agent.imageData?.length);
+      console.log('Original image data sample:', 
         agent.imageData instanceof Uint8Array 
           ? `Uint8Array[${agent.imageData.slice(0, 10).join(',')}...]`
           : agent.imageData?.substring(0, 50) + '...'
       );
       
-      // 다양한 형식의 이미지 데이터 처리
+      // Process various image data formats
       if (agent.imageData instanceof Uint8Array) {
-        // SQLite에서는 Uint8Array로 저장됨
-        // 데이터가 너무 작으면 오류
+        // Stored as Uint8Array in SQLite
+        // Error if data is too small
         if (agent.imageData.length < 100) {
-          console.error('이미지 데이터가 너무 작음:', agent.imageData.length, '바이트');
+          console.error('Image data is too small:', agent.imageData.length, 'bytes');
           return NextResponse.json(
-            { error: '이미지 데이터가 손상되었거나 불완전합니다.' },
+            { error: 'Image data is corrupted or incomplete.' },
             { status: 400 }
           );
         }
         
         const base64String = Buffer.from(agent.imageData).toString();
         imageData = `data:image/png;base64,${base64String}`;
-        console.log('이미지 데이터 변환 (Uint8Array -> base64 URL)');
-        console.log('변환된 base64 길이:', base64String.length);
-        console.log('변환된 base64 샘플:', base64String.substring(0, 50) + '...');
+        console.log('Image data conversion (Uint8Array -> base64 URL)');
+        console.log('Converted base64 length:', base64String.length);
+        console.log('Converted base64 sample:', base64String.substring(0, 50) + '...');
       } else if (typeof agent.imageData === 'string') {
-        // PostgreSQL에서는 base64 문자열로 저장됨
-        // 데이터가 너무 작으면 오류
+        // Stored as base64 string in PostgreSQL
+        // Error if data is too small
         if (agent.imageData.length < 100) {
-          console.error('이미지 데이터가 너무 작음:', agent.imageData.length, '문자');
+          console.error('Image data is too small:', agent.imageData.length, 'characters');
           return NextResponse.json(
-            { error: '이미지 데이터가 손상되었거나 불완전합니다.' },
+            { error: 'Image data is corrupted or incomplete.' },
             { status: 400 }
           );
         }
         
-        // 이미 data:image/ 형식이면 그대로 사용
+        // Use as is if already in data:image/ format
         if (agent.imageData.startsWith('data:')) {
           imageData = agent.imageData;
-          console.log('이미지 데이터 변환 (이미 data URL 형식)');
+          console.log('Image data conversion (already in data URL format)');
         } else {
-          // 일반 base64 문자열이면 data URL로 변환
+          // Convert regular base64 string to data URL
           imageData = `data:image/png;base64,${agent.imageData}`;
-          console.log('이미지 데이터 변환 (base64 -> data URL)');
-          console.log('원본 base64 길이:', agent.imageData.length);
+          console.log('Image data conversion (base64 -> data URL)');
+          console.log('Original base64 length:', agent.imageData.length);
         }
       } else if (typeof agent.imageData === 'object' && agent.imageData !== null) {
-        // 잘못 저장된 경우: ASCII 코드 배열 또는 기타 객체 형태
-        console.log('객체 형태의 이미지 데이터 감지');
+        // Incorrectly stored case: ASCII code array or other object form
+        console.log('Object-type image data detected');
         
         if (Array.isArray(agent.imageData)) {
-          // ASCII 코드 배열인 경우
-          console.log('ASCII 코드 배열을 문자열로 변환');
+          // For ASCII code array
+          console.log('Converting ASCII code array to string');
           const base64String = String.fromCharCode(...agent.imageData);
-          console.log('변환된 base64 문자열 길이:', base64String.length);
-          console.log('변환된 base64 샘플:', base64String.substring(0, 50) + '...');
+          console.log('Converted base64 string length:', base64String.length);
+          console.log('Converted base64 sample:', base64String.substring(0, 50) + '...');
           
           if (base64String.length < 100) {
-            console.error('변환된 base64 데이터가 너무 작음:', base64String.length, '문자');
+            console.error('Converted base64 data is too small:', base64String.length, 'characters');
             return NextResponse.json(
-              { error: '이미지 데이터가 손상되었거나 불완전합니다.' },
+              { error: 'Image data is corrupted or incomplete.' },
               { status: 400 }
             );
           }
           
           imageData = `data:image/png;base64,${base64String}`;
         } else if (agent.imageData.type === 'Buffer' && agent.imageData.data) {
-          // Buffer 객체가 JSON으로 직렬화된 경우
-          console.log('직렬화된 Buffer 객체 감지');
+          // Buffer object serialized to JSON
+          console.log('Serialized Buffer object detected');
           const buffer = Buffer.from(agent.imageData.data);
           if (buffer.length < 100) {
-            console.error('이미지 데이터가 너무 작음:', buffer.length, '바이트');
+            console.error('Image data is too small:', buffer.length, 'bytes');
             return NextResponse.json(
-              { error: '이미지 데이터가 손상되었거나 불완전합니다.' },
+              { error: 'Image data is corrupted or incomplete.' },
               { status: 400 }
             );
           }
           
           const base64String = buffer.toString('base64');
           imageData = `data:image/png;base64,${base64String}`;
-          console.log('이미지 데이터 변환 (직렬화된 Buffer -> base64 URL)');
-          console.log('변환된 base64 길이:', base64String.length);
+          console.log('Image data conversion (Serialized Buffer -> base64 URL)');
+          console.log('Converted base64 length:', base64String.length);
         } else {
-          // 기타 객체 형태 - 키와 값으로 구성된 객체일 수 있음
-          console.log('알 수 없는 객체 형태의 이미지 데이터');
-          console.log('객체 키들:', Object.keys(agent.imageData));
+          // Other object form - may be an object with keys and values
+          console.log('Unknown object form of image data');
+          console.log('Object keys:', Object.keys(agent.imageData));
           
-          // 숫자 키로 구성된 객체인지 확인 (배열과 유사한 형태)
+          // Check if object has numeric keys (array-like structure)
           const keys = Object.keys(agent.imageData);
           const isNumericKeys = keys.every(key => !isNaN(parseInt(key)));
           
           if (isNumericKeys) {
-            console.log('숫자 키 객체를 배열로 변환');
+            console.log('Converting numeric key object to array');
             const values = keys.map(key => agent.imageData[key]);
             const base64String = String.fromCharCode(...values);
-            console.log('변환된 base64 문자열 길이:', base64String.length);
-            console.log('변환된 base64 샘플:', base64String.substring(0, 50) + '...');
+            console.log('Converted base64 string length:', base64String.length);
+            console.log('Converted base64 sample:', base64String.substring(0, 50) + '...');
             
             if (base64String.length < 100) {
-              console.error('변환된 base64 데이터가 너무 작음:', base64String.length, '문자');
+              console.error('Converted base64 data is too small:', base64String.length, 'characters');
               return NextResponse.json(
-                { error: '이미지 데이터가 손상되었거나 불완전합니다.' },
+                { error: 'Image data is corrupted or incomplete.' },
                 { status: 400 }
               );
             }
             
             imageData = `data:image/png;base64,${base64String}`;
           } else {
-            console.error('지원되지 않는 객체 형태의 이미지 데이터');
+            console.error('Unsupported object form of image data');
             return NextResponse.json(
-              { error: '지원되지 않는 이미지 형식입니다.' },
+              { error: 'Unsupported image format.' },
               { status: 400 }
             );
           }
         }
       } else if (agent.imageData && (agent.imageData.type === 'Buffer' || Array.isArray(agent.imageData))) {
-        // JSON으로 직렬화된 버퍼 객체인 경우
+        // Buffer object serialized to JSON
         const buffer = Buffer.from(agent.imageData);
         if (buffer.length < 100) {
-          console.error('이미지 데이터가 너무 작음:', buffer.length, '바이트');
+          console.error('Image data is too small:', buffer.length, 'bytes');
           return NextResponse.json(
-            { error: '이미지 데이터가 손상되었거나 불완전합니다.' },
+            { error: 'Image data is corrupted or incomplete.' },
             { status: 400 }
           );
         }
         
         const base64String = buffer.toString('base64');
         imageData = `data:image/png;base64,${base64String}`;
-        console.log('이미지 데이터 변환 (Buffer -> base64 URL)');
-        console.log('변환된 base64 길이:', base64String.length);
+        console.log('Image data conversion (Buffer -> base64 URL)');
+        console.log('Converted base64 length:', base64String.length);
       } else {
-        console.log('알 수 없는 이미지 데이터 형식:', typeof agent.imageData);
-        console.log('이미지 데이터 내용:', agent.imageData);
+        console.log('Unknown image data format:', typeof agent.imageData);
+        console.log('Image data content:', agent.imageData);
         return NextResponse.json(
-          { error: '지원되지 않는 이미지 형식입니다.' },
+          { error: 'Unsupported image format.' },
           { status: 400 }
         );
       }
       
-      // 이미지 데이터 유효성 검증
+      // Validate image data
       if (!imageData || !imageData.includes('base64,')) {
-        console.error('유효하지 않은 이미지 데이터 형식');
+        console.error('Invalid image data format');
         return NextResponse.json(
-          { error: '유효하지 않은 이미지 데이터 형식입니다.' },
+          { error: 'Invalid image data format.' },
           { status: 400 }
         );
       }
       
-      // base64 데이터 길이 확인
+      // Check base64 data length
       const base64Part = imageData.split('base64,')[1];
       if (base64Part.length < 100) {
-        console.error('이미지 데이터가 너무 짧음:', base64Part.length, '문자');
-        console.error('이미지 데이터 내용:', base64Part);
+        console.error('Image data is too short:', base64Part.length, 'characters');
+        console.error('Image data content:', base64Part);
         return NextResponse.json(
-          { error: '이미지 데이터가 손상되었거나 불완전합니다.' },
+          { error: 'Image data is corrupted or incomplete.' },
           { status: 400 }
         );
       }
       
-      console.log('이미지 데이터 반환 성공');
-      console.log('최종 데이터 길이:', imageData.length);
-      console.log('최종 데이터 샘플:', imageData.substring(0, 50) + '...');
+      console.log('Image data return successful');
+      console.log('Final data length:', imageData.length);
+      console.log('Final data sample:', imageData.substring(0, 50) + '...');
       
-      // 이미지 데이터 반환
+      // Return image data
       return NextResponse.json({ 
         imageData,
         format: 'data-url',
@@ -196,16 +196,16 @@ export async function GET(
       });
       
     } catch (error) {
-      console.error('이미지 데이터 처리 중 오류:', error);
+      console.error('Error processing image data:', error);
       return NextResponse.json(
-        { error: '이미지 데이터 처리 중 오류가 발생했습니다.' },
+        { error: 'An error occurred while processing image data.' },
         { status: 500 }
       );
     }
   } catch (error) {
     console.error('Failed to fetch agent image:', error);
     return NextResponse.json(
-      { error: '에이전트 이미지를 불러오는 중 오류가 발생했습니다.' },
+      { error: 'An error occurred while fetching agent image.' },
       { status: 500 }
     );
   }

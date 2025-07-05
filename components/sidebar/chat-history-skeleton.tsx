@@ -1,5 +1,3 @@
-import { Skeleton } from "@/components/ui/skeleton"
-
 export function ChatHistorySkeleton() {
   return (
     <div className="space-y-6 animate-pulse">

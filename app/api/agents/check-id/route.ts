@@ -15,20 +15,20 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 에이전트 ID 유효성 검사 (영문, 숫자, 하이픈, 언더스코어만 허용)
+    // Agent ID validation (only allows letters, numbers, hyphens, underscores)
     const validIdPattern = /^[a-zA-Z0-9_-]+$/
     if (!validIdPattern.test(agentId)) {
       return NextResponse.json({
         available: false,
-        message: '에이전트 ID는 영문, 숫자, 하이픈(-), 언더스코어(_)만 사용할 수 있습니다.'
+        message: 'Agent ID can only contain letters, numbers, hyphens (-), and underscores (_).'
       })
     }
 
-    // 길이 제한 (3-50자)
+    // Length restriction (3-50 characters)
     if (agentId.length < 3 || agentId.length > 50) {
       return NextResponse.json({
         available: false,
-        message: '에이전트 ID는 3자 이상 50자 이하여야 합니다.'
+        message: 'Agent ID must be between 3 and 50 characters.'
       })
     }
 
@@ -36,12 +36,12 @@ export async function GET(request: NextRequest) {
     
     return NextResponse.json({
       available: isAvailable,
-      message: isAvailable ? '사용 가능한 에이전트 ID입니다.' : '이미 사용 중인 에이전트 ID입니다.'
+      message: isAvailable ? 'Agent ID is available.' : 'Agent ID is already in use.'
     })
   } catch (error) {
     console.error('Failed to check agent ID availability:', error)
     return NextResponse.json(
-      { error: '에이전트 ID 확인 중 오류가 발생했습니다.' },
+      { error: 'An error occurred while checking agent ID availability.' },
       { status: 500 }
     )
   }

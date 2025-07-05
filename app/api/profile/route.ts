@@ -5,7 +5,7 @@ import { users } from '@/lib/db/schema'
 import { eq } from 'drizzle-orm'
 import { hashPassword, verifyPassword } from '@/lib/auth'
 
-// GET - 현재 사용자 프로필 정보 가져오기
+// GET - Fetch current user profile information
 export async function GET() {
   try {
     const session = await getServerSession()
@@ -45,7 +45,7 @@ export async function GET() {
   }
 }
 
-// PUT - 사용자 프로필 정보 수정
+// PUT - Update user profile information
 export async function PUT(request: NextRequest) {
   try {
     const session = await getServerSession()
@@ -62,7 +62,7 @@ export async function PUT(request: NextRequest) {
 
     const db = getDb()
     
-    // 현재 사용자 정보 가져오기
+    // Get current user information
     const currentUser = await db.select().from(users).where(eq(users.email, session.user.email)).limit(1)
     
     if (currentUser.length === 0) {
@@ -76,14 +76,14 @@ export async function PUT(request: NextRequest) {
       updatedAt: new Date()
     }
 
-    // 사용자명 업데이트
+    // Update username
     if (username && username.trim()) {
       updateData.username = username.trim()
     }
 
-    // 비밀번호 변경
+    // Change password
     if (currentPassword && newPassword) {
-      // 현재 비밀번호 검증
+      // Verify current password
       const isValidPassword = verifyPassword(currentPassword, currentUser[0].password)
       
       if (!isValidPassword) {
@@ -93,7 +93,7 @@ export async function PUT(request: NextRequest) {
         )
       }
 
-      // 새 비밀번호 길이 검증
+      // Validate new password length
       if (newPassword.length < 6) {
         return NextResponse.json(
           { error: 'New password must be at least 6 characters long' },
@@ -104,12 +104,12 @@ export async function PUT(request: NextRequest) {
       updateData.password = hashPassword(newPassword)
     }
 
-    // 사용자 정보 업데이트
+    // Update user information
     await db.update(users)
       .set(updateData)
       .where(eq(users.email, session.user.email))
 
-    // 업데이트된 사용자 정보 반환
+    // Return updated user information
     const updatedUser = await db.select({
       id: users.id,
       username: users.username,

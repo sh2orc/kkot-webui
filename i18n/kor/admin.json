@@ -55,6 +55,10 @@
       "database": {
         "label": "데이터베이스 설정",
         "description": "데이터베이스 구성"
+      },
+      "api": {
+        "label": "API 관리",
+        "description": "외부 API 접근 및 OpenAI compatible 서비스 설정"
       }
     },
     "systemStatus": {
@@ -78,6 +82,7 @@
     "image": "이미지",
     "audio": "오디오",
     "pipeline": "파이프라인",
-    "database": "데이터베이스"
+    "database": "데이터베이스",
+    "api": "API"
   }
 } 

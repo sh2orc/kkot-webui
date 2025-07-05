@@ -12,6 +12,7 @@ import { useTranslation } from "@/lib/i18n"
 import { useModel } from "@/components/providers/model-provider"
 import { Skeleton } from "@/components/ui/skeleton"
 import { useIsMobile } from "@/hooks/use-mobile"
+import { toast } from "sonner"
 
 interface Message {
   id: string
@@ -404,7 +405,11 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         // Use FormData when images are present
         const formData = new FormData()
         formData.append('message', message)
-        formData.append('agentId', agentInfo.id)
+        if (agentInfo.type === 'agent') {
+          formData.append('agentId', agentInfo.id)
+        } else {
+          formData.append('modelId', agentInfo.id)
+        }
         formData.append('modelType', agentInfo.type)
         formData.append('isRegeneration', isRegeneration.toString())
         
@@ -429,7 +434,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           },
           body: JSON.stringify({
             message,
-            agentId: agentInfo.id,
+            agentId: agentInfo.type === 'agent' ? agentInfo.id : undefined,
+            modelId: agentInfo.type === 'model' ? agentInfo.id : undefined,
             modelType: agentInfo.type,
             isRegeneration,
             userId: session?.user?.id
@@ -440,7 +446,20 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       if (!response.ok) {
         const errorText = await response.text()
         console.error('API response error:', errorText)
-        throw new Error(`Message sending failed (${response.status}: ${errorText})`)
+        
+        // Parse error message from response
+        let errorMessage = 'Message sending failed'
+        try {
+          const errorData = JSON.parse(errorText)
+          if (errorData.error) {
+            errorMessage = errorData.error
+          }
+        } catch (e) {
+          // If parsing fails, use the raw error text
+          errorMessage = errorText || `HTTP ${response.status} Error`
+        }
+        
+        throw new Error(errorMessage)
       }
 
       // Process streaming response
@@ -543,6 +562,9 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         // AI message sending aborted
       } else {
         console.error('AI message sending error:', error)
+        // Show error toast to user
+        const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
+        toast.error(errorMessage)
       }
     } finally {
       streamingInProgress.current = false
@@ -1159,17 +1181,47 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         setTimeout(() => scrollToBottomSmooth(), 100)
 
         // 재생성을 위한 상태 초기화 및 AI 요청
-        setTimeout(() => {
+        setTimeout(async () => {
           // 중복 방지 로직 초기화
           streamingInProgress.current = false
           sessionStorage.removeItem(`lastMessage_${chatId}`)
           lastSubmittedMessage.current = null
           lastSubmittedTime.current = 0
           
-          sendMessageToAI(userMessage.content, {
+          // 사용자 메시지에서 이미지 정보 추출
+          let messageContent = userMessage.content
+          let imagesToSend: File[] = []
+          
+          try {
+            // JSON 형태로 저장된 메시지에서 이미지 정보 추출
+            const parsed = JSON.parse(userMessage.content)
+            if (parsed.hasImages && parsed.images && Array.isArray(parsed.images)) {
+              messageContent = parsed.text || ''
+              // Base64 데이터를 File 객체로 변환
+              imagesToSend = await Promise.all(
+                parsed.images.map(async (imageInfo: any) => {
+                  if (imageInfo.data) {
+                    // Base64 데이터를 Blob으로 변환
+                    const response = await fetch(imageInfo.data)
+                    const blob = await response.blob()
+                    // Blob을 File 객체로 변환
+                    return new File([blob], imageInfo.name || 'image.png', { 
+                      type: imageInfo.mimeType || 'image/png' 
+                    })
+                  }
+                  return null
+                })
+              ).then(files => files.filter(file => file !== null) as File[])
+            }
+          } catch (e) {
+            // JSON 파싱 실패 시 텍스트로 처리
+            messageContent = userMessage.content
+          }
+          
+          sendMessageToAI(messageContent, {
             id: selectedModel.id,
             type: selectedModel.type
-          }, true)
+          }, true, imagesToSend)
         }, 300) // 중단 처리 완료를 위해 짧은 지연
       }
     }
