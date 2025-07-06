@@ -1,32 +1,28 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { chatSessionRepository, agentManageRepository, userRepository, chatMessageRepository } from '@/lib/db/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 export async function POST(request: NextRequest) {
   console.log('=== Chat API POST request received ===')
   try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
+    }
+    
     const body = await request.json()
     console.log('Request body:', body)
-    const { agentId, modelId, modelType, initialMessage, userId } = body
+    const { agentId, modelId, modelType, initialMessage } = body
 
     if (!initialMessage?.trim()) {
       return NextResponse.json({ error: 'Initial message is required' }, { status: 400 })
     }
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
-    }
-
-    // Check user existence
-    const existingUsers = await userRepository.findAll()
-    const currentUser = existingUsers.find((user: any) => user.id === userId)
-    
-    if (!currentUser) {
-      return NextResponse.json({ error: 'Invalid user' }, { status: 401 })
-    }
-
     // Create chat session with temporary title
     const sessionData = {
-      userId: userId,
+      userEmail: session.user.email,
       title: initialMessage.substring(0, 20) + (initialMessage.length > 20 ? '...' : '')
     }
 
@@ -77,23 +73,14 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   console.log('=== Chat API GET request received - Chat session list query ===')
   try {
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
+    const session = await getServerSession(authOptions)
     
-    if (!userId) {
+    if (!session?.user?.email) {
       return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
-    }
-    
-    // Check user existence
-    const existingUsers = await userRepository.findAll()
-    const currentUser = existingUsers.find((user: any) => user.id === userId)
-    
-    if (!currentUser) {
-      return NextResponse.json({ error: 'Invalid user' }, { status: 401 })
     }
 
     // Retrieve all chat sessions for the user (in descending order)
-    const sessions = await chatSessionRepository.findByUserId(userId)
+    const sessions = await chatSessionRepository.findByUserEmail(session.user.email)
     
     // Process additional session information (last message time, etc.)
     const processedSessions = sessions.map((session: any) => ({

@@ -41,6 +41,7 @@
     "dislike": "싫어요",
     "regenerate": "다시 생성",
     "regenerating": "다시 생성 중...",
+    "waitForCompletion": "현재 응답이 완료될 때까지 기다려주세요",
     "edit": "수정",
     "save": "저장",
     "cancel": "취소",
@@ -63,6 +64,9 @@
   },
   "welcome": {
     "greeting": "안녕하세요, {name}님! 👋",
-    "helpMessage": "오늘은 어떤 것을 도와드릴까요?"
+    "helpMessage": "오늘은 어떤 것을 도와드릴까요?",
+    "noModelMessage": "서비스 이용을 위해서는 AI 에이전트와 LLM 모델을 등록해야 합니다.",
+    "setupRequired": "설정이 필요합니다",
+    "goToAdmin": "관리자 페이지로 이동"
   }
 } 

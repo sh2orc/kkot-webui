@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
 import { chatMessageRepository, chatSessionRepository, agentManageRepository, llmModelRepository, llmServerRepository } from '@/lib/db/server'
 import { LLMFactory } from '@/lib/llm'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   console.log('=== Chat [id] API POST request received ===')
@@ -9,6 +11,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   console.log('Request headers:', Object.fromEntries(request.headers.entries()))
   
   try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
+    }
+    
     const resolvedParams = await params
     const chatId = resolvedParams.id
     console.log('Chat ID:', chatId)
@@ -19,7 +27,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     let agentId: string | undefined
     let modelId: string | undefined
     let modelType: string
-    let userId: string
     let isRegeneration: boolean
     let images: File[] = []
     
@@ -32,7 +39,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       agentId = (formData.get('agentId') as string)?.trim() || undefined
       modelId = (formData.get('modelId') as string)?.trim() || undefined
       modelType = formData.get('modelType') as string
-      userId = formData.get('userId') as string
       isRegeneration = formData.get('isRegeneration') === 'true'
       
       // Extract images
@@ -49,7 +55,6 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       agentId = body.agentId
       modelId = body.modelId
       modelType = body.modelType
-      userId = body.userId
       isRegeneration = body.isRegeneration
     }
 
@@ -70,19 +75,36 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }, { status: 400 })
     }
 
-    if (!userId) {
-      return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
-    }
-
     // Check chat session existence and verify permissions
-    const session = await chatSessionRepository.findById(chatId)
-    console.log('Session query result:', session)
-    if (!session || session.length === 0) {
+    console.log('Looking for chat session with ID:', chatId)
+    console.log('Current user email:', session.user.email)
+    const chatSession = await chatSessionRepository.findById(chatId)
+    console.log('Session query result:', chatSession)
+    console.log('Session query result length:', chatSession?.length)
+    if (chatSession && chatSession.length > 0) {
+      console.log('Found session:', {
+        id: chatSession[0].id,
+        userEmail: chatSession[0].userEmail,
+        title: chatSession[0].title
+      })
+    }
+    
+    if (!chatSession || chatSession.length === 0) {
+      console.error('Chat session not found for ID:', chatId)
       return NextResponse.json({ error: 'Chat session not found' }, { status: 404 })
     }
 
-    // Check session owner
-    if (session[0].userId !== userId) {
+    // Check session owner by email
+    console.log('Comparing emails:', {
+      sessionEmail: chatSession[0].userEmail,
+      currentUserEmail: session.user.email,
+      match: chatSession[0].userEmail === session.user.email
+    })
+    if (chatSession[0].userEmail !== session.user.email) {
+      console.error('Access denied - email mismatch:', {
+        sessionEmail: chatSession[0].userEmail,
+        currentUserEmail: session.user.email
+      })
       return NextResponse.json({ error: 'Access denied to this chat' }, { status: 403 })
     }
 
@@ -596,7 +618,7 @@ Title:`
                       'Authorization': request.headers.get('Authorization') || '',
                     },
                     body: JSON.stringify({
-                      userId: userId,
+                      userId: session.user.email,
                       userMessage: userMessage,
                       assistantMessage: fullResponse
                     })
@@ -675,43 +697,41 @@ Title:`
 
 // Retrieve chat message history
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  console.log('=== Chat [id] API GET request received ===')
   try {
-    const resolvedParams = await params
-    const chatId = resolvedParams.id
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
-
-    if (!userId) {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.email) {
       return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
     }
-
+    
+    const resolvedParams = await params
+    const chatId = resolvedParams.id
+    console.log('Chat ID:', chatId)
+    
     // Check chat session existence and verify permissions
-    const session = await chatSessionRepository.findById(chatId)
-    if (!session || session.length === 0) {
+    const chatSession = await chatSessionRepository.findById(chatId)
+    console.log('Session query result:', chatSession)
+    if (!chatSession || chatSession.length === 0) {
       return NextResponse.json({ error: 'Chat session not found' }, { status: 404 })
     }
 
-    // Check session owner
-    if (session[0].userId !== userId) {
+    // Check session owner by email
+    if (chatSession[0].userEmail !== session.user.email) {
       return NextResponse.json({ error: 'Access denied to this chat' }, { status: 403 })
     }
 
-    // Retrieve message history
+    // Retrieve messages for the chat session
     const messages = await chatMessageRepository.findBySessionId(chatId)
+    console.log('Retrieved message count:', messages.length)
 
     return NextResponse.json({ 
-      chatId,
-      session,
-      messages: messages.map((msg: any) => ({
-        id: msg.id,
-        role: msg.role,
-        content: msg.content,
-        timestamp: msg.createdAt
-      }))
+      messages,
+      session: chatSession[0]
     })
   } catch (error) {
-    console.error('Message retrieval error:', error)
-    return NextResponse.json({ error: 'Failed to retrieve messages' }, { status: 500 })
+    console.error('Chat history retrieval error:', error)
+    return NextResponse.json({ error: 'Failed to load chat history' }, { status: 500 })
   }
 }
 
@@ -759,43 +779,94 @@ export async function PUT(request: NextRequest, { params }: { params: Promise<{ 
   }
 }
 
-// Delete chat session
+// Delete chat session or messages from a specific point
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   console.log('=== Chat [id] API DELETE request received ===')
   try {
-    const resolvedParams = await params
-    const chatId = resolvedParams.id
-    const { searchParams } = new URL(request.url)
-    const userId = searchParams.get('userId')
-    const fromMessageId = searchParams.get('fromMessageId')
-
-    if (!userId) {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.email) {
       return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
     }
-
+    
+    const resolvedParams = await params
+    const chatId = resolvedParams.id
+    console.log('Chat ID:', chatId)
+    
+    // Parse query parameters
+    const { searchParams } = new URL(request.url)
+    const fromMessageId = searchParams.get('fromMessageId')
+    const userId = searchParams.get('userId')
+    
+    console.log('Delete parameters:', { fromMessageId, userId })
+    
     // Check chat session existence and verify permissions
-    const session = await chatSessionRepository.findById(chatId)
-    if (!session || session.length === 0) {
+    const chatSession = await chatSessionRepository.findById(chatId)
+    console.log('Session query result:', chatSession)
+    if (!chatSession || chatSession.length === 0) {
       return NextResponse.json({ error: 'Chat session not found' }, { status: 404 })
     }
 
-    // Check session owner
-    if (session[0].userId !== userId) {
+    // Check session owner by email
+    if (chatSession[0].userEmail !== session.user.email) {
       return NextResponse.json({ error: 'Access denied to this chat' }, { status: 403 })
     }
 
-    // If fromMessageId is provided, delete messages from that point onwards
+    // If fromMessageId is provided, delete messages from that point onwards (for regeneration)
     if (fromMessageId) {
-      await chatMessageRepository.deleteFromMessageOnwards(chatId, fromMessageId)
-      console.log('Messages deleted successfully from message:', fromMessageId)
-      return NextResponse.json({ success: true })
+      console.log('=== Deleting messages from specific point ===');
+      console.log('fromMessageId:', fromMessageId);
+      console.log('userId:', userId);
+      
+      try {
+        // Verify that the fromMessageId exists and belongs to this session
+        const allMessages = await chatMessageRepository.findBySessionId(chatId);
+        console.log('Total messages in session before deletion:', allMessages.length);
+        
+        const targetMessage = allMessages.find((msg: any) => msg.id === fromMessageId);
+        if (!targetMessage) {
+          console.log('Target message not found in session');
+          return NextResponse.json({ success: true, deletedCount: 0, message: 'Target message not found' });
+        }
+        
+        console.log('Target message found:', {
+          id: targetMessage.id,
+          role: targetMessage.role,
+          createdAt: targetMessage.createdAt
+        });
+        
+        // Use the dedicated method to delete messages from a specific point onwards
+        const deleteResult = await chatMessageRepository.deleteFromMessageOnwards(chatId, fromMessageId);
+        console.log('Delete operation result:', deleteResult);
+        
+        // Verify deletion by checking remaining messages
+        const remainingMessages = await chatMessageRepository.findBySessionId(chatId);
+        console.log('Remaining messages after deletion:', remainingMessages.length);
+        
+        return NextResponse.json({ 
+          success: true, 
+          deletedCount: deleteResult.length || 0,
+          remainingCount: remainingMessages.length,
+          message: `Successfully deleted ${deleteResult.length || 0} messages`
+        });
+      } catch (error) {
+        console.error('Error deleting messages from point onwards:', error);
+        if (error instanceof Error && error.message === 'Message not found') {
+          console.log('From message not found, no messages to delete');
+          return NextResponse.json({ success: true, deletedCount: 0, message: 'Target message not found' });
+        }
+        console.error('Unexpected error during message deletion:', error);
+        return NextResponse.json({ 
+          error: 'Failed to delete messages',
+          details: error instanceof Error ? error.message : 'Unknown error'
+        }, { status: 500 });
+      }
     } else {
-      // Delete entire chat session (this will cascade delete all messages)
+      // Delete entire chat session (original behavior)
+      console.log('Deleting entire chat session')
       await chatSessionRepository.delete(chatId)
-      console.log('Chat session deleted successfully:', chatId)
       return NextResponse.json({ success: true })
     }
-
   } catch (error) {
     console.error('Chat deletion error:', error)
     return NextResponse.json({ error: 'Failed to delete chat' }, { status: 500 })

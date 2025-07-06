@@ -41,6 +41,7 @@
     "dislike": "Dislike",
     "regenerate": "Regenerate",
     "regenerating": "Regenerating...",
+    "waitForCompletion": "Please wait for the current response to complete",
     "edit": "Edit",
     "save": "Save",
     "cancel": "Cancel",
@@ -63,6 +64,9 @@
   },
   "welcome": {
     "greeting": "Hello, {name}! 👋",
-    "helpMessage": "How can I help you today?"
+    "helpMessage": "How can I help you today?",
+    "noModelMessage": "To use this service, you need to register AI agents and LLM models.",
+    "setupRequired": "Setup Required",
+    "goToAdmin": "Go to Admin"
   }
 } 

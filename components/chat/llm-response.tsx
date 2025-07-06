@@ -197,7 +197,20 @@ export function LlmResponse({
         
 
         <div className="text-xs text-gray-400 mt-1">
-          {(timestamp instanceof Date ? timestamp : new Date(timestamp)).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+          {(() => {
+            let displayTime: Date;
+            if (timestamp instanceof Date && !isNaN(timestamp.getTime())) {
+              displayTime = timestamp;
+            } else if (timestamp) {
+              displayTime = new Date(timestamp);
+              if (isNaN(displayTime.getTime())) {
+                displayTime = new Date();
+              }
+            } else {
+              displayTime = new Date();
+            }
+            return displayTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+          })()}
         </div>
         <div className="flex mt-2">
           <button
@@ -220,7 +233,7 @@ export function LlmResponse({
           >
             <ThumbsUp
               className={`h-4 w-4 transition-transform duration-200 ${
-                likedMessages.has(id) ? "fill-current text-blue-600" : "text-gray-500"
+                likedMessages.has(id) ? "fill-current text-blue-500" : "text-gray-500"
               } ${
                 thumbsUpClick ? "thumbs-up-click" : thumbsUpHover ? "thumbs-up-hover" : ""
               }`}
@@ -237,7 +250,7 @@ export function LlmResponse({
           >
             <ThumbsDown
               className={`h-4 w-4 transition-transform duration-200 ${
-                dislikedMessages.has(id) ? "fill-current text-red-600" : "text-gray-500"
+                dislikedMessages.has(id) ? "fill-current text-red-500" : "text-gray-500"
               } ${
                 thumbsDownHover ? "thumbs-down-hover" : ""
               }`}

@@ -3,17 +3,18 @@
 import type React from "react"
 
 import { Button } from "@/components/ui/button"
-import { Mic, Globe, Plus, FlaskRoundIcon as Flask, Play, Square, Image as ImageIcon, X } from "lucide-react"
+import { Mic, Globe, Plus, Play, Square, Image as ImageIcon, X, Brain } from "lucide-react"
 import type { RefObject } from "react"
 import { useTranslation } from "@/lib/i18n"
 import { memo, useState, useRef, useEffect } from "react"
 import { toast } from "sonner"
+import type { Agent } from "@/components/providers/model-provider"
 
 interface ChatInputProps {
   inputValue: string
   textareaRef: RefObject<HTMLTextAreaElement | null>
   isGlobeActive: boolean
-  isFlaskActive: boolean
+  isDeepResearchActive: boolean
   isStreaming: boolean
   isSubmitting?: boolean
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void
@@ -24,16 +25,18 @@ interface ChatInputProps {
   handleSubmit: () => void
   handleAbort: () => void
   setIsGlobeActive: (active: boolean) => void
-  setIsFlaskActive: (active: boolean) => void
+  setIsDeepResearchActive: (active: boolean) => void
   onImageUpload?: (images: File[]) => void
   clearImages?: boolean
+  supportsMultimodal?: boolean
+  selectedAgent?: Agent | null
 }
 
 export const ChatInput = memo(function ChatInput({
   inputValue,
   textareaRef,
   isGlobeActive,
-  isFlaskActive,
+  isDeepResearchActive,
   isStreaming,
   isSubmitting = false,
   handleInputChange,
@@ -44,14 +47,20 @@ export const ChatInput = memo(function ChatInput({
   handleSubmit,
   handleAbort,
   setIsGlobeActive,
-  setIsFlaskActive,
+  setIsDeepResearchActive,
   onImageUpload,
   clearImages,
+  supportsMultimodal = false,
+  selectedAgent = null,
 }: ChatInputProps) {
   const { lang } = useTranslation("chat")
   const [uploadedImages, setUploadedImages] = useState<File[]>([])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // 에이전트 기능 지원 여부 확인
+  const supportsDeepResearch = selectedAgent?.supportsDeepResearch ?? true
+  const supportsWebSearch = selectedAgent?.supportsWebSearch ?? true
 
   // Clear images function
   const clearImagesHandler = () => {
@@ -220,7 +229,7 @@ export const ChatInput = memo(function ChatInput({
 
   return (
     <div className="absolute bottom-0 left-0 right-0 p-0 chat-input-container mobile-keyboard-adjust">
-      <div className="max-w-full sm:max-w-xl md:max-w-3xl lg:max-w-4xl mx-auto bg-white">
+      <div className="max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto bg-white">
         <div className="flex-1 flex flex-col relative w-full shadow-lg rounded-xl border border-gray-200 hover:border-gray-300 focus-within:border-gray-300 transition bg-white">
           {/* Image previews */}
           {imagePreviews.length > 0 && (
@@ -249,7 +258,7 @@ export const ChatInput = memo(function ChatInput({
               <textarea
                 ref={textareaRef}
                 placeholder={lang("mobilePlaceholder")}
-                className={`w-full rounded-lg border-0 p-1 pr-12 sm:pr-14 resize-none overflow-hidden focus:outline-none focus:ring-0 text-base leading-6 min-h-[52px] max-h-[120px] sm:max-h-[180px] touch-manipulation`}
+                className={`w-full rounded-lg border-0 p-1 ${supportsMultimodal ? 'pr-16 sm:pr-20' : 'pr-12 sm:pr-14'} resize-none overflow-hidden focus:outline-none focus:ring-0 text-base leading-6 min-h-[52px] max-h-[120px] sm:max-h-[180px] touch-manipulation`}
                 style={{
                   height: 'auto',
                   minHeight: '52px',
@@ -295,27 +304,31 @@ export const ChatInput = memo(function ChatInput({
             )}
 
             {/* Bottom controls */}
-            <div className="flex items-center justify-between mt-0 sm:mt-3 hidden sm:flex">
+            <div className="flex items-center justify-between mt-2 sm:mt-3">
               <div className="flex items-center gap-2">
                 <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 touch-manipulation">
                   <Plus className="h-4 w-4" />
                 </Button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*"
-                  multiple
-                  onChange={handleImageUpload}
-                  className="hidden"
-                />
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="h-8 w-8 sm:h-9 sm:w-9 touch-manipulation"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <ImageIcon className="h-4 w-4" />
-                </Button>
+                {supportsMultimodal && (
+                  <>
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation"
+                      onClick={() => fileInputRef.current?.click()}
+                    >
+                      <ImageIcon className="h-4 w-4" />
+                    </Button>
+                  </>
+                )}
               </div>
               <div className="flex items-center gap-2 sm:gap-2">
                 <Button variant="ghost" 
@@ -323,22 +336,26 @@ export const ChatInput = memo(function ChatInput({
                   className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation">
                   <Mic className="h-4 w-4" />
                 </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation ${isFlaskActive ? "bg-black text-white hover:bg-blue-700 hover:text-white" : ""}`}
-                  onClick={() => setIsFlaskActive(!isFlaskActive)}
-                >
-                  <Flask className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation ${isGlobeActive ? "bg-black text-white hover:bg-blue-700 hover:text-white" : ""}`}
-                  onClick={() => setIsGlobeActive(!isGlobeActive)}
-                >
-                  <Globe className="h-4 w-4" />
-                </Button>
+                {supportsDeepResearch && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation ${isDeepResearchActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white" : ""}`}
+                    onClick={() => setIsDeepResearchActive(!isDeepResearchActive)}
+                  >
+                    <Brain className="h-4 w-4" />
+                  </Button>
+                )}
+                {supportsWebSearch && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation ${isGlobeActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white" : ""}`}
+                    onClick={() => setIsGlobeActive(!isGlobeActive)}
+                  >
+                    <Globe className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
           </div>

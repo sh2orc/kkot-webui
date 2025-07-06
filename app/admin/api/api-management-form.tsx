@@ -22,6 +22,7 @@ import {
   FormLabel,
   FormMessage,
 } from "@/components/ui/form"
+import { Skeleton } from "@/components/ui/skeleton"
 
 // Zod schema for API management settings
 const apiManagementSchema = z.object({
@@ -139,9 +140,113 @@ export default function ApiManagementForm({ initialSettings }: ApiManagementForm
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900"></div>
-        <span className="ml-2">Loading...</span>
+      <div className="space-y-6">
+        {/* API Service Settings Skeleton */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-4 w-80" />
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-4 w-60" />
+              </div>
+              <Skeleton className="h-6 w-11 rounded-full" />
+            </div>
+            
+            <Skeleton className="h-px w-full" />
+            
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-40" />
+                <Skeleton className="h-4 w-72" />
+              </div>
+              <Skeleton className="h-6 w-11 rounded-full" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* CORS Settings Skeleton */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-4 w-64" />
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-28" />
+                <Skeleton className="h-4 w-56" />
+              </div>
+              <Skeleton className="h-6 w-11 rounded-full" />
+            </div>
+            
+            <Skeleton className="h-px w-full" />
+            
+            <div className="space-y-2">
+              <Skeleton className="h-5 w-36" />
+              <Skeleton className="h-4 w-48" />
+              <div className="space-y-2">
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Rate Limiting Skeleton */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-28" />
+            <Skeleton className="h-4 w-52" />
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-32" />
+                <Skeleton className="h-4 w-44" />
+              </div>
+              <Skeleton className="h-6 w-11 rounded-full" />
+            </div>
+            
+            <Skeleton className="h-px w-full" />
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-24" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-28" />
+                <Skeleton className="h-10 w-full" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Authentication Skeleton */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-24" />
+            <Skeleton className="h-4 w-40" />
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div className="space-y-2">
+                <Skeleton className="h-5 w-36" />
+                <Skeleton className="h-4 w-68" />
+              </div>
+              <Skeleton className="h-6 w-11 rounded-full" />
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Save Button Skeleton */}
+        <div className="flex justify-end">
+          <Skeleton className="h-10 w-24" />
+        </div>
       </div>
     )
   }

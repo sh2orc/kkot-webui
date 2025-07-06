@@ -111,7 +111,17 @@ export default function Sidebar({
     const monthGroups: { [key: string]: ChatItem[] } = {}
 
     sessions.forEach((session: any) => {
-      const sessionDate = new Date(session.createdAt)
+      // Handle timestamp conversion properly for SQLite (integer) and PostgreSQL (string)
+      let sessionDate: Date;
+      if (session.createdAt) {
+        sessionDate = new Date(session.createdAt);
+        if (isNaN(sessionDate.getTime())) {
+          sessionDate = new Date();
+        }
+      } else {
+        sessionDate = new Date();
+      }
+      
       const sessionDateOnly = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate())
       
       // Generate time format
@@ -220,12 +230,23 @@ export default function Sidebar({
       const response = await fetch(`/api/chat?userId=${session.user.id}`)
       const data = await response.json()
       
+      if (response.status === 401 || response.status === 404) {
+        // 인증 오류 또는 리소스 없음 시 홈페이지로 리다이렉트
+        router.push('/')
+        return
+      }
+      
       if (data.sessions) {
         // Group by date
         const groups = groupChatSessionsByDate(data.sessions)
         setChatGroups(groups)
       } else if (data.error) {
         console.error('Chat session load error:', data.error)
+        // "Invalid user" 에러 시 홈페이지로 리다이렉트
+        if (data.error === 'Invalid user') {
+          router.push('/')
+          return
+        }
         setChatGroups([])
       }
     } catch (error) {
@@ -270,7 +291,7 @@ export default function Sidebar({
         setIsLoading(false)
       }
     }
-  }, [status, session?.user?.id, initialChatSessions.length])
+  }, [status, session?.user?.id, initialChatSessions.length, router])
 
   // Register global functions and set up event listeners
   useEffect(() => {

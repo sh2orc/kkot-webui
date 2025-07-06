@@ -21,6 +21,7 @@ import { Checkbox } from '@/components/ui/checkbox'
 import { toast } from 'sonner'
 import { useTranslation } from '@/lib/i18n'
 import { Plus, Edit, Trash2, Copy, Eye, EyeOff, RefreshCw, Activity } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
 
 // API Key Creation Schema
 const apiKeySchema = z.object({
@@ -253,6 +254,94 @@ export default function ApiKeyManagement() {
     fetchApiKeys()
   }, [])
 
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        {/* Header with Create Button Skeleton */}
+        <div className="flex justify-between items-center">
+          <div className="space-y-2">
+            <Skeleton className="h-8 w-48" />
+            <Skeleton className="h-4 w-80" />
+          </div>
+          <Skeleton className="h-10 w-32" />
+        </div>
+
+        {/* API Keys Table Skeleton */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-32" />
+            <Skeleton className="h-4 w-64" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {/* Table Header Skeleton */}
+              <div className="grid grid-cols-7 gap-4 pb-2 border-b">
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-12" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-4 w-16" />
+                <Skeleton className="h-4 w-16" />
+              </div>
+              
+              {/* Table Rows Skeleton */}
+              {[...Array(3)].map((_, i) => (
+                <div key={i} className="grid grid-cols-7 gap-4 py-3 border-b">
+                  <div className="space-y-1">
+                    <Skeleton className="h-4 w-24" />
+                    <Skeleton className="h-3 w-20" />
+                  </div>
+                  <Skeleton className="h-4 w-16" />
+                  <div className="space-y-1">
+                    <Skeleton className="h-4 w-8" />
+                    <Skeleton className="h-4 w-8" />
+                  </div>
+                  <Skeleton className="h-6 w-16 rounded-full" />
+                  <div className="space-y-1">
+                    <Skeleton className="h-3 w-20" />
+                    <Skeleton className="h-3 w-16" />
+                  </div>
+                  <Skeleton className="h-3 w-12" />
+                  <div className="flex gap-1">
+                    <Skeleton className="h-8 w-8" />
+                    <Skeleton className="h-8 w-8" />
+                    <Skeleton className="h-8 w-8" />
+                    <Skeleton className="h-8 w-8" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* API Usage Statistics Skeleton */}
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-40" />
+            <Skeleton className="h-4 w-56" />
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-8 w-16" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-28" />
+                <Skeleton className="h-8 w-20" />
+              </div>
+              <div className="space-y-2">
+                <Skeleton className="h-4 w-20" />
+                <Skeleton className="h-8 w-12" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -470,14 +559,14 @@ export default function ApiKeyManagement() {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => setShowKeyValue(showKeyValue === newGeneratedKey.id ? null : newGeneratedKey.id)}
+                      onClick={() => setShowKeyValue(showKeyValue === newGeneratedKey?.id ? null : newGeneratedKey?.id || null)}
                     >
-                      {showKeyValue === newGeneratedKey.id ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                      {showKeyValue === newGeneratedKey?.id ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </Button>
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => handleCopyKey(newGeneratedKey.key)}
+                      onClick={() => newGeneratedKey && handleCopyKey(newGeneratedKey.key)}
                     >
                       <Copy className="h-4 w-4" />
                     </Button>
@@ -517,12 +606,7 @@ export default function ApiKeyManagement() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
-              <p className="mt-2 text-muted-foreground">Loading...</p>
-            </div>
-          ) : apiKeys.length === 0 ? (
+          {apiKeys.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
               No API keys have been created.
             </div>

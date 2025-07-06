@@ -36,14 +36,14 @@ export const users = getDbType() === 'sqlite'
 export const chatSessions = getDbType() === 'sqlite'
   ? sqliteTable('chat_sessions', {
       id: text('id').primaryKey(),
-      userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+      userEmail: text('user_email').notNull(),
       title: text('title').notNull(),
       createdAt: integer('created_at', { mode: 'timestamp' }),
       updatedAt: integer('updated_at', { mode: 'timestamp' }),
     })
   : pgTable('chat_sessions', {
       id: serial('id').primaryKey(),
-      userId: serial('user_id').references(() => users.id, { onDelete: 'cascade' }),
+      userEmail: varchar('user_email', { length: 255 }).notNull(),
       title: varchar('title', { length: 255 }).notNull(),
       createdAt: timestamp('created_at').defaultNow(),
       updatedAt: timestamp('updated_at').defaultNow(),
@@ -58,6 +58,7 @@ export const chatMessages = getDbType() === 'sqlite'
       content: text('content').notNull(),
       contentType: text('content_type').default('text'), // 'text' or 'multimodal'
       attachments: text('attachments'), // JSON string for multimodal content
+      rating: integer('rating').default(0), // -1 (dislike), 0 (neutral), +1 (like)
       createdAt: integer('created_at', { mode: 'timestamp' }),
     })
   : pgTable('chat_messages', {
@@ -67,6 +68,7 @@ export const chatMessages = getDbType() === 'sqlite'
       content: pgText('content').notNull(),
       contentType: varchar('content_type', { length: 50 }).default('text'),
       attachments: pgText('attachments'),
+      rating: varchar('rating', { length: 10 }), // 'like', 'dislike', or null
       createdAt: timestamp('created_at').defaultNow(),
     });
 
@@ -271,6 +273,8 @@ export const agentManage = getDbType() === 'sqlite'
       enabled: integer('enabled', { mode: 'boolean' }).default(true),
       parameterEnabled: integer('parameter_enabled', { mode: 'boolean' }).default(true),
       supportsMultimodal: integer('supports_multimodal', { mode: 'boolean' }).default(false), // Multimodal support
+      supportsDeepResearch: integer('supports_deep_research', { mode: 'boolean' }).default(true), // Deep Research support
+      supportsWebSearch: integer('supports_web_search', { mode: 'boolean' }).default(true), // Web Search support
       createdAt: integer('created_at', { mode: 'timestamp' }),
       updatedAt: integer('updated_at', { mode: 'timestamp' }),
     })
@@ -291,6 +295,8 @@ export const agentManage = getDbType() === 'sqlite'
       enabled: boolean('enabled').default(true),
       parameterEnabled: boolean('parameter_enabled').default(true),
       supportsMultimodal: boolean('supports_multimodal').default(false), // Multimodal support
+      supportsDeepResearch: boolean('supports_deep_research').default(true), // Deep Research support
+      supportsWebSearch: boolean('supports_web_search').default(true), // Web Search support
       createdAt: timestamp('created_at').defaultNow(),
       updatedAt: timestamp('updated_at').defaultNow(),
     });

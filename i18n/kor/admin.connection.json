@@ -2,7 +2,7 @@
   "title": "연결 설정",
   "description": "API 서버 연결을 관리합니다.",
   "openai": {
-    "title": "OpenAI API 서버",
+    "title": "OpenAI API Compatible 서버",
     "description": "OpenAI API 연결 설정을 관리합니다.",
     "addServer": "서버 추가",
     "serverName": "서버 이름",

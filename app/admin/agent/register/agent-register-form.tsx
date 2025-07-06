@@ -43,6 +43,8 @@ interface AgentData {
   enabled: boolean
   parameterEnabled: boolean
   imageData?: string
+  supportsDeepResearch?: boolean
+  supportsWebSearch?: boolean
 }
 
 interface AgentRegisterFormProps {
@@ -89,7 +91,9 @@ export default function AgentRegisterForm({
     imageData: '',
     description: '',
     enabled: true,
-    parameterEnabled: false
+    parameterEnabled: false,
+    supportsDeepResearch: true,
+    supportsWebSearch: true
   }
   
   // Form state
@@ -691,18 +695,48 @@ export default function AgentRegisterForm({
                 />
               </div>
               
-              <div className="flex items-center space-x-2 pt-4 border-t">
-                <Switch
-                  id="enabled"
-                  checked={formData.enabled}
-                  onCheckedChange={(checked) => setFormData(prev => ({ ...prev, enabled: checked }))}
-                />
-                <Label htmlFor="enabled" className="text-sm font-medium">
-                  {lang('form.enableAgent')}
-                </Label>
-                <span className="text-xs text-gray-500 ml-2">
-                  {lang('form.enableAgentHelp')}
-                </span>
+              <div className="space-y-4 pt-4 border-t">
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="enabled"
+                    checked={formData.enabled}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, enabled: checked }))}
+                  />
+                  <Label htmlFor="enabled" className="text-sm font-medium">
+                    {lang('form.enableAgent')}
+                  </Label>
+                  <span className="text-xs text-gray-500 ml-2">
+                    {lang('form.enableAgentHelp')}
+                  </span>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="supportsDeepResearch"
+                    checked={formData.supportsDeepResearch ?? true}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, supportsDeepResearch: checked }))}
+                  />
+                  <Label htmlFor="supportsDeepResearch" className="text-sm font-medium">
+                    Deep Research 지원
+                  </Label>
+                  <span className="text-xs text-gray-500 ml-2">
+                    에이전트가 Deep Research 기능을 사용할 수 있습니다
+                  </span>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="supportsWebSearch"
+                    checked={formData.supportsWebSearch ?? true}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, supportsWebSearch: checked }))}
+                  />
+                  <Label htmlFor="supportsWebSearch" className="text-sm font-medium">
+                    Web Search 지원
+                  </Label>
+                  <span className="text-xs text-gray-500 ml-2">
+                    에이전트가 Web Search 기능을 사용할 수 있습니다
+                  </span>
+                </div>
               </div>
             </div>
           </CardContent>

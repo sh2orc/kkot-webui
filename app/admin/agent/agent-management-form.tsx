@@ -24,6 +24,8 @@ interface Agent {
   enabled: boolean
   hasImage: boolean
   imageData?: string // Image data passed via SSR
+  supportsDeepResearch?: boolean
+  supportsWebSearch?: boolean
 }
 
 interface AgentManagementFormProps {
@@ -149,6 +151,7 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
                     <TableHead>{lang('table.name')}</TableHead>
                     <TableHead>{lang('table.model')}</TableHead>
                     <TableHead>{lang('table.description')}</TableHead>
+                    <TableHead>기능</TableHead>
                     <TableHead>{lang('table.status')}</TableHead>
                     <TableHead className="w-[120px]">{lang('table.actions')}</TableHead>
                   </TableRow>
@@ -197,6 +200,23 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
                             <div className="text-sm truncate">{agent.description}</div>
                           ) : (
                             <div className="text-sm text-muted-foreground">{lang('noDescription')}</div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex flex-wrap gap-1">
+                          {agent.supportsDeepResearch && (
+                            <Badge variant="outline" className="text-xs">
+                              Deep Research
+                            </Badge>
+                          )}
+                          {agent.supportsWebSearch && (
+                            <Badge variant="outline" className="text-xs">
+                              Web Search
+                            </Badge>
+                          )}
+                          {!agent.supportsDeepResearch && !agent.supportsWebSearch && (
+                            <span className="text-xs text-muted-foreground">없음</span>
                           )}
                         </div>
                       </TableCell>
@@ -254,7 +274,7 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
                   
                   {agents.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                         {lang('noAgents')}
                       </TableCell>
                     </TableRow>

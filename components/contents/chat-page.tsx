@@ -127,8 +127,9 @@ const MessageWrapper = memo(({
     return false
   }
   
-  // Current message is being regenerated, rerender
-  if (nextProps.regeneratingMessageId === message.id) {
+  // Current message is being regenerated or regeneration state changed, rerender
+  if (nextProps.regeneratingMessageId === message.id || 
+      prevProps.regeneratingMessageId === message.id) {
     return false
   }
   
@@ -223,7 +224,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   const messagesContainerRef = useRef<HTMLDivElement>(null)
   const [inputValue, setInputValue] = useState("")
   const [isGlobeActive, setIsGlobeActive] = useState(false)
-  const [isFlaskActive, setIsFlaskActive] = useState(false)
+  const [isDeepResearchActive, setIsDeepResearchActive] = useState(false)
   const [isShiftPressed, setIsShiftPressed] = useState(false)
   const [messages, setMessages] = useState<Message[]>([])
   const [selectedMessageId, setSelectedMessageId] = useState<string | null>(null)
@@ -237,6 +238,18 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   const [showSkeleton, setShowSkeleton] = useState(false)
   const [isStreaming, setIsStreaming] = useState(false)
   const [regeneratingMessageId, setRegeneratingMessageId] = useState<string | null>(null)
+  const [forceUpdateCounter, setForceUpdateCounter] = useState(0)
+  
+  // Debug: 재생성 상태 변경 전역 추적
+  useEffect(() => {
+    console.log('=== Global regeneratingMessageId changed ===')
+    console.log('New regeneratingMessageId:', regeneratingMessageId)
+    console.log('Current isStreaming:', isStreaming)
+    
+    // 재생성 상태가 변경될 때 강제 리렌더링을 위한 카운터 업데이트
+    console.log('=== Force re-render trigger ===')
+    setForceUpdateCounter(prev => prev + 1)
+  }, [regeneratingMessageId])
   const [newMessageIds, setNewMessageIds] = useState<Set<string>>(new Set())
   const [streamingMessageId, setStreamingMessageId] = useState<string | null>(null)
   const [uploadedImages, setUploadedImages] = useState<File[]>([])
@@ -332,6 +345,19 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     setRegeneratingMessageId(null)
     setStreamingMessageId(null)
     
+    // 상태 리셋을 여러 번 시도하여 확실히 적용되도록 함
+    setTimeout(() => {
+      console.log('=== handleAbort - First safety check ===')
+      setRegeneratingMessageId(null)
+      setIsStreaming(false)
+    }, 100)
+    
+    setTimeout(() => {
+      console.log('=== handleAbort - Final safety check ===')
+      setRegeneratingMessageId(null)
+      setIsStreaming(false)
+    }, 500)
+    
     // Adjust padding and scroll
     adjustDynamicPadding()
     scrollToBottomSmooth(true) // Set force=true to ensure scroll to bottom
@@ -344,7 +370,14 @@ export default function ChatPage({ chatId }: ChatPageProps) {
 
   // Continue with new request after short delay
   const sendMessageToAI = async (message: string, agentInfo: {id: string, type: string}, isRegeneration: boolean = false, images?: File[]) => {
-    if (!session?.user?.id) {
+    console.log('=== sendMessageToAI function called ===')
+    console.log('message:', message)
+    console.log('agentInfo:', agentInfo)
+    console.log('isRegeneration:', isRegeneration)
+    console.log('images:', images)
+    console.log('session?.user?.email:', session?.user?.email)
+    
+    if (!session?.user?.email) {
       console.error('User authentication required')
       return
     }
@@ -419,7 +452,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         })
         
         // Add userId for authentication
-        formData.append('userId', session?.user?.id || '')
+        formData.append('userId', session?.user?.email || '')
         
         response = await fetch(`/api/chat/${chatId}`, {
           method: 'POST',
@@ -438,7 +471,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             modelId: agentInfo.type === 'model' ? agentInfo.id : undefined,
             modelType: agentInfo.type,
             isRegeneration,
-            userId: session?.user?.id
+            userId: session?.user?.email
           })
         })
       }
@@ -538,6 +571,15 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                     }
 
                     if (data.done) {
+                      console.log('=== Streaming completed (data.done=true) ===')
+                      
+                      // 스트리밍 완료 시점에서 즉시 상태 리셋
+                      console.log('=== Immediate state reset on streaming completion ===')
+                      setIsStreaming(false)
+                      setRegeneratingMessageId(null)
+                      setStreamingMessageId(null)
+                      streamingInProgress.current = false
+                      
                       break
                     }
                   } catch (e) {
@@ -565,13 +607,41 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         // Show error toast to user
         const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
         toast.error(errorMessage)
+        
+        // 에러 발생 시에도 재생성 상태 리셋
+        console.log('Resetting regenerating state due to error')
+        setRegeneratingMessageId(null)
       }
     } finally {
+      console.log('=== sendMessageToAI finally block ===')
+      console.log('Resetting all streaming states')
+      
+      // 즉시 상태 리셋
       streamingInProgress.current = false
       setIsStreaming(false)
       setRegeneratingMessageId(null)
       setStreamingMessageId(null)
       abortControllerRef.current = null
+      console.log('All streaming states reset')
+      
+      // 상태 리셋을 여러 번 시도하여 확실히 적용되도록 함
+      setTimeout(() => {
+        console.log('=== First safety check - Reset regeneration state ===')
+        setRegeneratingMessageId(null)
+        setIsStreaming(false)
+      }, 100)
+      
+      setTimeout(() => {
+        console.log('=== Second safety check - Reset regeneration state ===')
+        setRegeneratingMessageId(null)
+        setIsStreaming(false)
+      }, 500)
+      
+      setTimeout(() => {
+        console.log('=== Final safety check - Force reset regeneration state ===')
+        setRegeneratingMessageId(null)
+        setIsStreaming(false)
+      }, 1000) // 1초 후 강제 리셋
       
       // Final padding adjustment and forced scroll when streaming completes
       adjustDynamicPadding()
@@ -610,7 +680,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     
     console.log('=== ChatPage useEffect triggered ===')
     console.log('chatId:', chatId)
-    console.log('session?.user?.id:', session?.user?.id)
+    console.log('session?.user?.email:', session?.user?.email)
     console.log('sessionStatus:', sessionStatus)
     
     // Initialize loading state
@@ -621,29 +691,71 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     const minSkeletonDisplayTime = 300
     const skeletonStartTime = Date.now()
     
-    if (chatId && session?.user?.id) {
+    if (chatId && session?.user?.email) {
       // Get chat history from API
       const loadChatHistory = async () => {
         if (isCancelled) return
 
         try {
           console.log('=== Fetching chat history ===')
-          console.log('URL:', `/api/chat/${chatId}?userId=${session.user.id}`)
-          const response = await fetch(`/api/chat/${chatId}?userId=${session.user.id}`)
+          console.log('URL:', `/api/chat/${chatId}`)
+          const response = await fetch(`/api/chat/${chatId}`)
           console.log('Response status:', response.status)
           if (isCancelled) return
+          
+          if (response.status === 401 || response.status === 404) {
+            // 인증 오류 또는 리소스 없음 시 홈페이지로 리다이렉트
+            console.log('Chat session not found or access denied, redirecting to home')
+            toast.error('채팅 세션을 찾을 수 없습니다. 홈으로 이동합니다.')
+            router.push('/')
+            return
+          }
           
           if (response.ok) {
             const data = await response.json()
             console.log('Chat history data:', data)
             if (isCancelled) return
             
-            // Convert timestamp to Date object
-            const messagesWithDateTimestamp = (data.messages || []).map((msg: any) => ({
-              ...msg,
-              timestamp: new Date(msg.timestamp)
-            }))
+            // Convert timestamp to Date object and process rating info
+            const messagesWithDateTimestamp = (data.messages || []).map((msg: any) => {
+              // Handle timestamp conversion properly for SQLite (integer) and PostgreSQL (string)
+              let timestamp: Date;
+              if (msg.timestamp) {
+                // If timestamp is a number (SQLite), it's already in milliseconds
+                // If timestamp is a string (PostgreSQL), Date constructor can handle it
+                timestamp = new Date(msg.timestamp);
+                // Check if the date is valid
+                if (isNaN(timestamp.getTime())) {
+                  // If invalid, use current time as fallback
+                  timestamp = new Date();
+                }
+              } else {
+                // If no timestamp, use current time
+                timestamp = new Date();
+              }
+              
+              return {
+                ...msg,
+                timestamp
+              };
+            })
             console.log('Processed messages:', messagesWithDateTimestamp)
+            
+            // Load rating information from messages
+            const likedMessageIds = new Set<string>()
+            const dislikedMessageIds = new Set<string>()
+            
+            messagesWithDateTimestamp.forEach((msg: any) => {
+              if (msg.rating === 1) {
+                likedMessageIds.add(msg.id)
+              } else if (msg.rating === -1) {
+                dislikedMessageIds.add(msg.id)
+              }
+            })
+            
+            // Update rating states
+            setLikedMessages(likedMessageIds)
+            setDislikedMessages(dislikedMessageIds)
             
             // Process messages in a non-blocking way
             const processMessages = () => {
@@ -760,17 +872,17 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     return () => {
       isCancelled = true
     }
-  }, [chatId, session?.user?.id, isMobile])
+  }, [chatId, session?.user?.email, isMobile])
 
   // Handle session status changes
   useEffect(() => {
     // Reset history load state when session changes
-    if (!session?.user?.id) {
+    if (!session?.user?.email) {
       setHistoryLoaded(false)
       setShowSkeleton(false)
       setMessages([])
     }
-  }, [session?.user?.id])
+  }, [session?.user?.email])
 
   // Handle scroll on message change (also works when chat ID changes)
   const [isInitialLoad, setIsInitialLoad] = useState(true)
@@ -806,6 +918,23 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     const basePadding = isMobile !== undefined ? (isMobile ? 320 : 160) : 240
     setDynamicPadding(basePadding) // Reset padding too
   }, [chatId, isMobile])
+
+  // Check if selected model supports multimodal input
+  const supportsMultimodal = useMemo(() => {
+    if (!selectedModel) return false
+    
+    if (selectedModel.type === 'agent') {
+      // For agents, check both agent's supportsMultimodal and underlying model's supportsMultimodal
+      const agentSupports = selectedModel.supportsMultimodal === true || selectedModel.supportsMultimodal === 1
+      const modelSupports = selectedModel.modelSupportsMultimodal === true || selectedModel.modelSupportsMultimodal === 1
+      return agentSupports || modelSupports
+    } else if (selectedModel.type === 'model') {
+      // For public models, check supportsMultimodal field
+      return selectedModel.supportsMultimodal === true || selectedModel.supportsMultimodal === 1
+    }
+    
+    return false
+  }, [selectedModel])
 
   // Add scroll event listener - prevent auto scroll when user scrolls
   useEffect(() => {
@@ -1007,14 +1136,18 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     }, 2000)
   }, [])
 
-  const handleLikeMessage = useCallback((messageId: string) => {
+  const handleLikeMessage = useCallback(async (messageId: string) => {
+    const isCurrentlyLiked = likedMessages.has(messageId)
+    const newRating = isCurrentlyLiked ? 0 : 1
+    
+    // 낙관적 업데이트
     setLikedMessages((prev) => {
       const newSet = new Set(prev)
-      if (newSet.has(messageId)) {
+      if (isCurrentlyLiked) {
         newSet.delete(messageId)
       } else {
         newSet.add(messageId)
-        // 좋아요 취소 후 처리
+        // 좋아요 시 싫어요 제거
         setDislikedMessages((prevDisliked) => {
           const newDislikedSet = new Set(prevDisliked)
           newDislikedSet.delete(messageId)
@@ -1023,16 +1156,56 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       }
       return newSet
     })
-  }, [])
 
-  const handleDislikeMessage = useCallback((messageId: string) => {
+    // API 호출
+    try {
+      const response = await fetch(`/api/chat/${chatId}/rating`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messageId,
+          rating: newRating
+        })
+      })
+
+      if (response.status === 401 || response.status === 404) {
+        // 인증 오류 또는 리소스 없음 시 홈페이지로 리다이렉트
+        router.push('/')
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to update rating')
+      }
+    } catch (error) {
+      console.error('Error updating like:', error)
+      // 실패 시 롤백
+      setLikedMessages((prev) => {
+        const newSet = new Set(prev)
+        if (isCurrentlyLiked) {
+          newSet.add(messageId)
+        } else {
+          newSet.delete(messageId)
+        }
+        return newSet
+      })
+    }
+  }, [chatId, likedMessages, router])
+
+  const handleDislikeMessage = useCallback(async (messageId: string) => {
+    const isCurrentlyDisliked = dislikedMessages.has(messageId)
+    const newRating = isCurrentlyDisliked ? 0 : -1
+    
+    // 낙관적 업데이트
     setDislikedMessages((prev) => {
       const newSet = new Set(prev)
-      if (newSet.has(messageId)) {
+      if (isCurrentlyDisliked) {
         newSet.delete(messageId)
       } else {
         newSet.add(messageId)
-        // 좋아요 취소 후 처리
+        // 싫어요 시 좋아요 제거
         setLikedMessages((prevLiked) => {
           const newLikedSet = new Set(prevLiked)
           newLikedSet.delete(messageId)
@@ -1041,7 +1214,43 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       }
       return newSet
     })
-  }, [])
+
+    // API 호출
+    try {
+      const response = await fetch(`/api/chat/${chatId}/rating`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          messageId,
+          rating: newRating
+        })
+      })
+
+      if (response.status === 401 || response.status === 404) {
+        // 인증 오류 또는 리소스 없음 시 홈페이지로 리다이렉트
+        router.push('/')
+        return
+      }
+
+      if (!response.ok) {
+        throw new Error('Failed to update rating')
+      }
+    } catch (error) {
+      console.error('Error updating dislike:', error)
+      // 실패 시 롤백
+      setDislikedMessages((prev) => {
+        const newSet = new Set(prev)
+        if (isCurrentlyDisliked) {
+          newSet.add(messageId)
+        } else {
+          newSet.delete(messageId)
+        }
+        return newSet
+      })
+    }
+  }, [chatId, dislikedMessages, router])
 
   const handleEditMessage = useCallback((messageId: string, content: string) => {
     setEditingMessageId(messageId)
@@ -1065,7 +1274,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     const messageIndex = messages.findIndex((msg) => msg.id === messageId)
     const editedMessage = messages[messageIndex]
     
-    if (editedMessage && editedMessage.role === "user" && selectedModel && chatId && session?.user?.id) {
+    if (editedMessage && editedMessage.role === "user" && selectedModel && chatId && session?.user?.email) {
       // 스트리밍 중이면 먼저 중단
       if (isStreaming) {
         handleAbort()
@@ -1111,7 +1320,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     
     // 해당 AI 응답 메시지와 그 이후의 모든 메시지를 제거하고 다시 생성
     const messageIndex = messages.findIndex((msg) => msg.id === messageId)
-    if (messageIndex > 0 && selectedModel && chatId && session?.user?.id) {
+    if (messageIndex > 0 && selectedModel && chatId && session?.user?.email) {
       const previousUserMessage = messages[messageIndex - 1]
       if (previousUserMessage.role === "user") {
         // 해당 사용자 메시지에 대해 재생성 상태 설정
@@ -1141,6 +1350,11 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }
 
   const handleRegenerateFromUserMessage = async (messageId: string) => {
+    console.log('=== handleRegenerateFromUserMessage called ===')
+    console.log('messageId:', messageId)
+    console.log('isStreaming:', isStreaming)
+    console.log('regeneratingMessageId:', regeneratingMessageId)
+    
     // 스트리밍 중이면 먼저 중단
     if (isStreaming) {
       handleAbort()
@@ -1148,10 +1362,11 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     
     // 해당 사용자 메시지부터 하위 모든 메시지 제거하고 다시 생성
     const messageIndex = messages.findIndex((msg) => msg.id === messageId)
-    if (messageIndex >= 0 && selectedModel && chatId && session?.user?.id) {
+    if (messageIndex >= 0 && selectedModel && chatId && session?.user?.email) {
       const userMessage = messages[messageIndex]
       if (userMessage.role === "user") {
         // 해당 사용자 메시지에 대해 재생성 상태 설정
+        console.log('Setting regeneratingMessageId to:', messageId)
         setRegeneratingMessageId(messageId)
         
         // 사용자 메시지 다음부터의 모든 메시지가 있는지 확인
@@ -1160,18 +1375,76 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           const nextMessage = messages[nextMessageIndex]
           
           try {
+            console.log('=== Attempting to delete messages from database ===');
+            console.log('nextMessage.id:', nextMessage.id);
+            console.log('chatId:', chatId);
+            console.log('session.user.email:', session.user.email);
+            
             // 데이터베이스에서 해당 메시지부터 이후 모든 메시지 삭제
-            const response = await fetch(`/api/chat/${chatId}?userId=${session.user.id}&fromMessageId=${nextMessage.id}`, {
+            const response = await fetch(`/api/chat/${chatId}?userId=${session.user.email}&fromMessageId=${nextMessage.id}`, {
               method: 'DELETE'
             })
             
             if (!response.ok) {
-              throw new Error('Failed to delete messages from database')
+              const errorData = await response.json().catch(() => ({}));
+              console.error('Delete API response not ok:', response.status, errorData);
+              throw new Error(`Failed to delete messages from database: ${response.status} ${errorData.error || response.statusText}`);
+            }
+            
+            const deleteResult = await response.json();
+            console.log('Delete operation successful:', deleteResult);
+            
+            if (deleteResult.success) {
+              console.log(`Successfully deleted ${deleteResult.deletedCount} messages from database`);
+              console.log(`Remaining messages in database: ${deleteResult.remainingCount}`);
+              
+              // 삭제 작업이 완료된 후 실제로 메시지가 삭제되었는지 검증
+              if (deleteResult.deletedCount > 0) {
+                console.log('=== Verifying deletion by reloading chat history ===');
+                
+                // 잠시 후 채팅 기록을 다시 로드하여 삭제가 제대로 되었는지 확인
+                setTimeout(async () => {
+                  try {
+                    const verifyResponse = await fetch(`/api/chat/${chatId}`);
+                    if (verifyResponse.ok) {
+                      const verifyData = await verifyResponse.json();
+                      const currentMessages = verifyData.messages || [];
+                      
+                      console.log('Verification: Current messages in database:', currentMessages.length);
+                      
+                      // 삭제된 메시지가 여전히 존재하는지 확인
+                      const deletedMessageStillExists = currentMessages.some((msg: any) => msg.id === nextMessage.id);
+                      
+                      if (deletedMessageStillExists) {
+                        console.error('ERROR: Deleted message still exists in database!');
+                        console.error('This may cause the regeneration issue on page refresh');
+                      } else {
+                        console.log('✓ Verification successful: Messages properly deleted from database');
+                      }
+                    }
+                  } catch (verifyError) {
+                    console.error('Failed to verify deletion:', verifyError);
+                  }
+                }, 1000);
+              }
+            } else {
+              console.warn('Delete operation reported failure:', deleteResult);
             }
           } catch (error) {
-            console.error('Error deleting messages from database:', error)
+            console.error('Error deleting messages from database:', error);
+            
+            // 사용자에게 에러 알림 (선택사항)
+            if (error instanceof Error && error.message.includes('Failed to delete messages')) {
+              console.warn('Database deletion failed, but continuing with UI update');
+              // 여기서 사용자에게 알림을 표시할 수 있습니다
+              // alert('일부 메시지 삭제에 실패했지만 계속 진행합니다.');
+            }
+            
             // 데이터베이스 삭제 실패해도 UI에서는 진행
+            console.log('Continuing with regeneration despite database deletion error');
           }
+        } else {
+          console.log('No messages to delete after current user message');
         }
         
         // 해당 사용자 메시지 이후의 모든 메시지 제거 (사용자 메시지는 유지)
@@ -1182,6 +1455,11 @@ export default function ChatPage({ chatId }: ChatPageProps) {
 
         // 재생성을 위한 상태 초기화 및 AI 요청
         setTimeout(async () => {
+          console.log('=== Starting regeneration process ===')
+          console.log('selectedModel:', selectedModel)
+          console.log('chatId:', chatId)
+          console.log('session?.user?.email:', session?.user?.email)
+          
           // 중복 방지 로직 초기화
           streamingInProgress.current = false
           sessionStorage.removeItem(`lastMessage_${chatId}`)
@@ -1218,10 +1496,26 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             messageContent = userMessage.content
           }
           
-          sendMessageToAI(messageContent, {
-            id: selectedModel.id,
-            type: selectedModel.type
-          }, true, imagesToSend)
+          console.log('=== Calling sendMessageToAI ===')
+          console.log('messageContent:', messageContent)
+          console.log('agentInfo:', { id: selectedModel.id, type: selectedModel.type })
+          console.log('isRegeneration:', true)
+          console.log('imagesToSend:', imagesToSend)
+          
+          try {
+            await sendMessageToAI(messageContent, {
+              id: selectedModel.id,
+              type: selectedModel.type
+            }, true, imagesToSend)
+            console.log('=== Regeneration sendMessageToAI completed ===')
+          } catch (error) {
+            console.error('Error in sendMessageToAI during regeneration:', error)
+            // 재생성 중 에러 발생 시 상태 리셋
+            console.log('Resetting regeneration state due to error in regeneration')
+            setRegeneratingMessageId(null)
+            setIsStreaming(false)
+            streamingInProgress.current = false
+          }
         }, 300) // 중단 처리 완료를 위해 짧은 지연
       }
     }
@@ -1249,9 +1543,13 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       handleAbort()
     }
     
-    if ((inputValue.trim() || uploadedImages.length > 0) && selectedModel && chatId && session?.user?.id) {
+    if ((inputValue.trim() || uploadedImages.length > 0) && selectedModel && chatId && session?.user?.email) {
       // 전송 중 플래그 설정
       setIsSubmitting(true)
+      
+      // 새 메시지 전송 시 재생성 상태 리셋
+      console.log('New message submission - resetting regeneration state')
+      setRegeneratingMessageId(null)
       
       // 중복 방지 정보 업데이트
       lastSubmittedMessage.current = messageToCheck
@@ -1346,7 +1644,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         sendMessage()
       }
     }
-  }, [inputValue, uploadedImages, messages, selectedModel, chatId, session?.user?.id, isStreaming, isSubmitting, generateUniqueId, scrollToBottomSmooth, sendMessageToAI, handleAbort])
+  }, [inputValue, uploadedImages, messages, selectedModel, chatId, session?.user?.email, isStreaming, isSubmitting, generateUniqueId, scrollToBottomSmooth, sendMessageToAI, handleAbort])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Shift") {
@@ -1381,10 +1679,12 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     console.log('messages.length:', messages.length)
     console.log('historyLoaded:', historyLoaded)
     console.log('showSkeleton:', showSkeleton)
+    console.log('regeneratingMessageId:', regeneratingMessageId)
+    console.log('isStreaming:', isStreaming)
     
     return messages.map((message, index) => (
       <MessageWrapper
-        key={message.id}
+        key={`${message.id}-${forceUpdateCounter}-${regeneratingMessageId || 'none'}`}
         message={message}
         isNewMessage={newMessageIds.has(message.id)}
         copiedMessageId={copiedMessageId}
@@ -1406,7 +1706,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         setEditingContent={setEditingContent}
       />
     ))
-  }, [messages, newMessageIds, copiedMessageId, likedMessages, dislikedMessages, isStreaming, editingMessageId, editingContent, regeneratingMessageId, streamingMessageId, handleCopyMessage, handleLikeMessage, handleDislikeMessage, handleRegenerateResponse, handleEditMessage, handleSaveEdit, handleCancelEdit, handleRegenerateFromUserMessage]
+  }, [messages, newMessageIds, copiedMessageId, likedMessages, dislikedMessages, isStreaming, editingMessageId, editingContent, regeneratingMessageId, streamingMessageId, forceUpdateCounter]
   )
 
   // 인증되지 않은 경우 리다이렉트
@@ -1456,7 +1756,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             inputValue={inputValue}
             textareaRef={textareaRef}
             isGlobeActive={isGlobeActive}
-            isFlaskActive={isFlaskActive}
+            isDeepResearchActive={isDeepResearchActive}
             isStreaming={isStreaming}
             isSubmitting={isSubmitting}
             handleInputChange={handleInputChange}
@@ -1467,9 +1767,11 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             handleSubmit={handleSubmit}
             handleAbort={handleAbort}
             setIsGlobeActive={setIsGlobeActive}
-            setIsFlaskActive={setIsFlaskActive}
+            setIsDeepResearchActive={setIsDeepResearchActive}
             onImageUpload={handleImageUpload}
             clearImages={clearImagesTrigger}
+            supportsMultimodal={supportsMultimodal}
+            selectedAgent={selectedModel?.type === 'agent' ? selectedModel : null}
           />
       </div>
     </>

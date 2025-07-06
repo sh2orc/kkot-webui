@@ -36,6 +36,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { id: "model", label: lang('menu.model'), icon: Brain, path: "/admin/model" },
     { id: "agent", label: lang('menu.agent'), icon: Bot, path: "/admin/agent" },    
     { id: "api", label: lang('menu.api'), icon: Terminal, path: "/admin/api" },
+    { id: "database", label: lang('menu.database'), icon: Database, path: "/admin/database" },
     { id: "mcp", label: lang('menu.mcp'), icon: Server, path: "/admin/mcp", disabled: true },
     { id: "evaluation", label: lang('menu.evaluation'), icon: BarChart3, path: "/admin/evaluation", disabled: true },
     { id: "tools", label: lang('menu.tools'), icon: Wrench, path: "/admin/tools", disabled: true },
@@ -44,7 +45,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { id: "image", label: lang('menu.image'), icon: ImageIcon, path: "/admin/image", disabled: true },
     { id: "audio", label: lang('menu.audio'), icon: Volume2, path: "/admin/audio", disabled: true },
     { id: "pipeline", label: lang('menu.pipeline'), icon: GitBranch, path: "/admin/pipeline", disabled: true },
-    { id: "database", label: lang('menu.database'), icon: Database, path: "/admin/database" },
   ]
 
   const handleMenuClick = (item: typeof menuItems[0]) => {
@@ -62,24 +62,25 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
         <div className="p-4">
           <h2 className="text-lg font-semibold mb-4">{lang('title')}</h2>
           <nav className="space-y-1">
-            {menuItems.map((item) => {
-              const Icon = item.icon
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => handleMenuClick(item)}
-                  className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors ${
-                    pathname === item.path
-                      ? "bg-blue-100 text-blue-700 font-medium"
-                      : "text-gray-700 hover:bg-gray-100"
-                  } ${item.disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                  disabled={item.disabled}
-                >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </button>
-              )
-            })}
+            {menuItems
+              .filter(item => !item.disabled) // Filter out disabled menu items
+              .map((item) => {
+                const Icon = item.icon
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => handleMenuClick(item)}
+                    className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors ${
+                      pathname === item.path
+                        ? "bg-blue-100 text-blue-700 font-medium"
+                        : "text-gray-700 hover:bg-gray-100"
+                    }`}
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </button>
+                )
+              })}
           </nav>
         </div>
       </div>

@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import type React from "react"
 
 import { Button } from "@/components/ui/button"
-import { Mic, Globe, Plus, FlaskRoundIcon as Flask, Zap, Send, Play } from "lucide-react"
+import { Mic, Globe, Plus, Search, Zap, Send, Play, Image as ImageIcon, X } from "lucide-react"
 import { useRef, useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
@@ -34,11 +34,16 @@ export default function Component({
   const [inputValue, setInputValue] = useState("")
   const [isExpanded, setIsExpanded] = useState(false)
   const [isGlobeActive, setIsGlobeActive] = useState(false)
-  const [isFlaskActive, setIsFlaskActive] = useState(false)
+  const [isDeepResearchActive, setIsDeepResearchActive] = useState(false)
   const [isShiftPressed, setIsShiftPressed] = useState(false)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isInitialLoading, setIsInitialLoading] = useState(false)
   const [showSkeleton, setShowSkeleton] = useState(false)
+  const [uploadedImages, setUploadedImages] = useState<File[]>([])
+  const [imagePreviews, setImagePreviews] = useState<string[]>([])
+  
+  // Image file input ref
+  const fileInputRef = useRef<HTMLInputElement>(null)
   
   // Ref to prevent duplicate submissions
   const submitInProgress = useRef(false)
@@ -135,7 +140,13 @@ export default function Component({
   }, [adjustTextareaHeight])
 
   const handleSubmit = useCallback(async () => {
-    if (inputValue.trim() && !isSubmitting && selectedModel && currentSession?.user?.id) {
+    console.log('=== Client: handleSubmit called ===')
+    console.log('Input value:', inputValue)
+    console.log('Is submitting:', isSubmitting)
+    console.log('Selected model:', selectedModel)
+    console.log('Current session user ID:', currentSession?.user?.id)
+    
+    if ((inputValue.trim() || uploadedImages.length > 0) && !isSubmitting && selectedModel && currentSession?.user?.email) {
       // Stop if already submitting
       if (submitInProgress.current) {
         console.log('Submit already in progress, skipping duplicate call')
@@ -149,22 +160,45 @@ export default function Component({
         console.log('=== Client: Chat session creation request started ===')
         console.log('Selected model:', selectedModel)
         console.log('Initial message:', inputValue)
-        console.log('User ID:', currentSession.user.id)
+        console.log('Images:', uploadedImages.length)
         
-        // Call API to create new chat session
-        const response = await fetch('/api/chat', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            agentId: selectedModel.type === 'agent' ? selectedModel.id : undefined,
-            modelId: selectedModel.type === 'model' ? selectedModel.id : undefined,
-            modelType: selectedModel.type,
-            initialMessage: inputValue,
-            userId: currentSession.user.id
+        let response: Response
+
+        if (uploadedImages.length > 0) {
+          // Use FormData when images are present
+          const formData = new FormData()
+          formData.append('message', inputValue || '')
+          if (selectedModel.type === 'agent') {
+            formData.append('agentId', selectedModel.id)
+          } else {
+            formData.append('modelId', selectedModel.id)
+          }
+          formData.append('modelType', selectedModel.type)
+          
+          // Add image files
+          uploadedImages.forEach((image) => {
+            formData.append('images', image)
           })
-        })
+          
+          response = await fetch('/api/chat', {
+            method: 'POST',
+            body: formData
+          })
+        } else {
+          // Use JSON for text-only messages
+          response = await fetch('/api/chat', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              agentId: selectedModel.type === 'agent' ? selectedModel.id : undefined,
+              modelId: selectedModel.type === 'model' ? selectedModel.id : undefined,
+              modelType: selectedModel.type,
+              initialMessage: inputValue
+            })
+          })
+        }
 
         console.log('=== Client: Response received ===')
         console.log('Response status:', response.status)
@@ -213,10 +247,21 @@ export default function Component({
         }
 
         // Navigate to created chat ID page (no sensitive information exposed in URL)
-        router.push(`/chat/${chatId}`)
+        console.log('=== Client: Navigating to chat page ===')
+        console.log('Navigating to:', `/chat/${chatId}`)
         
-        // Reset input field
+        if (!chatId) {
+          console.error('Chat ID is missing, cannot navigate')
+          throw new Error('Chat ID is missing from server response')
+        }
+        
+        router.push(`/chat/${chatId}`)
+        console.log('Navigation command sent')
+        
+        // Reset input field and images
         setInputValue("")
+        setUploadedImages([])
+        setImagePreviews([])
         setIsExpanded(false)
         
         // Reset height
@@ -237,8 +282,14 @@ export default function Component({
         setIsSubmitting(false)
         submitInProgress.current = false
       }
+    } else {
+      console.log('=== Client: Submit conditions not met ===')
+      if (!inputValue.trim() && uploadedImages.length === 0) console.log('- Input value is empty and no images')
+      if (isSubmitting) console.log('- Already submitting')
+      if (!selectedModel) console.log('- No model selected')
+      if (!currentSession?.user?.email) console.log('- No user session')
     }
-  }, [inputValue, router, isSubmitting, selectedModel, currentSession?.user?.id])
+  }, [inputValue, router, isSubmitting, selectedModel, currentSession?.user?.email])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Shift") {
@@ -274,6 +325,138 @@ export default function Component({
       adjustTextareaHeight(textareaRef.current)
     }
   }, [adjustTextareaHeight])
+
+  // Check if selected model supports multimodal input
+  const supportsMultimodal = selectedModel ? (() => {
+    if (selectedModel.type === 'agent') {
+      // For agents, check both agent's supportsMultimodal and underlying model's supportsMultimodal
+      const agentSupports = selectedModel.supportsMultimodal === true || selectedModel.supportsMultimodal === 1
+      const modelSupports = selectedModel.modelSupportsMultimodal === true || selectedModel.modelSupportsMultimodal === 1
+      return agentSupports || modelSupports
+    } else if (selectedModel.type === 'model') {
+      // For public models, check supportsMultimodal field
+      return selectedModel.supportsMultimodal === true || selectedModel.supportsMultimodal === 1
+    }
+    return false
+  })() : false
+
+  // Image resize and compression function
+  const resizeAndCompressImage = (file: File): Promise<File> => {
+    return new Promise((resolve) => {
+      const canvas = document.createElement('canvas')
+      const ctx = canvas.getContext('2d')!
+      const img = new Image()
+      
+      img.onload = () => {
+        // Set maximum size (reduced to 512px)
+        const maxSize = 512
+        let { width, height } = img
+        
+        // Maintain aspect ratio while resizing
+        if (width > height) {
+          if (width > maxSize) {
+            height = (height * maxSize) / width
+            width = maxSize
+          }
+        } else {
+          if (height > maxSize) {
+            width = (width * maxSize) / height
+            height = maxSize
+          }
+        }
+        
+        canvas.width = width
+        canvas.height = height
+        
+        // Draw image
+        ctx.drawImage(img, 0, 0, width, height)
+        
+        // Convert to compressed image (JPEG, quality 0.6 for more compression)
+        canvas.toBlob((blob) => {
+          if (blob) {
+            const compressedFile = new File([blob], file.name, {
+              type: 'image/jpeg',
+              lastModified: Date.now()
+            })
+            resolve(compressedFile)
+          } else {
+            resolve(file) // Return original if compression fails
+          }
+        }, 'image/jpeg', 0.6)
+      }
+      
+      img.src = URL.createObjectURL(file)
+    })
+  }
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files || [])
+    if (files.length === 0) return
+
+    // Filter image files only
+    const imageFiles = files.filter(file => file.type.startsWith('image/'))
+    if (imageFiles.length === 0) {
+      alert("Only image files can be uploaded.")
+      return
+    }
+
+    // Total image count limit (max 3)
+    if (uploadedImages.length + imageFiles.length > 3) {
+      alert("You can upload up to 3 images.")
+      return
+    }
+
+    try {
+      // Resize and compress all images
+      const processedImages = await Promise.all(
+        imageFiles.map(file => resizeAndCompressImage(file))
+      )
+
+      // Check file size after compression (2MB)
+      const maxSize = 2 * 1024 * 1024
+      const oversizedFiles = processedImages.filter(file => file.size > maxSize)
+      if (oversizedFiles.length > 0) {
+        alert("Image is still too large after compression. Please select a different image.")
+        return
+      }
+
+      // Create image previews
+      const newPreviews: string[] = []
+      const processedFiles: File[] = []
+
+      processedImages.forEach((file, index) => {
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const result = e.target?.result as string
+          newPreviews.push(result)
+          processedFiles.push(file)
+          
+          // Update state when all images are loaded
+          if (newPreviews.length === processedImages.length) {
+            setUploadedImages(prev => [...prev, ...processedFiles])
+            setImagePreviews(prev => [...prev, ...newPreviews])
+          }
+        }
+        reader.readAsDataURL(file)
+      })
+    } catch (error) {
+      console.error('Image processing error:', error)
+      alert("An error occurred while processing the images.")
+    }
+
+    // Reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
+  }
+
+  const removeImage = (index: number) => {
+    const newImages = uploadedImages.filter((_, i) => i !== index)
+    const newPreviews = imagePreviews.filter((_, i) => i !== index)
+    
+    setUploadedImages(newImages)
+    setImagePreviews(newPreviews)
+  }
 
       // Agent or model selection handler
 
@@ -384,26 +567,67 @@ export default function Component({
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">
                     {lang("welcome.greeting").replace("{name}", currentSession.user.name)}
                   </h1>
-                  <p className="text-lg text-gray-600">
-                    {lang("welcome.helpMessage")}
-                  </p>
+                  {selectedModel ? (
+                    <p className="text-lg text-gray-600">
+                      {lang("welcome.helpMessage")}
+                    </p>
+                  ) : (
+                    <div className="space-y-4">
+                      <p className="text-lg text-gray-600">
+                        {lang("welcome.setupRequired")}
+                      </p>
+                      <p className="text-sm text-gray-500">
+                        {lang("welcome.noModelMessage")}
+                      </p>
+                      {currentSession.user.role === 'admin' && (
+                        <Button 
+                          onClick={() => router.push('/admin')}
+                          className="mt-4"
+                        >
+                          {lang("welcome.goToAdmin")}
+                        </Button>
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
 
 
 
-          {/* Central Input Area */}
+          {/* Central Input Area - Only show when model is selected */}
+          {selectedModel && (
           <div className="w-full max-w-3xl mb-8">
             {/* Desktop Input */}
             <div className="hidden md:block">
               <div className="flex-1 flex flex-col relative w-full shadow-lg rounded-3xl border border-gray-50 dark:border-gray-850 hover:border-gray-100 focus-within:border-gray-100 hover:dark:border-gray-800 focus-within:dark:border-gray-800 transition px-1 bg-white/90 dark:bg-gray-400/5 dark:text-gray-100">
+                {/* Image previews */}
+                {imagePreviews.length > 0 && (
+                  <div className="flex flex-wrap gap-2 p-3 border-b border-gray-200">
+                    {imagePreviews.map((preview, index) => (
+                      <div key={index} className="relative">
+                        <img
+                          src={preview}
+                          alt={`Uploaded image ${index + 1}`}
+                          className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                        />
+                        <button
+                          onClick={() => removeImage(index)}
+                          className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition"
+                        >
+                          <X className="w-3 h-3" />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
                 <div className="flex flex-col p-4">
                   {/* Text Area */}
                   <div className="relative">
                     <textarea
                       ref={textareaRef}
                       placeholder={lang("placeholder")}
-                      className="w-full rounded-lg border border-gray-200 p-3 resize-none focus:outline-none focus:ring-1 focus:ring-gray-200 focus:border-gray-400 text-sm leading-6 min-h-[48px]"
+                      className="w-full rounded-lg border border-gray-200 p-3 pr-12 resize-none focus:outline-none focus:ring-1 focus:ring-gray-200 focus:border-gray-400 text-sm leading-6 min-h-[48px]"
                       style={{
                         height: 'auto',
                         minHeight: '48px',
@@ -416,16 +640,46 @@ export default function Component({
                       onKeyUp={handleKeyUp}
                       disabled={!selectedModel}
                     />
+                    {/* Hidden file input */}
+                    <input
+                      ref={fileInputRef}
+                      type="file"
+                      accept="image/*"
+                      multiple
+                      onChange={handleImageUpload}
+                      className="hidden"
+                    />
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={(!inputValue.trim() && uploadedImages.length === 0) || isSubmitting || !selectedModel}
+                      className="absolute right-3 top-3 rounded-full"
+                      style={{ height: '32px', width: '32px', padding: '0', minHeight: '32px', minWidth: '32px' }}
+                      variant="default"
+                    >
+                      <Play className="h-4 w-4" />
+                    </Button>
                   </div>
 
                   {/* Bottom Controls */}
                   <div className="flex items-center justify-between">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-10 w-10 rounded-full">
-                      <Plus className="h-5 w-5" />
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="ghost" 
+                        size="icon" 
+                        className="h-10 w-10 rounded-full">
+                        <Plus className="h-5 w-5" />
+                      </Button>
+                      {supportsMultimodal && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-10 w-10 rounded-full hover:bg-gray-100"
+                          onClick={() => fileInputRef.current?.click()}
+                        >
+                          <ImageIcon className="h-5 w-5" />
+                        </Button>
+                      )}
+                    </div>
                     <div className="flex items-center gap-2">
                       <Button variant="ghost" size="icon" className="h-10 w-10">
                         <Mic className="h-5 w-5" />
@@ -433,10 +687,10 @@ export default function Component({
                       <Button
                         variant="ghost"
                         size="icon"
-                        className={`h-10 w-10 rounded-full ${isFlaskActive ? "bg-black text-white hover:bg-blue-700 hover:text-white" : "hover:bg-transparent"}`}
-                        onClick={() => setIsFlaskActive(!isFlaskActive)}
+                        className={`h-10 w-10 rounded-full ${isDeepResearchActive ? "bg-black text-white hover:bg-blue-700 hover:text-white" : "hover:bg-transparent"}`}
+                        onClick={() => setIsDeepResearchActive(!isDeepResearchActive)}
                       >
-                        <Flask className="h-5 w-5" />
+                        <Search className="h-5 w-5" />
                       </Button>
                       <Button
                         variant="ghost"
@@ -446,15 +700,6 @@ export default function Component({
                       >
                         <Globe className="h-5 w-5" />
                       </Button>
-                      <Button
-                        onClick={handleSubmit}
-                        disabled={!inputValue.trim() || isSubmitting || !selectedModel}
-                        className="absolute right-2 bottom-2 rounded-full"
-                        style={{ height: '20px', width: '20px', padding: '0', minHeight: '20px', minWidth: '20px' }}
-                        variant="default"
-                      >
-                        <Play className="h-4 w-4" style={{ height: '12px', width: '12px' }} />
-                      </Button>
                     </div>
                   </div>
                 </div>
@@ -462,38 +707,74 @@ export default function Component({
             </div>
 
             {/* Mobile Input - Fixed at bottom */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 p-4 z-50">
-              <div className="flex items-end gap-2">
-                <div className="flex-1 relative">
-                  <textarea
-                    ref={textareaRef}
-                    placeholder={lang("mobilePlaceholder")}
-                    className="w-full rounded-2xl border border-gray-200 p-3 pr-12 resize-none focus:outline-none focus:ring-1 focus:ring-gray-200 focus:border-gray-400 text-sm leading-6 min-h-[48px] bg"
-                    style={{
-                      height: 'auto',
-                      minHeight: '48px',
-                      maxHeight: window.innerHeight * 0.3 + 'px'
-                    }}
-                    value={inputValue}
-                    onChange={handleInputChange}
-                    onInput={handleInput}
-                    onKeyDown={handleKeyDown}
-                    onKeyUp={handleKeyUp}
-                    disabled={!selectedModel}
-                  />
-                  <Button
-                    onClick={handleSubmit}
-                    disabled={!inputValue.trim() || isSubmitting || !selectedModel}
-                    className="absolute right-3 bottom-3.5 rounded-full"
-                    style={{ height: '32px', width: '32px', padding: '0', minHeight: '32px', minWidth: '32px' }}
-                    variant="default"
-                  >
-                    <Play className="h-4 w-4"/>
-                  </Button>
+            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
+              {/* Image previews for mobile */}
+              {imagePreviews.length > 0 && (
+                <div className="flex flex-wrap gap-2 p-3 border-b border-gray-200">
+                  {imagePreviews.map((preview, index) => (
+                    <div key={index} className="relative">
+                      <img
+                        src={preview}
+                        alt={`Uploaded image ${index + 1}`}
+                        className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                      />
+                      <button
+                        onClick={() => removeImage(index)}
+                        className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition"
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="p-4">
+                <div className="flex items-end gap-2">
+                  <div className="flex-1 relative">
+                    <textarea
+                      ref={textareaRef}
+                      placeholder={lang("mobilePlaceholder")}
+                      className={`w-full rounded-2xl border border-gray-200 p-3 ${supportsMultimodal ? 'pr-16' : 'pr-12'} resize-none focus:outline-none focus:ring-1 focus:ring-gray-200 focus:border-gray-400 text-sm leading-6 min-h-[48px] bg`}
+                      style={{
+                        height: 'auto',
+                        minHeight: '48px',
+                        maxHeight: window.innerHeight * 0.3 + 'px'
+                      }}
+                      value={inputValue}
+                      onChange={handleInputChange}
+                      onInput={handleInput}
+                      onKeyDown={handleKeyDown}
+                      onKeyUp={handleKeyUp}
+                      disabled={!selectedModel}
+                    />
+                    {/* Mobile image button */}
+                    {supportsMultimodal && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-12 bottom-3.5 rounded-full hover:bg-gray-100"
+                        onClick={() => fileInputRef.current?.click()}
+                        style={{ height: '32px', width: '32px', padding: '0', minHeight: '32px', minWidth: '32px' }}
+                      >
+                        <ImageIcon className="h-4 w-4" />
+                      </Button>
+                    )}
+                    <Button
+                      onClick={handleSubmit}
+                      disabled={(!inputValue.trim() && uploadedImages.length === 0) || isSubmitting || !selectedModel}
+                      className="absolute right-3 bottom-3.5 rounded-full"
+                      style={{ height: '32px', width: '32px', padding: '0', minHeight: '32px', minWidth: '32px' }}
+                      variant="default"
+                    >
+                      <Play className="h-4 w-4"/>
+                    </Button>
+                  </div>
                 </div>
               </div>
             </div>
           </div>
+          )}
 
           {/* Prompt Suggestions */}
           {selectedModel && (

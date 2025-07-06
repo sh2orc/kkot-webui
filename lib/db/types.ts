@@ -28,6 +28,7 @@ export interface ChatMessage {
   sessionId: string | number;
   role: 'user' | 'assistant';
   content: string;
+  rating?: number; // -1 (dislike), 0 (neutral), +1 (like)
   createdAt?: Date;
 }
 

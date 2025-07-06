@@ -2,7 +2,7 @@
   "title": "Connection Settings",
   "description": "Manage API server connections.",
   "openai": {
-    "title": "OpenAI API Server",
+    "title": "OpenAI API Compatible Server",
     "description": "Manage OpenAI API connection settings.",
     "addServer": "Add Server",
     "serverName": "Server Name",

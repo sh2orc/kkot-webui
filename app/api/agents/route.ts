@@ -56,7 +56,10 @@ export async function GET() {
         ...agent,
         imageData: imageData, // Converted image data
         hasImage: !!imageData, // Flag indicating image existence
-        type: 'agent' // Field added for type distinction
+        type: 'agent', // Field added for type distinction
+        supportsMultimodal: agent.supportsMultimodal || agent.modelSupportsMultimodal, // Include multimodal support info
+        supportsDeepResearch: agent.supportsDeepResearch,
+        supportsWebSearch: agent.supportsWebSearch
       }
     })
     
@@ -69,7 +72,8 @@ export async function GET() {
     const parsedPublicModels = publicModels.map((model: any) => ({
       ...model,
       capabilities: model.capabilities ? JSON.parse(model.capabilities) : null,
-      type: 'model' // Field added for type distinction
+      type: 'model', // Field added for type distinction
+      supportsMultimodal: model.supportsMultimodal // Include multimodal support info
     }))
     
     // Return agents and public models combined (agents have priority)
@@ -169,7 +173,9 @@ export async function POST(request: NextRequest) {
       imageData: imageData, // Processed image data
       description: body.description,
       enabled: body.enabled,
-      parameterEnabled: body.parameterEnabled
+      parameterEnabled: body.parameterEnabled,
+      supportsDeepResearch: body.supportsDeepResearch ?? true,
+      supportsWebSearch: body.supportsWebSearch ?? true
     })
     
     // Fetch the created agent with model and server info
@@ -230,6 +236,8 @@ export async function PUT(request: NextRequest) {
     if (body.description !== undefined) updateData.description = body.description
     if (body.enabled !== undefined) updateData.enabled = body.enabled
     if (body.parameterEnabled !== undefined) updateData.parameterEnabled = body.parameterEnabled
+    if (body.supportsDeepResearch !== undefined) updateData.supportsDeepResearch = body.supportsDeepResearch
+    if (body.supportsWebSearch !== undefined) updateData.supportsWebSearch = body.supportsWebSearch
     
     // Process image data
     if (body.imageData !== undefined) {

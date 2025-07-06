@@ -15,11 +15,10 @@ CREATE TABLE IF NOT EXISTS users (
 -- Chat sessions table
 CREATE TABLE IF NOT EXISTS chat_sessions (
   id TEXT PRIMARY KEY,
-  user_id TEXT NOT NULL,
+  user_email TEXT NOT NULL,
   title TEXT NOT NULL,
   created_at TIMESTAMP,
-  updated_at TIMESTAMP,
-  FOREIGN KEY (user_id) REFERENCES users(id) ON DELETE CASCADE
+  updated_at TIMESTAMP
 );
 
 -- Chat messages table with multimodal support
@@ -30,6 +29,7 @@ CREATE TABLE IF NOT EXISTS chat_messages (
   content TEXT NOT NULL,
   content_type TEXT DEFAULT 'text', -- 'text' or 'multimodal'
   attachments TEXT, -- JSON string for multimodal content
+  rating INTEGER DEFAULT 0, -- -1 (dislike), 0 (neutral), +1 (like)
   created_at TIMESTAMP,
   FOREIGN KEY (session_id) REFERENCES chat_sessions(id) ON DELETE CASCADE
 );

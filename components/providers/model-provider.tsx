@@ -14,6 +14,10 @@ export interface Agent {
   modelName?: string
   modelProvider?: string
   enabled: boolean | number
+  supportsMultimodal?: boolean | number
+  modelSupportsMultimodal?: boolean | number
+  supportsDeepResearch?: boolean | number
+  supportsWebSearch?: boolean | number
 }
 
 export interface PublicModel {
@@ -28,6 +32,7 @@ export interface PublicModel {
   } | null
   type: 'model'
   enabled: boolean | number
+  supportsMultimodal?: boolean | number
 }
 
 export type ModelOrAgent = Agent | PublicModel

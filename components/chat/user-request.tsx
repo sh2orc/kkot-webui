@@ -42,6 +42,25 @@ export function UserRequest({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [selectedImage, setSelectedImage] = useState<{src: string, name: string} | null>(null)
 
+  // Debug: Tracking regeneration state changes
+  useEffect(() => {
+    // Always output logs to track all state changes
+    console.log(`=== UserRequest ${id.substring(0, 8)}... - State Change ===`)
+    console.log('messageId:', id)
+    console.log('regeneratingMessageId:', regeneratingMessageId)
+    console.log('isStreaming:', isStreaming)
+    console.log('Is this message being regenerated:', regeneratingMessageId === id)
+    console.log('Button should be disabled:', regeneratingMessageId !== null)
+    console.log('Button should be enabled:', regeneratingMessageId === null)
+    
+    // Also check the actual DOM element state
+    const buttonElement = document.querySelector(`[data-message-id="${id}"] button[title*="생성"]`)
+    if (buttonElement) {
+      console.log('DOM Button disabled:', buttonElement.hasAttribute('disabled'))
+      console.log('DOM Button classes:', buttonElement.className)
+    }
+  }, [regeneratingMessageId, isStreaming, id])
+
   // Parse message content to extract text and image information
   const parsedContent = useMemo(() => {
     try {
@@ -205,7 +224,20 @@ export function UserRequest({
             </div>
             <div className="flex items-center justify-between mt-2 sm:gap-2">
               <div className="text-xs text-gray-400">
-                {(timestamp instanceof Date ? timestamp : new Date(timestamp)).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                {(() => {
+                  let displayTime: Date;
+                  if (timestamp instanceof Date && !isNaN(timestamp.getTime())) {
+                    displayTime = timestamp;
+                  } else if (timestamp) {
+                    displayTime = new Date(timestamp);
+                    if (isNaN(displayTime.getTime())) {
+                      displayTime = new Date();
+                    }
+                  } else {
+                    displayTime = new Date();
+                  }
+                  return displayTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                })()}
               </div>
               <div className="flex sm:gap-1">
                 <button
@@ -225,8 +257,29 @@ export function UserRequest({
                   <Edit className="h-4 w-4 text-gray-500" />
                 </button>
                 <button
-                  onClick={() => onRegenerate(id)}
-                  className="rounded-full transition-all duration-600 group hover:bg-blue-50 hover:text-blue-600"
+                  data-message-id={id}
+                  onClick={() => {
+                    console.log('=== Regenerate button clicked ===')
+                    console.log('messageId:', id)
+                    console.log('regeneratingMessageId:', regeneratingMessageId)
+                    console.log('isStreaming:', isStreaming)
+                    console.log('Button disabled state:', regeneratingMessageId !== null)
+                    
+                    // Prevent multiple clicks during regeneration or when this specific message is being regenerated
+                    if (regeneratingMessageId === id || regeneratingMessageId !== null) {
+                      console.log('Regeneration already in progress, blocking click')
+                      return;
+                    }
+                    
+                    console.log('Calling onRegenerate with messageId:', id)
+                    onRegenerate(id);
+                  }}
+                  disabled={regeneratingMessageId !== null}
+                  className={`relative rounded-full transition-all duration-600 group ${
+                    regeneratingMessageId !== null
+                      ? 'cursor-not-allowed opacity-50' 
+                      : 'hover:bg-blue-50 hover:text-blue-600'
+                  }`}
                   title={
                     regeneratingMessageId === id 
                       ? lang("actions.regenerating") 
