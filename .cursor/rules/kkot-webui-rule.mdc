@@ -254,6 +254,7 @@ The project uses a multi-database architecture supporting both SQLite and Postgr
 - **Hooks**: camelCase with `use` prefix (e.g., `useDatabase.ts`)
 - **Utilities**: camelCase (e.g., `utils.ts`)
 - **API Routes**: RESTful structure (`route.ts`)
+- **Comments**: All source code comments must be written in English
 
 ### 2. Component Writing Rules
 - Use React functional components
@@ -408,6 +409,8 @@ export const config = {
 - **Error Handling**: Proper error catching and logging
 - **Validation**: Server-side validation for all data operations
 - **Image Data**: Image data should be stored in the database as Base64 encoding instead of BLOB. When reading images from the database, use Buffer.from(agent.imageData).toString() to convert to Base64 string, then add the data:image/png;base64, prefix to convert to image URL format.
+- **Message Rating**: Chat messages support rating system with values (-1 for dislike, 0 for neutral, +1 for like) to collect user feedback on AI responses.
+- **Agent Features**: Agents support additional feature flags like `supportsDeepResearch` and `supportsWebSearch` to enable specific capabilities for different agent types.
 
 ```typescript
 // Database operation example

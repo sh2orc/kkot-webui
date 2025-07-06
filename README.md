@@ -69,6 +69,7 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Multimodal Support**: Image upload and processing with drag & drop functionality
 - **Interactive Features**: Message copy, like/dislike, and regeneration capabilities with visual feedback
 - **Message Management**: User message editing and conversation history with enhanced UX
+- **Message Rating**: Built-in rating system allowing users to like or dislike AI responses for feedback collection
 - **Auto Title Generation**: AI-powered automatic chat session title generation
 - **Page Transitions**: Smooth page transitions using View Transitions API
 - **Loading States**: Enhanced loading indicators and state management with skeleton UI
@@ -83,6 +84,7 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Agent Profiles**: Upload custom images and descriptions for each agent
 - **Model Integration**: Connect agents to different LLM models and providers
 - **Parameter Control**: Fine-tune temperature, maxTokens limits, and other model parameters
+- **Feature Flags**: Configure agents with specific capabilities like Deep Research and Web Search
 - **Multimodal Support**: Configure agents for image processing capabilities
 - **Token Management**: Configurable maxTokens settings for response length control
 
