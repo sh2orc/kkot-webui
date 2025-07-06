@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { ChevronLeft, Search, Plus, Menu, Book, Link as LinkIcon } from "lucide-react"
+import { ChevronLeft, Search, Plus, Menu, Book, Link as LinkIcon, X } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
@@ -44,6 +44,8 @@ export default function Sidebar({
   initialChatSessions = []
 }: SidebarProps) {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [searchQuery, setSearchQuery] = useState("")
+  const [isSearchFocused, setIsSearchFocused] = useState(false)
   const router = useRouter()
   const pathname = usePathname()
   const { data: session, status } = useSession()
@@ -57,6 +59,26 @@ export default function Sidebar({
   useEffect(() => {
     preloadTranslationModule(language, 'common')
   }, [language])
+
+  // Filter chat groups based on search query
+  const filteredChatGroups = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return chatGroups
+    }
+
+    const query = searchQuery.toLowerCase()
+    return chatGroups.map(group => ({
+      ...group,
+      items: group.items.filter(item => 
+        item.title.toLowerCase().includes(query)
+      )
+    })).filter(group => group.items.length > 0)
+  }, [chatGroups, searchQuery])
+
+  // Clear search
+  const clearSearch = () => {
+    setSearchQuery("")
+  }
 
   // Update selectedChatId based on current pathname
   useEffect(() => {
@@ -428,8 +450,8 @@ export default function Sidebar({
                     className="h-8 w-auto"
                   />
 
-                  <div className={`overflow-hidden ml-1 transition-all duration-300 ${sidebarCollapsed ? 'w-0 opacity-0' : 'w-24 opacity-100'}`}>
-                    <span className="whitespace-nowrap text-gray-500 text-sm">kkot</span>
+                  <div className={`overflow-hidden ml-1 transition-all duration-300 ${sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+                    <span className="whitespace-nowrap text-gray-500 text-sm">{branding.appName}</span>
                   </div>
 
                 </div>
@@ -446,7 +468,24 @@ export default function Sidebar({
             >
               <div className="relative">
                 <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input placeholder={lang('sidebar.searchPlaceholder')} className="pl-10 bg-white border-gray-200 focus:outline-none focus:ring-0 focus:border-gray-300" />
+                <Input 
+                  placeholder={lang('sidebar.searchPlaceholder')} 
+                  className="pl-10 pr-8 bg-white border-gray-200 focus:outline-none focus:ring-0 focus:border-gray-300" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setIsSearchFocused(false)}
+                />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 hover:bg-gray-100"
+                    onClick={clearSearch}
+                  >
+                    <X className="h-3 w-3" />
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -465,17 +504,28 @@ export default function Sidebar({
               <div className="px-4">
                 {isLoading ? (
                   <ChatHistorySkeleton />
-                ) : chatGroups.length > 0 ? (
-                  chatGroups.map((group, groupIndex) => (
-                    <ChatGroupComponent
-                      key={groupIndex}
-                      group={group}
-                      groupIndex={groupIndex}
-                      sidebarCollapsed={sidebarCollapsed}
-                      selectedChatId={selectedChatId}
-                      setSelectedChatId={setSelectedChatId}
-                    />
-                  ))
+                ) : filteredChatGroups.length > 0 ? (
+                  <>
+                    {searchQuery && (
+                      <div className="text-xs text-gray-500 mb-3 px-2">
+                        {lang('sidebar.searchResults').replace('{{count}}', filteredChatGroups.reduce((total, group) => total + group.items.length, 0).toString())}
+                      </div>
+                    )}
+                    {filteredChatGroups.map((group, groupIndex) => (
+                      <ChatGroupComponent
+                        key={groupIndex}
+                        group={group}
+                        groupIndex={groupIndex}
+                        sidebarCollapsed={sidebarCollapsed}
+                        selectedChatId={selectedChatId}
+                        setSelectedChatId={setSelectedChatId}
+                      />
+                    ))}
+                  </>
+                ) : searchQuery ? (
+                  <div className="text-center text-gray-500 text-sm mt-8">
+                    {lang('sidebar.noSearchResults')}
+                  </div>
                 ) : (
                   <div className="text-center text-gray-500 text-sm mt-8">
                     {lang('sidebar.noChatHistory')}
@@ -533,7 +583,7 @@ export default function Sidebar({
                     priority
                     className="h-8 w-auto"
                   />
-                  <span className="whitespace-nowrap font-semibold text-gray-500">꽃 kkot</span>
+                  <span className="whitespace-nowrap font-semibold text-gray-500">{branding.appName}</span>
                 </TransitionLink>
                 <Button 
                   variant="ghost" 
@@ -552,8 +602,22 @@ export default function Sidebar({
                 <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <Input 
                   placeholder={lang('sidebar.searchPlaceholder')} 
-                  className="pl-10 bg-white border-gray-200 focus:outline-none focus:ring-0 focus:border-gray-300 mobile-input h-10" 
+                  className="pl-10 pr-8 bg-white border-gray-200 focus:outline-none focus:ring-0 focus:border-gray-300 mobile-input h-10" 
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setIsSearchFocused(true)}
+                  onBlur={() => setIsSearchFocused(false)}
                 />
+                {searchQuery && (
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 hover:bg-gray-100 touch-target"
+                    onClick={clearSearch}
+                  >
+                    <X className="h-4 w-4" />
+                  </Button>
+                )}
               </div>
             </div>
 
@@ -575,19 +639,30 @@ export default function Sidebar({
               <div className="px-4">
                 {isLoading ? (
                   <ChatHistorySkeleton />
-                ) : chatGroups.length > 0 ? (
-                  chatGroups.map((group, groupIndex) => (
-                    <ChatGroupComponent
-                      key={groupIndex}
-                      group={group}
-                      groupIndex={groupIndex}
-                      sidebarCollapsed={false}
-                      selectedChatId={selectedChatId}
-                      setSelectedChatId={setSelectedChatId}
-                      setMobileSidebarOpen={setMobileSidebarOpen}
-                      isMobile={true}
-                    />
-                  ))
+                ) : filteredChatGroups.length > 0 ? (
+                  <>
+                    {searchQuery && (
+                      <div className="text-xs text-gray-500 mb-3 px-2">
+                        {lang('sidebar.searchResults').replace('{{count}}', filteredChatGroups.reduce((total, group) => total + group.items.length, 0).toString())}
+                      </div>
+                    )}
+                    {filteredChatGroups.map((group, groupIndex) => (
+                      <ChatGroupComponent
+                        key={groupIndex}
+                        group={group}
+                        groupIndex={groupIndex}
+                        sidebarCollapsed={false}
+                        selectedChatId={selectedChatId}
+                        setSelectedChatId={setSelectedChatId}
+                        setMobileSidebarOpen={setMobileSidebarOpen}
+                        isMobile={true}
+                      />
+                    ))}
+                  </>
+                ) : searchQuery ? (
+                  <div className="text-center text-gray-500 text-sm mt-8">
+                    {lang('sidebar.noSearchResults')}
+                  </div>
                 ) : (
                   <div className="text-center text-gray-500 text-sm mt-8">
                     {lang('sidebar.noChatHistory')}

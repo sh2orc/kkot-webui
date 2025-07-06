@@ -220,7 +220,7 @@ export const ChatInput = memo(function ChatInput({
 
   return (
     <div className="absolute bottom-0 left-0 right-0 p-0 chat-input-container mobile-keyboard-adjust">
-      <div className="max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto bg-white">
+      <div className="max-w-full sm:max-w-xl md:max-w-3xl lg:max-w-4xl mx-auto bg-white">
         <div className="flex-1 flex flex-col relative w-full shadow-lg rounded-xl border border-gray-200 hover:border-gray-300 focus-within:border-gray-300 transition bg-white">
           {/* Image previews */}
           {imagePreviews.length > 0 && (

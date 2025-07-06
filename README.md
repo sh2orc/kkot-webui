@@ -40,9 +40,11 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Multimodal**: Image processing capabilities
 
 ### State Management & Context
-- **State Management**: React Context API
-- **Providers**: Hierarchical provider structure
-- **Internationalization**: Custom i18n system (Korean/English)
+- **State Management**: React Context API with hierarchical provider structure
+- **Providers**: BrandingProvider, LanguageProvider, ModelProvider with client-side caching
+- **Internationalization**: Custom i18n system (Korean/English) with dynamic module loading
+- **Global Layout**: Centralized layout management with route-based rendering
+- **Branding Management**: Dynamic app branding with database integration and localStorage persistence
 
 ## ✨ Key Features
 
@@ -72,7 +74,9 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Loading States**: Enhanced loading indicators and state management with skeleton UI
 - **Responsive Design**: Optimized for mobile and desktop experiences with dynamic padding
 - **Anti-Duplicate**: Intelligent duplicate message prevention and submission controls
-- **Performance Optimization**: Memoized components and efficient scroll management
+- **Performance Optimization**: Memoized components with React.memo for optimal re-rendering
+- **Scroll Optimization**: Smooth scrolling with content-visibility and CSS containment
+- **Memory Management**: Efficient handling of long conversations with virtual scrolling techniques
 
 ### 🤖 Agent Management
 - **Custom AI Agents**: Create and manage personalized AI agents with specific configurations
@@ -115,15 +119,16 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Authentication Options**: Optional authentication for API endpoints
 
 ### 🎨 Modern UI/UX
-- Clean design based on Tailwind CSS
-- Radix UI components utilization
-- Dark/Light theme support
-- Smooth page transitions with View Transitions API
-- Enhanced loading states and animations with skeleton UI
-- Intuitive navigation and user experience
-- Drag & drop file upload interface
-- Dynamic responsive design with mobile-first approach
-- Performance-optimized rendering with memoization
+- **Clean Design**: Modern interface built with Tailwind CSS and Radix UI components
+- **Theme Support**: Dark/Light theme switching with system preference detection
+- **Smooth Transitions**: Page transitions using View Transitions API for seamless navigation
+- **Loading States**: Enhanced loading indicators and skeleton UI for better user experience
+- **Responsive Design**: Mobile-first approach with adaptive layouts and collapsible sidebar
+- **Performance Optimized**: Memoized components and efficient rendering strategies
+- **Dynamic Branding**: Customizable app name, logo, and favicon with real-time updates
+- **Intuitive Navigation**: Context-aware navigation with route-based layout switching
+- **Drag & Drop**: File upload interface with visual feedback and validation
+- **Global Layout System**: Centralized layout management with route-based rendering
 
 ### 🌐 API Management System
 - **OpenAI Compatibility**: Full OpenAI API compatibility for seamless integration

@@ -7,7 +7,9 @@
   "sidebar": {
     "newChat": "New Chat",
     "search": "Search",
-    "searchPlaceholder": "Search",
+    "searchPlaceholder": "Search chats...",
+    "searchResults": "{{count}} results",
+    "noSearchResults": "No search results",
     "book": "Book",
     "admin": "admin",
     "noChatHistory": "No chat history",

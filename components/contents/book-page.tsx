@@ -6,7 +6,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Heart, MessageCircle, Share, Bookmark, ChevronDown } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import Layout from "@/components/layout/layout"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 import Loading from "@/components/ui/loading"
 
@@ -120,107 +119,100 @@ export default function ContentPage() {
   ]
 
   if (!isLoaded) {
-    return (
-      <Layout currentPage="content">
-        <Loading className="flex-1" fullScreen={false} />
-      </Layout>
-    )
+    return <Loading className="flex-1" fullScreen={false} />
   }
 
   return (
-    <Layout currentPage="content">
-      {/* Content Area with Masonry Layout */}
-      <div className="flex-1 overflow-y-auto p-2 sm:p-4 md:p-6">
-        <div className="max-w-7xl mx-auto px-1 sm:px-2 md:px-0">
-          {/* Filter Tabs */}
-          <div className="mb-3 sm:mb-4 md:mb-6">
-            {/* Mobile Dropdown */}
-            <div className="block sm:hidden">
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline" className="w-full justify-between">
-                    {categories.find(cat => cat.key === selectedCategory)?.label}
-                    <ChevronDown className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-full">
-                  {categories.map((category) => (
-                    <DropdownMenuItem 
-                      key={category.key}
-                      onClick={() => setSelectedCategory(category.key)}
-                    >
-                      {category.label}
-                    </DropdownMenuItem>
-                  ))}
-                </DropdownMenuContent>
-              </DropdownMenu>
-            </div>
-
-            {/* Desktop Tabs */}
-            <div className="hidden sm:flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
-              {categories.map((category) => (
-                <Badge
-                  key={category.key}
-                  variant={selectedCategory === category.key ? "default" : "outline"}
-                  className={`px-4 py-2 text-sm cursor-pointer ${
-                    selectedCategory === category.key ? "bg-blue-100 text-blue-700 hover:bg-blue-200" : "hover:bg-gray-100"
-                  }`}
-                  onClick={() => setSelectedCategory(category.key)}
-                >
-                  {category.label}
-                </Badge>
-              ))}
-            </div>
+    <div className="flex-1 overflow-y-auto p-2 sm:p-4 md:p-6">
+      <div className="max-w-7xl mx-auto px-1 sm:px-2 md:px-0">
+        {/* Filter Tabs */}
+        <div className="mb-3 sm:mb-4 md:mb-6">
+          {/* Mobile Dropdown */}
+          <div className="block sm:hidden">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="outline" className="w-full justify-between">
+                  {categories.find(cat => cat.key === selectedCategory)?.label}
+                  <ChevronDown className="h-4 w-4" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent className="w-full">
+                {categories.map((category) => (
+                  <DropdownMenuItem 
+                    key={category.key}
+                    onClick={() => setSelectedCategory(category.key)}
+                  >
+                    {category.label}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
 
-          {/* Masonry Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
-            {contentItems
-              .filter((item) => selectedCategory === "all" || item.category === selectedCategory)
-              .map((item) => (
-                <Card
-                  key={item.id}
-                  className="bg-white hover:shadow-lg transition-all duration-300 cursor-pointer border-gray-200 hover:border-gray-300"
-                >
-                  <CardHeader className="pb-3">
-                    <div className="flex items-start justify-between gap-2">
-                      <CardTitle className="text-base sm:text-lg font-semibold leading-tight line-clamp-2">
-                        {item.title}
-                      </CardTitle>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
-                        <Bookmark className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="pt-0">
-                    <p className="text-gray-600 text-sm leading-relaxed line-clamp-3 mb-4">{item.description}</p>
-
-                    <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
-                      <span className="bg-gray-100 px-2 py-1 rounded-full">{item.category}</span>
-                      <span>{item.readTime}</span>
-                    </div>
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-4 text-gray-500">
-                        <div className="flex items-center gap-1">
-                          <Heart className="h-4 w-4" />
-                          <span className="text-xs">{item.likes}</span>
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <MessageCircle className="h-4 w-4" />
-                          <span className="text-xs">{item.comments}</span>
-                        </div>
-                      </div>
-                      <Button variant="ghost" size="icon" className="h-8 w-8">
-                        <Share className="h-4 w-4" />
-                      </Button>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
+          {/* Desktop Tabs */}
+          <div className="hidden sm:flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
+            {categories.map((category) => (
+              <Badge
+                key={category.key}
+                variant={selectedCategory === category.key ? "default" : "outline"}
+                className={`px-4 py-2 text-sm cursor-pointer ${
+                  selectedCategory === category.key ? "bg-blue-100 text-blue-700 hover:bg-blue-200" : "hover:bg-gray-100"
+                }`}
+                onClick={() => setSelectedCategory(category.key)}
+              >
+                {category.label}
+              </Badge>
+            ))}
           </div>
         </div>
+
+        {/* Masonry Grid */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-3 sm:gap-4 md:gap-6">
+          {contentItems
+            .filter((item) => selectedCategory === "all" || item.category === selectedCategory)
+            .map((item) => (
+              <Card
+                key={item.id}
+                className="bg-white hover:shadow-lg transition-all duration-300 cursor-pointer border-gray-200 hover:border-gray-300"
+              >
+                <CardHeader className="pb-3">
+                  <div className="flex items-start justify-between gap-2">
+                    <CardTitle className="text-base sm:text-lg font-semibold leading-tight line-clamp-2">
+                      {item.title}
+                    </CardTitle>
+                    <Button variant="ghost" size="icon" className="h-8 w-8 shrink-0">
+                      <Bookmark className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-gray-600 text-sm leading-relaxed line-clamp-3 mb-4">{item.description}</p>
+
+                  <div className="flex items-center justify-between text-xs text-gray-500 mb-3">
+                    <span className="bg-gray-100 px-2 py-1 rounded-full">{item.category}</span>
+                    <span>{item.readTime}</span>
+                  </div>
+
+                  <div className="flex items-center justify-between pt-3 border-t border-gray-100">
+                    <div className="flex items-center gap-4">
+                      <Button variant="ghost" size="sm" className="h-8 px-2 text-gray-500 hover:text-red-500 hover:bg-red-50">
+                        <Heart className="h-4 w-4 mr-1" />
+                        {item.likes}
+                      </Button>
+                      <Button variant="ghost" size="sm" className="h-8 px-2 text-gray-500 hover:text-blue-500 hover:bg-blue-50">
+                        <MessageCircle className="h-4 w-4 mr-1" />
+                        {item.comments}
+                      </Button>
+                    </div>
+                    <Button variant="ghost" size="sm" className="h-8 px-2 text-gray-500 hover:text-green-500 hover:bg-green-50">
+                      <Share className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+        </div>
       </div>
-    </Layout>
+    </div>
   )
 }

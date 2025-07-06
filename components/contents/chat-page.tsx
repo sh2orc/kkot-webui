@@ -672,8 +672,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                     if (!isCancelled) {
                       const parsedAgentInfo = JSON.parse(agentInfo)
                       
-                      // Call streaming API
-                      sendMessageToAI(lastMessage.content, parsedAgentInfo)
+                      // Call streaming API with isRegeneration=true to prevent duplicate user message saving
+                      sendMessageToAI(lastMessage.content, parsedAgentInfo, true)
                       
                       // Clean up localStorage after use (delay to prevent race condition)
                       setTimeout(() => {

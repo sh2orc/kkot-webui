@@ -1,17 +1,13 @@
 "use client"
 
-import { useState, useEffect } from "react"
-import Sidebar from "@/components/layout/sidebar"
-import Navbar from "@/components/layout/navbar"
-import { useRouter, usePathname } from "next/navigation"
+import { useEffect } from "react"
+import { usePathname } from "next/navigation"
 
 export default function ChatLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const [mobileSidebarOpen, setMobileSidebarOpen] = useState(false)
-  const router = useRouter()
   const pathname = usePathname()
 
   // 페이지 리로드 시 로딩 화면 방지
@@ -37,19 +33,8 @@ export default function ChatLayout({
   }, [pathname])
 
   return (
-    <div className="flex h-screen bg-white">
-      <Sidebar
-        currentPage="chat"
-        mobileSidebarOpen={mobileSidebarOpen}
-        setMobileSidebarOpen={setMobileSidebarOpen}
-      />
-      <div className="flex-1 flex flex-col">
-        <Navbar
-          title="Chat"
-          onMobileMenuClick={() => setMobileSidebarOpen(true)}
-        />
-        {children}
-      </div>
+    <div className="flex-1 flex flex-col h-full">
+      {children}
     </div>
   )
 } 

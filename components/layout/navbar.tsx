@@ -12,6 +12,8 @@ import LanguageSwitcher from "@/components/ui/language-switcher"
 import { useTranslation } from "@/lib/i18n"
 import { ModelDropdown } from "@/components/ui/model-dropdown"
 import { useModel } from "@/components/providers/model-provider"
+import { useBranding } from "@/components/providers/branding-provider"
+import Image from "next/image"
 
 interface NavbarProps {
   title: string
@@ -24,9 +26,13 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
   const { data: session } = useSession()
   const { lang } = useTranslation('common')
   const { selectedModel } = useModel()
+  const { branding } = useBranding()
 
   // Check if current page is /chat
   const isChatPage = pathname.startsWith("/chat")
+  
+  // Check if current page is /admin
+  const isAdminPage = pathname.startsWith("/admin")
 
   // Generate user avatar text
   const getAvatarText = () => {
@@ -51,6 +57,21 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
           >
             <Menu className="h-4 w-4" />
           </Button>
+          {isAdminPage && (
+            <div 
+              className="flex items-center gap-2 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
+              onClick={() => router.push("/")}
+            >
+              <Image 
+                src="/images/logo.svg" 
+                alt="Logo" 
+                width={24} 
+                height={24} 
+                className="h-6 w-6"
+              />
+              <span className="font-semibold text-gray-900 text-sm">{branding.appName}</span>
+            </div>
+          )}
           {isChatPage && (
             <div className="flex-1 min-w-0 max-w-[200px] sm:max-w-[240px] md:max-w-xs lg:w-60">
               <ModelDropdown />

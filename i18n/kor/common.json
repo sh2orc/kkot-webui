@@ -7,7 +7,9 @@
   "sidebar": {
     "newChat": "새로운 채팅",
     "search": "검색",
-    "searchPlaceholder": "검색",
+    "searchPlaceholder": "채팅 검색...",
+    "searchResults": "{{count}}개의 결과",
+    "noSearchResults": "검색 결과가 없습니다",
     "book": "Book",
     "admin": "admin",
     "noChatHistory": "채팅 기록이 없습니다",

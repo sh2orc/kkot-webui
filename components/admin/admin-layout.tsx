@@ -17,7 +17,6 @@ import {
   Server,
   Terminal,
 } from "lucide-react"
-import Layout from "@/components/layout/layout"
 import { useRouter, usePathname } from "next/navigation"
 import { useTranslation } from "@/lib/i18n"
 import { toast } from "sonner"
@@ -57,42 +56,40 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   return (
-    <Layout>
-      <div className="flex h-[calc(100%-5rem)]">
-        {/* Sidebar */}
-        <div className="w-56 bg-white border-r border-gray-200 overflow-y-auto">
-          <div className="p-4">
-            <h2 className="text-lg font-semibold mb-4">{lang('title')}</h2>
-            <nav className="space-y-1">
-              {menuItems.map((item) => {
-                const Icon = item.icon
-                return (
-                  <button
-                    key={item.id}
-                    onClick={() => handleMenuClick(item)}
-                    className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors ${
-                      pathname === item.path
-                        ? "bg-blue-100 text-blue-700 font-medium"
-                        : "text-gray-700 hover:bg-gray-100"
-                    } ${item.disabled ? "opacity-50 cursor-not-allowed" : ""}`}
-                    disabled={item.disabled}
-                  >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
-                  </button>
-                )
-              })}
-            </nav>
-          </div>
-        </div>
-
-        {/* Main Content */}
-        <div className="flex-1 overflow-y-auto">
-          <div className="p-6 max-w-6xl">
-            {children}
-          </div>
+    <div className="flex h-full border-t border-gray-200">
+      {/* Sidebar */}
+      <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
+        <div className="p-4">
+          <h2 className="text-lg font-semibold mb-4">{lang('title')}</h2>
+          <nav className="space-y-1">
+            {menuItems.map((item) => {
+              const Icon = item.icon
+              return (
+                <button
+                  key={item.id}
+                  onClick={() => handleMenuClick(item)}
+                  className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors ${
+                    pathname === item.path
+                      ? "bg-blue-100 text-blue-700 font-medium"
+                      : "text-gray-700 hover:bg-gray-100"
+                  } ${item.disabled ? "opacity-50 cursor-not-allowed" : ""}`}
+                  disabled={item.disabled}
+                >
+                  <Icon className="h-4 w-4" />
+                  {item.label}
+                </button>
+              )
+            })}
+          </nav>
         </div>
       </div>
-    </Layout>
+
+      {/* Main Content */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="p-6 max-w-6xl">
+          {children}
+        </div>
+      </div>
+    </div>
   )
 } 

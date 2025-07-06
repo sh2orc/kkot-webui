@@ -49,51 +49,46 @@ export function BrandingProvider({ children }: BrandingProviderProps) {
         }
       }
       
-      // Only try to fetch from DB if user is authenticated and is admin
-      if (status === 'authenticated' && session?.user?.role === 'admin') {
-        try {
-          fetch('/api/admin-settings?key=app.name')
-            .then(res => {
-              if (!res.ok) {
-                // Don't throw error for 404, just log it
-                if (res.status === 404) {
-                  console.log('Admin settings API not found, using default settings')
-                  return null
-                }
-                throw new Error('Failed to fetch app name')
+      // Try to fetch app name from DB for all users (branding should be visible to everyone)
+      try {
+        fetch('/api/admin-settings?key=app.name')
+          .then(res => {
+            if (!res.ok) {
+              // Don't throw error for 404, just log it
+              if (res.status === 404) {
+                console.log('Admin settings API not found, using default settings')
+                return null
               }
-              return res.json()
-            })
-            .then(data => {
-              if (data && data.value) {
-                setBranding(prev => ({
-                  ...prev,
-                  appName: data.value
-                }))
-                // Update localStorage as well
-                const currentSettings = localStorage.getItem('branding-settings')
-                const settings = currentSettings ? JSON.parse(currentSettings) : {}
-                localStorage.setItem('branding-settings', JSON.stringify({
-                  ...settings,
-                  appName: data.value
-                }))
-              }
-            })
-            .catch(error => {
-              // Only log warning for non-404 errors
-              if (error.message !== 'Failed to fetch app name') {
-                console.warn('Failed to fetch app name from DB:', error)
-              }
-            })
-            .finally(() => {
-              setIsInitialized(true)
-            })
-        } catch (error) {
-          console.warn('Error occurred while fetching app name:', error)
-          setIsInitialized(true)
-        }
-      } else {
-        // If not authenticated or not admin, just mark as initialized
+              throw new Error('Failed to fetch app name')
+            }
+            return res.json()
+          })
+          .then(data => {
+            if (data && data.value) {
+              setBranding(prev => ({
+                ...prev,
+                appName: data.value
+              }))
+              // Update localStorage as well
+              const currentSettings = localStorage.getItem('branding-settings')
+              const settings = currentSettings ? JSON.parse(currentSettings) : {}
+              localStorage.setItem('branding-settings', JSON.stringify({
+                ...settings,
+                appName: data.value
+              }))
+            }
+          })
+          .catch(error => {
+            // Only log warning for non-404 errors
+            if (error.message !== 'Failed to fetch app name') {
+              console.warn('Failed to fetch app name from DB:', error)
+            }
+          })
+          .finally(() => {
+            setIsInitialized(true)
+          })
+      } catch (error) {
+        console.warn('Error occurred while fetching app name:', error)
         setIsInitialized(true)
       }
     }

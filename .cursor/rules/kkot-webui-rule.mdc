@@ -499,6 +499,8 @@ app/                    # Next.js App Router
 │   ├── chat/          # Chat API with streaming
 │   └── profile/       # User profile API
 ├── chat/              # Chat interface
+├── book/              # Content pages
+├── setting/           # User settings
 └── [other pages]/
 
 components/            # Reusable components
@@ -506,7 +508,14 @@ components/            # Reusable components
 ├── chat/              # Chat-related components
 ├── contents/          # Page content components
 ├── layout/            # Layout components
+│   ├── global-layout.tsx # Global layout wrapper
+│   ├── navbar.tsx     # Navigation bar
+│   └── sidebar.tsx    # Main sidebar
 ├── providers/         # Context providers
+│   ├── client-providers.tsx # Client-side provider hierarchy
+│   ├── branding-provider.tsx # Branding and app name management
+│   ├── language-provider.tsx # Internationalization
+│   └── model-provider.tsx # Model selection state
 ├── sidebar/           # Sidebar components
 └── ui/                # Base UI components (Radix UI based)
 
@@ -525,10 +534,13 @@ lib/                   # Utilities and configuration
 │   ├── gemini.ts      # Gemini integration
 │   ├── ollama.ts      # Ollama integration
 │   └── vllm.ts        # vLLM integration
-└── [other utilities]/
+├── i18n.ts            # Client-side internationalization
+└── i18n-server.ts     # Server-side internationalization
 
 hooks/                 # Custom React hooks
 i18n/                  # Internationalization translation files
+├── eng/               # English translations
+└── kor/               # Korean translations
 scripts/               # Utility scripts (migrations, etc.)
 ```
 
@@ -572,11 +584,72 @@ export async function POST(request: NextRequest) {
 </BrandingProvider>
 ```
 
+### 5. Branding Provider Rules
+- **Dynamic Branding**: App name, logo, and favicon can be dynamically updated
+- **Database Integration**: Branding settings fetched from database and localStorage
+- **Document Updates**: Automatically updates document title and meta tags
+- **Fallback Handling**: Graceful fallback to default values when API calls fail
+- **Client-side Persistence**: Settings cached in localStorage for performance
+
+```typescript
+// Branding provider usage
+const { branding, updateBranding } = useBranding()
+
+// Update app name dynamically
+updateBranding({ appName: 'My Custom App' })
+
+// Access branding settings
+const appName = branding.appName // 'My Custom App'
+const logoUrl = branding.logoUrl // '/images/logo.svg'
+```
+
 ### 5. Custom Hook Rules
 - **File Naming**: `use-{feature}.ts`
 - **DB Hook**: Database state management via `use-db.ts`
 - **Mobile Detection**: Responsive handling via `use-mobile.tsx`
 - **Toast**: Notification management via `use-toast.ts`
+
+### 6. Layout Architecture Rules
+- **Global Layout**: `components/layout/global-layout.tsx` handles route-based layout switching
+- **Route-Based Layouts**: Different layouts for auth, admin, and regular pages
+- **Responsive Design**: Mobile-first approach with collapsible sidebar
+- **Layout Hierarchy**: Root layout → Global layout → Page-specific layouts
+- **State Management**: Layout state managed via React context and local state
+
+```typescript
+// Global layout structure
+const GlobalLayout = ({ children }: { children: React.ReactNode }) => {
+  const pathname = usePathname()
+  const isAuthPage = pathname?.startsWith('/auth')
+  const isAdminPage = pathname?.startsWith('/admin')
+  
+  // Public pages (no sidebar)
+  if (isAuthPage || pathname === '/') {
+    return <>{children}</>
+  }
+  
+  // Admin pages (admin sidebar)
+  if (isAdminPage) {
+    return (
+      <div className="flex h-screen">
+        <Navbar />
+        <div className="flex-1">{children}</div>
+      </div>
+    )
+  }
+  
+  // Regular pages (main sidebar)
+  return (
+    <div className="flex h-screen">
+      <Sidebar />
+      <div className="flex-1 flex flex-col">
+        <Navbar />
+        <div className="flex-1">{children}</div>
+      </div>
+    </div>
+  )
+}
+```
 
 ## Feature-Specific Rules
 
@@ -587,10 +660,38 @@ export async function POST(request: NextRequest) {
 - **Modular Separation**: Subdirectory structure by feature
 
 ### 2. Chat Interface (`app/chat/`, `components/chat/`)
-- **Streaming**: Real-time AI response streaming
-- **Message Management**: Chat history storage and management
+- **Streaming**: Real-time AI response streaming with abort functionality
+- **Message Management**: Chat history storage and management with auto-title generation
 - **Anonymous Users**: Default anonymous user system
 - **Responsive**: Mobile optimization required
+- **Performance**: Memoized components with React.memo for message rendering
+- **Scroll Optimization**: Smooth scrolling with scroll-behavior and performance optimizations
+- **Loading States**: Enhanced loading indicators with skeleton UI
+- **Message Optimization**: Content-visibility and contain CSS properties for long conversations
+
+```typescript
+// Optimized message component with memoization
+const MessageWrapper = memo(({ message, ...props }) => {
+  return (
+    <div className="message-item">
+      {message.role === "assistant" && <LlmResponse {...props} />}
+      {message.role === "user" && <UserRequest {...props} />}
+    </div>
+  )
+}, (prevProps, nextProps) => {
+  // Custom comparison logic for optimal re-rendering
+  return prevProps.message.content === nextProps.message.content &&
+         prevProps.streamingMessageId !== nextProps.message.id
+})
+
+// CSS optimizations for message container
+.messages-container {
+  scroll-behavior: smooth;
+  contain: layout style;
+  content-visibility: auto;
+  contain-intrinsic-size: 0 1000px;
+}
+```
 
 ### 3. Agent Management (`app/admin/agent/`)
 - **Image Upload**: Multipart form data handling
