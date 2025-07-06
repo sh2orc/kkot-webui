@@ -4,6 +4,7 @@ import { getDb } from '@/lib/db/config';
 import { users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { hashPassword, verifyPassword, generateUserId } from '@/lib/auth';
+import { getServerTranslation, defaultLanguage, type Language } from '@/lib/i18n-server';
 
 export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET || 'fallback-secret-for-development',
@@ -14,12 +15,17 @@ export const authOptions = {
         email: { label: 'Email', type: 'email' },
         password: { label: 'Password', type: 'password' },
         username: { label: 'Username', type: 'text' },
-        action: { label: 'Action', type: 'text' } // login or register
+        action: { label: 'Action', type: 'text' }, // login or register
+        language: { label: 'Language', type: 'text' } // language setting
       },
       async authorize(credentials) {
         try {
+          // Use default language for now (Korean)
+          const language = defaultLanguage;
+          
           if (!credentials?.email || !credentials?.password) {
-            throw new Error('Please enter both email and password.');
+            const errorMessage = await getServerTranslation(language, 'auth', 'errors.credentialsRequired');
+            throw new Error(errorMessage);
           }
 
           const db = getDb();
@@ -34,7 +40,8 @@ export const authOptions = {
             const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
             
             if (existingUser.length > 0) {
-              throw new Error('Email already exists.');
+              const errorMessage = await getServerTranslation(language, 'auth', 'errors.emailAlreadyExists');
+              throw new Error(errorMessage);
             }
 
             // Check total user count (to determine if this is the first user)
@@ -67,13 +74,15 @@ export const authOptions = {
             const user = await db.select().from(users).where(eq(users.email, email)).limit(1);
             
             if (user.length === 0) {
-              throw new Error('Email does not exist.');
+              const errorMessage = await getServerTranslation(language, 'auth', 'errors.emailNotFound');
+              throw new Error(errorMessage);
             }
 
             const isValidPassword = verifyPassword(password, user[0].password);
             
             if (!isValidPassword) {
-              throw new Error('Password is incorrect.');
+              const errorMessage = await getServerTranslation(language, 'auth', 'errors.passwordIncorrect');
+              throw new Error(errorMessage);
             }
 
             return {
