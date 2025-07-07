@@ -4,6 +4,7 @@ import { chatMessageRepository, chatSessionRepository, agentManageRepository, ll
 import { LLMFactory } from '@/lib/llm'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { DeepResearchUtils } from '@/lib/llm/deepresearch'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   console.log('=== Chat [id] API POST request received ===')
@@ -28,6 +29,8 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     let modelId: string | undefined
     let modelType: string
     let isRegeneration: boolean
+    let isDeepResearchActive: boolean
+    let isGlobeActive: boolean
     let images: File[] = []
     
     if (contentType?.includes('multipart/form-data')) {
@@ -40,12 +43,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       modelId = (formData.get('modelId') as string)?.trim() || undefined
       modelType = formData.get('modelType') as string
       isRegeneration = formData.get('isRegeneration') === 'true'
+      isDeepResearchActive = formData.get('isDeepResearchActive') === 'true'
+      isGlobeActive = formData.get('isGlobeActive') === 'true'
       
       // Extract images
       const imageFiles = formData.getAll('images') as File[]
       images = imageFiles.filter(file => file.size > 0) // Filter out empty files
       
       console.log('Images received:', images.length)
+      console.log('Deep research active:', isDeepResearchActive)
+      console.log('Globe active:', isGlobeActive)
     } else {
       // Handle JSON (text only)
       const body = await request.json()
@@ -56,6 +63,11 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       modelId = body.modelId
       modelType = body.modelType
       isRegeneration = body.isRegeneration
+      isDeepResearchActive = body.isDeepResearchActive || false
+      isGlobeActive = body.isGlobeActive || false
+      
+      console.log('Deep research active:', isDeepResearchActive)
+      console.log('Globe active:', isGlobeActive)
     }
 
     if (!message?.trim() && images.length === 0) {
@@ -357,6 +369,220 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           let fullResponse = ''
           const assistantMessageId = uuidv4()
           let completionHandled = false
+
+          // Check if Deep Research is active
+          if (isDeepResearchActive) {
+            console.log('=== Starting Deep Research ===')
+            
+            // Call Deep Research API
+            try {
+              const deepResearchResponse = await fetch(`${request.headers.get('origin') || 'http://localhost:3000'}/api/deepresearch`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json',
+                  'Authorization': request.headers.get('Authorization') || '',
+                  'Cookie': request.headers.get('Cookie') || ''
+                },
+                body: JSON.stringify({
+                  query: message,
+                  context: messageHistory.slice(-2).map((msg: any) => `${msg.role}: ${msg.content}`).join('\n'),
+                  modelId: model.id,
+                  modelType: 'llm'
+                })
+              })
+
+              if (deepResearchResponse.ok) {
+                console.log('Deep research API call successful')
+                
+                // Stream deep research results
+                const reader = deepResearchResponse.body?.getReader()
+                if (reader) {
+                  while (true) {
+                    const { done, value } = await reader.read()
+                    if (done) break
+
+                    const chunk = new TextDecoder().decode(value)
+                    const lines = chunk.split('\n')
+                    
+                    for (const line of lines) {
+                      if (line.startsWith('data: ')) {
+                        try {
+                          const data = JSON.parse(line.slice(6))
+                          
+                          if (data.type === 'stream') {
+                            // Send streaming content with enhanced step information
+                            safeEnqueue(
+                              new TextEncoder().encode(
+                                `data: ${JSON.stringify({ 
+                                  content: data.content,
+                                  messageId: assistantMessageId,
+                                  deepResearchStream: true,
+                                  stepType: data.stepType,
+                                  stepInfo: data.stepInfo || {},
+                                  timestamp: data.timestamp,
+                                  done: false 
+                                })}\n\n`
+                              )
+                            )
+                            fullResponse += data.content
+                          } else if (data.type === 'final') {
+                            // Send final deep research result
+                            const finalResult = DeepResearchUtils.formatResultAsMarkdown(data.result)
+                            safeEnqueue(
+                              new TextEncoder().encode(
+                                `data: ${JSON.stringify({ 
+                                  content: finalResult,
+                                  messageId: assistantMessageId,
+                                  deepResearchFinal: true,
+                                  done: false 
+                                })}\n\n`
+                              )
+                            )
+                            fullResponse += finalResult
+                          } else if (data.type === 'error') {
+                            console.error('Deep research error:', data.error)
+                            safeEnqueue(
+                              new TextEncoder().encode(
+                                `data: ${JSON.stringify({ 
+                                  content: `\n⚠️ 딥리서치 중 오류가 발생했습니다: ${data.error}\n\n`,
+                                  messageId: assistantMessageId,
+                                  deepResearchError: true,
+                                  done: false 
+                                })}\n\n`
+                              )
+                            )
+                            fullResponse += `\n⚠️ 딥리서치 중 오류가 발생했습니다: ${data.error}\n\n`
+                          }
+                        } catch (parseError) {
+                          console.log('Failed to parse deep research data:', parseError)
+                        }
+                      }
+                    }
+                  }
+                }
+                
+                // Complete deep research successfully
+                if (!completionHandled) {
+                  completionHandled = true
+                  
+                  // Save AI response message
+                  const assistantMessage = {
+                    sessionId: chatId,
+                    role: 'assistant' as const,
+                    content: fullResponse
+                  }
+                  await chatMessageRepository.create(assistantMessage)
+
+                  // Send completion signal
+                  safeEnqueue(
+                    new TextEncoder().encode(
+                      `data: ${JSON.stringify({ 
+                        content: '', 
+                        messageId: assistantMessageId,
+                        done: true 
+                      })}\n\n`
+                    )
+                  )
+                  
+                  safeClose()
+                  console.log('Deep research completed successfully, returning without normal LLM processing')
+                  return
+                }
+              } else {
+                console.error('Deep research API call failed:', deepResearchResponse.status)
+                // Handle deep research failure with error message and complete processing
+                if (!completionHandled) {
+                  completionHandled = true
+                  
+                  const errorMessage = '⚠️ 딥리서치 API 호출에 실패했습니다. 다시 시도해주세요.'
+                  
+                  // Send error message
+                  safeEnqueue(
+                    new TextEncoder().encode(
+                      `data: ${JSON.stringify({ 
+                        content: errorMessage,
+                        messageId: assistantMessageId,
+                        deepResearchError: true,
+                        done: false 
+                      })}\n\n`
+                    )
+                  )
+                  
+                  // Save error message
+                  const assistantMessage = {
+                    sessionId: chatId,
+                    role: 'assistant' as const,
+                    content: errorMessage
+                  }
+                  await chatMessageRepository.create(assistantMessage)
+
+                  // Send completion signal
+                  safeEnqueue(
+                    new TextEncoder().encode(
+                      `data: ${JSON.stringify({ 
+                        content: '', 
+                        messageId: assistantMessageId,
+                        done: true 
+                      })}\n\n`
+                    )
+                  )
+                  
+                  safeClose()
+                  console.log('Deep research failed, returning with error message')
+                  return
+                }
+              }
+            } catch (deepResearchError) {
+              console.error('Deep research API error:', deepResearchError)
+              // Handle deep research error with error message and complete processing
+              if (!completionHandled) {
+                completionHandled = true
+                
+                const errorMessage = '⚠️ 딥리서치 중 오류가 발생했습니다. 다시 시도해주세요.'
+                
+                // Send error message
+                safeEnqueue(
+                  new TextEncoder().encode(
+                    `data: ${JSON.stringify({ 
+                      content: errorMessage,
+                      messageId: assistantMessageId,
+                      deepResearchError: true,
+                      done: false 
+                    })}\n\n`
+                  )
+                )
+                
+                // Save error message
+                const assistantMessage = {
+                  sessionId: chatId,
+                  role: 'assistant' as const,
+                  content: errorMessage
+                }
+                await chatMessageRepository.create(assistantMessage)
+
+                // Send completion signal
+                safeEnqueue(
+                  new TextEncoder().encode(
+                    `data: ${JSON.stringify({ 
+                      content: '', 
+                      messageId: assistantMessageId,
+                      done: true 
+                    })}\n\n`
+                  )
+                )
+                
+                safeClose()
+                console.log('Deep research error handled, returning with error message')
+                return
+              }
+            }
+          }
+
+          // Skip normal LLM processing if deep research was active (should not reach here)
+          if (isDeepResearchActive) {
+            console.log('Deep research was active but reached normal LLM processing - this should not happen')
+            return
+          }
 
           // Define streaming callbacks
           const streamCallbacks = {

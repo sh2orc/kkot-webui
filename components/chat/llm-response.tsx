@@ -1,12 +1,13 @@
 "use client"
 
 import React from "react"
-import { Copy, ThumbsUp, ThumbsDown, RefreshCw, Check } from "lucide-react"
+import { Copy, ThumbsUp, ThumbsDown, RefreshCw, Check, Brain, Search } from "lucide-react"
 import { useTranslation } from "@/lib/i18n"
 import { useState } from "react"
 import { marked } from 'marked'
 import { CodeBlock } from './code-block'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { DeepResearchDisplay } from './deep-research-display'
 
 interface LlmResponseProps {
   id: string
@@ -20,6 +21,18 @@ interface LlmResponseProps {
   likedMessages: Set<string>
   dislikedMessages: Set<string>
   isStreaming?: boolean
+  isDeepResearch?: boolean
+  deepResearchStepType?: 'step' | 'synthesis' | 'final'
+  isDeepResearchComplete?: boolean
+  hasDeepResearchError?: boolean
+  deepResearchStepInfo?: {
+    title?: string
+    isComplete?: boolean
+    totalSteps?: number
+    plannedSteps?: Array<{ title: string, type: string }>
+    currentStepContent?: string
+    currentStepType?: string
+  }
 }
 
 export function LlmResponse({
@@ -34,12 +47,46 @@ export function LlmResponse({
   likedMessages,
   dislikedMessages,
   isStreaming = false,
+  isDeepResearch = false,
+  deepResearchStepType,
+  isDeepResearchComplete = false,
+  hasDeepResearchError = false,
+  deepResearchStepInfo,
 }: LlmResponseProps) {
   const [thumbsUpHover, setThumbsUpHover] = useState(false)
   const [thumbsUpClick, setThumbsUpClick] = useState(false)
   const [thumbsDownHover, setThumbsDownHover] = useState(false)
   const { lang } = useTranslation('chat')
   const isMobile = useIsMobile()
+
+  // Check if this is a deep research response
+  // If isDeepResearch is explicitly provided, use that value
+  // Otherwise, fallback to content-based detection
+  const isDeepResearchResponse = isDeepResearch || 
+                                 (!isDeepResearch && (
+                                   content.includes('# 🧠 딥리서치 분석 시작') || 
+                                   content.includes('## 📊 연구 개요') ||
+                                   content.includes('## 🔍 분석 과정') ||
+                                   content.includes('딥리서치 방법론:')
+                                 ))
+
+  // Check if this contains deep research steps
+  // Only detect from content if isDeepResearch is not explicitly set
+  const hasDeepResearchSteps = !isDeepResearch && content.includes('### ') && (
+    content.includes('질문 분석') || 
+    content.includes('분석:') ||
+    content.includes('### ')
+  )
+
+  // Get current step type for streaming indication
+  const getStepTypeLabel = (stepType?: string) => {
+    switch (stepType) {
+      case 'step': return '분석 중'
+      case 'synthesis': return '종합 분석'
+      case 'final': return '최종 답변'
+      default: return '진행 중'
+    }
+  }
 
   // MarkedMarkdown component definition
   function MarkedMarkdown({ children }: { children: string }) {
@@ -171,29 +218,101 @@ export function LlmResponse({
 
   return (
     <div className="leading-[1.7]">
+      {/* Deep Research Badge - Only show for non-structured deep research */}
+      {(isDeepResearchResponse || hasDeepResearchSteps) && !isDeepResearch && (
+        <div className="mb-3 flex items-center gap-2">
+          <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-full text-xs font-medium text-cyan-700">
+            <Brain className="w-3.5 h-3.5" />
+            <span>
+              {isDeepResearchComplete ? '딥리서치 완료' : 
+               isStreaming ? `딥리서치 ${getStepTypeLabel(deepResearchStepType)}` : 
+               '딥리서치 분석 결과'}
+            </span>
+          </div>
+          {hasDeepResearchSteps && (
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 border border-amber-200 rounded-full text-xs text-amber-700">
+              <Search className="w-3 h-3" />
+              <span>다단계 분석</span>
+            </div>
+          )}
+          {hasDeepResearchError && (
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-50 border border-red-200 rounded-full text-xs text-red-700">
+              <span>⚠️ 오류 발생</span>
+            </div>
+          )}
+          {isStreaming && isDeepResearch && (
+            <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 border border-blue-200 rounded-full text-xs text-blue-700">
+              <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
+              <span>실시간 분석</span>
+            </div>
+          )}
+        </div>
+      )}
+
       <div 
-        className={`prose max-w-none text-sm dark:prose-invert ${isStreaming ? 'streaming-content' : ''}`} 
+        className={`prose max-w-none text-sm dark:prose-invert ${isStreaming ? 'streaming-content' : ''} ${
+          isDeepResearchResponse ? 'deep-research-content' : ''
+        }`} 
         style={{ 
           overflowWrap: 'break-word', 
           wordBreak: 'break-word',          
         }}
       >
-        <div className="markdown-content">
-          {contentParts.map((part, index) => (
-            <div key={index}>
-              {part.type === 'text' ? (
-                <MarkedMarkdown>{part.content}</MarkedMarkdown>
-              ) : (
-                <CodeBlock
-                  className={`language-${part.lang || 'text'}`}
-                  inline={false}
-                >
-                  {part.content}
-                </CodeBlock>
-              )}
-            </div>
-          ))}
-        </div>
+        {/* Deep Research Display */}
+        {isDeepResearchResponse ? (
+          <div>
+            <DeepResearchDisplay 
+              content={content}
+              isStreaming={isStreaming}
+              deepResearchStepType={deepResearchStepType}
+              isDeepResearchComplete={isDeepResearchComplete}
+              deepResearchStepInfo={deepResearchStepInfo}
+            />
+            {/* 최종답변 내용 표시 */}
+            {content && content.trim() && (
+              <div className="mt-4 border-t border-gray-200 pt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  <span className="text-sm font-medium text-green-700">최종 답변</span>
+                </div>
+                <div className="markdown-content">
+                  {contentParts.map((part, index) => (
+                    <div key={index}>
+                      {part.type === 'text' ? (
+                        <MarkedMarkdown>{part.content}</MarkedMarkdown>
+                      ) : (
+                        <CodeBlock
+                          className={`language-${part.lang || 'text'}`}
+                          inline={false}
+                        >
+                          {part.content}
+                        </CodeBlock>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        ) : (
+          /* Regular Content Display */
+          <div className="markdown-content">
+            {contentParts.map((part, index) => (
+              <div key={index}>
+                {part.type === 'text' ? (
+                  <MarkedMarkdown>{part.content}</MarkedMarkdown>
+                ) : (
+                  <CodeBlock
+                    className={`language-${part.lang || 'text'}`}
+                    inline={false}
+                  >
+                    {part.content}
+                  </CodeBlock>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
         
 
         <div className="text-xs text-gray-400 mt-1">

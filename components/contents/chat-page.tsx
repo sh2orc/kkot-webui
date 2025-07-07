@@ -19,6 +19,11 @@ interface Message {
   role: "user" | "assistant"
   content: string
   timestamp: Date
+  isDeepResearch?: boolean
+  deepResearchStepType?: 'step' | 'synthesis' | 'final'
+  isDeepResearchComplete?: boolean
+  hasDeepResearchError?: boolean
+  deepResearchStepInfo?: Record<string, any>
 }
 
 interface ChatPageProps {
@@ -84,6 +89,11 @@ const MessageWrapper = memo(({
           likedMessages={likedMessages}
           dislikedMessages={dislikedMessages}
           isStreaming={isStreaming && streamingMessageId === message.id}
+          isDeepResearch={message.isDeepResearch}
+          deepResearchStepType={message.deepResearchStepType}
+          isDeepResearchComplete={message.isDeepResearchComplete}
+          hasDeepResearchError={message.hasDeepResearchError}
+          deepResearchStepInfo={message.deepResearchStepInfo}
         />
       )}
 
@@ -256,6 +266,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isComposing, setIsComposing] = useState(false)
   const [clearImagesTrigger, setClearImagesTrigger] = useState(false)
+  const [deepResearchPlannedSteps, setDeepResearchPlannedSteps] = useState<Array<{ title: string, type: string }>>([])
   // Set safer initial value
   const [dynamicPadding, setDynamicPadding] = useState(() => {
     // Use default value on server side, detect screen size on client
@@ -270,6 +281,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   const lastScrollHeight = useRef(0)
   const lastSubmittedMessage = useRef<string | null>(null)
   const lastSubmittedTime = useRef<number>(0)
+  const isSubmittingRef = useRef(false) // 추가적인 중복 방지
 
   // Reset padding when isMobile changes
   useEffect(() => {
@@ -389,16 +401,16 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       await new Promise(resolve => setTimeout(resolve, 100))
     }
 
-    // Enhanced duplicate prevention using message content + timestamp
+    // Enhanced duplicate prevention using message content + timestamp + deep research state
     const currentTime = Date.now()
-    const messageKey = `${message}_${images?.length || 0}_${isRegeneration}`
+    const messageKey = `${message}_${images?.length || 0}_${isRegeneration}_${isDeepResearchActive}`
     const lastMessageData = sessionStorage.getItem(`lastMessage_${chatId}`)
     
     if (lastMessageData) {
       try {
         const { message: lastMsg, timestamp: lastTime } = JSON.parse(lastMessageData)
-        // Block if same message within 2 seconds
-        if (lastMsg === messageKey && currentTime - lastTime < 2000) {
+        // Block if same message within 3 seconds (increased for deep research)
+        if (lastMsg === messageKey && currentTime - lastTime < 3000) {
           console.log('Duplicate AI request blocked:', messageKey)
           return
         }
@@ -445,6 +457,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         }
         formData.append('modelType', agentInfo.type)
         formData.append('isRegeneration', isRegeneration.toString())
+        formData.append('isDeepResearchActive', isDeepResearchActive.toString())
+        formData.append('isGlobeActive', isGlobeActive.toString())
         
         // Add image files
         images.forEach((image) => {
@@ -471,6 +485,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             modelId: agentInfo.type === 'model' ? agentInfo.id : undefined,
             modelType: agentInfo.type,
             isRegeneration,
+            isDeepResearchActive,
+            isGlobeActive,
             userId: session?.user?.email
           })
         })
@@ -560,6 +576,72 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                         adjustDynamicPadding()
                         scrollToBottomSmooth(true) // Set force=true to ensure scroll to bottom
                       }
+                    }
+
+                    // Handle Deep Research streaming
+                    if (data.deepResearchStream) {
+                      // 계획된 스탭들 처리
+                      if (data.stepInfo && data.stepInfo.plannedSteps) {
+                        setDeepResearchPlannedSteps(data.stepInfo.plannedSteps)
+                      }
+                      
+                      // 스탭별 처리: 최종답변(final)만 메시지 내용으로 저장
+                      if (data.stepType === 'final') {
+                        // 최종답변은 메시지 내용으로 저장
+                        assistantContent = data.content
+                      }
+                      // 분석 과정(step, synthesis)은 메시지 내용에 저장하지 않음
+                      
+                      // Real-time update of AI response with deep research streaming
+                      setMessages(prev => 
+                        prev.map(m => 
+                          m.id === assistantMessageId 
+                            ? { 
+                                ...m, 
+                                content: assistantContent, 
+                                isDeepResearch: true, 
+                                deepResearchStepType: data.stepType,
+                                deepResearchStepInfo: {
+                                  ...data.stepInfo || {},
+                                  plannedSteps: deepResearchPlannedSteps.length > 0 ? deepResearchPlannedSteps : data.stepInfo?.plannedSteps,
+                                  currentStepContent: data.content,
+                                  currentStepType: data.stepType
+                                }
+                              }
+                            : m
+                        )
+                      )
+                      // More frequent scrolling for deep research steps
+                      adjustDynamicPadding()
+                      scrollToBottomSmooth(true)
+                    }
+
+                    // Handle Deep Research final result
+                    if (data.deepResearchFinal) {
+                      assistantContent = data.content // 최종 결과로 완전히 대체
+                      setMessages(prev => 
+                        prev.map(m => 
+                          m.id === assistantMessageId 
+                            ? { ...m, content: assistantContent, isDeepResearch: true, isDeepResearchComplete: true }
+                            : m
+                        )
+                      )
+                      adjustDynamicPadding()
+                      scrollToBottomSmooth(true)
+                    }
+
+                    // Handle Deep Research error
+                    if (data.deepResearchError) {
+                      assistantContent += data.content
+                      setMessages(prev => 
+                        prev.map(m => 
+                          m.id === assistantMessageId 
+                            ? { ...m, content: assistantContent, isDeepResearch: true, hasDeepResearchError: true }
+                            : m
+                        )
+                      )
+                      adjustDynamicPadding()
+                      scrollToBottomSmooth(true)
                     }
 
                     if (data.titleGenerated) {
@@ -1522,21 +1604,30 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }
 
   const handleSubmit = useCallback(async () => {
-    // 이미 전송 중인 경우 차단
-    if (isSubmitting) {
+    // 이미 전송 중인 경우 차단 (이중 체크)
+    if (isSubmitting || isSubmittingRef.current) {
       console.log('Already submitting, preventing duplicate')
       return
     }
     
-    // 중복 메시지 검사 (같은 메시지가 1초 이내에 전송되는 경우)
+    // 중복 메시지 검사 (같은 메시지가 500ms 이내에 전송되는 경우)
     const currentTime = Date.now()
     const messageToCheck = inputValue.trim() || 'IMAGE_ONLY'
     
     if (lastSubmittedMessage.current === messageToCheck && 
-        currentTime - lastSubmittedTime.current < 1000) {
+        currentTime - lastSubmittedTime.current < 500) {
       console.log('Duplicate message detected, preventing submission')
       return
     }
+    
+    // 빈 메시지 체크 (텍스트도 없고 이미지도 없는 경우)
+    if (!inputValue.trim() && uploadedImages.length === 0) {
+      console.log('Empty message, preventing submission')
+      return
+    }
+    
+    // 전송 시작 플래그 설정
+    isSubmittingRef.current = true
     
     // 스트리밍 중이면 먼저 중단
     if (isStreaming) {
@@ -1544,16 +1635,17 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     }
     
     if ((inputValue.trim() || uploadedImages.length > 0) && selectedModel && chatId && session?.user?.email) {
-      // 전송 중 플래그 설정
-      setIsSubmitting(true)
-      
-      // 새 메시지 전송 시 재생성 상태 리셋
-      console.log('New message submission - resetting regeneration state')
-      setRegeneratingMessageId(null)
-      
-      // 중복 방지 정보 업데이트
-      lastSubmittedMessage.current = messageToCheck
-      lastSubmittedTime.current = currentTime
+      try {
+        // 전송 중 플래그 설정
+        setIsSubmitting(true)
+        
+        // 새 메시지 전송 시 재생성 상태 리셋
+        console.log('New message submission - resetting regeneration state')
+        setRegeneratingMessageId(null)
+        
+        // 중복 방지 정보 업데이트
+        lastSubmittedMessage.current = messageToCheck
+        lastSubmittedTime.current = currentTime
       
       // 전송할 이미지와 메시지 콘텐츠 준비
       const imagesToSend = [...uploadedImages]
@@ -1633,15 +1725,22 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         }, false, imagesToSend).finally(() => {
           // 전송 완료 후 플래그 해제
           setIsSubmitting(false)
+          isSubmittingRef.current = false
         })
       }
       
-      if (isStreaming) {
-        // 스트리밍 중단 처리 완료를 위해 짧은 지연 후 전송
-        setTimeout(sendMessage, 100)
-      } else {
-        // 즉시 전송
-        sendMessage()
+        if (isStreaming) {
+          // 스트리밍 중단 처리 완료를 위해 짧은 지연 후 전송
+          setTimeout(sendMessage, 100)
+        } else {
+          // 즉시 전송
+          sendMessage()
+        }
+      } catch (error) {
+        console.error('Error in handleSubmit:', error)
+        // 에러 발생 시 플래그 해제
+        setIsSubmitting(false)
+        isSubmittingRef.current = false
       }
     }
   }, [inputValue, uploadedImages, messages, selectedModel, chatId, session?.user?.email, isStreaming, isSubmitting, generateUniqueId, scrollToBottomSmooth, sendMessageToAI, handleAbort])
@@ -1665,10 +1764,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           return
         }
         
-        // 한글 IME 조합 완료를 위한 짧은 지연
-        setTimeout(() => {
-          handleSubmit()
-        }, 10)
+        // 즉시 실행 (setTimeout 제거로 중복 실행 방지)
+        handleSubmit()
       }
     }
   }, [handleSubmit, isComposing])
