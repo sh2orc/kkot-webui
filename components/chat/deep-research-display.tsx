@@ -70,12 +70,7 @@ export function DeepResearchDisplay({
         // 현재 스탭 내용 업데이트
         if (deepResearchStepInfo?.title && deepResearchStepInfo?.currentStepContent) {
           const stepTitle = deepResearchStepInfo.title
-          let stepContent = deepResearchStepInfo.currentStepContent
-          
-          // <진행중> 태그 확인 및 제거
-          const isInProgress = stepContent.includes('<진행중>') && stepContent.includes('</진행중>')
-          const cleanContent = stepContent.replace(/<진행중>|<\/진행중>/g, '')
-          
+          const stepContent = deepResearchStepInfo.currentStepContent
           const isComplete = deepResearchStepInfo.isComplete || false
           
           // 현재 스탭 찾기 - 함수형 업데이트 사용
@@ -84,10 +79,23 @@ export function DeepResearchDisplay({
             
             if (currentStepIndex >= 0) {
               const updatedSteps = [...prevSteps]
+              
+              // 새로운 단계가 시작될 때 이전 단계들을 완료 처리
+              if (!isComplete) {
+                for (let i = 0; i < currentStepIndex; i++) {
+                  if (updatedSteps[i].status === 'in_progress') {
+                    updatedSteps[i] = {
+                      ...updatedSteps[i],
+                      status: 'completed'
+                    }
+                  }
+                }
+              }
+              
               updatedSteps[currentStepIndex] = {
                 ...updatedSteps[currentStepIndex],
-                content: cleanContent,
-                status: isComplete ? 'completed' : (isInProgress ? 'in_progress' : 'pending')
+                content: stepContent,
+                status: isComplete ? 'completed' : 'in_progress'
               }
               setCurrentStepId(updatedSteps[currentStepIndex].id)
               return updatedSteps
@@ -103,6 +111,19 @@ export function DeepResearchDisplay({
             const finalStepIndex = prevSteps.findIndex(s => s.stepType === 'final')
             if (finalStepIndex >= 0) {
               const updatedSteps = [...prevSteps]
+              
+              // 최종답변이 시작될 때 이전 모든 단계들을 완료 처리
+              if (!deepResearchStepInfo.isComplete) {
+                for (let i = 0; i < finalStepIndex; i++) {
+                  if (updatedSteps[i].status !== 'completed') {
+                    updatedSteps[i] = {
+                      ...updatedSteps[i],
+                      status: 'completed'
+                    }
+                  }
+                }
+              }
+              
               updatedSteps[finalStepIndex] = {
                 ...updatedSteps[finalStepIndex],
                 status: deepResearchStepInfo.isComplete ? 'completed' : 'in_progress'
@@ -128,12 +149,6 @@ export function DeepResearchDisplay({
       // If we have stepInfo, use it to create or update steps
       if (deepResearchStepInfo?.title) {
         const stepTitle = deepResearchStepInfo.title
-        let stepContent = content
-        
-        // <진행중> 태그 확인 및 제거
-        const isInProgress = stepContent.includes('<진행중>') && stepContent.includes('</진행중>')
-        const cleanContent = stepContent.replace(/<진행중>|<\/진행중>/g, '')
-        
         const isComplete = deepResearchStepInfo.isComplete || false
         const stepId = `${deepResearchStepType}-${stepTitle.replace(/\s+/g, '-').toLowerCase()}`
         
@@ -146,22 +161,35 @@ export function DeepResearchDisplay({
             const updatedSteps = [...prevSteps]
             updatedSteps[existingStepIndex] = {
               ...updatedSteps[existingStepIndex],
-              content: cleanContent,
-              status: isComplete ? 'completed' : (isInProgress ? 'in_progress' : 'pending')
+              content: content,
+              status: isComplete ? 'completed' : 'in_progress'
             }
             setCurrentStepId(stepId)
             return updatedSteps
           } else {
-            // Create new step
+            // Create new step - 새로운 단계 생성 시 이전 단계들 완료 처리
+            const updatedSteps = [...prevSteps]
+            
+            // 마지막 진행 중인 단계를 완료 처리
+            for (let i = updatedSteps.length - 1; i >= 0; i--) {
+              if (updatedSteps[i].status === 'in_progress') {
+                updatedSteps[i] = {
+                  ...updatedSteps[i],
+                  status: 'completed'
+                }
+                break
+              }
+            }
+            
             const newStep: DeepResearchStep = {
               id: stepId,
               title: stepTitle,
-              content: cleanContent,
-              status: isComplete ? 'completed' : (isInProgress ? 'in_progress' : 'pending'),
+              content: content,
+              status: isComplete ? 'completed' : 'in_progress',
               stepType: deepResearchStepType || 'step'
             }
             setCurrentStepId(stepId)
-            return [...prevSteps, newStep]
+            return [...updatedSteps, newStep]
           }
         })
         return
@@ -169,93 +197,69 @@ export function DeepResearchDisplay({
 
       // Fallback to content-based parsing if no stepInfo
       for (const line of lines) {
-        if (line.includes('분석 중...') || line.includes('진행 중...') || 
-            line.includes('질문 분석 중...') || line.includes('" 분석 중...') ||
-            line.includes('<진행중>') || line.includes('</진행중>')) {
+        if (line.includes('종합 분석') && !line.includes('중...')) {
           if (currentStep && currentContent.trim()) {
             currentStep.content = currentContent.trim()
+            currentStep.status = 'completed'
             newSteps.push(currentStep as DeepResearchStep)
           }
-          
-          stepCounter++
-          let stepTitle = line.replace(/[🔍🎯💡]/g, '').replace(/<진행중>|<\/진행중>/g, '').trim() || `단계 ${stepCounter}`
-          const isInProgress = line.includes('<진행중>') && line.includes('</진행중>')
-          
-          currentStep = {
-            id: `step-${stepCounter}-${Date.now()}`,
-            title: stepTitle,
-            content: '',
-            status: isInProgress ? 'in_progress' : (isStreaming ? 'in_progress' : 'completed'),
-            stepType: 'step'
-          }
-          currentContent = ''
-        } else if (line.includes('종합 분석 중...') || line.includes('종합 분석') ||
-                   line.includes('<진행중>종합 분석')) {
-          if (currentStep && currentContent.trim()) {
-            currentStep.content = currentContent.trim()
-            newSteps.push(currentStep as DeepResearchStep)
-          }
-          
-          const isInProgress = line.includes('<진행중>') && line.includes('</진행중>')
           
           currentStep = {
             id: `synthesis-${Date.now()}`,
             title: '종합 분석',
             content: '',
-            status: isInProgress ? 'in_progress' : (isStreaming ? 'in_progress' : 'completed'),
+            status: isStreaming ? 'in_progress' : 'completed',
             stepType: 'synthesis'
           }
           currentContent = ''
-        } else if (line.includes('최종 답변 생성 중...') || line.includes('최종 답변') ||
-                   line.includes('<진행중>최종 답변')) {
+        } else if (line.includes('최종 답변') && !line.includes('중...')) {
           if (currentStep && currentContent.trim()) {
             currentStep.content = currentContent.trim()
+            currentStep.status = 'completed'
             newSteps.push(currentStep as DeepResearchStep)
           }
-          
-          const isInProgress = line.includes('<진행중>') && line.includes('</진행중>')
           
           currentStep = {
             id: `final-${Date.now()}`,
             title: '최종 답변',
             content: '',
-            status: isInProgress ? 'in_progress' : (isStreaming ? 'in_progress' : 'completed'),
+            status: isStreaming ? 'in_progress' : 'completed',
             stepType: 'final'
           }
           currentContent = ''
         } else if (line.trim() && !line.includes('딥리서치') && !line.includes('Deep Research')) {
           if (currentStep) {
-            // <진행중> 태그 제거하여 내용 추가
-            const cleanLine = line.replace(/<진행중>|<\/진행중>/g, '')
-            currentContent += cleanLine + '\n'
+            currentContent += line + '\n'
           } else if (newSteps.length === 0) {
-            const cleanLine = line.replace(/<진행중>|<\/진행중>/g, '')
             currentStep = {
               id: `step-1-${Date.now()}`,
               title: '딥리서치 분석',
-              content: cleanLine + '\n',
+              content: line + '\n',
               status: isStreaming ? 'in_progress' : 'completed',
               stepType: 'step'
             }
-            currentContent = cleanLine + '\n'
+            currentContent = line + '\n'
           }
         }
       }
 
       // Add the last step
       if (currentStep && currentContent.trim()) {
-        // <진행중> 태그 제거하여 저장
-        const cleanContent = currentContent.replace(/<진행중>|<\/진행중>/g, '').trim()
-        currentStep.content = cleanContent
+        currentStep.content = currentContent.trim()
         newSteps.push(currentStep as DeepResearchStep)
       }
 
       // Update steps status
-      const updatedSteps = newSteps.map((step, index) => ({
-        ...step,
-        status: (isDeepResearchComplete ? 'completed' : 
-                 (isStreaming && index === newSteps.length - 1) ? 'in_progress' : 'completed') as 'pending' | 'in_progress' | 'completed'
-      }))
+      const updatedSteps = newSteps.map((step, index) => {
+        // 현재 스트리밍 중이고 마지막 단계인 경우만 in_progress, 나머지는 completed
+        const isCurrentStep = isStreaming && index === newSteps.length - 1
+        const isCompletedByDefault = isDeepResearchComplete || !isCurrentStep
+        
+        return {
+          ...step,
+          status: (isCompletedByDefault ? 'completed' : 'in_progress') as 'pending' | 'in_progress' | 'completed'
+        }
+      })
 
       setSteps(updatedSteps)
       
@@ -398,9 +402,16 @@ export function DeepResearchDisplay({
                 {step.stepType === 'step' ? '분석' : step.stepType === 'synthesis' ? '종합' : '최종'}
               </Badge>
               {step.status === 'in_progress' && (
-                <Badge className="text-xs bg-yellow-50 border-yellow-200 text-yellow-700">
-                  진행 중
-                </Badge>
+                <div className="flex items-center gap-2">
+                  <div className="flex space-x-1">
+                    <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse"></div>
+                    <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse [animation-delay:0.2s]"></div>
+                    <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse [animation-delay:0.4s]"></div>
+                  </div>
+                  <Badge className="text-xs bg-yellow-50 border-yellow-200 text-yellow-700">
+                    진행 중
+                  </Badge>
+                </div>
               )}
             </div>
             {openSteps.has(step.id) ? 
@@ -410,7 +421,20 @@ export function DeepResearchDisplay({
           </CollapsibleTrigger>
           <CollapsibleContent className="px-3 pb-3">
             <div className="mt-2 p-3 bg-gray-50 rounded-lg border-l-4 border-blue-200">
-              {step.content ? (
+              {step.status === 'in_progress' ? (
+                <div className="flex items-center gap-3 text-sm text-gray-600">
+                  <div className="flex space-x-1">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                  </div>
+                  <span>분석 중...</span>
+                </div>
+              ) : step.status === 'pending' ? (
+                <div className="text-sm text-gray-500 italic">
+                  대기 중...
+                </div>
+              ) : step.content ? (
                 <div className="prose prose-sm max-w-none text-gray-700">
                   {step.content.split('\n').map((line, index) => (
                     <p key={index} className="mb-2 last:mb-0">
@@ -420,7 +444,7 @@ export function DeepResearchDisplay({
                 </div>
               ) : (
                 <div className="text-sm text-gray-500 italic">
-                  {step.status === 'pending' ? '대기 중...' : '분석 중...'}
+                  내용이 없습니다.
                 </div>
               )}
             </div>
@@ -438,9 +462,16 @@ export function DeepResearchDisplay({
               최종
             </Badge>
             {steps.find(s => s.stepType === 'final')?.status === 'in_progress' && (
-              <Badge className="text-xs bg-yellow-50 border-yellow-200 text-yellow-700">
-                생성 중
-              </Badge>
+              <div className="flex items-center gap-2">
+                <div className="flex space-x-1">
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse [animation-delay:0.2s]"></div>
+                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse [animation-delay:0.4s]"></div>
+                </div>
+                <Badge className="text-xs bg-yellow-50 border-yellow-200 text-yellow-700">
+                  생성 중
+                </Badge>
+              </div>
             )}
             {steps.find(s => s.stepType === 'final')?.status === 'completed' && (
               <Badge className="text-xs bg-green-50 border-green-200 text-green-700">

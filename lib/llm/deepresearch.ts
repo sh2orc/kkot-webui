@@ -117,14 +117,14 @@ export class DeepResearchProcessor {
       { role: "user", content: prompt }
     ];
 
-    // 스트리밍으로 진행 상황 전송 (내용 없이 진행 상황만)
+    // 스트리밍으로 진행 상황 전송 (상태만)
     if (onStream) {
-      onStream(`<진행중>질문 분석 중...</진행중>`, 'step', { title: '질문 분석', isComplete: false });
+      onStream('', 'step', { title: '질문 분석', isComplete: false });
     }
 
     const response = await this.llm.chat(messages);
     
-    // 완료 후 결과 전송 (<진행중> 태그 제거)
+    // 완료 후 결과 전송
     if (onStream) {
       onStream(response.content, 'step', { title: '질문 분석', isComplete: true });
     }
@@ -200,14 +200,14 @@ ${previousContext}
       { role: "user", content: prompt }
     ];
 
-    // 스트리밍으로 진행 상황 전송 (내용 없이 진행 상황만)
+    // 스트리밍으로 진행 상황 전송 (상태만)
     if (onStream) {
-      onStream(`<진행중>"${question}" 분석 중...</진행중>`, 'step', { title: `분석: ${question}`, isComplete: false });
+      onStream('', 'step', { title: `분석: ${question}`, isComplete: false });
     }
 
     const response = await this.llm.chat(messages);
     
-    // 완료 후 결과 전송 (<진행중> 태그 제거)
+    // 완료 후 결과 전송
     if (onStream) {
       onStream(response.content, 'step', { title: `분석: ${question}`, isComplete: true });
     }
@@ -245,9 +245,9 @@ ${findings}
       { role: "user", content: prompt }
     ];
 
-    // 스트리밍으로 진행 상황 전송 (내용 없이 진행 상황만)
+    // 스트리밍으로 진행 상황 전송 (상태만)
     if (onStream) {
-      onStream(`<진행중>종합 분석 중...</진행중>`, 'synthesis', { title: '종합 분석', isComplete: false });
+      onStream('', 'synthesis', { title: '종합 분석', isComplete: false });
     }
 
     const response = await this.llm.chat(messages);
@@ -290,14 +290,14 @@ ${synthesis}
       { role: "user", content: prompt }
     ];
 
-    // 스트리밍으로 진행 상황 전송 (내용 없이 진행 상황만)
+    // 스트리밍으로 진행 상황 전송 (상태만)
     if (onStream) {
-      onStream(`<진행중>최종 답변 생성 중...</진행중>`, 'final', { title: '최종 답변', isComplete: false });
+      onStream('', 'final', { title: '최종 답변', isComplete: false });
     }
 
     const response = await this.llm.chat(messages);
     
-    // 완료 후 결과 전송 (<진행중> 태그 제거)
+    // 완료 후 결과 전송
     if (onStream) {
       onStream(response.content, 'final', { title: '최종 답변', isComplete: true });
     }
@@ -403,4 +403,4 @@ export class DeepResearchUtils {
   }
 }
 
-export default DeepResearchProcessor; 
+export default DeepResearchProcessor;
