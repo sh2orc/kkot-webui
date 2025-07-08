@@ -262,18 +262,24 @@ export function LlmResponse({
         {isDeepResearchResponse ? (
           <div>
             <DeepResearchDisplay 
-              content={content}
+              content={deepResearchStepType === 'final' ? '' : content}
               isStreaming={isStreaming}
               deepResearchStepType={deepResearchStepType}
               isDeepResearchComplete={isDeepResearchComplete}
               deepResearchStepInfo={deepResearchStepInfo}
             />
-            {/* 최종답변 내용 표시 */}
-            {content && content.trim() && (
+            {/* 최종답변 내용 표시 - final 단계일 때만 */}
+            {deepResearchStepType === 'final' && content && content.trim() && (
               <div className="mt-4 border-t border-gray-200 pt-4">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
                   <span className="text-sm font-medium text-green-700">최종 답변</span>
+                  {isStreaming && (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 border border-green-200 rounded-full text-xs text-green-700">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span>생성 중</span>
+                    </div>
+                  )}
                 </div>
                 <div className="markdown-content">
                   {contentParts.map((part, index) => (

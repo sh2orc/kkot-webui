@@ -410,7 +410,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                           const data = JSON.parse(line.slice(6))
                           
                           if (data.type === 'stream') {
-                            // Send streaming content with enhanced step information
+                            // Send deep research streaming content
                             safeEnqueue(
                               new TextEncoder().encode(
                                 `data: ${JSON.stringify({ 
@@ -424,21 +424,23 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                                 })}\n\n`
                               )
                             )
-                            fullResponse += data.content
+                            // 최종 답변(final) 단계일 때만 fullResponse에 추가
+                            if (data.stepType === 'final') {
+                              fullResponse += data.content
+                            }
                           } else if (data.type === 'final') {
                             // Send final deep research result
-                            const finalResult = DeepResearchUtils.formatResultAsMarkdown(data.result)
                             safeEnqueue(
                               new TextEncoder().encode(
                                 `data: ${JSON.stringify({ 
-                                  content: finalResult,
+                                  content: data.content,
                                   messageId: assistantMessageId,
                                   deepResearchFinal: true,
                                   done: false 
                                 })}\n\n`
                               )
                             )
-                            fullResponse += finalResult
+                            fullResponse = data.content // 최종 답변만 저장
                           } else if (data.type === 'error') {
                             console.error('Deep research error:', data.error)
                             safeEnqueue(

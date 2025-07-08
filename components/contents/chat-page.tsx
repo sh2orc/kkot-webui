@@ -587,8 +587,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                       
                       // 스탭별 처리: 최종답변(final)만 메시지 내용으로 저장
                       if (data.stepType === 'final') {
-                        // 최종답변은 메시지 내용으로 저장
-                        assistantContent = data.content
+                        // 최종답변은 메시지 내용으로 저장하고 스트리밍 표시
+                        assistantContent += data.content
                       }
                       // 분석 과정(step, synthesis)은 메시지 내용에 저장하지 않음
                       

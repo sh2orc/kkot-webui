@@ -424,7 +424,9 @@ export function DeepResearchDisplay({
             )}
           </div>
           <div className="mt-2 text-xs text-green-600">
-            최종 답변은 아래 메시지에서 확인하실 수 있습니다.
+            {steps.find(s => s.stepType === 'final')?.status === 'in_progress' 
+              ? '최종 답변을 생성하고 있습니다...' 
+              : '최종 답변이 아래에 표시됩니다.'}
           </div>
         </div>
       )}
