@@ -119,12 +119,12 @@ export class DeepResearchProcessor {
 
     // 스트리밍으로 진행 상황 전송 (내용 없이 진행 상황만)
     if (onStream) {
-      onStream(`질문 분석 중...`, 'step', { title: '질문 분석', isComplete: false });
+      onStream(`<진행중>질문 분석 중...</진행중>`, 'step', { title: '질문 분석', isComplete: false });
     }
 
     const response = await this.llm.chat(messages);
     
-    // 완료 후 결과 전송
+    // 완료 후 결과 전송 (<진행중> 태그 제거)
     if (onStream) {
       onStream(response.content, 'step', { title: '질문 분석', isComplete: true });
     }
@@ -202,12 +202,12 @@ ${previousContext}
 
     // 스트리밍으로 진행 상황 전송 (내용 없이 진행 상황만)
     if (onStream) {
-      onStream(`"${question}" 분석 중...`, 'step', { title: `분석: ${question}`, isComplete: false });
+      onStream(`<진행중>"${question}" 분석 중...</진행중>`, 'step', { title: `분석: ${question}`, isComplete: false });
     }
 
     const response = await this.llm.chat(messages);
     
-    // 완료 후 결과 전송
+    // 완료 후 결과 전송 (<진행중> 태그 제거)
     if (onStream) {
       onStream(response.content, 'step', { title: `분석: ${question}`, isComplete: true });
     }
@@ -247,7 +247,7 @@ ${findings}
 
     // 스트리밍으로 진행 상황 전송 (내용 없이 진행 상황만)
     if (onStream) {
-      onStream(`종합 분석 중...`, 'synthesis', { title: '종합 분석', isComplete: false });
+      onStream(`<진행중>종합 분석 중...</진행중>`, 'synthesis', { title: '종합 분석', isComplete: false });
     }
 
     const response = await this.llm.chat(messages);
@@ -292,12 +292,12 @@ ${synthesis}
 
     // 스트리밍으로 진행 상황 전송 (내용 없이 진행 상황만)
     if (onStream) {
-      onStream(`최종 답변 생성 중...`, 'final', { title: '최종 답변', isComplete: false });
+      onStream(`<진행중>최종 답변 생성 중...</진행중>`, 'final', { title: '최종 답변', isComplete: false });
     }
 
     const response = await this.llm.chat(messages);
     
-    // 완료 후 결과 전송
+    // 완료 후 결과 전송 (<진행중> 태그 제거)
     if (onStream) {
       onStream(response.content, 'final', { title: '최종 답변', isComplete: true });
     }

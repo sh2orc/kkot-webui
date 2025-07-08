@@ -70,7 +70,12 @@ export function DeepResearchDisplay({
         // 현재 스탭 내용 업데이트
         if (deepResearchStepInfo?.title && deepResearchStepInfo?.currentStepContent) {
           const stepTitle = deepResearchStepInfo.title
-          const stepContent = deepResearchStepInfo.currentStepContent
+          let stepContent = deepResearchStepInfo.currentStepContent
+          
+          // <진행중> 태그 확인 및 제거
+          const isInProgress = stepContent.includes('<진행중>') && stepContent.includes('</진행중>')
+          const cleanContent = stepContent.replace(/<진행중>|<\/진행중>/g, '')
+          
           const isComplete = deepResearchStepInfo.isComplete || false
           
           // 현재 스탭 찾기 - 함수형 업데이트 사용
@@ -81,8 +86,8 @@ export function DeepResearchDisplay({
               const updatedSteps = [...prevSteps]
               updatedSteps[currentStepIndex] = {
                 ...updatedSteps[currentStepIndex],
-                content: stepContent,
-                status: isComplete ? 'completed' : 'in_progress'
+                content: cleanContent,
+                status: isComplete ? 'completed' : (isInProgress ? 'in_progress' : 'pending')
               }
               setCurrentStepId(updatedSteps[currentStepIndex].id)
               return updatedSteps
@@ -123,6 +128,12 @@ export function DeepResearchDisplay({
       // If we have stepInfo, use it to create or update steps
       if (deepResearchStepInfo?.title) {
         const stepTitle = deepResearchStepInfo.title
+        let stepContent = content
+        
+        // <진행중> 태그 확인 및 제거
+        const isInProgress = stepContent.includes('<진행중>') && stepContent.includes('</진행중>')
+        const cleanContent = stepContent.replace(/<진행중>|<\/진행중>/g, '')
+        
         const isComplete = deepResearchStepInfo.isComplete || false
         const stepId = `${deepResearchStepType}-${stepTitle.replace(/\s+/g, '-').toLowerCase()}`
         
@@ -135,8 +146,8 @@ export function DeepResearchDisplay({
             const updatedSteps = [...prevSteps]
             updatedSteps[existingStepIndex] = {
               ...updatedSteps[existingStepIndex],
-              content: content,
-              status: isComplete ? 'completed' : 'in_progress'
+              content: cleanContent,
+              status: isComplete ? 'completed' : (isInProgress ? 'in_progress' : 'pending')
             }
             setCurrentStepId(stepId)
             return updatedSteps
@@ -145,8 +156,8 @@ export function DeepResearchDisplay({
             const newStep: DeepResearchStep = {
               id: stepId,
               title: stepTitle,
-              content: content,
-              status: isComplete ? 'completed' : 'in_progress',
+              content: cleanContent,
+              status: isComplete ? 'completed' : (isInProgress ? 'in_progress' : 'pending'),
               stepType: deepResearchStepType || 'step'
             }
             setCurrentStepId(stepId)
@@ -159,69 +170,83 @@ export function DeepResearchDisplay({
       // Fallback to content-based parsing if no stepInfo
       for (const line of lines) {
         if (line.includes('분석 중...') || line.includes('진행 중...') || 
-            line.includes('질문 분석 중...') || line.includes('" 분석 중...')) {
+            line.includes('질문 분석 중...') || line.includes('" 분석 중...') ||
+            line.includes('<진행중>') || line.includes('</진행중>')) {
           if (currentStep && currentContent.trim()) {
             currentStep.content = currentContent.trim()
             newSteps.push(currentStep as DeepResearchStep)
           }
           
           stepCounter++
-          const stepTitle = line.replace(/[🔍🎯💡]/g, '').trim() || `단계 ${stepCounter}`
+          let stepTitle = line.replace(/[🔍🎯💡]/g, '').replace(/<진행중>|<\/진행중>/g, '').trim() || `단계 ${stepCounter}`
+          const isInProgress = line.includes('<진행중>') && line.includes('</진행중>')
+          
           currentStep = {
             id: `step-${stepCounter}-${Date.now()}`,
             title: stepTitle,
             content: '',
-            status: isStreaming ? 'in_progress' : 'completed',
+            status: isInProgress ? 'in_progress' : (isStreaming ? 'in_progress' : 'completed'),
             stepType: 'step'
           }
           currentContent = ''
-        } else if (line.includes('종합 분석 중...') || line.includes('종합 분석')) {
+        } else if (line.includes('종합 분석 중...') || line.includes('종합 분석') ||
+                   line.includes('<진행중>종합 분석')) {
           if (currentStep && currentContent.trim()) {
             currentStep.content = currentContent.trim()
             newSteps.push(currentStep as DeepResearchStep)
           }
+          
+          const isInProgress = line.includes('<진행중>') && line.includes('</진행중>')
           
           currentStep = {
             id: `synthesis-${Date.now()}`,
             title: '종합 분석',
             content: '',
-            status: isStreaming ? 'in_progress' : 'completed',
+            status: isInProgress ? 'in_progress' : (isStreaming ? 'in_progress' : 'completed'),
             stepType: 'synthesis'
           }
           currentContent = ''
-        } else if (line.includes('최종 답변 생성 중...') || line.includes('최종 답변')) {
+        } else if (line.includes('최종 답변 생성 중...') || line.includes('최종 답변') ||
+                   line.includes('<진행중>최종 답변')) {
           if (currentStep && currentContent.trim()) {
             currentStep.content = currentContent.trim()
             newSteps.push(currentStep as DeepResearchStep)
           }
           
+          const isInProgress = line.includes('<진행중>') && line.includes('</진행중>')
+          
           currentStep = {
             id: `final-${Date.now()}`,
             title: '최종 답변',
             content: '',
-            status: isStreaming ? 'in_progress' : 'completed',
+            status: isInProgress ? 'in_progress' : (isStreaming ? 'in_progress' : 'completed'),
             stepType: 'final'
           }
           currentContent = ''
         } else if (line.trim() && !line.includes('딥리서치') && !line.includes('Deep Research')) {
           if (currentStep) {
-            currentContent += line + '\n'
+            // <진행중> 태그 제거하여 내용 추가
+            const cleanLine = line.replace(/<진행중>|<\/진행중>/g, '')
+            currentContent += cleanLine + '\n'
           } else if (newSteps.length === 0) {
+            const cleanLine = line.replace(/<진행중>|<\/진행중>/g, '')
             currentStep = {
               id: `step-1-${Date.now()}`,
               title: '딥리서치 분석',
-              content: line + '\n',
+              content: cleanLine + '\n',
               status: isStreaming ? 'in_progress' : 'completed',
               stepType: 'step'
             }
-            currentContent = line + '\n'
+            currentContent = cleanLine + '\n'
           }
         }
       }
 
       // Add the last step
       if (currentStep && currentContent.trim()) {
-        currentStep.content = currentContent.trim()
+        // <진행중> 태그 제거하여 저장
+        const cleanContent = currentContent.replace(/<진행중>|<\/진행중>/g, '').trim()
+        currentStep.content = cleanContent
         newSteps.push(currentStep as DeepResearchStep)
       }
 
