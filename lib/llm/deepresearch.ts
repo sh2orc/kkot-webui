@@ -53,8 +53,13 @@ export class DeepResearchProcessor {
     onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void
   ): Promise<DeepResearchResult> {
     try {
-      // 1. 하위 질문들을 먼저 생성하여 계획된 스탭들 전달
+      console.log('=== Deep Research Started ===');
+      console.log('Query:', query);
+      
+      // 1. 하위 질문들을 먼저 생성
+      console.log('1. Generating sub-questions...');
       const subQuestions = await this.generateSubQuestions(query, context);
+      console.log('Sub-questions generated:', subQuestions);
       
       // 계획된 스탭들을 미리 전달
       const plannedSteps = [
@@ -64,6 +69,7 @@ export class DeepResearchProcessor {
         { title: '최종 답변', type: 'final' }
       ];
 
+      console.log('2. Sending planned steps:', plannedSteps);
       if (onStream) {
         onStream('딥리서치 계획이 수립되었습니다.', 'step', { 
           title: '분석 계획 수립', 
@@ -74,23 +80,34 @@ export class DeepResearchProcessor {
       }
 
       // 2. 초기 질문 분석
+      console.log('3. Starting initial query analysis...');
       const analysisStep = await this.analyzeQuery(query, context, onStream);
+      console.log('Initial analysis completed:', analysisStep.title);
 
-      // 3. 다각도 분석 수행
+      // 3. 다각도 분석 수행 - 계획된 제목과 정확히 일치하도록 전달
       const steps = [analysisStep];
       
+      console.log('4. Starting sub-question analysis...');
       for (let i = 0; i < Math.min(subQuestions.length, this.config.maxSteps - 1); i++) {
         const subQuestion = subQuestions[i];
-        const step = await this.analyzeSubQuestion(subQuestion, context, steps, onStream);
+        const plannedTitle = `분석: ${subQuestion}`;
+        console.log(`4.${i+1}. Analyzing sub-question: ${plannedTitle}`);
+        const step = await this.analyzeSubQuestion(subQuestion, context, steps, onStream, plannedTitle);
         steps.push(step);
+        console.log(`4.${i+1}. Sub-question analysis completed`);
       }
 
       // 4. 종합 분석 수행
+      console.log('5. Starting synthesis...');
       const synthesis = await this.synthesizeFindings(query, steps, onStream);
+      console.log('Synthesis completed');
       
       // 5. 최종 답변 생성
+      console.log('6. Generating final answer...');
       const finalAnswer = await this.generateFinalAnswer(query, steps, synthesis, onStream);
+      console.log('Final answer generated');
 
+      console.log('=== Deep Research Completed ===');
       return {
         query,
         steps,
@@ -110,6 +127,7 @@ export class DeepResearchProcessor {
    * 초기 질문 분석
    */
   private async analyzeQuery(query: string, context: string, onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void): Promise<DeepResearchStep> {
+    console.log('analyzeQuery started');
     const prompt = this.buildAnalysisPrompt(query, context);
     
     const messages: LLMMessage[] = [
@@ -117,18 +135,23 @@ export class DeepResearchProcessor {
       { role: "user", content: prompt }
     ];
 
+    console.log('Sending start signal for 질문 분석');
     // 스트리밍으로 진행 상황 전송 (상태만)
     if (onStream) {
       onStream('', 'step', { title: '질문 분석', isComplete: false });
     }
 
+    console.log('Calling LLM for analysis...');
     const response = await this.llm.chat(messages);
+    console.log('LLM response received, length:', response.content.length);
     
+    console.log('Sending completion signal for 질문 분석');
     // 완료 후 결과 전송
     if (onStream) {
       onStream(response.content, 'step', { title: '질문 분석', isComplete: true });
     }
     
+    console.log('analyzeQuery completed');
     return {
       id: `step-analysis-${Date.now()}`,
       title: "질문 분석",
@@ -139,7 +162,7 @@ export class DeepResearchProcessor {
   }
 
   /**
-   * 하위 질문 생성
+   * 하위 질문 생성 - 개선된 추출 로직
    */
   private async generateSubQuestions(query: string, context: string): Promise<string[]> {
     const prompt = `다음 질문을 깊이 분석하기 위해 3-4개의 하위 질문을 생성해주세요:
@@ -153,7 +176,11 @@ ${context ? `맥락: ${context}` : ''}
 - 구체적 사례 조사
 - 영향 및 결과 분석
 
-하위 질문들을 번호를 붙여 나열해주세요.`;
+하위 질문들을 다음 형식으로 정확히 나열해주세요:
+1. [질문 내용]
+2. [질문 내용]
+3. [질문 내용]
+4. [질문 내용]`;
 
     const messages: LLMMessage[] = [
       { role: "system", content: this.getSystemPrompt() },
@@ -162,24 +189,28 @@ ${context ? `맥락: ${context}` : ''}
 
     const response = await this.llm.chat(messages);
     
-    // 응답에서 질문들 추출
+    // 응답에서 질문들 추출 - 더 견고한 로직
     const questions = response.content
       .split('\n')
-      .filter(line => line.match(/^\d+\./))
-      .map(line => line.replace(/^\d+\.\s*/, '').trim())
-      .filter(q => q.length > 0);
+      .filter(line => line.trim().length > 0)
+      .map(line => line.trim())
+      .filter(line => /^\d+[.)]\s*/.test(line)) // 숫자 + 점 또는 괄호 패턴
+      .map(line => line.replace(/^\d+[.)]\s*/, '').trim()) // 번호 제거
+      .filter(q => q.length > 0 && q.length < 200); // 빈 문자열 및 너무 긴 문자열 제거
 
+    console.log('Generated sub-questions:', questions);
     return questions.slice(0, 4); // 최대 4개 질문
   }
 
   /**
-   * 하위 질문 분석
+   * 하위 질문 분석 - 정확한 제목 매칭
    */
   private async analyzeSubQuestion(
     question: string, 
     context: string, 
     previousSteps: DeepResearchStep[],
-    onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void
+    onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void,
+    plannedTitle?: string
   ): Promise<DeepResearchStep> {
     const previousContext = previousSteps
       .map(step => `${step.title}: ${step.analysis}`)
@@ -200,21 +231,24 @@ ${previousContext}
       { role: "user", content: prompt }
     ];
 
+    // 계획된 제목이 있으면 사용, 없으면 기본 제목 사용
+    const stepTitle = plannedTitle || `분석: ${question}`;
+
     // 스트리밍으로 진행 상황 전송 (상태만)
     if (onStream) {
-      onStream('', 'step', { title: `분석: ${question}`, isComplete: false });
+      onStream('', 'step', { title: stepTitle, isComplete: false });
     }
 
     const response = await this.llm.chat(messages);
     
     // 완료 후 결과 전송
     if (onStream) {
-      onStream(response.content, 'step', { title: `분석: ${question}`, isComplete: true });
+      onStream(response.content, 'step', { title: stepTitle, isComplete: true });
     }
     
     return {
       id: `step-${Date.now()}`,
-      title: `분석: ${question}`,
+      title: stepTitle,
       question,
       analysis: response.content,
       confidence: 0.75

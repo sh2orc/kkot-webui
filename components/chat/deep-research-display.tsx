@@ -68,9 +68,9 @@ export function DeepResearchDisplay({
       // 계획된 스탭들이 있으면 해당 스탭 업데이트
       if (plannedSteps.length > 0) {
         // 현재 스탭 내용 업데이트
-        if (deepResearchStepInfo?.title && deepResearchStepInfo?.currentStepContent) {
+        if (deepResearchStepInfo?.title) {
           const stepTitle = deepResearchStepInfo.title
-          const stepContent = deepResearchStepInfo.currentStepContent
+          const stepContent = deepResearchStepInfo.currentStepContent || ''
           const isComplete = deepResearchStepInfo.isComplete || false
           
           // 현재 스탭 찾기 - 함수형 업데이트 사용
