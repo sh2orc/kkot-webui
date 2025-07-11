@@ -64,6 +64,10 @@ export function LlmResponse({
   // Otherwise, fallback to content-based detection
   const isDeepResearchResponse = isDeepResearch || 
                                  (!isDeepResearch && (
+                                   content.includes('# 🧠 Deep Research Analysis Start') || 
+                                   content.includes('## 📊 Research Overview') ||
+                                   content.includes('## 🔍 Analysis Process') ||
+                                   content.includes('Deep Research Methodology:') ||
                                    content.includes('# 🧠 딥리서치 분석 시작') || 
                                    content.includes('## 📊 연구 개요') ||
                                    content.includes('## 🔍 분석 과정') ||
@@ -73,6 +77,8 @@ export function LlmResponse({
   // Check if this contains deep research steps
   // Only detect from content if isDeepResearch is not explicitly set
   const hasDeepResearchSteps = !isDeepResearch && content.includes('### ') && (
+    content.includes('Question Analysis') || 
+    content.includes('Analysis:') ||
     content.includes('질문 분석') || 
     content.includes('분석:') ||
     content.includes('### ')
@@ -81,10 +87,10 @@ export function LlmResponse({
   // Get current step type for streaming indication
   const getStepTypeLabel = (stepType?: string) => {
     switch (stepType) {
-      case 'step': return '분석 중'
-      case 'synthesis': return '종합 분석'
-      case 'final': return '최종 답변'
-      default: return '진행 중'
+      case 'step': return 'Analyzing'
+      case 'synthesis': return 'Synthesizing'
+      case 'final': return 'Final Answer'
+      default: return 'In Progress'
     }
   }
 
@@ -214,6 +220,95 @@ export function LlmResponse({
     return parts;
   };
 
+  // 최종답변 부분만 추출하는 함수
+  const extractFinalAnswer = (text: string): string => {
+    // 1. 먼저 #[final answer]# 마커를 찾아서 추출
+    const finalAnswerMarker = '#[final answer]#';
+    const markerIndex = text.indexOf(finalAnswerMarker);
+    
+    if (markerIndex !== -1) {
+      // 마커 이후의 내용을 추출
+      const afterMarker = text.substring(markerIndex + finalAnswerMarker.length).trim();
+      return afterMarker;
+    }
+    
+    // 2. 마커가 없으면 기존 패턴들로 폴백
+    const finalAnswerPatterns = [
+      // 영어 패턴들
+      /## 🎯 Final Answer\s*\n([\s\S]*?)(?=\n## |$)/,
+      /### 🎯 Final Answer\s*\n([\s\S]*?)(?=\n### |$)/,
+      /# 🎯 Final Answer\s*\n([\s\S]*?)(?=\n# |$)/,
+      /## Final Answer\s*\n([\s\S]*?)(?=\n## |$)/,
+      /### Final Answer\s*\n([\s\S]*?)(?=\n### |$)/,
+      /# Final Answer\s*\n([\s\S]*?)(?=\n# |$)/,
+      /## Conclusion\s*\n([\s\S]*?)(?=\n## |$)/,
+      /### Conclusion\s*\n([\s\S]*?)(?=\n### |$)/,
+      
+      // 영어 번호가 포함된 패턴
+      /### 1\. Core Answer\s*\n([\s\S]*?)$/,
+      /### \d+\. Core Answer\s*\n([\s\S]*?)$/,
+      /## 1\. Core Answer\s*\n([\s\S]*?)$/,
+      /## \d+\. Core Answer\s*\n([\s\S]*?)$/,
+      
+      // 한국어 패턴들 (폴백)
+      /## 🎯 최종 답변\s*\n([\s\S]*?)(?=\n## |$)/,
+      /### 🎯 최종 답변\s*\n([\s\S]*?)(?=\n### |$)/,
+      /# 🎯 최종 답변\s*\n([\s\S]*?)(?=\n# |$)/,
+      /## 📝 종합 결론\s*\n([\s\S]*?)(?=\n## |$)/,
+      /### 📝 종합 결론\s*\n([\s\S]*?)(?=\n### |$)/,
+      /## 최종 답변\s*\n([\s\S]*?)(?=\n## |$)/,
+      /### 최종 답변\s*\n([\s\S]*?)(?=\n### |$)/,
+      /# 최종 답변\s*\n([\s\S]*?)(?=\n# |$)/,
+      /## 결론\s*\n([\s\S]*?)(?=\n## |$)/,
+      /### 결론\s*\n([\s\S]*?)(?=\n### |$)/,
+      /### 1\. 핵심 답변\s*\n([\s\S]*?)(?=\n최종 답변이 구조적으로|$)/,
+      /### \d+\. 핵심 답변\s*\n([\s\S]*?)(?=\n최종 답변이 구조적으로|$)/,
+      /## 1\. 핵심 답변\s*\n([\s\S]*?)(?=\n최종 답변이 구조적으로|$)/,
+      /## \d+\. 핵심 답변\s*\n([\s\S]*?)(?=\n최종 답변이 구조적으로|$)/,
+      
+      // 구분자 패턴
+      /--- Final Answer ---\s*\n([\s\S]*?)(?=\n--- |$)/,
+      /=== Final Answer ===\s*\n([\s\S]*?)(?=\n=== |$)/,
+      /--- 최종 답변 ---\s*\n([\s\S]*?)(?=\n--- |$)/,
+      /=== 최종 답변 ===\s*\n([\s\S]*?)(?=\n=== |$)/,
+    ];
+    
+    for (const pattern of finalAnswerPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        return match[1].trim();
+      }
+    }
+    
+    // 3. 특별한 경우: 영어와 한국어 "핵심 답변" 패턴 찾기
+    const coreAnswerPatterns = [
+      /### 1\. Core Answer([\s\S]*?)$/,
+      /### 1\. 핵심 답변([\s\S]*?)(?=\n최종 답변이 구조적으로|$)/,
+    ];
+    
+    for (const pattern of coreAnswerPatterns) {
+      const match = text.match(pattern);
+      if (match && match[1]) {
+        return `### 1. Core Answer${match[1]}`.trim();
+      }
+    }
+    
+    // 4. 패턴이 없으면 마지막 섹션을 최종 답변으로 간주
+    const sections = text.split(/\n(?=##? )/);
+    if (sections.length > 1) {
+      const lastSection = sections[sections.length - 1].replace(/^##? [^\n]*\n?/, '').trim();
+      // 마지막 섹션이 너무 짧으면 전체 텍스트의 마지막 부분을 반환
+      if (lastSection.length < 100) {
+        return text.split('### 1. Core Answer').slice(-1)[0] || 
+               text.split('### 1. 핵심 답변').slice(-1)[0] || 
+               text;
+      }
+      return lastSection;
+    }
+    
+    return text;
+  };
+
   const contentParts = parseContent(content);
 
   return (
@@ -224,26 +319,26 @@ export function LlmResponse({
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-full text-xs font-medium text-cyan-700">
             <Brain className="w-3.5 h-3.5" />
             <span>
-              {isDeepResearchComplete ? '딥리서치 완료' : 
-               isStreaming ? `딥리서치 ${getStepTypeLabel(deepResearchStepType)}` : 
-               '딥리서치 분석 결과'}
+              {isDeepResearchComplete ? 'Deep Research Complete' : 
+               isStreaming ? `Deep Research ${getStepTypeLabel(deepResearchStepType)}` : 
+               'Deep Research Results'}
             </span>
           </div>
           {hasDeepResearchSteps && (
             <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-amber-50 border border-amber-200 rounded-full text-xs text-amber-700">
               <Search className="w-3 h-3" />
-              <span>다단계 분석</span>
+              <span>Multi-step Analysis</span>
             </div>
           )}
           {hasDeepResearchError && (
             <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-red-50 border border-red-200 rounded-full text-xs text-red-700">
-              <span>⚠️ 오류 발생</span>
+              <span>⚠️ Error Occurred</span>
             </div>
           )}
           {isStreaming && isDeepResearch && (
             <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 border border-blue-200 rounded-full text-xs text-blue-700">
               <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
-              <span>실시간 분석</span>
+              <span>Live Analysis</span>
             </div>
           )}
         </div>
@@ -262,40 +357,44 @@ export function LlmResponse({
         {isDeepResearchResponse ? (
           <div>
             <DeepResearchDisplay 
+              key={`deep-research-${id}-${deepResearchStepInfo?.plannedSteps?.length || 0}-${deepResearchStepInfo?.plannedSteps?.map(s => s.title).join('|').substring(0, 50) || 'empty'}`}
+              messageId={id}
               content={deepResearchStepType === 'final' ? '' : content}
               isStreaming={isStreaming}
               deepResearchStepType={deepResearchStepType}
               isDeepResearchComplete={isDeepResearchComplete}
               deepResearchStepInfo={deepResearchStepInfo}
             />
-            {/* 최종답변 내용 표시 - final 단계일 때만 */}
-            {deepResearchStepType === 'final' && content && content.trim() && (
+            {/* 최종답변 내용 표시 - final 단계이거나 딥리서치가 완료되었을 때 */}
+            {(deepResearchStepType === 'final' || isDeepResearchComplete) && content && content.trim() && (
               <div className="mt-4 border-t border-gray-200 pt-4">
                 <div className="flex items-center gap-2 mb-3">
                   <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-green-700">최종 답변</span>
-                  {isStreaming && (
-                    <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-green-50 border border-green-200 rounded-full text-xs text-green-700">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span>생성 중</span>
-                    </div>
-                  )}
+                  <span className="text-sm font-medium text-green-700">Final Answer</span>
                 </div>
                 <div className="markdown-content">
-                  {contentParts.map((part, index) => (
-                    <div key={index}>
-                      {part.type === 'text' ? (
-                        <MarkedMarkdown>{part.content}</MarkedMarkdown>
-                      ) : (
-                        <CodeBlock
-                          className={`language-${part.lang || 'text'}`}
-                          inline={false}
-                        >
-                          {part.content}
-                        </CodeBlock>
-                      )}
-                    </div>
-                  ))}
+                  {(() => {
+                    // 최종답변 부분만 추출해서 파싱
+                    const finalAnswerContent = extractFinalAnswer(content);
+                    console.log('🔍 Final answer content extracted:', finalAnswerContent.length, 'characters');
+                    console.log('🔍 Final answer preview:', finalAnswerContent.substring(0, 100));
+                    const finalAnswerParts = parseContent(finalAnswerContent);
+                    
+                    return finalAnswerParts.map((part, index) => (
+                      <div key={index}>
+                        {part.type === 'text' ? (
+                          <MarkedMarkdown>{part.content}</MarkedMarkdown>
+                        ) : (
+                          <CodeBlock
+                            className={`language-${part.lang || 'text'}`}
+                            inline={false}
+                          >
+                            {part.content}
+                          </CodeBlock>
+                        )}
+                      </div>
+                    ));
+                  })()}
                 </div>
               </div>
             )}

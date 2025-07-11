@@ -4,7 +4,7 @@ import { chatMessageRepository, chatSessionRepository, agentManageRepository, ll
 import { LLMFactory } from '@/lib/llm'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
-import { DeepResearchUtils } from '@/lib/llm/deepresearch'
+import { DeepResearchUtils, DeepResearchProcessor } from '@/lib/llm/deepresearch'
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   console.log('=== Chat [id] API POST request received ===')
@@ -372,211 +372,145 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
           // Check if Deep Research is active
           if (isDeepResearchActive) {
-            console.log('=== Starting Deep Research ===')
+            console.log('=== Starting Complete Step-by-Step Deep Research ===')
             
-            // Call Deep Research API
-            try {
-              const deepResearchResponse = await fetch(`${request.headers.get('origin') || 'http://localhost:3000'}/api/deepresearch`, {
-                method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json',
-                  'Authorization': request.headers.get('Authorization') || '',
-                  'Cookie': request.headers.get('Cookie') || ''
-                },
-                body: JSON.stringify({
-                  query: message,
-                  context: messageHistory.slice(-2).map((msg: any) => `${msg.role}: ${msg.content}`).join('\n'),
-                  modelId: model.id,
-                  modelType: 'llm'
-                })
-              })
-
-              if (deepResearchResponse.ok) {
-                console.log('Deep research API call successful')
+            // 병렬 처리 딥리서치 구조
+            async function handleParallelDeepResearch(
+              query: string,
+              modelId: string,
+              onStream: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: any) => void
+            ) {
+              try {
+                console.log('=== Starting Parallel Deep Research ===');
                 
-                // Stream deep research results
-                const reader = deepResearchResponse.body?.getReader()
-                if (reader) {
-                  while (true) {
-                    const { done, value } = await reader.read()
-                    if (done) break
-
-                    const chunk = new TextDecoder().decode(value)
-                    const lines = chunk.split('\n')
-                    
-                    for (const line of lines) {
-                      if (line.startsWith('data: ')) {
-                        try {
-                          const data = JSON.parse(line.slice(6))
-                          
-                          if (data.type === 'stream') {
-                            // Send deep research streaming content
-                            safeEnqueue(
-                              new TextEncoder().encode(
-                                `data: ${JSON.stringify({ 
-                                  content: data.content,
-                                  messageId: assistantMessageId,
-                                  deepResearchStream: true,
-                                  stepType: data.stepType,
-                                  stepInfo: data.stepInfo || {},
-                                  timestamp: data.timestamp,
-                                  done: false 
-                                })}\n\n`
-                              )
-                            )
-                            // 최종 답변(final) 단계일 때만 fullResponse에 추가
-                            if (data.stepType === 'final') {
-                              fullResponse += data.content
-                            }
-                          } else if (data.type === 'final') {
-                            // Send final deep research result
-                            safeEnqueue(
-                              new TextEncoder().encode(
-                                `data: ${JSON.stringify({ 
-                                  content: data.content,
-                                  messageId: assistantMessageId,
-                                  deepResearchFinal: true,
-                                  done: false 
-                                })}\n\n`
-                              )
-                            )
-                            fullResponse = data.content // 최종 답변만 저장
-                          } else if (data.type === 'error') {
-                            console.error('Deep research error:', data.error)
-                            safeEnqueue(
-                              new TextEncoder().encode(
-                                `data: ${JSON.stringify({ 
-                                  content: `\n⚠️ 딥리서치 중 오류가 발생했습니다: ${data.error}\n\n`,
-                                  messageId: assistantMessageId,
-                                  deepResearchError: true,
-                                  done: false 
-                                })}\n\n`
-                              )
-                            )
-                            fullResponse += `\n⚠️ 딥리서치 중 오류가 발생했습니다: ${data.error}\n\n`
-                          }
-                        } catch (parseError) {
-                          console.log('Failed to parse deep research data:', parseError)
-                        }
-                      }
-                    }
-                  }
+                // 모델 및 서버 정보 조회
+                const modelResult = await llmModelRepository.findById(modelId);
+                if (!modelResult || modelResult.length === 0) {
+                  throw new Error('Model not found');
                 }
                 
-                // Complete deep research successfully
-                if (!completionHandled) {
-                  completionHandled = true
-                  
-                  // Save AI response message
-                  const assistantMessage = {
-                    sessionId: chatId,
-                    role: 'assistant' as const,
-                    content: fullResponse
-                  }
-                  await chatMessageRepository.create(assistantMessage)
-
-                  // Send completion signal
-                  safeEnqueue(
-                    new TextEncoder().encode(
-                      `data: ${JSON.stringify({ 
-                        content: '', 
-                        messageId: assistantMessageId,
-                        done: true 
-                      })}\n\n`
-                    )
-                  )
-                  
-                  safeClose()
-                  console.log('Deep research completed successfully, returning without normal LLM processing')
-                  return
+                const modelInfo = modelResult[0];
+                const serverResult = await llmServerRepository.findById(modelInfo.serverId);
+                if (!serverResult || serverResult.length === 0) {
+                  throw new Error('Server not found');
                 }
-              } else {
-                console.error('Deep research API call failed:', deepResearchResponse.status)
-                // Handle deep research failure with error message and complete processing
-                if (!completionHandled) {
-                  completionHandled = true
-                  
-                  const errorMessage = '⚠️ 딥리서치 API 호출에 실패했습니다. 다시 시도해주세요.'
-                  
-                  // Send error message
-                  safeEnqueue(
-                    new TextEncoder().encode(
-                      `data: ${JSON.stringify({ 
-                        content: errorMessage,
-                        messageId: assistantMessageId,
-                        deepResearchError: true,
-                        done: false 
-                      })}\n\n`
-                    )
-                  )
-                  
-                  // Save error message
-                  const assistantMessage = {
-                    sessionId: chatId,
-                    role: 'assistant' as const,
-                    content: errorMessage
-                  }
-                  await chatMessageRepository.create(assistantMessage)
+                
+                const server = serverResult[0];
 
-                  // Send completion signal
-                  safeEnqueue(
-                    new TextEncoder().encode(
-                      `data: ${JSON.stringify({ 
-                        content: '', 
-                        messageId: assistantMessageId,
-                        done: true 
-                      })}\n\n`
-                    )
-                  )
-                  
-                  safeClose()
-                  console.log('Deep research failed, returning with error message')
-                  return
-                }
+                // LLM 설정
+                const llmConfig = {
+                  provider: server.provider as any,
+                  modelName: modelInfo.modelId,
+                  apiKey: server.apiKey || undefined,
+                  baseUrl: server.baseUrl,
+                  temperature: 0.7,
+                  maxTokens: 4096
+                };
+
+                const llmClient = LLMFactory.create(llmConfig);
+                const processor = new DeepResearchProcessor(llmClient, {
+                  maxSteps: 4,
+                  confidenceThreshold: 0.8,
+                  analysisDepth: 'intermediate',
+                  includeSourceCitations: false,
+                  language: 'ko'
+                });
+                
+                // 1단계: Sub-questions 생성
+                console.log('Step 1: Generating sub-questions...');
+                const { subQuestions, plannedSteps } = await processor.generateSubQuestionsStep(query, '');
+
+                console.log('Sub-questions generated:', subQuestions);
+
+                // Sub-questions와 함께 병렬 처리 시작 신호 전송
+                const subQuestionsContent = `[Analysis Start] Sub-questions Generated
+
+Generated Sub-questions:
+다음 세부 질문들을 병렬로 분석하겠습니다:
+
+${subQuestions.map((q: string, i: number) => `${i + 1}. ${q}`).join('\n\n')}
+
+Parallel Processing Plan:
+- 모든 질문을 동시에 분석하여 속도 향상
+- 각 분석이 완료되는 대로 실시간 업데이트
+- 모든 분석 완료 후 종합 분석 및 최종 답변 생성`;
+
+                // Frontend에서 병렬 처리할 수 있도록 Sub-questions와 modelId 전송
+                onStream(subQuestionsContent, 'step', { 
+                  title: 'Sub-questions Generated', 
+                  isComplete: true,
+                  totalSteps: plannedSteps.length,
+                  plannedSteps: plannedSteps,
+                  subQuestions: subQuestions,
+                  modelId: modelId,
+                  originalQuery: query,
+                  useParallelProcessing: true
+                });
+
+                // Frontend에서 병렬 처리가 시작되었다는 신호만 전송
+                // 실제 분석은 Frontend에서 개별 API 호출로 처리
+                console.log('=== Parallel Deep Research Setup Completed ===');
+                console.log('Frontend will handle parallel sub-question analysis');
+                
+                return 'Parallel processing initiated';
+
+              } catch (error) {
+                console.error('Parallel deep research setup error:', error);
+                throw error;
               }
-            } catch (deepResearchError) {
-              console.error('Deep research API error:', deepResearchError)
-              // Handle deep research error with error message and complete processing
-              if (!completionHandled) {
-                completionHandled = true
-                
-                const errorMessage = '⚠️ 딥리서치 중 오류가 발생했습니다. 다시 시도해주세요.'
-                
-                // Send error message
-                safeEnqueue(
-                  new TextEncoder().encode(
-                    `data: ${JSON.stringify({ 
-                      content: errorMessage,
-                      messageId: assistantMessageId,
-                      deepResearchError: true,
-                      done: false 
-                    })}\n\n`
-                  )
-                )
-                
-                // Save error message
-                const assistantMessage = {
-                  sessionId: chatId,
-                  role: 'assistant' as const,
-                  content: errorMessage
-                }
-                await chatMessageRepository.create(assistantMessage)
+            }
 
-                // Send completion signal
-                safeEnqueue(
-                  new TextEncoder().encode(
-                    `data: ${JSON.stringify({ 
-                      content: '', 
-                      messageId: assistantMessageId,
-                      done: true 
-                    })}\n\n`
-                  )
-                )
-                
-                safeClose()
-                console.log('Deep research error handled, returning with error message')
-                return
+            // 병렬 딥리서치 처리 함수 호출
+            let finalDeepResearchResult = '';
+            await handleParallelDeepResearch(message, model.id, (content: string, type: 'step' | 'synthesis' | 'final', stepInfo: any) => {
+              if (type === 'final') {
+                finalDeepResearchResult = content;
               }
+              fullResponse += content;
+              
+              // Send chunk to client safely
+              safeEnqueue(
+                new TextEncoder().encode(
+                  `data: ${JSON.stringify({ 
+                    content: content,
+                    messageId: assistantMessageId,
+                    deepResearchStream: true,
+                    stepType: type,
+                    stepInfo: stepInfo || {},
+                    timestamp: Date.now(),
+                    done: false 
+                  })}\n\n`
+                )
+              )
+            })
+
+            // 병렬 딥리서치 시작 - Frontend에서 처리 계속
+            if (!completionHandled) {
+              console.log('Parallel deep research setup completed - Frontend will continue processing')
+              
+              // Sub-questions만 저장 (임시)
+              const assistantMessage = {
+                sessionId: chatId,
+                role: 'assistant' as const,
+                content: fullResponse // Sub-questions 내용
+              }
+              await chatMessageRepository.create(assistantMessage)
+
+              // Frontend에 병렬 처리 신호 전송 (아직 완료되지 않음)
+              safeEnqueue(
+                new TextEncoder().encode(
+                  `data: ${JSON.stringify({ 
+                    content: '', 
+                    messageId: assistantMessageId,
+                    parallelProcessingStarted: true,
+                    done: false 
+                  })}\n\n`
+                )
+              )
+              
+              // 여기서는 스트림을 닫지 않고 Frontend에서 병렬 처리 완료 신호를 기다림
+              console.log('Parallel deep research initiated, stream remains open for frontend processing')
+              return
             }
           }
 
@@ -1098,5 +1032,39 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
   } catch (error) {
     console.error('Chat deletion error:', error)
     return NextResponse.json({ error: 'Failed to delete chat' }, { status: 500 })
+  }
+}
+
+// 딥리서치 결과에서 #[final answer]# 마커 이후 부분만 추출하는 함수
+function extractFinalAnswerFromResponse(content: string): string {
+  const markerPatterns = [
+    '#[final answer]#',
+    '#[최종 답변]#',
+    '#[Final Answer]#',
+    '#[FINAL ANSWER]#'
+  ];
+  
+  let finalAnswerStart = -1;
+  let usedMarker = '';
+  
+  // 각 마커 패턴을 확인하여 가장 먼저 나타나는 것을 찾음
+  for (const marker of markerPatterns) {
+    const index = content.indexOf(marker);
+    if (index !== -1 && (finalAnswerStart === -1 || index < finalAnswerStart)) {
+      finalAnswerStart = index;
+      usedMarker = marker;
+    }
+  }
+  
+  if (finalAnswerStart !== -1) {
+    // 마커 이후 부분만 추출
+    const finalAnswer = content.substring(finalAnswerStart + usedMarker.length).trim();
+    console.log('Final answer extracted after marker:', usedMarker);
+    console.log('Final answer length:', finalAnswer.length);
+    return finalAnswer;
+  } else {
+    // 마커가 없으면 전체 내용 반환
+    console.log('No final answer marker found, returning full content');
+    return content;
   }
 } 

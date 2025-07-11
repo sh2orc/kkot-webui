@@ -130,6 +130,17 @@ export async function POST(request: NextRequest) {
               }
             );
 
+            // 딥리서치 완료 후 최종 결과 (마커 추출된) 전송
+            safeEnqueue(
+              new TextEncoder().encode(
+                `data: ${JSON.stringify({ 
+                  type: 'final', 
+                  content: result.finalAnswer,
+                  timestamp: Date.now()
+                })}\n\n`
+              )
+            );
+
             safeClose();
             return result;
           } catch (error) {

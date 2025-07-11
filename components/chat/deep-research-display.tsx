@@ -14,6 +14,7 @@ interface DeepResearchStep {
 }
 
 interface DeepResearchDisplayProps {
+  messageId?: string
   content: string
   isStreaming?: boolean
   deepResearchStepType?: 'step' | 'synthesis' | 'final'
@@ -25,10 +26,13 @@ interface DeepResearchDisplayProps {
     plannedSteps?: Array<{ title: string, type: string }>
     currentStepContent?: string
     currentStepType?: string
+    // 병렬 처리된 결과들을 위한 새로운 구조
+    [key: string]: any
   }
 }
 
 export function DeepResearchDisplay({ 
+  messageId,
   content, 
   isStreaming = false, 
   deepResearchStepType,
@@ -39,32 +43,258 @@ export function DeepResearchDisplay({
   const [openSteps, setOpenSteps] = useState<Set<string>>(new Set())
   const [currentStepId, setCurrentStepId] = useState<string | null>(null)
   const [plannedSteps, setPlannedSteps] = useState<Array<{ title: string, type: string }>>([])
+  const [lastContentHash, setLastContentHash] = useState<string>('')
+  const [lastMessageId, setLastMessageId] = useState<string>('')
 
-  // 계획된 스탭들 처리
+  // 컴포넌트 마운트 시 로그
+  useEffect(() => {
+    console.log('🔷 DeepResearchDisplay MOUNTED:', {
+      messageId,
+      contentLength: content.length,
+      contentPreview: content.substring(0, 100),
+      plannedStepsFromInfo: deepResearchStepInfo?.plannedSteps?.map(s => s.title),
+      stepType: deepResearchStepType,
+      isComplete: isDeepResearchComplete,
+      isStreaming
+    })
+  }, [])
+
+  // 모든 props 변경사항 추적
+  useEffect(() => {
+    console.log('🔄 DeepResearchDisplay props changed:', {
+      messageId,
+      lastMessageId,
+      contentLength: content.length,
+      contentPreview: content.substring(0, 50),
+      plannedStepsCount: deepResearchStepInfo?.plannedSteps?.length || 0,
+      plannedStepsTitles: deepResearchStepInfo?.plannedSteps?.map(s => s.title.substring(0, 30)),
+      currentStepsCount: steps.length,
+      currentStepsTitles: steps.map(s => s.title.substring(0, 30)),
+      stepType: deepResearchStepType,
+      isComplete: isDeepResearchComplete,
+      isStreaming
+    })
+  }, [messageId, content, deepResearchStepInfo, deepResearchStepType, isDeepResearchComplete, isStreaming, steps.length])
+
+  // 메시지 ID 변경 감지 및 상태 완전 초기화
+  useEffect(() => {
+    console.log('DeepResearchDisplay - useEffect triggered:', { 
+      messageId, 
+      lastMessageId, 
+      hasSteps: steps.length,
+      plannedStepsLength: plannedSteps.length,
+      contentPreview: content.substring(0, 50)
+    })
+    
+    // 새로운 메시지가 시작될 때 완전 초기화
+    if (messageId && messageId !== lastMessageId) {
+      console.log('🔄 NEW MESSAGE DETECTED - Completely resetting all states:', { 
+        newMessageId: messageId, 
+        oldMessageId: lastMessageId,
+        currentStepsCount: steps.length,
+        currentPlannedStepsCount: plannedSteps.length
+      })
+      
+      // 즉시 모든 상태 초기화
+      setSteps([])
+      setOpenSteps(new Set())
+      setCurrentStepId(null)
+      setPlannedSteps([])
+      setLastContentHash('')
+      setLastMessageId(messageId)
+      return
+    }
+    
+    // 같은 메시지 ID에서 새로운 딥리서치가 시작되는 경우 (plannedSteps가 새로 들어옴)
+    if (messageId && messageId === lastMessageId && deepResearchStepInfo?.plannedSteps && deepResearchStepInfo.plannedSteps.length > 0) {
+      const newPlannedStepsHash = deepResearchStepInfo.plannedSteps.map(s => s.title).join('|')
+      const currentPlannedStepsHash = plannedSteps.map(s => s.title).join('|')
+      
+      if (newPlannedStepsHash !== currentPlannedStepsHash && newPlannedStepsHash.length > 0) {
+        console.log('📋 NEW PLANNED STEPS DETECTED - Resetting for same message:', {
+          messageId,
+          newPlannedStepsHash: newPlannedStepsHash.substring(0, 100),
+          currentPlannedStepsHash: currentPlannedStepsHash.substring(0, 100)
+        })
+        
+        // 즉시 모든 상태 초기화
+        setSteps([])
+        setOpenSteps(new Set())
+        setCurrentStepId(null)
+        setPlannedSteps([])
+        setLastContentHash('')
+        
+        // 새로운 plannedSteps 적용은 다음 useEffect에서 처리
+        return
+      }
+    }
+  }, [messageId, lastMessageId, deepResearchStepInfo?.plannedSteps])
+
+  // messageId가 없는 경우 컨텐츠 기반 감지 (간소화)
+  useEffect(() => {
+    // messageId가 없으면 컨텐츠 해시 기반으로 새로운 딥리서치 감지
+    if (!messageId) {
+      console.log('⚠️ No messageId provided, using content-based detection')
+      const contentHash = content.substring(0, 100) + (deepResearchStepInfo?.title || '')
+      
+      // 컨텐츠가 크게 변경되었으면 (새로운 질문) 상태 초기화
+      if (lastContentHash && contentHash !== lastContentHash && content.length < 50) {
+        console.log('📝 Content changed significantly (no messageId), resetting states')
+        setSteps([])
+        setOpenSteps(new Set())
+        setCurrentStepId(null)
+        setPlannedSteps([])
+        setLastContentHash(contentHash)
+        return
+      }
+      
+      setLastContentHash(contentHash)
+    }
+  }, [content, deepResearchStepInfo?.title, lastContentHash, messageId])
+
+  // 계획된 스탭들 처리 - 새로운 plannedSteps가 들어올 때마다 완전 초기화
   useEffect(() => {
     if (deepResearchStepInfo?.plannedSteps && deepResearchStepInfo.plannedSteps.length > 0) {
-      setPlannedSteps(deepResearchStepInfo.plannedSteps)
+      const newPlannedSteps = deepResearchStepInfo.plannedSteps
+      const newPlannedStepsHash = newPlannedSteps.map(s => s.title).join('|')
+      const currentPlannedStepsHash = plannedSteps.map(s => s.title).join('|')
       
-      // 계획된 스탭들을 기반으로 초기 스탭 구조 생성 (기존 스탭이 없을 때만)
-      setSteps(prevSteps => {
-        if (prevSteps.length === 0) {
-          const initialSteps: DeepResearchStep[] = deepResearchStepInfo.plannedSteps!.map((plannedStep, index) => ({
-            id: `planned-step-${index}`,
-            title: plannedStep.title,
-            content: '',
-            status: 'pending' as const,
-            stepType: plannedStep.type as 'step' | 'synthesis' | 'final'
-          }))
-          return initialSteps
-        }
-        return prevSteps
+      console.log('🔍 Planned steps comparison:', {
+        newCount: newPlannedSteps.length,
+        currentCount: plannedSteps.length,
+        newHash: newPlannedStepsHash.substring(0, 100),
+        currentHash: currentPlannedStepsHash.substring(0, 100),
+        areEqual: newPlannedStepsHash === currentPlannedStepsHash
       })
+      
+      // 새로운 plannedSteps가 들어오면 항상 완전 초기화
+      if (newPlannedStepsHash !== currentPlannedStepsHash) {
+        console.log('📋 NEW PLANNED STEPS - Complete reset and initialization:', {
+          messageId,
+          from: currentPlannedStepsHash.substring(0, 50),
+          to: newPlannedStepsHash.substring(0, 50)
+        })
+        
+        // 완전 상태 초기화 후 새로운 상태 설정
+        setSteps([])
+        setOpenSteps(new Set())
+        setCurrentStepId(null)
+        setLastContentHash('')
+        setPlannedSteps(newPlannedSteps)
+        
+        // 새로운 plannedSteps를 기반으로 초기 스탭 구조 생성
+        const initialSteps: DeepResearchStep[] = newPlannedSteps.map((plannedStep, index) => ({
+          id: `planned-step-${index}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // 고유 ID 생성
+          title: plannedStep.title,
+          content: '',
+          status: 'pending' as const,
+          stepType: plannedStep.type as 'step' | 'synthesis' | 'final'
+        }))
+        
+        console.log('🆕 Created fresh initial steps:', initialSteps.map(s => ({ id: s.id, title: s.title.substring(0, 30) })))
+        setSteps(initialSteps)
+        return
+      }
     }
   }, [deepResearchStepInfo?.plannedSteps])
 
   // Parse content and extract steps using both content and stepInfo
   useEffect(() => {
     const parseSteps = () => {
+      // 새로운 병렬 처리 데이터 구조 처리
+      if (deepResearchStepInfo && Object.keys(deepResearchStepInfo).length > 0) {
+        console.log('🔍 Processing parallel deep research data:', deepResearchStepInfo);
+        
+        const newSteps: DeepResearchStep[] = []
+        
+        // deepResearchStepInfo의 모든 키를 순회하면서 결과들을 수집
+        Object.entries(deepResearchStepInfo).forEach(([key, value]) => {
+          if (typeof value === 'object' && value !== null && 'content' in value) {
+            const stepData = value as any
+            
+            // Sub-question 분석 결과 처리
+            if (key.startsWith('subq_')) {
+              newSteps.push({
+                id: key,
+                title: stepData.title || `Sub-question ${stepData.index + 1}`,
+                content: stepData.content || '',
+                status: stepData.isComplete ? 'completed' : (stepData.hasError ? 'pending' : 'in_progress'),
+                stepType: 'step'
+              })
+            }
+            // 종합 분석 결과 처리
+            else if (key.startsWith('synthesis_') || stepData.isSynthesis) {
+              newSteps.push({
+                id: key,
+                title: stepData.title || 'Synthesis Analysis',
+                content: stepData.content || '',
+                status: stepData.isComplete ? 'completed' : 'in_progress',
+                stepType: 'synthesis'
+              })
+            }
+            // 최종 답변 처리
+            else if (key.startsWith('final_answer_') || stepData.isFinalAnswer) {
+              newSteps.push({
+                id: key,
+                title: stepData.title || 'Final Answer',
+                content: stepData.content || '',
+                status: stepData.isComplete ? 'completed' : 'in_progress',
+                stepType: 'final'
+              })
+            }
+          }
+        })
+        
+        // 단계들을 적절한 순서로 정렬
+        const sortedSteps = newSteps.sort((a, b) => {
+          // 순서: sub-questions -> synthesis -> final answer
+          const getOrder = (step: DeepResearchStep) => {
+            if (step.stepType === 'step') return 1
+            if (step.stepType === 'synthesis') return 2
+            if (step.stepType === 'final') return 3
+            return 0
+          }
+          
+          const orderA = getOrder(a)
+          const orderB = getOrder(b)
+          
+          if (orderA !== orderB) {
+            return orderA - orderB
+          }
+          
+          // 같은 타입 내에서는 index 또는 ID로 정렬
+          if (a.stepType === 'step' && b.stepType === 'step') {
+            const aData = deepResearchStepInfo[a.id]
+            const bData = deepResearchStepInfo[b.id]
+            return (aData?.index || 0) - (bData?.index || 0)
+          }
+          
+          return 0
+        })
+        
+                 console.log('📊 Processed parallel steps:', sortedSteps.map(s => ({ 
+           id: s.id, 
+           title: s.title.substring(0, 30), 
+           status: s.status, 
+           type: s.stepType 
+         })))
+         
+         console.log('📊 Steps by type:');
+         console.log('- Sub-questions:', sortedSteps.filter(s => s.stepType === 'step').length);
+         console.log('- Synthesis:', sortedSteps.filter(s => s.stepType === 'synthesis').length);
+         console.log('- Final answers:', sortedSteps.filter(s => s.stepType === 'final').length);
+         
+         setSteps(sortedSteps)
+        
+        // 현재 진행 중인 단계 설정
+        const currentStep = sortedSteps.find(s => s.status === 'in_progress')
+        if (currentStep) {
+          setCurrentStepId(currentStep.id)
+        }
+        
+        return
+      }
+      
       // 계획된 스탭들이 있으면 해당 스탭 업데이트
       if (plannedSteps.length > 0) {
         // 현재 스탭 내용 업데이트
@@ -92,9 +322,12 @@ export function DeepResearchDisplay({
                 }
               }
               
+              // 개선된 파싱 로직 적용
+              const parsedContent = parseStepContent(stepContent, stepTitle)
+              
               updatedSteps[currentStepIndex] = {
                 ...updatedSteps[currentStepIndex],
-                content: stepContent,
+                content: parsedContent,
                 status: isComplete ? 'completed' : 'in_progress'
               }
               setCurrentStepId(updatedSteps[currentStepIndex].id)
@@ -159,9 +392,13 @@ export function DeepResearchDisplay({
           if (existingStepIndex >= 0) {
             // Update existing step
             const updatedSteps = [...prevSteps]
+            
+            // 개선된 파싱 로직 적용
+            const parsedContent = parseStepContent(content, stepTitle)
+            
             updatedSteps[existingStepIndex] = {
               ...updatedSteps[existingStepIndex],
-              content: content,
+              content: parsedContent,
               status: isComplete ? 'completed' : 'in_progress'
             }
             setCurrentStepId(stepId)
@@ -181,10 +418,13 @@ export function DeepResearchDisplay({
               }
             }
             
+            // 개선된 파싱 로직 적용
+            const parsedContent = parseStepContent(content, stepTitle)
+            
             const newStep: DeepResearchStep = {
               id: stepId,
               title: stepTitle,
-              content: content,
+              content: parsedContent,
               status: isComplete ? 'completed' : 'in_progress',
               stepType: deepResearchStepType || 'step'
             }
@@ -283,8 +523,106 @@ export function DeepResearchDisplay({
     deepResearchStepInfo?.title,
     deepResearchStepInfo?.currentStepContent,
     deepResearchStepInfo?.currentStepType,
-    deepResearchStepInfo?.isComplete
+    deepResearchStepInfo?.isComplete,
+    // 병렬 처리된 결과들의 변경 감지를 위해 전체 stepInfo 객체 감지
+    deepResearchStepInfo && Object.keys(deepResearchStepInfo).length,
+    // 각 단계의 완료 상태 변경 감지
+    deepResearchStepInfo && Object.values(deepResearchStepInfo).filter(v => 
+      typeof v === 'object' && v !== null && 'isComplete' in v
+    ).map(v => (v as any).isComplete).join(',')
   ])
+
+  // 개선된 스탭 내용 파싱 함수 (마크다운 없는 구조에 맞게 수정)
+  const parseStepContent = (content: string, stepTitle: string): string => {
+    if (!content) return ''
+    
+    // 구분자 기반 파싱
+    const sections = parseContentSections(content)
+    
+    if (sections.length > 0) {
+      // 구분자가 있으면 섹션별로 정리해서 반환 (마크다운 없이)
+      return sections.map(section => {
+        const { title, content: sectionContent } = section
+        return `${title}\n${sectionContent}`
+      }).join('\n\n')
+    }
+    
+    // 구분자가 없으면 원본 내용 반환
+    return content
+  }
+
+  // 내용을 섹션별로 파싱하는 함수 (마크다운 없는 구조에 맞게 수정)
+  const parseContentSections = (content: string): Array<{ title: string, content: string }> => {
+    const sections: Array<{ title: string, content: string }> = []
+    const lines = content.split('\n')
+    
+    let currentSection: { title: string, content: string } | null = null
+    let currentSubSection: { title: string, content: string } | null = null
+    
+    for (const line of lines) {
+      const trimmedLine = line.trim()
+      
+      // 주요 섹션 헤더 감지 ([Analysis Start] 형태)
+      if (trimmedLine.startsWith('[Analysis Start]')) {
+        // 이전 서브섹션과 섹션 저장
+        if (currentSubSection && currentSubSection.content.trim()) {
+          if (currentSection) {
+            currentSection.content += `\n${currentSubSection.title}\n${currentSubSection.content}`
+          }
+          currentSubSection = null
+        }
+        if (currentSection && currentSection.content.trim()) {
+          sections.push(currentSection)
+        }
+        
+        // 새 섹션 시작
+        const title = trimmedLine.replace(/^\[Analysis Start\]\s*/, '').trim()
+        currentSection = { title: title || 'Analysis', content: '' }
+      } 
+      // 하위 섹션 헤더 감지 (콜론으로 끝나는 라인)
+      else if (trimmedLine.endsWith(':') && trimmedLine.length > 1 && !trimmedLine.includes('http')) {
+        // 이전 서브섹션 저장
+        if (currentSubSection && currentSubSection.content.trim()) {
+          if (currentSection) {
+            currentSection.content += `\n${currentSubSection.title}\n${currentSubSection.content}`
+          }
+        }
+        
+        // 새 서브섹션 시작 (콜론 제거)
+        const subTitle = trimmedLine.replace(/:$/, '').trim()
+        currentSubSection = { title: subTitle, content: '' }
+      }
+      // 리스트 항목 처리
+      else if (trimmedLine.startsWith('- ') && trimmedLine.length > 2) {
+        const listItem = trimmedLine.replace(/^- /, '').trim()
+        if (currentSubSection) {
+          currentSubSection.content += `• ${listItem}\n`
+        } else if (currentSection) {
+          currentSection.content += `• ${listItem}\n`
+        }
+      }
+      // 일반 텍스트 처리
+      else if (trimmedLine && !trimmedLine.startsWith('[') && !trimmedLine.startsWith('#')) {
+        if (currentSubSection) {
+          currentSubSection.content += `${trimmedLine}\n`
+        } else if (currentSection) {
+          currentSection.content += `${trimmedLine}\n`
+        }
+      }
+    }
+    
+    // 마지막 서브섹션과 섹션 저장
+    if (currentSubSection && currentSubSection.content.trim()) {
+      if (currentSection) {
+        currentSection.content += `\n${currentSubSection.title}\n${currentSubSection.content}`
+      }
+    }
+    if (currentSection && currentSection.content.trim()) {
+      sections.push(currentSection)
+    }
+    
+    return sections
+  }
 
   const toggleStep = (stepId: string) => {
     setOpenSteps(prev => {

@@ -44,7 +44,7 @@ export class DeepResearchProcessor {
   }
 
   /**
-   * 딥리서치 수행
+   * 딥리서치 수행 - 개선된 구조
    */
   async performDeepResearch(
     query: string,
@@ -56,53 +56,79 @@ export class DeepResearchProcessor {
       console.log('=== Deep Research Started ===');
       console.log('Query:', query);
       
-      // 1. 하위 질문들을 먼저 생성
-      console.log('1. Generating sub-questions...');
+      // 1단계: Sub-questions 생성 및 즉시 표시
+      console.log('1. Generating and displaying sub-questions...');
       const subQuestions = await this.generateSubQuestions(query, context);
       console.log('Sub-questions generated:', subQuestions);
       
-      // 계획된 스탭들을 미리 전달
+      // 계획된 스탭들을 미리 전달 (sub-questions를 먼저 표시)
       const plannedSteps = [
-        { title: '질문 분석', type: 'step' },
-        ...subQuestions.map(q => ({ title: `분석: ${q}`, type: 'step' })),
-        { title: '종합 분석', type: 'synthesis' },
-        { title: '최종 답변', type: 'final' }
+        { title: 'Sub-questions Generated', type: 'step' },
+        { title: 'Question Analysis', type: 'step' },
+        ...subQuestions.map(q => ({ title: `Analysis: ${q}`, type: 'step' })),
+        { title: 'Synthesis Analysis', type: 'synthesis' },
+        { title: 'Final Answer', type: 'final' }
       ];
 
       console.log('2. Sending planned steps:', plannedSteps);
       if (onStream) {
-        onStream('딥리서치 계획이 수립되었습니다.', 'step', { 
-          title: '분석 계획 수립', 
+        onStream('Deep research plan has been established.', 'step', { 
+          title: 'Analysis Planning', 
           isComplete: true,
           totalSteps: plannedSteps.length,
           plannedSteps: plannedSteps
         } as any);
       }
 
-      // 2. 초기 질문 분석
+      // 1.5. Sub-questions 즉시 표시
+      console.log('1.5. Displaying sub-questions immediately...');
+      if (onStream) {
+        const subQuestionsContent = `## [Analysis Start] Sub-questions Generated
+
+### 🎯 Generated Sub-questions
+다음과 같은 세부 질문들을 분석하겠습니다:
+
+${subQuestions.map((q, i) => `**${i + 1}. ${q}**`).join('\n\n')}
+
+### 📋 Analysis Plan
+각 질문에 대해 체계적으로 분석을 진행하겠습니다.
+
+### 🔍 Analysis Methodology
+- 각 세부 질문에 대한 심층 분석 수행
+- 다양한 관점에서의 접근
+- 이전 분석 결과와의 연관성 검토
+- 종합적인 결론 도출`;
+        
+        onStream(subQuestionsContent, 'step', { 
+          title: 'Sub-questions Generated', 
+          isComplete: true
+        });
+      }
+
+      // 2단계: 초기 질문 분석
       console.log('3. Starting initial query analysis...');
       const analysisStep = await this.analyzeQuery(query, context, onStream);
       console.log('Initial analysis completed:', analysisStep.title);
 
-      // 3. 다각도 분석 수행 - 계획된 제목과 정확히 일치하도록 전달
+      // 3단계: 각 Sub-question 분석 (개별 컴포넌트에 매핑)
       const steps = [analysisStep];
       
       console.log('4. Starting sub-question analysis...');
       for (let i = 0; i < Math.min(subQuestions.length, this.config.maxSteps - 1); i++) {
         const subQuestion = subQuestions[i];
-        const plannedTitle = `분석: ${subQuestion}`;
+        const plannedTitle = `Analysis: ${subQuestion}`;
         console.log(`4.${i+1}. Analyzing sub-question: ${plannedTitle}`);
         const step = await this.analyzeSubQuestion(subQuestion, context, steps, onStream, plannedTitle);
         steps.push(step);
         console.log(`4.${i+1}. Sub-question analysis completed`);
       }
 
-      // 4. 종합 분석 수행
+      // 4단계: 종합 분석
       console.log('5. Starting synthesis...');
       const synthesis = await this.synthesizeFindings(query, steps, onStream);
       console.log('Synthesis completed');
       
-      // 5. 최종 답변 생성
+      // 5단계: 최종 답변 생성
       console.log('6. Generating final answer...');
       const finalAnswer = await this.generateFinalAnswer(query, steps, synthesis, onStream);
       console.log('Final answer generated');
@@ -119,8 +145,83 @@ export class DeepResearchProcessor {
 
     } catch (error) {
       console.error('Deep research error:', error);
-      throw new Error(`딥리서치 수행 중 오류 발생: ${error instanceof Error ? error.message : String(error)}`);
+      throw new Error(`Error occurred during deep research: ${error instanceof Error ? error.message : String(error)}`);
     }
+  }
+
+  /**
+   * 단계별 딥리서치 수행 - 1단계: Sub-questions 생성
+   */
+  async generateSubQuestionsStep(
+    query: string,
+    context: string = ""
+  ): Promise<{ subQuestions: string[], plannedSteps: Array<{ title: string, type: string }> }> {
+    console.log('=== Step 1: Generating Sub-questions ===');
+    
+    const subQuestions = await this.generateSubQuestions(query, context);
+    console.log('Sub-questions generated:', subQuestions);
+    
+    const plannedSteps = [
+      { title: 'Sub-questions Generated', type: 'step' },
+      { title: 'Question Analysis', type: 'step' },
+      ...subQuestions.map(q => ({ title: `Analysis: ${q}`, type: 'step' })),
+      { title: 'Synthesis Analysis', type: 'synthesis' },
+      { title: 'Final Answer', type: 'final' }
+    ];
+
+    return { subQuestions, plannedSteps };
+  }
+
+  /**
+   * 단계별 딥리서치 수행 - 2단계: 초기 질문 분석
+   */
+  async analyzeQueryStep(
+    query: string,
+    context: string = "",
+    onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void
+  ): Promise<DeepResearchStep> {
+    console.log('=== Step 2: Analyzing Query ===');
+    return await this.analyzeQuery(query, context, onStream);
+  }
+
+  /**
+   * 단계별 딥리서치 수행 - 3단계: 개별 Sub-question 분석
+   */
+  async analyzeSubQuestionStep(
+    subQuestion: string,
+    query: string,
+    context: string = "",
+    previousSteps: DeepResearchStep[] = [],
+    onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void
+  ): Promise<DeepResearchStep> {
+    console.log('=== Step 3: Analyzing Sub-question ===');
+    const plannedTitle = `Analysis: ${subQuestion}`;
+    return await this.analyzeSubQuestion(subQuestion, context, previousSteps, onStream, plannedTitle);
+  }
+
+  /**
+   * 단계별 딥리서치 수행 - 4단계: 종합 분석
+   */
+  async synthesizeStep(
+    query: string,
+    steps: DeepResearchStep[],
+    onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void
+  ): Promise<string> {
+    console.log('=== Step 4: Synthesizing Findings ===');
+    return await this.synthesizeFindings(query, steps, onStream);
+  }
+
+  /**
+   * 단계별 딥리서치 수행 - 5단계: 최종 답변 생성
+   */
+  async generateFinalAnswerStep(
+    query: string,
+    steps: DeepResearchStep[],
+    synthesis: string,
+    onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void
+  ): Promise<string> {
+    console.log('=== Step 5: Generating Final Answer ===');
+    return await this.generateFinalAnswer(query, steps, synthesis, onStream);
   }
 
   /**
@@ -128,33 +229,58 @@ export class DeepResearchProcessor {
    */
   private async analyzeQuery(query: string, context: string, onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void): Promise<DeepResearchStep> {
     console.log('analyzeQuery started');
-    const prompt = this.buildAnalysisPrompt(query, context);
     
+    const prompt = `Please analyze the following question systematically. Detect the language of the input and respond in the same language. Do not use markdown formatting or emojis in your response.
+
+Question: "${query}"
+${context ? `Context: ${context}` : ''}
+
+Please analyze using the following structure without markdown headers:
+
+[Analysis Start] Question Analysis
+
+Core Concept Definition:
+- Define the core keywords and concepts of the question
+
+Question Intent Analysis:
+- Explain what the questioner wants to know fundamentally
+
+Analysis Perspective Setting:
+- List the various perspectives needed to solve this question
+
+Analysis Methodology:
+- Present a systematic approach to this question
+
+Expected Complexity and Difficulty:
+- Evaluate the complexity and analysis difficulty of this question
+
+Please perform systematic and in-depth analysis without using markdown formatting.`;
+
     const messages: LLMMessage[] = [
       { role: "system", content: this.getSystemPrompt() },
       { role: "user", content: prompt }
     ];
 
-    console.log('Sending start signal for 질문 분석');
+    console.log('Sending start signal for Question Analysis');
     // 스트리밍으로 진행 상황 전송 (상태만)
     if (onStream) {
-      onStream('', 'step', { title: '질문 분석', isComplete: false });
+      onStream('', 'step', { title: 'Question Analysis', isComplete: false });
     }
 
     console.log('Calling LLM for analysis...');
     const response = await this.llm.chat(messages);
     console.log('LLM response received, length:', response.content.length);
     
-    console.log('Sending completion signal for 질문 분석');
+    console.log('Sending completion signal for Question Analysis');
     // 완료 후 결과 전송
     if (onStream) {
-      onStream(response.content, 'step', { title: '질문 분석', isComplete: true });
+      onStream(response.content, 'step', { title: 'Question Analysis', isComplete: true });
     }
     
     console.log('analyzeQuery completed');
     return {
       id: `step-analysis-${Date.now()}`,
-      title: "질문 분석",
+      title: "Question Analysis",
       question: query,
       analysis: response.content,
       confidence: 0.8
@@ -165,22 +291,22 @@ export class DeepResearchProcessor {
    * 하위 질문 생성 - 개선된 추출 로직
    */
   private async generateSubQuestions(query: string, context: string): Promise<string[]> {
-    const prompt = `다음 질문을 깊이 분석하기 위해 3-4개의 하위 질문을 생성해주세요:
+    const prompt = `Generate 3-4 sub-questions to deeply analyze the following question. Detect the language of the input and respond in the same language. Do not use markdown formatting or emojis in your response.
 
-질문: "${query}"
-${context ? `맥락: ${context}` : ''}
+Question: "${query}"
+${context ? `Context: ${context}` : ''}
 
-각 하위 질문은 다음과 같은 관점에서 접근해야 합니다:
-- 핵심 개념 분석
-- 다양한 관점 탐색
-- 구체적 사례 조사
-- 영향 및 결과 분석
+Create sub-questions from each of the following perspectives:
+- Core concept analysis
+- Multi-perspective exploration
+- Specific case studies
+- Impact and outcome analysis
 
-하위 질문들을 다음 형식으로 정확히 나열해주세요:
-1. [질문 내용]
-2. [질문 내용]
-3. [질문 내용]
-4. [질문 내용]`;
+Please list them in exactly the following format without any formatting:
+1. [Question content]
+2. [Question content]
+3. [Question content]
+4. [Question content]`;
 
     const messages: LLMMessage[] = [
       { role: "system", content: this.getSystemPrompt() },
@@ -216,15 +342,34 @@ ${context ? `맥락: ${context}` : ''}
       .map(step => `${step.title}: ${step.analysis}`)
       .join('\n\n');
 
-    const prompt = `다음 하위 질문을 분석해주세요:
+    const prompt = `Please analyze the following sub-question systematically. Detect the language of the input and respond in the same language. Do not use markdown formatting or emojis in your response.
 
-질문: "${question}"
-${context ? `원본 맥락: ${context}` : ''}
+Question: "${question}"
+${context ? `Original Context: ${context}` : ''}
 
-이전 분석 결과:
+Previous Analysis Results:
 ${previousContext}
 
-이 질문에 대해 체계적이고 깊이 있는 분석을 수행하세요.`;
+Please analyze using the following structure without markdown headers:
+
+[Analysis Start] ${question}
+
+Core Analysis:
+- Explain the key points and importance of this question
+
+Detailed Analysis:
+- Present specific analysis content and data
+
+Key Findings:
+- Summarize the main insights discovered from this analysis
+
+Relationship Analysis:
+- Explain the relationship with previous analysis results
+
+Multi-perspective Review:
+- Present the results of reviewing from various perspectives
+
+Please perform systematic and in-depth analysis without using markdown formatting.`;
 
     const messages: LLMMessage[] = [
       { role: "system", content: this.getSystemPrompt() },
@@ -232,7 +377,7 @@ ${previousContext}
     ];
 
     // 계획된 제목이 있으면 사용, 없으면 기본 제목 사용
-    const stepTitle = plannedTitle || `분석: ${question}`;
+    const stepTitle = plannedTitle || `Analysis: ${question}`;
 
     // 스트리밍으로 진행 상황 전송 (상태만)
     if (onStream) {
@@ -263,16 +408,30 @@ ${previousContext}
       .map(step => `## ${step.title}\n${step.analysis}`)
       .join('\n\n');
 
-    const prompt = `다음은 "${query}"에 대한 다각도 분석 결과입니다:
+    const prompt = `Please synthesize the multi-perspective analysis results for the question "${query}". Detect the language of the input and respond in the same language. Do not use markdown formatting or emojis in your response.
 
 ${findings}
 
-위 분석들을 종합하여 핵심 인사이트와 패턴을 도출해주세요. 
-다음 관점에서 종합 분석을 수행하세요:
-- 공통 주제와 패턴 식별
-- 상충되는 관점들의 조화
-- 핵심 인사이트 도출
-- 미해결 질문이나 추가 연구 필요 영역 식별`;
+Please perform synthesis analysis using the following structure without markdown headers:
+
+[Analysis Start] Synthesis Analysis
+
+Common Patterns and Themes:
+- Organize patterns and themes that commonly appear in multiple analyses
+
+Reconciling Conflicting Perspectives:
+- Reconcile and integrate different perspectives
+
+Core Insights:
+- Present the core insights derived from the synthesis analysis
+
+Unresolved Questions:
+- Identify unresolved questions that require further research
+
+Limitations of Analysis:
+- Explain the limitations and constraints of the current analysis
+
+Please perform comprehensive and systematic analysis without using markdown formatting.`;
 
     const messages: LLMMessage[] = [
       { role: "system", content: this.getSystemPrompt() },
@@ -281,14 +440,14 @@ ${findings}
 
     // 스트리밍으로 진행 상황 전송 (상태만)
     if (onStream) {
-      onStream('', 'synthesis', { title: '종합 분석', isComplete: false });
+      onStream('', 'synthesis', { title: 'Synthesis Analysis', isComplete: false });
     }
 
     const response = await this.llm.chat(messages);
     
     // 완료 후 결과 전송
     if (onStream) {
-      onStream(response.content, 'synthesis', { title: '종합 분석', isComplete: true });
+      onStream(response.content, 'synthesis', { title: 'Synthesis Analysis', isComplete: true });
     }
     
     return response.content;
@@ -303,21 +462,51 @@ ${findings}
     synthesis: string,
     onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void
   ): Promise<string> {
-    const prompt = `원래 질문: "${query}"
+    const prompt = `Original Question: "${query}"
 
-수행한 분석들:
-${steps.map(step => `- ${step.title}: ${step.analysis.substring(0, 200)}...`).join('\n')}
+Performed Analyses:
+${steps.map(step => `- ${step.title}: ${step.analysis}`).join('\n')}
 
-종합 분석:
+Synthesis Analysis:
 ${synthesis}
 
-위 모든 분석을 바탕으로 원래 질문에 대한 포괄적이고 깊이 있는 최종 답변을 제공해주세요.
-답변은 다음과 같은 구조로 작성하세요:
+CRITICAL INSTRUCTION - LANGUAGE DETECTION AND RESPONSE:
+Please carefully examine the original question "${query}" and detect its language. You must respond in the EXACT SAME LANGUAGE as the original question. This is absolutely critical.
 
-1. 핵심 답변 (명확하고 직접적인 답변)
-2. 상세 분석 (주요 관점들과 근거)
-3. 고려사항 (제한사항, 다양한 관점)
-4. 결론 (요약 및 향후 방향)`;
+- If the original question is in Korean (한국어), respond entirely in Korean
+- If the original question is in English, respond entirely in English  
+- If the original question is in Japanese (日本語), respond entirely in Japanese
+- If the original question is in Chinese (中文), respond entirely in Chinese
+- For any other language, respond in that detected language
+
+Based on all the analyses above, please provide a comprehensive and in-depth final answer to the original question. Do not use markdown formatting or emojis in your response.
+
+IMPORTANT: When writing the final answer, please follow this format strictly without using markdown headers, and write ALL content in the same language as the original question:
+
+1. First, freely write any analysis process or additional explanations
+2. Below write the final answer with the following structure (using appropriate language):
+   - Core answer (clear and direct response)
+   - Detailed analysis (key perspectives and evidence)  
+   - Considerations (limitations, various viewpoints)
+   - Conclusion (summary and future directions)
+
+Format example without markdown (adapt section headers to the detected language):
+
+[Analysis process or additional explanations in the original question's language]
+
+Core Answer: (or 핵심 답변: for Korean, or 核心回答: for Chinese, etc.)
+[Content in original language]
+
+Detailed Analysis: (or 상세 분석: for Korean, or 詳細分析: for Chinese, etc.)
+[Content in original language]
+
+Considerations: (or 고려사항: for Korean, or 考慮事項: for Chinese, etc.)
+[Content in original language]
+
+Conclusion: (or 결론: for Korean, or 結論: for Chinese, etc.)
+[Content in original language]
+
+Remember: The entire response must be in the same language as the original question "${query}".`;
 
     const messages: LLMMessage[] = [
       { role: "system", content: this.getSystemPrompt() },
@@ -326,17 +515,31 @@ ${synthesis}
 
     // 스트리밍으로 진행 상황 전송 (상태만)
     if (onStream) {
-      onStream('', 'final', { title: '최종 답변', isComplete: false });
+      onStream('', 'final', { title: 'Final Answer', isComplete: false });
     }
 
     const response = await this.llm.chat(messages);
     
-    // 완료 후 결과 전송
+    // 스트리밍 중에는 전체 내용을 전송하고, 완료 후 결과에서만 마커 추출
     if (onStream) {
-      onStream(response.content, 'final', { title: '최종 답변', isComplete: true });
+      // 스트리밍 중에는 전체 내용 전송 (마커 추출 없이)
+      onStream(response.content, 'final', { title: 'Final Answer', isComplete: true });
     }
     
-    return response.content;
+    // 최종 반환값에서만 마커 이후 부분 추출
+    const finalAnswerContent = this.extractFinalAnswerFromResponse(response.content);
+    
+    return finalAnswerContent;
+  }
+
+  /**
+   * 응답에서 최종 답변 추출 (병렬 처리용 - 마커 불필요)
+   */
+  private extractFinalAnswerFromResponse(content: string): string {
+    // 병렬 처리에서는 마커가 필요 없으므로 전체 내용 반환
+    console.log('Returning full content as final answer (parallel processing)');
+    console.log('Final answer length:', content.length);
+    return content;
   }
 
   /**
@@ -356,44 +559,54 @@ ${synthesis}
     const depth = this.config.analysisDepth;
     const stepCount = this.config.maxSteps;
     
-    return `딥리서치 방법론: ${depth === 'basic' ? '기본' : depth === 'intermediate' ? '중급' : '고급'} 분석 (${stepCount}단계)`;
+    return `Deep Research Methodology: ${depth === 'basic' ? 'Basic' : depth === 'intermediate' ? 'Intermediate' : 'Advanced'} Analysis (${stepCount} steps)`;
   }
 
   /**
    * 시스템 프롬프트 생성
    */
   private getSystemPrompt(): string {
-    return `당신은 전문 연구자이자 분석가입니다. 주어진 질문에 대해 깊이 있고 체계적인 분석을 수행해야 합니다.
+    return `You are a professional researcher and analyst. You must perform deep and systematic analysis of the given questions.
 
-분석 지침:
-1. 객관적이고 균형 잡힌 관점을 유지하세요
-2. 다양한 각도에서 주제를 탐구하세요
-3. 구체적인 예시와 근거를 제시하세요
-4. 논리적이고 체계적인 구조로 답변하세요
-5. 불확실한 부분은 명확히 표시하세요
-6. 한국어로 답변하되, 전문 용어는 적절히 사용하세요
+CRITICAL FORMATTING RULES:
+- Do NOT use markdown formatting (no ##, ###, **, *, etc.)
+- Do NOT use emojis or special symbols
+- Use plain text with clear structure using colons and bullet points
+- Always detect the language of the input question and respond in the same language
 
-분석 깊이: ${this.config.analysisDepth}
-언어: ${this.config.language === 'ko' ? '한국어' : 'English'}`;
+If the question is in Korean, respond in Korean. If the question is in English, respond in English. If the question is in another language, respond in that language.
+
+Analysis guidelines:
+1. Maintain objective and balanced perspectives
+2. Explore topics from various angles
+3. Provide specific examples and evidence
+4. Answer with logical and systematic structure using plain text
+5. Clearly mark uncertain parts
+6. Use professional terminology appropriately
+7. Always respond in the same language as the input
+8. Structure responses with colons and bullet points, not markdown headers
+
+Analysis depth: ${this.config.analysisDepth}
+Default language preference: ${this.config.language === 'ko' ? 'Korean' : 'English'}`;
   }
 
   /**
    * 분석 프롬프트 생성
    */
   private buildAnalysisPrompt(query: string, context: string): string {
-    return `다음 질문을 깊이 분석하고 체계적인 접근법을 수립해주세요:
+    return `Please analyze the following question deeply and establish a systematic approach:
 
-질문: "${query}"
-${context ? `맥락: ${context}` : ''}
+Question: "${query}"
+${context ? `Context: ${context}` : ''}
 
-분석 요소:
-1. 질문의 핵심 개념 정의
-2. 분석해야 할 주요 관점들
-3. 고려해야 할 요소들
-4. 접근 방법론
-5. 예상되는 복잡성과 난이도
+Analysis elements:
+1. Define core concepts of the question
+2. Identify key perspectives to analyze
+3. Consider important factors
+4. Approach methodology
+5. Expected complexity and difficulty
 
-체계적이고 깊이 있는 분석을 수행하세요.`;
+Perform systematic and in-depth analysis.`;
   }
 }
 
@@ -405,25 +618,25 @@ export class DeepResearchUtils {
    * 딥리서치 결과를 마크다운 형식으로 변환
    */
   static formatResultAsMarkdown(result: DeepResearchResult): string {
-    let markdown = `# 딥리서치 결과: ${result.query}\n\n`;
+    let markdown = `# Deep Research Result: ${result.query}\n\n`;
     
-    markdown += `## 📊 연구 개요\n`;
-    markdown += `- **신뢰도**: ${(result.confidence * 100).toFixed(1)}%\n`;
-    markdown += `- **방법론**: ${result.methodology}\n`;
-    markdown += `- **분석 단계**: ${result.steps.length}단계\n\n`;
+    markdown += `## 📊 Research Overview\n`;
+    markdown += `- **Confidence**: ${(result.confidence * 100).toFixed(1)}%\n`;
+    markdown += `- **Methodology**: ${result.methodology}\n`;
+    markdown += `- **Analysis Steps**: ${result.steps.length} steps\n\n`;
 
-    markdown += `## 🔍 분석 과정\n\n`;
+    markdown += `## 🔍 Analysis Process\n\n`;
     result.steps.forEach((step, index) => {
       markdown += `### ${index + 1}. ${step.title}\n`;
-      markdown += `**질문**: ${step.question}\n\n`;
+      markdown += `**Question**: ${step.question}\n\n`;
       markdown += `${step.analysis}\n\n`;
-      markdown += `**신뢰도**: ${(step.confidence * 100).toFixed(1)}%\n\n`;
+      markdown += `**Confidence**: ${(step.confidence * 100).toFixed(1)}%\n\n`;
     });
 
-    markdown += `## 🎯 종합 분석\n\n`;
+    markdown += `## 🎯 Synthesis Analysis\n\n`;
     markdown += `${result.synthesis}\n\n`;
 
-    markdown += `## 💡 최종 답변\n\n`;
+    markdown += `## 💡 Final Answer\n\n`;
     markdown += `${result.finalAnswer}\n\n`;
 
     return markdown;
@@ -433,7 +646,7 @@ export class DeepResearchUtils {
    * 딥리서치 결과를 요약 형식으로 변환
    */
   static formatResultAsSummary(result: DeepResearchResult): string {
-    return `**질문**: ${result.query}\n\n${result.finalAnswer}\n\n*${result.steps.length}단계 딥리서치 수행 (신뢰도: ${(result.confidence * 100).toFixed(1)}%)*`;
+    return `**Question**: ${result.query}\n\n${result.finalAnswer}\n\n*${result.steps.length}-step deep research performed (Confidence: ${(result.confidence * 100).toFixed(1)}%)*`;
   }
 }
 

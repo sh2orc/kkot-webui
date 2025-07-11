@@ -381,6 +381,338 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }, [])
 
   // Continue with new request after short delay
+  // 병렬 딥리서치 처리 함수
+  const handleParallelDeepResearch = async (
+    subQuestions: string[],
+    originalQuery: string,
+    modelId: string,
+    assistantMessageId: string
+  ) => {
+    try {
+      console.log('🚀 Starting parallel sub-question analysis');
+      console.log('Sub-questions:', subQuestions);
+      console.log('Original query:', originalQuery);
+      console.log('Model ID:', modelId);
+      console.log('Assistant message ID:', assistantMessageId);
+      
+      // 각 sub-question에 고유 ID 생성
+      const subQuestionData = subQuestions.map((question, index) => ({
+        id: `subq_${Date.now()}_${index}`,
+        question,
+        index
+      }));
+      
+      console.log('Sub-question data with IDs:', subQuestionData);
+      
+      // 모든 sub-question을 병렬로 분석
+      const analysisPromises = subQuestionData.map(async (subQuestionItem) => {
+        const { id, question, index } = subQuestionItem;
+        console.log(`📊 Starting analysis ${index + 1} (${id}): ${question}`);
+        
+        try {
+          const response = await fetch(`/api/deepresearch/subquestion-analysis`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              subQuestion: question,
+              originalQuery,
+              modelId,
+              context: '',
+              previousSteps: []
+            })
+          });
+
+          if (!response.ok) {
+            throw new Error(`Analysis failed for: ${question}`);
+          }
+
+          const result = await response.json();
+          console.log(`✅ Completed analysis ${index + 1} (${id}): ${question}`);
+          console.log('🔍 Sub-question analysis result:', result);
+          console.log('🔍 Sub-question analysis keys:', Object.keys(result));
+          console.log('🔍 Sub-question analysis content:', result.analysis);
+          
+          // 각 분석 완료 시 실시간 업데이트 - 고유 ID로 매핑
+          setMessages(prev => 
+            prev.map(m => 
+              m.id === assistantMessageId 
+                ? { 
+                    ...m,
+                    deepResearchStepInfo: {
+                      ...m.deepResearchStepInfo,
+                      [id]: {
+                        title: `Analysis: ${question}`,
+                        content: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
+                        isComplete: true,
+                        index: index,
+                        subQuestionId: id,
+                        originalQuestion: question
+                      }
+                    }
+                  }
+                : m
+            )
+          );
+          
+          return {
+            analysis: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
+            content: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
+            subQuestionId: id,
+            originalQuestion: question,
+            index: index
+          };
+        } catch (error) {
+          console.error(`❌ Failed analysis ${index + 1} (${id}):`, error);
+          
+          // 에러 발생 시에도 상태 업데이트
+          setMessages(prev => 
+            prev.map(m => 
+              m.id === assistantMessageId 
+                ? { 
+                    ...m,
+                    deepResearchStepInfo: {
+                      ...m.deepResearchStepInfo,
+                      [id]: {
+                        title: `Analysis: ${question}`,
+                        content: `❌ 분석 중 오류가 발생했습니다: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                        isComplete: false,
+                        hasError: true,
+                        index: index,
+                        subQuestionId: id,
+                        originalQuestion: question
+                      }
+                    }
+                  }
+                : m
+            )
+          );
+          
+          return null;
+        }
+      });
+
+      // 모든 분석 완료 대기
+      console.log('⏳ Waiting for all analyses to complete...');
+      const analysisResults = await Promise.all(analysisPromises);
+      const validResults = analysisResults.filter(result => result !== null);
+      
+      console.log(`✅ All analyses completed: ${validResults.length}/${subQuestions.length} successful`);
+      console.log('Valid results:', validResults);
+      console.log('Valid results details:', validResults.map(r => ({
+        subQuestionId: r.subQuestionId,
+        originalQuestion: r.originalQuestion,
+        index: r.index,
+        hasAnalysis: !!r.analysis,
+        hasContent: !!r.content,
+        analysisLength: r.analysis?.length || 0
+      })));
+
+      if (validResults.length === 0) {
+        throw new Error('모든 sub-question 분석이 실패했습니다.');
+      }
+
+      // 종합 분석 수행
+      console.log('🔄 Starting synthesis...');
+      console.log('🔄 Valid results for synthesis:', validResults.length);
+      console.log('🔄 Synthesis request data:', {
+        query: originalQuery,
+        modelId,
+        analysisStepsCount: validResults.length
+      });
+      
+      const synthesisResponse = await fetch(`/api/deepresearch/synthesis`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: originalQuery,
+          modelId,
+          analysisSteps: validResults.map(result => ({
+            analysis: result.analysis || result.content || result,
+            subQuestion: result.originalQuestion,
+            index: result.index
+          }))
+        })
+      });
+
+      if (!synthesisResponse.ok) {
+        const errorText = await synthesisResponse.text();
+        console.error('Synthesis failed:', errorText);
+        throw new Error(`Synthesis failed: ${errorText}`);
+      }
+
+      const synthesisResult = await synthesisResponse.json();
+      console.log('✅ Synthesis completed:', synthesisResult);
+      console.log('🔍 Synthesis result keys:', Object.keys(synthesisResult));
+      console.log('🔍 Synthesis content:', synthesisResult.synthesis);
+
+      // 종합 분석 결과 업데이트
+      const synthesisId = `synthesis_${Date.now()}`;
+      setMessages(prev => 
+        prev.map(m => 
+          m.id === assistantMessageId 
+            ? { 
+                ...m,
+                deepResearchStepInfo: {
+                  ...m.deepResearchStepInfo,
+                  [synthesisId]: {
+                    title: 'Synthesis Analysis',
+                    content: synthesisResult.synthesis || '종합 분석 결과가 비어있습니다.',
+                    isComplete: true,
+                    isSynthesis: true
+                  }
+                }
+              }
+            : m
+        )
+      );
+
+      // 최종 답변 생성
+      console.log('🎯 Generating final answer...');
+      console.log('🎯 Final answer request data:', {
+        query: originalQuery,
+        modelId,
+        analysisStepsCount: validResults.length,
+        synthesisLength: synthesisResult.synthesis?.length || 0
+      });
+      
+      const finalAnswerResponse = await fetch(`/api/deepresearch/final-answer`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          query: originalQuery,
+          modelId,
+          analysisSteps: validResults.map(result => ({
+            analysis: result.analysis || result.content || result,
+            subQuestion: result.originalQuestion,
+            index: result.index
+          })),
+          synthesis: synthesisResult.synthesis
+        })
+      });
+
+      if (!finalAnswerResponse.ok) {
+        const errorText = await finalAnswerResponse.text();
+        console.error('Final answer generation failed:', errorText);
+        throw new Error(`Final answer generation failed: ${errorText}`);
+      }
+
+      const finalAnswerResult = await finalAnswerResponse.json();
+      console.log('🎉 Final answer generated:', finalAnswerResult);
+      console.log('🔍 Final answer result keys:', Object.keys(finalAnswerResult));
+      console.log('🔍 Final answer content:', finalAnswerResult.finalAnswer);
+      console.log('🔍 Final answer length:', finalAnswerResult.finalAnswer?.length);
+
+      // 최종 답변으로 메시지 업데이트
+      const finalAnswerId = `final_answer_${Date.now()}`;
+      const finalAnswerContent = finalAnswerResult.finalAnswer || finalAnswerResult.answer || '최종 답변이 생성되지 않았습니다.';
+      
+      console.log('🔍 Final answer processing:');
+      console.log('- assistantMessageId:', assistantMessageId);
+      console.log('- finalAnswerId:', finalAnswerId);
+      console.log('- finalAnswerContent length:', finalAnswerContent.length);
+      console.log('- finalAnswerContent preview:', finalAnswerContent.substring(0, 100));
+      
+      setMessages(prev => {
+        console.log('🔍 Current messages before final answer update:', prev.length);
+        const targetMessage = prev.find(m => m.id === assistantMessageId);
+        console.log('🔍 Target message found:', !!targetMessage);
+        console.log('🔍 Target message content length:', targetMessage?.content.length);
+        
+        const updatedMessages = prev.map(m => 
+          m.id === assistantMessageId 
+            ? { 
+                ...m,
+                content: m.content + '\n\n## 최종 답변\n\n' + finalAnswerContent,
+                isDeepResearchComplete: true,
+                deepResearchStepType: 'final' as const, // 최종 답변 단계로 설정
+                deepResearchStepInfo: {
+                  ...m.deepResearchStepInfo,
+                  [finalAnswerId]: {
+                    title: 'Final Answer',
+                    content: finalAnswerContent,
+                    isComplete: true,
+                    isFinalAnswer: true
+                  }
+                }
+              }
+            : m
+        );
+        
+        console.log('🔍 Updated messages after final answer:', updatedMessages.length);
+        const updatedTargetMessage = updatedMessages.find(m => m.id === assistantMessageId);
+        console.log('🔍 Updated target message content length:', updatedTargetMessage?.content.length);
+        
+        return updatedMessages;
+      });
+
+      // 스트리밍 상태 즉시 종료
+      console.log('🔄 Ending streaming state immediately...');
+      setIsStreaming(false);
+      setStreamingMessageId(null);
+      setIsSubmitting(false); // 제출 상태도 해제
+      streamingInProgress.current = false;
+      
+      // 추가 안전장치 - 여러 번 시도
+      setTimeout(() => {
+        console.log('🔄 Second attempt to end streaming state...');
+        setIsStreaming(false);
+        setStreamingMessageId(null);
+        setIsSubmitting(false);
+        streamingInProgress.current = false;
+      }, 100);
+      
+      setTimeout(() => {
+        console.log('🔄 Final attempt to end streaming state...');
+        setIsStreaming(false);
+        setStreamingMessageId(null);
+        setIsSubmitting(false);
+        streamingInProgress.current = false;
+      }, 1000);
+
+      console.log('🎉 Parallel deep research completed successfully!');
+      
+    } catch (error) {
+      console.error('❌ Parallel deep research error:', error);
+      console.error('❌ Error stack:', error instanceof Error ? error.stack : 'No stack trace');
+      console.error('❌ Error details:', {
+        message: error instanceof Error ? error.message : String(error),
+        assistantMessageId,
+        originalQuery,
+        modelId
+      });
+      
+      // 에러 처리
+      const errorContent = error instanceof Error ? error.message : '알 수 없는 오류가 발생했습니다.';
+      setMessages(prev => 
+        prev.map(m => 
+          m.id === assistantMessageId 
+            ? { 
+                ...m,
+                content: m.content + '\n\n⚠️ 병렬 딥리서치 중 오류가 발생했습니다: ' + errorContent,
+                hasDeepResearchError: true
+              }
+            : m
+        )
+      );
+      
+      // 스트리밍 상태 즉시 종료 (에러 시)
+      console.log('🔄 Ending streaming state due to error...');
+      setIsStreaming(false);
+      setStreamingMessageId(null);
+      setIsSubmitting(false); // 제출 상태도 해제
+      streamingInProgress.current = false;
+      
+      // 추가 안전장치
+      setTimeout(() => {
+        console.log('🔄 Second attempt to end streaming state (error)...');
+        setIsStreaming(false);
+        setStreamingMessageId(null);
+        setIsSubmitting(false);
+        streamingInProgress.current = false;
+      }, 100);
+    }
+  };
+
   const sendMessageToAI = async (message: string, agentInfo: {id: string, type: string}, isRegeneration: boolean = false, images?: File[]) => {
     console.log('=== sendMessageToAI function called ===')
     console.log('message:', message)
@@ -585,12 +917,33 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                         setDeepResearchPlannedSteps(data.stepInfo.plannedSteps)
                       }
                       
-                      // 스탭별 처리: 최종답변(final)만 메시지 내용으로 저장
-                      if (data.stepType === 'final') {
-                        // 최종답변은 메시지 내용으로 저장하고 스트리밍 표시
-                        assistantContent += data.content
+                      // 병렬 처리 모드 확인
+                      if (data.stepInfo?.useParallelProcessing && data.stepInfo?.subQuestions) {
+                        console.log('🚀 Starting parallel deep research processing');
+                        console.log('🚀 Step info:', data.stepInfo);
+                        console.log('🚀 Sub-questions from step info:', data.stepInfo.subQuestions);
+                        console.log('🚀 Assistant message ID:', assistantMessageId);
+                        
+                        // Sub-questions를 메시지 내용으로 저장
+                        assistantContent += data.content;
+                        
+                        // 병렬 처리 시작
+                        handleParallelDeepResearch(
+                          data.stepInfo.subQuestions,
+                          data.stepInfo.originalQuery,
+                          data.stepInfo.modelId,
+                          assistantMessageId
+                        );
+                      } else {
+                        // 기존 순차 처리 로직
+                        // 스탭별 처리: Sub-questions와 최종답변(final)을 메시지 내용으로 저장
+                        if (data.stepType === 'final' || 
+                            (data.stepType === 'step' && data.stepInfo?.title === 'Sub-questions Generated')) {
+                          // Sub-questions와 최종답변은 메시지 내용으로 저장하고 스트리밍 표시
+                          assistantContent += data.content
+                        }
+                        // 다른 분석 과정(step, synthesis)은 메시지 내용에 저장하지 않음 (딥리서치 컴포넌트에서만 표시)
                       }
-                      // 분석 과정(step, synthesis)은 메시지 내용에 저장하지 않음
                       
                       // Real-time update of AI response with deep research streaming
                       setMessages(prev => 
