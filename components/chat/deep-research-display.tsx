@@ -379,8 +379,10 @@ export function DeepResearchDisplay({
                       : 'bg-gray-50 border border-gray-200 text-gray-600'
                   }`}
                 >
-                  {getStepIcon(stepStatus)}
-                  <span className="truncate">{plannedStep.title}</span>
+                  <div className="flex-shrink-0">
+                    {getStepIcon(stepStatus)}
+                  </div>
+                  <span className="truncate min-w-0">{plannedStep.title}</span>
                 </div>
               )
             })}
@@ -395,20 +397,20 @@ export function DeepResearchDisplay({
             className="w-full flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
             onClick={() => toggleStep(step.id)}
           >
-            <div className="flex items-center gap-3">
+            <div className="flex items-center gap-3 flex-wrap">
               {getStepIcon(step.status)}
-              <span className="text-sm font-medium text-gray-700">{step.title}</span>
-              <Badge className={`text-xs ${getStepBadgeColor(step.stepType)}`}>
+              <span className="text-sm font-medium text-gray-700 truncate min-w-0 max-w-[50%]">{step.title}</span>
+              <Badge className={`text-xs flex-shrink-0 ${getStepBadgeColor(step.stepType)}`}>
                 {step.stepType === 'step' ? '분석' : step.stepType === 'synthesis' ? '종합' : '최종'}
               </Badge>
               {step.status === 'in_progress' && (
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                   <div className="flex space-x-1">
                     <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse"></div>
                     <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse [animation-delay:0.2s]"></div>
                     <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse [animation-delay:0.4s]"></div>
                   </div>
-                  <Badge className="text-xs bg-yellow-50 border-yellow-200 text-yellow-700">
+                  <Badge className="text-xs bg-yellow-50 border-yellow-200 text-yellow-700 flex-shrink-0">
                     진행 중
                   </Badge>
                 </div>
@@ -455,26 +457,28 @@ export function DeepResearchDisplay({
       {/* 최종답변 스탭 상태 표시 (내용은 메시지에서 표시) */}
       {steps.some(step => step.stepType === 'final') && (
         <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
-          <div className="flex items-center gap-3">
-            {getStepIcon(steps.find(s => s.stepType === 'final')?.status || 'pending')}
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex-shrink-0">
+              {getStepIcon(steps.find(s => s.stepType === 'final')?.status || 'pending')}
+            </div>
             <span className="text-sm font-medium text-green-700">최종 답변</span>
-            <Badge className="text-xs bg-green-100 text-green-700 border-green-200">
+            <Badge className="text-xs bg-green-100 text-green-700 border-green-200 flex-shrink-0">
               최종
             </Badge>
             {steps.find(s => s.stepType === 'final')?.status === 'in_progress' && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-shrink-0">
                 <div className="flex space-x-1">
                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse [animation-delay:0.2s]"></div>
                   <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse [animation-delay:0.4s]"></div>
                 </div>
-                <Badge className="text-xs bg-yellow-50 border-yellow-200 text-yellow-700">
+                <Badge className="text-xs bg-yellow-50 border-yellow-200 text-yellow-700 flex-shrink-0">
                   생성 중
                 </Badge>
               </div>
             )}
             {steps.find(s => s.stepType === 'final')?.status === 'completed' && (
-              <Badge className="text-xs bg-green-50 border-green-200 text-green-700">
+              <Badge className="text-xs bg-green-50 border-green-200 text-green-700 flex-shrink-0">
                 완료
               </Badge>
             )}
