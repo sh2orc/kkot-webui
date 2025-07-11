@@ -314,13 +314,13 @@ export function DeepResearchDisplay({
   const getStepBadgeColor = (stepType: DeepResearchStep['stepType']) => {
     switch (stepType) {
       case 'step':
-        return 'bg-blue-100 text-blue-700 border-blue-200'
+        return 'bg-blue-100 text-blue-700 border-blue-200 hover:bg-blue-300 hover:text-blue-900'
       case 'synthesis':
-        return 'bg-purple-100 text-purple-700 border-purple-200'
+        return 'bg-purple-100 text-purple-700 border-purple-200 hover:bg-purple-300 hover:text-purple-900'
       case 'final':
-        return 'bg-green-100 text-green-700 border-green-200'
+        return 'bg-green-100 text-green-700 border-green-200 hover:bg-green-300 hover:text-green-900'
       default:
-        return 'bg-gray-100 text-gray-700 border-gray-200'
+        return 'bg-gray-100 text-gray-700 border-gray-200 hover:bg-gray-300 hover:text-gray-900'
     }
   }
 
@@ -462,7 +462,7 @@ export function DeepResearchDisplay({
               {getStepIcon(steps.find(s => s.stepType === 'final')?.status || 'pending')}
             </div>
             <span className="text-sm font-medium text-green-700">최종 답변</span>
-            <Badge className="text-xs bg-green-100 text-green-700 border-green-200 flex-shrink-0">
+            <Badge className="text-xs bg-green-100 text-green-700 border-green-200 flex-shrink-0 hover:bg-green-300 hover:text-green-900">
               최종
             </Badge>
             {steps.find(s => s.stepType === 'final')?.status === 'in_progress' && (
@@ -478,7 +478,7 @@ export function DeepResearchDisplay({
               </div>
             )}
             {steps.find(s => s.stepType === 'final')?.status === 'completed' && (
-              <Badge className="text-xs bg-green-50 border-green-200 text-green-700 flex-shrink-0">
+              <Badge className="text-xs bg-green-50 border-green-200 text-green-700 flex-shrink-0 hover:bg-green-300 hover:text-green-900">
                 완료
               </Badge>
             )}
