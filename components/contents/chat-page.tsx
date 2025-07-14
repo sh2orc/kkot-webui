@@ -796,15 +796,15 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           m.id === assistantMessageId 
             ? { 
                 ...m,
-                // Add final answer to content as well for backup display
-                content: m.content + '\n\n## 최종 답변\n\n' + finalAnswerContent,
+                // Replace content with final answer for llm-response display
+                content: finalAnswerContent,
                 isDeepResearchComplete: true,
                 deepResearchStepType: 'final' as const, // Set as final answer step
                 deepResearchStepInfo: {
                   ...m.deepResearchStepInfo,
                   [finalAnswerId]: {
                     title: 'Final Answer',
-                    content: finalAnswerContent,
+                    content: '', // Empty content for Final Answer block
                     isComplete: true,
                     isFinalAnswer: true
                   }

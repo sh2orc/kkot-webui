@@ -4,6 +4,7 @@ import React, { useState, useEffect } from "react"
 import { ChevronDown, ChevronRight, Check, Loader2, Brain } from "lucide-react"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Badge } from "@/components/ui/badge"
+import { marked } from 'marked'
 
 interface DeepResearchStep {
   id: string
@@ -1102,58 +1103,40 @@ export function DeepResearchDisplay({
                   
                   return (
                     <div className="mt-2 p-4 bg-white rounded-lg border-l-4 border-green-400">
-                      {finalAnswerData.content ? (
-                        <div className="prose prose-sm max-w-none text-gray-700">
-                          {finalAnswerData.content.split('\n').map((line: string, index: number) => (
-                            <p key={index} className="mb-2 last:mb-0">
-                              {line}
-                            </p>
-                          ))}
-                        </div>
-                      ) : (
-                        <div className="text-sm text-gray-500 italic">
-                          Final answer content will be displayed here once generated.
-                        </div>
-                      )}
+                      <div className="text-sm text-gray-500 italic">
+                        최종 답변이 아래에 표시됩니다.
+                      </div>
                     </div>
                   );
                 }
                 
-                return (
-                  <div className="mt-2 p-4 bg-white rounded-lg border-l-4 border-green-400">
-                    <div className="text-sm text-gray-500 italic">
-                      Final answer content will be displayed here once generated.
+                                  return (
+                    <div className="mt-2 p-4 bg-white rounded-lg border-l-4 border-green-400">
+                      <div className="text-sm text-gray-500 italic">
+                        최종 답변이 아래에 표시됩니다.
+                      </div>
                     </div>
-                  </div>
-                );
+                  );
               }
               
-              return (
-                <div className="mt-2 p-4 bg-white rounded-lg border-l-4 border-green-400">
-                  {finalStep.status === 'in_progress' ? (
-                    <div className="flex items-center gap-3 text-sm text-gray-600">
-                      <div className="flex space-x-1">
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-                        <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
-                      </div>
-                      <span>Generating final answer...</span>
+                                return (
+                    <div className="mt-2 p-4 bg-white rounded-lg border-l-4 border-green-400">
+                      {finalStep.status === 'in_progress' ? (
+                        <div className="flex items-center gap-3 text-sm text-gray-600">
+                          <div className="flex space-x-1">
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                            <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
+                          </div>
+                          <span>최종 답변 생성 중...</span>
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500 italic">
+                          최종 답변이 아래에 표시됩니다.
+                        </div>
+                      )}
                     </div>
-                  ) : finalStep.content ? (
-                    <div className="prose prose-sm max-w-none text-gray-700">
-                      {finalStep.content.split('\n').map((line, index) => (
-                        <p key={index} className="mb-2 last:mb-0">
-                          {line}
-                        </p>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className="text-sm text-gray-500 italic">
-                      Final answer content will be displayed here once generated.
-                    </div>
-                  )}
-                </div>
-              );
+                  );
             })()}
           </CollapsibleContent>
         </Collapsible>
