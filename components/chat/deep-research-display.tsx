@@ -26,7 +26,7 @@ interface DeepResearchDisplayProps {
     plannedSteps?: Array<{ title: string, type: string }>
     currentStepContent?: string
     currentStepType?: string
-    // 병렬 처리된 결과들을 위한 새로운 구조
+    // New structure for parallel processed results
     [key: string]: any
   }
 }
@@ -45,8 +45,9 @@ export function DeepResearchDisplay({
   const [plannedSteps, setPlannedSteps] = useState<Array<{ title: string, type: string }>>([])
   const [lastContentHash, setLastContentHash] = useState<string>('')
   const [lastMessageId, setLastMessageId] = useState<string>('')
+  const [processedStepInfoHash, setProcessedStepInfoHash] = useState<string>('')
 
-  // 컴포넌트 마운트 시 로그
+  // Component mount log
   useEffect(() => {
     console.log('🔷 DeepResearchDisplay MOUNTED:', {
       messageId,
@@ -59,7 +60,7 @@ export function DeepResearchDisplay({
     })
   }, [])
 
-  // 모든 props 변경사항 추적
+  // Track all props changes
   useEffect(() => {
     console.log('🔄 DeepResearchDisplay props changed:', {
       messageId,
@@ -72,11 +73,15 @@ export function DeepResearchDisplay({
       currentStepsTitles: steps.map(s => s.title.substring(0, 30)),
       stepType: deepResearchStepType,
       isComplete: isDeepResearchComplete,
-      isStreaming
+      isStreaming,
+      // More detailed stepInfo debugging
+      stepInfoKeys: deepResearchStepInfo ? Object.keys(deepResearchStepInfo) : [],
+      hasPlannedSteps: !!(deepResearchStepInfo?.plannedSteps),
+      rawPlannedSteps: deepResearchStepInfo?.plannedSteps
     })
   }, [messageId, content, deepResearchStepInfo, deepResearchStepType, isDeepResearchComplete, isStreaming, steps.length])
 
-  // 메시지 ID 변경 감지 및 상태 완전 초기화
+  // Message ID change detection and complete state initialization
   useEffect(() => {
     console.log('DeepResearchDisplay - useEffect triggered:', { 
       messageId, 
@@ -86,7 +91,7 @@ export function DeepResearchDisplay({
       contentPreview: content.substring(0, 50)
     })
     
-    // 새로운 메시지가 시작될 때 완전 초기화
+    // Complete initialization when a new message starts
     if (messageId && messageId !== lastMessageId) {
       console.log('🔄 NEW MESSAGE DETECTED - Completely resetting all states:', { 
         newMessageId: messageId, 
@@ -95,17 +100,18 @@ export function DeepResearchDisplay({
         currentPlannedStepsCount: plannedSteps.length
       })
       
-      // 즉시 모든 상태 초기화
-      setSteps([])
-      setOpenSteps(new Set())
-      setCurrentStepId(null)
-      setPlannedSteps([])
-      setLastContentHash('')
-      setLastMessageId(messageId)
+              // Immediately reset all states
+        setSteps([])
+        setOpenSteps(new Set())
+        setCurrentStepId(null)
+        setPlannedSteps([])
+        setLastContentHash('')
+        setProcessedStepInfoHash('')
+        setLastMessageId(messageId)
       return
     }
     
-    // 같은 메시지 ID에서 새로운 딥리서치가 시작되는 경우 (plannedSteps가 새로 들어옴)
+    // When a new deep research starts with the same message ID (new plannedSteps arrived)
     if (messageId && messageId === lastMessageId && deepResearchStepInfo?.plannedSteps && deepResearchStepInfo.plannedSteps.length > 0) {
       const newPlannedStepsHash = deepResearchStepInfo.plannedSteps.map(s => s.title).join('|')
       const currentPlannedStepsHash = plannedSteps.map(s => s.title).join('|')
@@ -117,42 +123,43 @@ export function DeepResearchDisplay({
           currentPlannedStepsHash: currentPlannedStepsHash.substring(0, 100)
         })
         
-        // 즉시 모든 상태 초기화
+        // Immediately reset all states
         setSteps([])
         setOpenSteps(new Set())
         setCurrentStepId(null)
         setPlannedSteps([])
         setLastContentHash('')
         
-        // 새로운 plannedSteps 적용은 다음 useEffect에서 처리
+        // New plannedSteps will be applied in the next useEffect
         return
       }
     }
   }, [messageId, lastMessageId, deepResearchStepInfo?.plannedSteps])
 
-  // messageId가 없는 경우 컨텐츠 기반 감지 (간소화)
+  // Content-based detection when messageId is not available (simplified)
   useEffect(() => {
-    // messageId가 없으면 컨텐츠 해시 기반으로 새로운 딥리서치 감지
+    // Use content hash based detection for new deep research when messageId is not available
     if (!messageId) {
       console.log('⚠️ No messageId provided, using content-based detection')
       const contentHash = content.substring(0, 100) + (deepResearchStepInfo?.title || '')
       
-      // 컨텐츠가 크게 변경되었으면 (새로운 질문) 상태 초기화
-      if (lastContentHash && contentHash !== lastContentHash && content.length < 50) {
-        console.log('📝 Content changed significantly (no messageId), resetting states')
-        setSteps([])
-        setOpenSteps(new Set())
-        setCurrentStepId(null)
-        setPlannedSteps([])
-        setLastContentHash(contentHash)
-        return
-      }
+              // Reset states if content has changed significantly (new question)
+        if (lastContentHash && contentHash !== lastContentHash && content.length < 50) {
+          console.log('📝 Content changed significantly (no messageId), resetting states')
+          setSteps([])
+          setOpenSteps(new Set())
+          setCurrentStepId(null)
+          setPlannedSteps([])
+          setProcessedStepInfoHash('')
+          setLastContentHash(contentHash)
+          return
+        }
       
       setLastContentHash(contentHash)
     }
   }, [content, deepResearchStepInfo?.title, lastContentHash, messageId])
 
-  // 계획된 스탭들 처리 - 새로운 plannedSteps가 들어올 때마다 완전 초기화
+  // Process planned steps - complete reset whenever new plannedSteps arrive
   useEffect(() => {
     if (deepResearchStepInfo?.plannedSteps && deepResearchStepInfo.plannedSteps.length > 0) {
       const newPlannedSteps = deepResearchStepInfo.plannedSteps
@@ -167,7 +174,7 @@ export function DeepResearchDisplay({
         areEqual: newPlannedStepsHash === currentPlannedStepsHash
       })
       
-      // 새로운 plannedSteps가 들어오면 항상 완전 초기화
+      // Always complete reset when new plannedSteps arrive
       if (newPlannedStepsHash !== currentPlannedStepsHash) {
         console.log('📋 NEW PLANNED STEPS - Complete reset and initialization:', {
           messageId,
@@ -175,16 +182,17 @@ export function DeepResearchDisplay({
           to: newPlannedStepsHash.substring(0, 50)
         })
         
-        // 완전 상태 초기화 후 새로운 상태 설정
+        // Complete state reset and new state initialization
         setSteps([])
         setOpenSteps(new Set())
         setCurrentStepId(null)
         setLastContentHash('')
+        setProcessedStepInfoHash('')
         setPlannedSteps(newPlannedSteps)
         
-        // 새로운 plannedSteps를 기반으로 초기 스탭 구조 생성
+        // Create initial step structure based on new plannedSteps
         const initialSteps: DeepResearchStep[] = newPlannedSteps.map((plannedStep, index) => ({
-          id: `planned-step-${index}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // 고유 ID 생성
+          id: `planned-step-${index}-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Generate unique ID
           title: plannedStep.title,
           content: '',
           status: 'pending' as const,
@@ -198,21 +206,43 @@ export function DeepResearchDisplay({
     }
   }, [deepResearchStepInfo?.plannedSteps])
 
-  // Parse content and extract steps using both content and stepInfo
+  // Process new parallel processing data structure
   useEffect(() => {
     const parseSteps = () => {
-      // 새로운 병렬 처리 데이터 구조 처리
+      // New parallel processing data structure handling
       if (deepResearchStepInfo && Object.keys(deepResearchStepInfo).length > 0) {
-        console.log('🔍 Processing parallel deep research data:', deepResearchStepInfo);
+        // Create hash to detect changes in stepInfo
+        const stepInfoHash = JSON.stringify(
+          Object.fromEntries(
+            Object.entries(deepResearchStepInfo)
+              .filter(([key, value]) => typeof value === 'object' && value !== null && 'content' in value)
+              .map(([key, value]) => [key, { 
+                title: (value as any).title, 
+                isComplete: (value as any).isComplete,
+                hasError: (value as any).hasError 
+              }])
+          )
+        )
         
+        // Skip processing if stepInfo hasn't changed
+        if (stepInfoHash === processedStepInfoHash) {
+          console.log('🔍 Step info unchanged, skipping processing');
+          return
+        }
+        
+        console.log('🔍 Processing parallel deep research data:');
+        console.log('🔍 Keys in stepInfo:', Object.keys(deepResearchStepInfo));
+        console.log('🔍 Current steps before processing:', steps.map(s => ({ id: s.id, title: s.title.substring(0, 30), type: s.stepType })));
+        
+        setProcessedStepInfoHash(stepInfoHash)
         const newSteps: DeepResearchStep[] = []
         
-        // deepResearchStepInfo의 모든 키를 순회하면서 결과들을 수집
+        // Iterate through all keys in deepResearchStepInfo to collect results
         Object.entries(deepResearchStepInfo).forEach(([key, value]) => {
           if (typeof value === 'object' && value !== null && 'content' in value) {
             const stepData = value as any
             
-            // Sub-question 분석 결과 처리
+            // Sub-question analysis result processing
             if (key.startsWith('subq_')) {
               newSteps.push({
                 id: key,
@@ -222,7 +252,7 @@ export function DeepResearchDisplay({
                 stepType: 'step'
               })
             }
-            // 종합 분석 결과 처리
+            // Synthesis analysis result processing
             else if (key.startsWith('synthesis_') || stepData.isSynthesis) {
               newSteps.push({
                 id: key,
@@ -232,8 +262,16 @@ export function DeepResearchDisplay({
                 stepType: 'synthesis'
               })
             }
-            // 최종 답변 처리
+            // Final answer processing
             else if (key.startsWith('final_answer_') || stepData.isFinalAnswer) {
+              console.log('🎯 Processing final answer:', {
+                key,
+                title: stepData.title,
+                contentLength: stepData.content?.length || 0,
+                contentPreview: stepData.content?.substring(0, 100) || '',
+                isComplete: stepData.isComplete,
+                isFinalAnswer: stepData.isFinalAnswer
+              })
               newSteps.push({
                 id: key,
                 title: stepData.title || 'Final Answer',
@@ -242,12 +280,34 @@ export function DeepResearchDisplay({
                 stepType: 'final'
               })
             }
+            // Log unmatched keys for debugging
+            else if (typeof value === 'object' && value !== null) {
+              console.log('🔍 Unmatched stepInfo key:', key, 'value:', value)
+            }
           }
         })
         
-        // 단계들을 적절한 순서로 정렬
-        const sortedSteps = newSteps.sort((a, b) => {
-          // 순서: sub-questions -> synthesis -> final answer
+        // Remove duplicates based on title, stepType, and ID
+        const uniqueSteps = newSteps.filter((step, index, array) => {
+          return !array.slice(0, index).some(existingStep => 
+            (existingStep.id === step.id) ||
+            (existingStep.title === step.title && existingStep.stepType === step.stepType)
+          )
+        })
+        
+        console.log('🔄 Removed duplicates:', newSteps.length, '->', uniqueSteps.length)
+        if (newSteps.length !== uniqueSteps.length) {
+          console.log('🔄 Duplicates found:', newSteps.filter((step, index, array) => 
+            array.slice(0, index).some(existingStep => 
+              (existingStep.id === step.id) ||
+              (existingStep.title === step.title && existingStep.stepType === step.stepType)
+            )
+          ).map(s => ({ id: s.id, title: s.title.substring(0, 30), type: s.stepType })))
+        }
+        
+        // Sort steps in appropriate order
+        const sortedSteps = uniqueSteps.sort((a, b) => {
+          // Order: sub-questions -> synthesis -> final answer
           const getOrder = (step: DeepResearchStep) => {
             if (step.stepType === 'step') return 1
             if (step.stepType === 'synthesis') return 2
@@ -262,7 +322,7 @@ export function DeepResearchDisplay({
             return orderA - orderB
           }
           
-          // 같은 타입 내에서는 index 또는 ID로 정렬
+          // Sort within the same type by index or ID
           if (a.stepType === 'step' && b.stepType === 'step') {
             const aData = deepResearchStepInfo[a.id]
             const bData = deepResearchStepInfo[b.id]
@@ -284,33 +344,40 @@ export function DeepResearchDisplay({
          console.log('- Synthesis:', sortedSteps.filter(s => s.stepType === 'synthesis').length);
          console.log('- Final answers:', sortedSteps.filter(s => s.stepType === 'final').length);
          
+         // Replace with new steps (already deduplicated)
          setSteps(sortedSteps)
         
-        // 현재 진행 중인 단계 설정
+        // Set current step
         const currentStep = sortedSteps.find(s => s.status === 'in_progress')
         if (currentStep) {
           setCurrentStepId(currentStep.id)
         }
         
+        // Auto-open final answer when completed
+        const finalStep = sortedSteps.find(s => s.stepType === 'final')
+        if (finalStep && finalStep.status === 'completed' && finalStep.content) {
+          setOpenSteps(prev => new Set(prev).add(finalStep.id))
+        }
+        
         return
       }
       
-      // 계획된 스탭들이 있으면 해당 스탭 업데이트
+      // If there are planned steps, update them
       if (plannedSteps.length > 0) {
-        // 현재 스탭 내용 업데이트
+        // Update current step content
         if (deepResearchStepInfo?.title) {
           const stepTitle = deepResearchStepInfo.title
           const stepContent = deepResearchStepInfo.currentStepContent || ''
           const isComplete = deepResearchStepInfo.isComplete || false
           
-          // 현재 스탭 찾기 - 함수형 업데이트 사용
+          // Find current step - use functional update
           setSteps(prevSteps => {
             const currentStepIndex = prevSteps.findIndex(s => s.title === stepTitle)
             
             if (currentStepIndex >= 0) {
               const updatedSteps = [...prevSteps]
               
-              // 새로운 단계가 시작될 때 이전 단계들을 완료 처리
+              // Complete previous steps when a new step starts
               if (!isComplete) {
                 for (let i = 0; i < currentStepIndex; i++) {
                   if (updatedSteps[i].status === 'in_progress') {
@@ -322,7 +389,7 @@ export function DeepResearchDisplay({
                 }
               }
               
-              // 개선된 파싱 로직 적용
+              // Apply improved parsing logic
               const parsedContent = parseStepContent(stepContent, stepTitle)
               
               updatedSteps[currentStepIndex] = {
@@ -338,14 +405,14 @@ export function DeepResearchDisplay({
           return
         }
         
-        // 최종답변인 경우 메시지 내용에서 표시하므로 여기서는 상태만 업데이트
+        // If it's a final answer, display in message content, so update status only
         if (deepResearchStepInfo?.currentStepType === 'final') {
           setSteps(prevSteps => {
             const finalStepIndex = prevSteps.findIndex(s => s.stepType === 'final')
             if (finalStepIndex >= 0) {
               const updatedSteps = [...prevSteps]
               
-              // 최종답변이 시작될 때 이전 모든 단계들을 완료 처리
+              // Complete all previous steps when a final answer starts
               if (!deepResearchStepInfo.isComplete) {
                 for (let i = 0; i < finalStepIndex; i++) {
                   if (updatedSteps[i].status !== 'completed') {
@@ -372,7 +439,7 @@ export function DeepResearchDisplay({
         return
       }
       
-      // 계획된 스탭들이 없으면 기존 로직 사용
+      // If no planned steps, use original logic
       const lines = content.split('\n').filter(line => line.trim())
       const newSteps: DeepResearchStep[] = []
       let currentStep: Partial<DeepResearchStep> | null = null
@@ -385,7 +452,7 @@ export function DeepResearchDisplay({
         const isComplete = deepResearchStepInfo.isComplete || false
         const stepId = `${deepResearchStepType}-${stepTitle.replace(/\s+/g, '-').toLowerCase()}`
         
-        // Find existing step or create new one - 함수형 업데이트 사용
+        // Find existing step or create new one - use functional update
         setSteps(prevSteps => {
           const existingStepIndex = prevSteps.findIndex(s => s.id === stepId)
           
@@ -393,7 +460,7 @@ export function DeepResearchDisplay({
             // Update existing step
             const updatedSteps = [...prevSteps]
             
-            // 개선된 파싱 로직 적용
+            // Apply improved parsing logic
             const parsedContent = parseStepContent(content, stepTitle)
             
             updatedSteps[existingStepIndex] = {
@@ -404,10 +471,10 @@ export function DeepResearchDisplay({
             setCurrentStepId(stepId)
             return updatedSteps
           } else {
-            // Create new step - 새로운 단계 생성 시 이전 단계들 완료 처리
+            // Create new step - complete previous steps when creating a new step
             const updatedSteps = [...prevSteps]
             
-            // 마지막 진행 중인 단계를 완료 처리
+            // Complete the last in-progress step
             for (let i = updatedSteps.length - 1; i >= 0; i--) {
               if (updatedSteps[i].status === 'in_progress') {
                 updatedSteps[i] = {
@@ -418,7 +485,7 @@ export function DeepResearchDisplay({
               }
             }
             
-            // 개선된 파싱 로직 적용
+            // Apply improved parsing logic
             const parsedContent = parseStepContent(content, stepTitle)
             
             const newStep: DeepResearchStep = {
@@ -437,7 +504,7 @@ export function DeepResearchDisplay({
 
       // Fallback to content-based parsing if no stepInfo
       for (const line of lines) {
-        if (line.includes('종합 분석') && !line.includes('중...')) {
+        if (line.includes('Synthesis Analysis') && !line.includes('...')) {
           if (currentStep && currentContent.trim()) {
             currentStep.content = currentContent.trim()
             currentStep.status = 'completed'
@@ -446,13 +513,13 @@ export function DeepResearchDisplay({
           
           currentStep = {
             id: `synthesis-${Date.now()}`,
-            title: '종합 분석',
+            title: 'Synthesis Analysis',
             content: '',
             status: isStreaming ? 'in_progress' : 'completed',
             stepType: 'synthesis'
           }
           currentContent = ''
-        } else if (line.includes('최종 답변') && !line.includes('중...')) {
+        } else if (line.includes('Final Answer') && !line.includes('...')) {
           if (currentStep && currentContent.trim()) {
             currentStep.content = currentContent.trim()
             currentStep.status = 'completed'
@@ -461,19 +528,19 @@ export function DeepResearchDisplay({
           
           currentStep = {
             id: `final-${Date.now()}`,
-            title: '최종 답변',
+            title: 'Final Answer',
             content: '',
             status: isStreaming ? 'in_progress' : 'completed',
             stepType: 'final'
           }
           currentContent = ''
-        } else if (line.trim() && !line.includes('딥리서치') && !line.includes('Deep Research')) {
+        } else if (line.trim() && !line.includes('Deep Research') && !line.includes('Deep Research')) {
           if (currentStep) {
             currentContent += line + '\n'
           } else if (newSteps.length === 0) {
             currentStep = {
               id: `step-1-${Date.now()}`,
-              title: '딥리서치 분석',
+              title: 'Deep Research Analysis',
               content: line + '\n',
               status: isStreaming ? 'in_progress' : 'completed',
               stepType: 'step'
@@ -491,7 +558,7 @@ export function DeepResearchDisplay({
 
       // Update steps status
       const updatedSteps = newSteps.map((step, index) => {
-        // 현재 스트리밍 중이고 마지막 단계인 경우만 in_progress, 나머지는 completed
+        // Only in_progress if streaming and last step, otherwise completed
         const isCurrentStep = isStreaming && index === newSteps.length - 1
         const isCompletedByDefault = isDeepResearchComplete || !isCurrentStep
         
@@ -524,34 +591,34 @@ export function DeepResearchDisplay({
     deepResearchStepInfo?.currentStepContent,
     deepResearchStepInfo?.currentStepType,
     deepResearchStepInfo?.isComplete,
-    // 병렬 처리된 결과들의 변경 감지를 위해 전체 stepInfo 객체 감지
+    // Detect changes in parallel processing results to monitor the entire stepInfo object
     deepResearchStepInfo && Object.keys(deepResearchStepInfo).length,
-    // 각 단계의 완료 상태 변경 감지
+    // Detect changes in completion status of each step
     deepResearchStepInfo && Object.values(deepResearchStepInfo).filter(v => 
       typeof v === 'object' && v !== null && 'isComplete' in v
     ).map(v => (v as any).isComplete).join(',')
   ])
 
-  // 개선된 스탭 내용 파싱 함수 (마크다운 없는 구조에 맞게 수정)
+  // Improved step content parsing function (modified for structure without markdown)
   const parseStepContent = (content: string, stepTitle: string): string => {
     if (!content) return ''
     
-    // 구분자 기반 파싱
+    // Parse based on separators
     const sections = parseContentSections(content)
     
     if (sections.length > 0) {
-      // 구분자가 있으면 섹션별로 정리해서 반환 (마크다운 없이)
+      // If separators exist, return organized sections (without markdown)
       return sections.map(section => {
         const { title, content: sectionContent } = section
         return `${title}\n${sectionContent}`
       }).join('\n\n')
     }
     
-    // 구분자가 없으면 원본 내용 반환
+    // Return original content if no separators found
     return content
   }
 
-  // 내용을 섹션별로 파싱하는 함수 (마크다운 없는 구조에 맞게 수정)
+  // Function to parse content into sections (modified for structure without markdown)
   const parseContentSections = (content: string): Array<{ title: string, content: string }> => {
     const sections: Array<{ title: string, content: string }> = []
     const lines = content.split('\n')
@@ -562,9 +629,9 @@ export function DeepResearchDisplay({
     for (const line of lines) {
       const trimmedLine = line.trim()
       
-      // 주요 섹션 헤더 감지 ([Analysis Start] 형태)
+      // Detect main section header ([Analysis Start] type)
       if (trimmedLine.startsWith('[Analysis Start]')) {
-        // 이전 서브섹션과 섹션 저장
+        // Save previous sub-section and section
         if (currentSubSection && currentSubSection.content.trim()) {
           if (currentSection) {
             currentSection.content += `\n${currentSubSection.title}\n${currentSubSection.content}`
@@ -575,24 +642,24 @@ export function DeepResearchDisplay({
           sections.push(currentSection)
         }
         
-        // 새 섹션 시작
+        // Start new section
         const title = trimmedLine.replace(/^\[Analysis Start\]\s*/, '').trim()
         currentSection = { title: title || 'Analysis', content: '' }
       } 
-      // 하위 섹션 헤더 감지 (콜론으로 끝나는 라인)
+      // Detect sub-section header (line ending with colon)
       else if (trimmedLine.endsWith(':') && trimmedLine.length > 1 && !trimmedLine.includes('http')) {
-        // 이전 서브섹션 저장
+        // Save previous sub-section
         if (currentSubSection && currentSubSection.content.trim()) {
           if (currentSection) {
             currentSection.content += `\n${currentSubSection.title}\n${currentSubSection.content}`
           }
         }
         
-        // 새 서브섹션 시작 (콜론 제거)
+        // Start new sub-section (remove colon)
         const subTitle = trimmedLine.replace(/:$/, '').trim()
         currentSubSection = { title: subTitle, content: '' }
       }
-      // 리스트 항목 처리
+      // Handle list items
       else if (trimmedLine.startsWith('- ') && trimmedLine.length > 2) {
         const listItem = trimmedLine.replace(/^- /, '').trim()
         if (currentSubSection) {
@@ -601,7 +668,7 @@ export function DeepResearchDisplay({
           currentSection.content += `• ${listItem}\n`
         }
       }
-      // 일반 텍스트 처리
+      // Handle general text
       else if (trimmedLine && !trimmedLine.startsWith('[') && !trimmedLine.startsWith('#')) {
         if (currentSubSection) {
           currentSubSection.content += `${trimmedLine}\n`
@@ -611,7 +678,7 @@ export function DeepResearchDisplay({
       }
     }
     
-    // 마지막 서브섹션과 섹션 저장
+    // Save last sub-section and section
     if (currentSubSection && currentSubSection.content.trim()) {
       if (currentSection) {
         currentSection.content += `\n${currentSubSection.title}\n${currentSubSection.content}`
@@ -666,7 +733,7 @@ export function DeepResearchDisplay({
     return (
       <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-lg">
         <Brain className="w-5 h-5 text-cyan-600" />
-        <span className="text-sm text-cyan-700">딥리서치 분석 준비 중...</span>
+        <span className="text-sm text-cyan-700">Deep Research Analysis Preparation...</span>
       </div>
     )
   }
@@ -675,37 +742,43 @@ export function DeepResearchDisplay({
     <div className="space-y-2">
       <div className="flex items-center gap-2 mb-3">
         <Brain className="w-5 h-5 text-cyan-600" />
-        <span className="text-sm font-medium text-cyan-700">딥리서치 분석</span>
+        <span className="text-sm font-medium text-cyan-700">Deep Research Analysis</span>
         <Badge variant="outline" className="text-xs">
-          {steps.filter(s => s.status === 'completed').length}/{steps.length} 완료
+          {steps.filter(s => s.status === 'completed').length}/{plannedSteps.length > 0 ? plannedSteps.length : steps.length} Completed
         </Badge>
         {plannedSteps.length > 0 && (
           <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200 text-blue-600">
-            {plannedSteps.length}단계 계획
+            {plannedSteps.length} Steps Total
           </Badge>
         )}
       </div>
 
-      {/* 계획된 스탭들이 있으면 전체 진행 상황 표시 */}
+      {/* If there are planned steps, show overall progress */}
       {plannedSteps.length > 0 && (
-        <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg">
+        <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg hidden">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm font-medium text-blue-700">분석 계획</span>
+            <span className="text-sm font-medium text-blue-700">Analysis Plan</span>
             <div className="flex-1 bg-gray-200 rounded-full h-2">
               <div 
                 className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                 style={{ 
-                  width: `${(steps.filter(s => s.status === 'completed').length / steps.length) * 100}%` 
+                  width: `${(steps.filter(s => s.status === 'completed').length / (plannedSteps.length > 0 ? plannedSteps.length : steps.length)) * 100}%` 
                 }}
               />
             </div>
             <span className="text-xs text-blue-600">
-              {steps.filter(s => s.status === 'completed').length}/{steps.length}
+              {steps.filter(s => s.status === 'completed').length}/{plannedSteps.length > 0 ? plannedSteps.length : steps.length}
             </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
             {plannedSteps.map((plannedStep, index) => {
-              const stepStatus = steps[index]?.status || 'pending'
+              // Find matching step by title or use index-based fallback
+              const matchingStep = steps.find(step => 
+                step.title === plannedStep.title || 
+                step.title.includes(plannedStep.title.substring(0, 20)) ||
+                plannedStep.title.includes(step.title.substring(0, 20))
+              ) || steps[index]
+              const stepStatus = matchingStep?.status || 'pending'
               return (
                 <div
                   key={index}
@@ -728,7 +801,7 @@ export function DeepResearchDisplay({
         </div>
       )}
 
-      {/* 각 스탭별 상세 내용 - 최종답변 제외 */}
+      {/* Detailed content for each step - excluding final answer */}
       {steps.filter(step => step.stepType !== 'final').map((step) => (
         <Collapsible key={step.id} open={openSteps.has(step.id)}>
           <CollapsibleTrigger 
@@ -739,7 +812,7 @@ export function DeepResearchDisplay({
               {getStepIcon(step.status)}
               <span className="text-sm font-medium text-gray-700 truncate min-w-0 max-w-[50%]">{step.title}</span>
               <Badge className={`text-xs flex-shrink-0 ${getStepBadgeColor(step.stepType)}`}>
-                {step.stepType === 'step' ? '분석' : step.stepType === 'synthesis' ? '종합' : '최종'}
+                {step.stepType === 'step' ? 'Analysis' : step.stepType === 'synthesis' ? 'Synthesis' : 'Final'}
               </Badge>
               {step.status === 'in_progress' && (
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -749,7 +822,7 @@ export function DeepResearchDisplay({
                     <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse [animation-delay:0.4s]"></div>
                   </div>
                   <Badge className="text-xs bg-yellow-50 border-yellow-200 text-yellow-700 flex-shrink-0">
-                    진행 중
+                    In Progress
                   </Badge>
                 </div>
               )}
@@ -768,11 +841,11 @@ export function DeepResearchDisplay({
                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
                   </div>
-                  <span>분석 중...</span>
+                  <span>Analyzing...</span>
                 </div>
               ) : step.status === 'pending' ? (
                 <div className="text-sm text-gray-500 italic">
-                  대기 중...
+                  Pending...
                 </div>
               ) : step.content ? (
                 <div className="prose prose-sm max-w-none text-gray-700">
@@ -784,7 +857,7 @@ export function DeepResearchDisplay({
                 </div>
               ) : (
                 <div className="text-sm text-gray-500 italic">
-                  내용이 없습니다.
+                  No content.
                 </div>
               )}
             </div>
@@ -792,41 +865,96 @@ export function DeepResearchDisplay({
         </Collapsible>
       ))}
 
-      {/* 최종답변 스탭 상태 표시 (내용은 메시지에서 표시) */}
-      {steps.some(step => step.stepType === 'final') && (
-        <div className="p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg">
-          <div className="flex items-center gap-3 flex-wrap">
-            <div className="flex-shrink-0">
-              {getStepIcon(steps.find(s => s.stepType === 'final')?.status || 'pending')}
-            </div>
-            <span className="text-sm font-medium text-green-700">최종 답변</span>
-            <Badge className="text-xs bg-green-100 text-green-700 border-green-200 flex-shrink-0 hover:bg-green-300 hover:text-green-900">
-              최종
-            </Badge>
-            {steps.find(s => s.stepType === 'final')?.status === 'in_progress' && (
-              <div className="flex items-center gap-2 flex-shrink-0">
-                <div className="flex space-x-1">
-                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
-                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse [animation-delay:0.2s]"></div>
-                  <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse [animation-delay:0.4s]"></div>
-                </div>
-                <Badge className="text-xs bg-yellow-50 border-yellow-200 text-yellow-700 flex-shrink-0">
-                  생성 중
-                </Badge>
+      {/* Display final answer with full content */}
+      {(() => {
+        const finalStep = steps.find(step => step.stepType === 'final')
+        console.log('🎯 Final answer display check:', {
+          hasFinalStep: !!finalStep,
+          finalStepId: finalStep?.id,
+          finalStepTitle: finalStep?.title,
+          finalStepStatus: finalStep?.status,
+          finalStepContentLength: finalStep?.content?.length || 0,
+          finalStepContentPreview: finalStep?.content?.substring(0, 100) || ''
+        })
+        return !!finalStep
+      })() && (
+        <Collapsible>
+          <CollapsibleTrigger 
+            className="w-full flex items-center justify-between p-3 bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-lg hover:bg-green-100 transition-colors"
+            onClick={() => {
+              const finalStep = steps.find(s => s.stepType === 'final');
+              if (finalStep) {
+                toggleStep(finalStep.id);
+              }
+            }}
+          >
+            <div className="flex items-center gap-3 flex-wrap">
+              <div className="flex-shrink-0">
+                {getStepIcon(steps.find(s => s.stepType === 'final')?.status || 'pending')}
               </div>
-            )}
-            {steps.find(s => s.stepType === 'final')?.status === 'completed' && (
-              <Badge className="text-xs bg-green-50 border-green-200 text-green-700 flex-shrink-0 hover:bg-green-300 hover:text-green-900">
-                완료
+              <span className="text-sm font-medium text-green-700">Final Answer</span>
+              <Badge className="text-xs bg-green-100 text-green-700 border-green-200 flex-shrink-0 hover:bg-green-300 hover:text-green-900">
+                Final
               </Badge>
-            )}
-          </div>
-          <div className="mt-2 text-xs text-green-600">
-            {steps.find(s => s.stepType === 'final')?.status === 'in_progress' 
-              ? '최종 답변을 생성하고 있습니다...' 
-              : '최종 답변이 아래에 표시됩니다.'}
-          </div>
-        </div>
+              {steps.find(s => s.stepType === 'final')?.status === 'in_progress' && (
+                <div className="flex items-center gap-2 flex-shrink-0">
+                  <div className="flex space-x-1">
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse [animation-delay:0.2s]"></div>
+                    <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse [animation-delay:0.4s]"></div>
+                  </div>
+                  <Badge className="text-xs bg-yellow-50 border-yellow-200 text-yellow-700 flex-shrink-0">
+                    Generating...
+                  </Badge>
+                </div>
+              )}
+              {steps.find(s => s.stepType === 'final')?.status === 'completed' && (
+                <Badge className="text-xs bg-green-50 border-green-200 text-green-700 flex-shrink-0 hover:bg-green-300 hover:text-green-900">
+                  Completed
+                </Badge>
+              )}
+            </div>
+            {(() => {
+              const finalStep = steps.find(s => s.stepType === 'final');
+              return finalStep && openSteps.has(finalStep.id) ? 
+                <ChevronDown className="w-4 h-4 text-green-600" /> : 
+                <ChevronRight className="w-4 h-4 text-green-600" />
+            })()}
+          </CollapsibleTrigger>
+          <CollapsibleContent className="px-3 pb-3">
+            {(() => {
+              const finalStep = steps.find(s => s.stepType === 'final');
+              if (!finalStep) return null;
+              
+              return (
+                <div className="mt-2 p-4 bg-white rounded-lg border-l-4 border-green-400">
+                  {finalStep.status === 'in_progress' ? (
+                    <div className="flex items-center gap-3 text-sm text-gray-600">
+                      <div className="flex space-x-1">
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
+                      </div>
+                      <span>Generating final answer...</span>
+                    </div>
+                  ) : finalStep.content ? (
+                    <div className="prose prose-sm max-w-none text-gray-700">
+                      {finalStep.content.split('\n').map((line, index) => (
+                        <p key={index} className="mb-2 last:mb-0">
+                          {line}
+                        </p>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="text-sm text-gray-500 italic">
+                      Final answer content will be displayed here once generated.
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </CollapsibleContent>
+        </Collapsible>
       )}
     </div>
   )

@@ -221,6 +221,16 @@ export const chatMessageRepository = {
       .set({ rating: rating })
       .where(eq(schema.chatMessages.id, messageId as any))
       .returning();
+  },
+
+  /**
+   * Update message content
+   */
+  updateContent: async (messageId: string | number, content: string) => {
+    return await db.update(schema.chatMessages)
+      .set({ content: content })
+      .where(eq(schema.chatMessages.id, messageId as any))
+      .returning();
   }
 };
 

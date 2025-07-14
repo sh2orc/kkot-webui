@@ -5,12 +5,12 @@ import { LLMFactory } from '@/lib/llm';
 import { DeepResearchProcessor, DeepResearchUtils } from '@/lib/llm/deepresearch';
 import { llmModelRepository, llmServerRepository } from '@/lib/db/server';
 
-// 중복 요청 방지를 위한 활성 요청 추적
+// Track active requests to prevent duplicates
 const activeRequests = new Map<string, Promise<any>>();
 
 export async function POST(request: NextRequest) {
   try {
-    // 인증 확인
+    // Check authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'User authentication required' }, { status: 401 });
@@ -22,25 +22,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Query is required' }, { status: 400 });
     }
 
-    // 중복 요청 방지를 위한 고유 키 생성
+    // Generate unique key to prevent duplicate requests
     const requestKey = `${session.user.email}_${query.trim()}_${modelId}`;
     
-    // 이미 처리 중인 동일한 요청이 있는지 확인
+    // Check if there is already an identical request being processed
     if (activeRequests.has(requestKey)) {
       console.log('Duplicate deep research request detected, waiting for existing request');
       try {
-        // 기존 요청 완료 대기
+        // Wait for existing request to complete
         await activeRequests.get(requestKey);
         return NextResponse.json({ error: 'Duplicate request detected' }, { status: 429 });
       } catch (error) {
-        // 기존 요청이 실패한 경우 새로운 요청 진행
+        // If existing request failed, proceed with new request
         activeRequests.delete(requestKey);
       }
     }
 
     console.log('Deep research request:', { query, modelId, modelType });
 
-    // 모델 정보 조회
+    // Retrieve model information
     const modelResult = await llmModelRepository.findById(modelId);
     if (!modelResult || modelResult.length === 0) {
       return NextResponse.json({ error: 'Model not found' }, { status: 404 });
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     
     const model = modelResult[0];
     
-    // 서버 정보 조회
+    // Retrieve server information
     const serverResult = await llmServerRepository.findById(model.serverId);
     if (!serverResult || serverResult.length === 0) {
       return NextResponse.json({ error: 'Server not found' }, { status: 404 });
@@ -56,7 +56,7 @@ export async function POST(request: NextRequest) {
     
     const server = serverResult[0];
 
-    // LLM 설정
+    // LLM settings
     const llmConfig = {
       provider: server.provider as any,
       modelName: model.modelId,
@@ -66,17 +66,17 @@ export async function POST(request: NextRequest) {
       maxTokens: 4096
     };
 
-    // LLM 클라이언트 생성
+    // Create LLM client
     const llmClient = LLMFactory.create(llmConfig);
 
-    // 딥리서치 프로세서 생성
+    // Create deep research processor
     const processor = new DeepResearchProcessor(llmClient, {
       maxSteps: 5,
       analysisDepth: 'intermediate',
       language: 'ko'
     });
 
-    // 스트리밍 응답 생성
+    // Generate streaming response
     const stream = new ReadableStream({
       async start(controller) {
         let controllerClosed = false;
@@ -106,16 +106,16 @@ export async function POST(request: NextRequest) {
           }
         };
 
-        // 요청 처리 Promise 생성 및 등록
+        // Generate and register request processing Promise
         const processingPromise = (async () => {
           try {
-            // 딥리서치 실행
+            // Execute deep research
             const result = await processor.performDeepResearch(
               query,
               context,
               undefined,
               (content: string, stepType: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => {
-                // 스트리밍 콘텐츠 전송
+                // Send streaming content
                 safeEnqueue(
                   new TextEncoder().encode(
                     `data: ${JSON.stringify({ 
@@ -130,7 +130,7 @@ export async function POST(request: NextRequest) {
               }
             );
 
-            // 딥리서치 완료 후 최종 결과 (마커 추출된) 전송
+            // Send final result (with markers extracted) after deep research completion
             safeEnqueue(
               new TextEncoder().encode(
                 `data: ${JSON.stringify({ 
@@ -146,7 +146,7 @@ export async function POST(request: NextRequest) {
           } catch (error) {
             console.error('Deep research error:', error);
             
-            // 에러 메시지 전송
+            // Send error message
             safeEnqueue(
               new TextEncoder().encode(
                 `data: ${JSON.stringify({ 
@@ -159,15 +159,15 @@ export async function POST(request: NextRequest) {
             safeClose();
             throw error;
           } finally {
-            // 요청 완료 후 캐시에서 제거
+            // Remove from cache after request completion
             activeRequests.delete(requestKey);
           }
         })();
 
-        // 활성 요청 맵에 등록
+        // Register in active request map
         activeRequests.set(requestKey, processingPromise);
 
-        // 처리 시작
+        // Start processing
         await processingPromise;
       }
     });

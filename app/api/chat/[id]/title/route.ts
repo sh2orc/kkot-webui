@@ -43,7 +43,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const model = publicModels[0]
     const serverResult = await llmServerRepository.findById(model.serverId)
     if (!serverResult || serverResult.length === 0) {
-      return NextResponse.json({ error: '서버 정보를 찾을 수 없습니다' }, { status: 404 })
+      return NextResponse.json({ error: 'Server information not found' }, { status: 404 })
     }
     const server = serverResult[0]
 

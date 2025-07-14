@@ -53,10 +53,10 @@ export async function POST(request: NextRequest) {
       maxTokens: 4096
     };
 
-    // LLM 클라이언트 생성
+    // Create LLM client
     const llmClient = LLMFactory.create(llmConfig);
     
-    // 딥리서치 프로세서 생성
+    // Create deep research processor
     const processor = new DeepResearchProcessor(llmClient, {
       maxSteps: 4,
       confidenceThreshold: 0.8,
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
       language: 'ko'
     });
 
-    // 최종 답변 생성
+    // Generate final answer
     const result = await processor.generateFinalAnswerStep(query, analysisSteps, synthesis);
     
     console.log('Final answer generated');

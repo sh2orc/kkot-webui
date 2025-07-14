@@ -7,7 +7,7 @@ import { llmModelRepository, llmServerRepository } from '@/lib/db/server';
 
 export async function POST(request: NextRequest) {
   try {
-    // 인증 확인
+    // Check authentication
     const session = await getServerSession(authOptions);
     if (!session?.user?.email) {
       return NextResponse.json({ error: 'User authentication required' }, { status: 401 });
@@ -26,7 +26,7 @@ export async function POST(request: NextRequest) {
     console.log('Original Query:', originalQuery);
     console.log('Model:', modelId);
 
-    // 모델 정보 조회
+    // Retrieve model information
     const modelResult = await llmModelRepository.findById(modelId);
     if (!modelResult || modelResult.length === 0) {
       return NextResponse.json({ error: 'Model not found' }, { status: 404 });
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     
     const model = modelResult[0];
     
-    // 서버 정보 조회
+    // Retrieve server information
     const serverResult = await llmServerRepository.findById(model.serverId);
     if (!serverResult || serverResult.length === 0) {
       return NextResponse.json({ error: 'Server not found' }, { status: 404 });
@@ -42,7 +42,7 @@ export async function POST(request: NextRequest) {
     
     const server = serverResult[0];
 
-    // LLM 설정
+    // LLM settings
     const llmConfig = {
       provider: server.provider as any,
       modelName: model.modelId,
@@ -52,10 +52,10 @@ export async function POST(request: NextRequest) {
       maxTokens: 4096
     };
 
-    // LLM 클라이언트 생성
+    // Create LLM client
     const llmClient = LLMFactory.create(llmConfig);
     
-    // 딥리서치 프로세서 생성
+    // Create deep research processor
     const processor = new DeepResearchProcessor(llmClient, {
       maxSteps: 4,
       confidenceThreshold: 0.8,
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       language: 'ko'
     });
 
-    // Sub-question 분석 실행
+    // Execute sub-question analysis
     const result = await processor.analyzeSubQuestionStep(
       subQuestion,
       originalQuery,

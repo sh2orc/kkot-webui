@@ -58,6 +58,63 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const body = await request.json()
       console.log('JSON body received:', body)
       
+      // Handle final answer save request
+      if (body.isFinalAnswer) {
+        console.log('💾 ========= BACKEND FINAL ANSWER SAVE START =========')
+        console.log('💾 Final answer save request received')
+        console.log('💾 Chat ID:', chatId)
+        console.log('💾 Chat ID type:', typeof chatId)
+        console.log('💾 Model ID:', body.modelId)
+        console.log('💾 Model ID type:', typeof body.modelId)
+        console.log('💾 Content length:', body.message?.length || 0)
+        console.log('💾 Content preview:', body.message?.substring(0, 200) || 'NO CONTENT')
+        console.log('💾 Full body keys:', Object.keys(body))
+        console.log('💾 User email:', session.user.email)
+        
+        try {
+          console.log('💾 Creating assistant message...')
+          
+          // Save final answer directly as assistant message
+          const assistantMessage = {
+            sessionId: chatId,
+            role: 'assistant' as const,
+            content: body.message || ''
+          }
+          
+          console.log('💾 Assistant message object:', assistantMessage)
+          console.log('💾 Calling chatMessageRepository.create...')
+          
+          const savedMessage = await chatMessageRepository.create(assistantMessage)
+          
+          console.log('💾 Raw saved message result:', savedMessage)
+          console.log('💾 Saved message length:', Array.isArray(savedMessage) ? savedMessage.length : 'Not array')
+          console.log('💾 First saved message:', savedMessage[0])
+          console.log('💾 ✅ Final answer saved with ID:', savedMessage[0]?.id)
+          
+          const response = { 
+            success: true, 
+            messageId: savedMessage[0]?.id,
+            message: 'Final answer saved successfully' 
+          }
+          
+          console.log('💾 Response to send:', response)
+          console.log('💾 ========= BACKEND FINAL ANSWER SAVE SUCCESS =========')
+          
+          return NextResponse.json(response)
+        } catch (error) {
+          console.error('💾 ❌ Final answer save error:', error)
+          console.error('💾 Error name:', error instanceof Error ? error.name : 'Unknown')
+          console.error('💾 Error message:', error instanceof Error ? error.message : String(error))
+          console.error('💾 Error stack:', error instanceof Error ? error.stack : 'No stack')
+          console.log('💾 ========= BACKEND FINAL ANSWER SAVE ERROR =========')
+          
+          return NextResponse.json({ 
+            error: 'Failed to save final answer',
+            details: error instanceof Error ? error.message : String(error)
+          }, { status: 500 })
+        }
+      }
+      
       message = body.message
       agentId = body.agentId
       modelId = body.modelId
@@ -374,7 +431,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           if (isDeepResearchActive) {
             console.log('=== Starting Complete Step-by-Step Deep Research ===')
             
-            // 병렬 처리 딥리서치 구조
+            // Parallel processing deep research structure
             async function handleParallelDeepResearch(
               query: string,
               modelId: string,
@@ -383,7 +440,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
               try {
                 console.log('=== Starting Parallel Deep Research ===');
                 
-                // 모델 및 서버 정보 조회
+                // Retrieve model and server information
                 const modelResult = await llmModelRepository.findById(modelId);
                 if (!modelResult || modelResult.length === 0) {
                   throw new Error('Model not found');
@@ -397,7 +454,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                 
                 const server = serverResult[0];
 
-                // LLM 설정
+                // LLM configuration
                 const llmConfig = {
                   provider: server.provider as any,
                   modelName: modelInfo.modelId,
@@ -416,7 +473,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                   language: 'ko'
                 });
                 
-                // 1단계: Sub-questions 생성
+                // Step 1: Generate sub-questions
                 console.log('Step 1: Generating sub-questions...');
                 const { subQuestions, plannedSteps } = await processor.generateSubQuestionsStep(query, '');
 
@@ -426,16 +483,16 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
                 const subQuestionsContent = `[Analysis Start] Sub-questions Generated
 
 Generated Sub-questions:
-다음 세부 질문들을 병렬로 분석하겠습니다:
+The following detailed questions will be analyzed in parallel:
 
 ${subQuestions.map((q: string, i: number) => `${i + 1}. ${q}`).join('\n\n')}
 
 Parallel Processing Plan:
-- 모든 질문을 동시에 분석하여 속도 향상
-- 각 분석이 완료되는 대로 실시간 업데이트
-- 모든 분석 완료 후 종합 분석 및 최종 답변 생성`;
+- Analyze all questions simultaneously for improved speed
+- Real-time updates as each analysis completes
+- Comprehensive analysis and final answer generation after all analyses complete`;
 
-                // Frontend에서 병렬 처리할 수 있도록 Sub-questions와 modelId 전송
+                // Send sub-questions and modelId for parallel processing in frontend
                 onStream(subQuestionsContent, 'step', { 
                   title: 'Sub-questions Generated', 
                   isComplete: true,
@@ -447,8 +504,8 @@ Parallel Processing Plan:
                   useParallelProcessing: true
                 });
 
-                // Frontend에서 병렬 처리가 시작되었다는 신호만 전송
-                // 실제 분석은 Frontend에서 개별 API 호출로 처리
+                // Send signal that parallel processing has started in frontend
+                // Actual analysis is handled by individual API calls in frontend
                 console.log('=== Parallel Deep Research Setup Completed ===');
                 console.log('Frontend will handle parallel sub-question analysis');
                 
@@ -460,7 +517,7 @@ Parallel Processing Plan:
               }
             }
 
-            // 병렬 딥리서치 처리 함수 호출
+            // Call parallel deep research processing function
             let finalDeepResearchResult = '';
             await handleParallelDeepResearch(message, model.id, (content: string, type: 'step' | 'synthesis' | 'final', stepInfo: any) => {
               if (type === 'final') {
@@ -484,24 +541,20 @@ Parallel Processing Plan:
               )
             })
 
-            // 병렬 딥리서치 시작 - Frontend에서 처리 계속
+            // Start parallel deep research - continue processing in frontend
             if (!completionHandled) {
               console.log('Parallel deep research setup completed - Frontend will continue processing')
               
-              // Sub-questions만 저장 (임시)
-              const assistantMessage = {
-                sessionId: chatId,
-                role: 'assistant' as const,
-                content: fullResponse // Sub-questions 내용
-              }
-              await chatMessageRepository.create(assistantMessage)
-
-              // Frontend에 병렬 처리 신호 전송 (아직 완료되지 않음)
+              // Sub-questions are not saved to database (only final answer is saved)
+              // Will be saved as a new message when final answer is completed in frontend
+              
+                              // Send parallel processing signal to frontend (including chatId and assistantMessageId)
               safeEnqueue(
                 new TextEncoder().encode(
                   `data: ${JSON.stringify({ 
                     content: '', 
                     messageId: assistantMessageId,
+                    chatId: chatId, // 채팅 ID 추가
                     parallelProcessingStarted: true,
                     done: false 
                   })}\n\n`
@@ -901,47 +954,36 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 export async function PUT(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   console.log('=== Chat [id] API PUT request received ===')
   try {
+    const session = await getServerSession(authOptions)
+    
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
+    }
+    
     const resolvedParams = await params
     const chatId = resolvedParams.id
     const body = await request.json()
-    const { title, userId } = body
-
-    if (!userId) {
-      return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
+    const { title, content, messageId } = body
+    
+         if (title !== undefined) {
+       // Update chat session title
+       await chatSessionRepository.update(chatId, { title: title.trim() })
+       return NextResponse.json({ success: true, message: 'Title updated successfully' })
+     }
+    
+    if (content !== undefined && messageId !== undefined) {
+      // Update message content
+      await chatMessageRepository.updateContent(messageId, content)
+      return NextResponse.json({ success: true, message: 'Content updated successfully' })
     }
-
-    if (!title?.trim()) {
-      return NextResponse.json({ error: 'Title is required' }, { status: 400 })
-    }
-
-    // Check chat session existence and verify permissions
-    const session = await chatSessionRepository.findById(chatId)
-    if (!session || session.length === 0) {
-      return NextResponse.json({ error: 'Chat session not found' }, { status: 404 })
-    }
-
-    // Check session owner
-    if (session[0].userId !== userId) {
-      return NextResponse.json({ error: 'Access denied to this chat' }, { status: 403 })
-    }
-
-    // Update chat session title
-    const updateResult = await chatSessionRepository.update(chatId, { title: title.trim() })
-    console.log('Title update result:', updateResult)
-
-    return NextResponse.json({ 
-      success: true,
-      title: title.trim(),
-      chatId: chatId
-    })
-
+    
+    return NextResponse.json({ error: 'Invalid request parameters' }, { status: 400 })
   } catch (error) {
-    console.error('Chat title update error:', error)
-    return NextResponse.json({ error: 'Failed to update chat title' }, { status: 500 })
+    console.error('PUT request error:', error)
+    return NextResponse.json({ error: 'Failed to process request' }, { status: 500 })
   }
 }
 
-// Delete chat session or messages from a specific point
 export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   console.log('=== Chat [id] API DELETE request received ===')
   try {
@@ -1034,37 +1076,3 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
     return NextResponse.json({ error: 'Failed to delete chat' }, { status: 500 })
   }
 }
-
-// 딥리서치 결과에서 #[final answer]# 마커 이후 부분만 추출하는 함수
-function extractFinalAnswerFromResponse(content: string): string {
-  const markerPatterns = [
-    '#[final answer]#',
-    '#[최종 답변]#',
-    '#[Final Answer]#',
-    '#[FINAL ANSWER]#'
-  ];
-  
-  let finalAnswerStart = -1;
-  let usedMarker = '';
-  
-  // 각 마커 패턴을 확인하여 가장 먼저 나타나는 것을 찾음
-  for (const marker of markerPatterns) {
-    const index = content.indexOf(marker);
-    if (index !== -1 && (finalAnswerStart === -1 || index < finalAnswerStart)) {
-      finalAnswerStart = index;
-      usedMarker = marker;
-    }
-  }
-  
-  if (finalAnswerStart !== -1) {
-    // 마커 이후 부분만 추출
-    const finalAnswer = content.substring(finalAnswerStart + usedMarker.length).trim();
-    console.log('Final answer extracted after marker:', usedMarker);
-    console.log('Final answer length:', finalAnswer.length);
-    return finalAnswer;
-  } else {
-    // 마커가 없으면 전체 내용 반환
-    console.log('No final answer marker found, returning full content');
-    return content;
-  }
-} 

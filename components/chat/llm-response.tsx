@@ -220,21 +220,40 @@ export function LlmResponse({
     return parts;
   };
 
-  // 최종답변 부분만 추출하는 함수
+  // Function to extract only the final answer
   const extractFinalAnswer = (text: string): string => {
-    // 1. 먼저 #[final answer]# 마커를 찾아서 추출
+    console.log('🔍 Extracting final answer from text:', text.length, 'characters');
+    console.log('🔍 Text preview:', text.substring(0, 200));
+    
+    // 1. First try to find and extract #[final answer]# marker
     const finalAnswerMarker = '#[final answer]#';
     const markerIndex = text.indexOf(finalAnswerMarker);
     
     if (markerIndex !== -1) {
-      // 마커 이후의 내용을 추출
+      // Extract content after marker
       const afterMarker = text.substring(markerIndex + finalAnswerMarker.length).trim();
+      console.log('🔍 Found final answer marker, extracted:', afterMarker.substring(0, 100));
       return afterMarker;
     }
     
-    // 2. 마커가 없으면 기존 패턴들로 폴백
+    // 2. Look for "## Final Answer" pattern (commonly used in parallel deep research)
+    const finalAnswerSectionMatch = text.match(/## Final Answer\s*\n\n([\s\S]*?)$/);
+    if (finalAnswerSectionMatch && finalAnswerSectionMatch[1]) {
+      console.log('🔍 Found "## Final Answer" section, extracted:', finalAnswerSectionMatch[1].substring(0, 100));
+      return finalAnswerSectionMatch[1].trim();
+    }
+    
+    // 3. Various patterns used in parallel deep research
     const finalAnswerPatterns = [
-      // 영어 패턴들
+      // Parallel deep research specific patterns
+      /## Final Answer\s*\n([\s\S]*?)$/,
+      /### Final Answer\s*\n([\s\S]*?)$/,
+      /## Core Answer\s*\n([\s\S]*?)$/,
+      /### Core Answer\s*\n([\s\S]*?)$/,
+      /## Core Answer\s*\n([\s\S]*?)$/,
+      /### Core Answer\s*\n([\s\S]*?)$/,
+      
+      // English patterns
       /## 🎯 Final Answer\s*\n([\s\S]*?)(?=\n## |$)/,
       /### 🎯 Final Answer\s*\n([\s\S]*?)(?=\n### |$)/,
       /# 🎯 Final Answer\s*\n([\s\S]*?)(?=\n# |$)/,
@@ -244,20 +263,18 @@ export function LlmResponse({
       /## Conclusion\s*\n([\s\S]*?)(?=\n## |$)/,
       /### Conclusion\s*\n([\s\S]*?)(?=\n### |$)/,
       
-      // 영어 번호가 포함된 패턴
+      // English patterns with numbers
       /### 1\. Core Answer\s*\n([\s\S]*?)$/,
       /### \d+\. Core Answer\s*\n([\s\S]*?)$/,
       /## 1\. Core Answer\s*\n([\s\S]*?)$/,
       /## \d+\. Core Answer\s*\n([\s\S]*?)$/,
       
-      // 한국어 패턴들 (폴백)
+      // Korean patterns (fallback)
       /## 🎯 최종 답변\s*\n([\s\S]*?)(?=\n## |$)/,
       /### 🎯 최종 답변\s*\n([\s\S]*?)(?=\n### |$)/,
       /# 🎯 최종 답변\s*\n([\s\S]*?)(?=\n# |$)/,
       /## 📝 종합 결론\s*\n([\s\S]*?)(?=\n## |$)/,
       /### 📝 종합 결론\s*\n([\s\S]*?)(?=\n### |$)/,
-      /## 최종 답변\s*\n([\s\S]*?)(?=\n## |$)/,
-      /### 최종 답변\s*\n([\s\S]*?)(?=\n### |$)/,
       /# 최종 답변\s*\n([\s\S]*?)(?=\n# |$)/,
       /## 결론\s*\n([\s\S]*?)(?=\n## |$)/,
       /### 결론\s*\n([\s\S]*?)(?=\n### |$)/,
@@ -266,7 +283,7 @@ export function LlmResponse({
       /## 1\. 핵심 답변\s*\n([\s\S]*?)(?=\n최종 답변이 구조적으로|$)/,
       /## \d+\. 핵심 답변\s*\n([\s\S]*?)(?=\n최종 답변이 구조적으로|$)/,
       
-      // 구분자 패턴
+      // Separator patterns
       /--- Final Answer ---\s*\n([\s\S]*?)(?=\n--- |$)/,
       /=== Final Answer ===\s*\n([\s\S]*?)(?=\n=== |$)/,
       /--- 최종 답변 ---\s*\n([\s\S]*?)(?=\n--- |$)/,
@@ -276,36 +293,63 @@ export function LlmResponse({
     for (const pattern of finalAnswerPatterns) {
       const match = text.match(pattern);
       if (match && match[1]) {
+        console.log('🔍 Found pattern match:', pattern, 'extracted:', match[1].substring(0, 100));
         return match[1].trim();
       }
     }
     
-    // 3. 특별한 경우: 영어와 한국어 "핵심 답변" 패턴 찾기
+    // 4. Special case: Find English and Korean "Core Answer" patterns
     const coreAnswerPatterns = [
       /### 1\. Core Answer([\s\S]*?)$/,
-      /### 1\. 핵심 답변([\s\S]*?)(?=\n최종 답변이 구조적으로|$)/,
+      /### 1\. Core Answer([\s\S]*?)(?=\n.*|$)/,
     ];
     
     for (const pattern of coreAnswerPatterns) {
       const match = text.match(pattern);
       if (match && match[1]) {
+        console.log('🔍 Found core answer pattern:', pattern);
         return `### 1. Core Answer${match[1]}`.trim();
       }
     }
     
-    // 4. 패턴이 없으면 마지막 섹션을 최종 답변으로 간주
+    // 5. Find content after "Analysis Process and Additional Explanations" in parallel deep research
+    const analysisProcessIndex = text.indexOf('Analysis Process and Additional Explanations');
+    if (analysisProcessIndex !== -1) {
+      // Find content after "Analysis Process and Additional Explanations"
+      const afterAnalysisProcess = text.substring(analysisProcessIndex);
+      
+      // Find content after first markdown header (##)
+      const firstHeaderMatch = afterAnalysisProcess.match(/## ([^\n]+)\s*\n([\s\S]*?)$/);
+      if (firstHeaderMatch && firstHeaderMatch[2] && firstHeaderMatch[2].trim().length > 50) {
+        console.log('🔍 Found content after "Analysis Process and Additional Explanations":', firstHeaderMatch[0].substring(0, 100));
+        return firstHeaderMatch[0].trim();
+      }
+      
+      // If no header found, get content after newline
+      const contentAfterNewline = afterAnalysisProcess.substring(afterAnalysisProcess.indexOf('\n') + 1).trim();
+      if (contentAfterNewline.length > 50) {
+        console.log('🔍 Found content after analysis process (no header):', contentAfterNewline.substring(0, 100));
+        return contentAfterNewline;
+      }
+    }
+    
+    // 6. If no pattern found, consider last section as final answer
     const sections = text.split(/\n(?=##? )/);
     if (sections.length > 1) {
       const lastSection = sections[sections.length - 1].replace(/^##? [^\n]*\n?/, '').trim();
-      // 마지막 섹션이 너무 짧으면 전체 텍스트의 마지막 부분을 반환
+      // If last section is too short, return last part of full text
       if (lastSection.length < 100) {
-        return text.split('### 1. Core Answer').slice(-1)[0] || 
-               text.split('### 1. 핵심 답변').slice(-1)[0] || 
-               text;
+        const fallback = text.split('### 1. Core Answer').slice(-1)[0] || 
+                        text.split('### 1. Core Answer').slice(-1)[0] || 
+                        text;
+        console.log('🔍 Using fallback pattern:', fallback.substring(0, 100));
+        return fallback;
       }
+      console.log('🔍 Using last section:', lastSection.substring(0, 100));
       return lastSection;
     }
     
+    console.log('🔍 No pattern found, returning full text');
     return text;
   };
 
@@ -365,39 +409,7 @@ export function LlmResponse({
               isDeepResearchComplete={isDeepResearchComplete}
               deepResearchStepInfo={deepResearchStepInfo}
             />
-            {/* 최종답변 내용 표시 - final 단계이거나 딥리서치가 완료되었을 때 */}
-            {(deepResearchStepType === 'final' || isDeepResearchComplete) && content && content.trim() && (
-              <div className="mt-4 border-t border-gray-200 pt-4">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                  <span className="text-sm font-medium text-green-700">Final Answer</span>
-                </div>
-                <div className="markdown-content">
-                  {(() => {
-                    // 최종답변 부분만 추출해서 파싱
-                    const finalAnswerContent = extractFinalAnswer(content);
-                    console.log('🔍 Final answer content extracted:', finalAnswerContent.length, 'characters');
-                    console.log('🔍 Final answer preview:', finalAnswerContent.substring(0, 100));
-                    const finalAnswerParts = parseContent(finalAnswerContent);
-                    
-                    return finalAnswerParts.map((part, index) => (
-                      <div key={index}>
-                        {part.type === 'text' ? (
-                          <MarkedMarkdown>{part.content}</MarkedMarkdown>
-                        ) : (
-                          <CodeBlock
-                            className={`language-${part.lang || 'text'}`}
-                            inline={false}
-                          >
-                            {part.content}
-                          </CodeBlock>
-                        )}
-                      </div>
-                    ));
-                  })()}
-                </div>
-              </div>
-            )}
+
           </div>
         ) : (
           /* Regular Content Display */

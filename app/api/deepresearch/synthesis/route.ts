@@ -55,7 +55,7 @@ export async function POST(request: NextRequest) {
     // LLM 클라이언트 생성
     const llmClient = LLMFactory.create(llmConfig);
     
-    // 딥리서치 프로세서 생성
+    // Create deep research processor
     const processor = new DeepResearchProcessor(llmClient, {
       maxSteps: 4,
       confidenceThreshold: 0.8,
@@ -64,7 +64,7 @@ export async function POST(request: NextRequest) {
       language: 'ko'
     });
 
-    // 종합 분석 실행
+    // Execute synthesis analysis
     const result = await processor.synthesizeStep(query, analysisSteps);
     
     console.log('Synthesis completed');

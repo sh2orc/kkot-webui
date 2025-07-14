@@ -282,6 +282,9 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   const lastSubmittedMessage = useRef<string | null>(null)
   const lastSubmittedTime = useRef<number>(0)
   const isSubmittingRef = useRef(false) // 추가적인 중복 방지
+  
+  // Add ref to prevent duplicate deep research calls
+  const deepResearchInProgress = useRef<Set<string>>(new Set())
 
   // Reset padding when isMobile changes
   useEffect(() => {
@@ -370,9 +373,15 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       setIsStreaming(false)
     }, 500)
     
-    // Adjust padding and scroll
-    adjustDynamicPadding()
-    scrollToBottomSmooth(true) // Set force=true to ensure scroll to bottom
+    // 사용자가 수동으로 스크롤을 올렸다면 강제 스크롤 방지
+    const container = messagesContainerRef.current
+    const userScrolled = (container as any)?.userScrolled?.() || false
+    
+    if (!userScrolled) {
+      // 사용자가 스크롤하지 않았을 때만 패딩 조정 및 스크롤
+      adjustDynamicPadding()
+      scrollToBottomSmooth(true) // Set force=true to ensure scroll to bottom
+    }
   }
 
   // Handle image upload from ChatInput
@@ -386,16 +395,69 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     subQuestions: string[],
     originalQuery: string,
     modelId: string,
-    assistantMessageId: string
+    assistantMessageId: string,
+    chatId?: string | number
   ) => {
+    // Create unique key for this deep research session
+    const deepResearchKey = `${assistantMessageId}_${originalQuery}_${modelId}`;
+    
     try {
+      console.log('🚀 ========= HANDLE PARALLEL DEEP RESEARCH START =========');
+      console.log('🚀 Function called with parameters:');
+      console.log('🚀 - subQuestions:', subQuestions);
+      console.log('🚀 - subQuestions length:', subQuestions?.length);
+      console.log('🚀 - originalQuery:', originalQuery);
+      console.log('🚀 - modelId:', modelId);
+      console.log('🚀 - assistantMessageId:', assistantMessageId);
+      console.log('🚀 - chatId:', chatId);
+      console.log('🚀 - chatId type:', typeof chatId);
       console.log('🚀 Starting parallel sub-question analysis');
-      console.log('Sub-questions:', subQuestions);
-      console.log('Original query:', originalQuery);
-      console.log('Model ID:', modelId);
-      console.log('Assistant message ID:', assistantMessageId);
       
-      // 각 sub-question에 고유 ID 생성
+      // Check if this deep research is already in progress
+      if (deepResearchInProgress.current.has(deepResearchKey)) {
+        console.log('🚫 Deep research already in progress for this session, skipping duplicate call');
+        console.log('🚫 Key:', deepResearchKey);
+        console.log('🚫 Active sessions:', Array.from(deepResearchInProgress.current));
+        return;
+      }
+      
+      // Mark this deep research as in progress
+      deepResearchInProgress.current.add(deepResearchKey);
+      console.log('✅ Deep research session started:', deepResearchKey);
+      
+      // Check if sub-questions are available
+      if (!subQuestions || subQuestions.length === 0) {
+        console.error('❌ No sub-questions provided for parallel deep research');
+        console.error('❌ This usually happens when the query is too simple or vague');
+        console.error('❌ Original query:', originalQuery);
+        console.error('❌ Received sub-questions:', subQuestions);
+        deepResearchInProgress.current.delete(deepResearchKey); // Clean up on error
+        
+        // Update message with helpful error
+        setMessages(prev => 
+          prev.map(m => 
+            m.id === assistantMessageId 
+              ? { 
+                  ...m,
+                  content: m.content + '\n\n⚠️ 질문이 너무 간단하여 세부 분석 질문을 생성할 수 없습니다. 더 구체적인 질문을 해주세요.\n\n예시: "한국의 경제 발전 과정에 대해 알려주세요" 또는 "한국 문화의 특징은 무엇인가요?"',
+                  hasDeepResearchError: true,
+                  isDeepResearchComplete: true
+                }
+              : m
+          )
+        );
+        
+        // Reset streaming state
+        setIsStreaming(false);
+        setStreamingMessageId(null);
+        setIsSubmitting(false);
+        isSubmittingRef.current = false;
+        streamingInProgress.current = false;
+        
+        return;
+      }
+      
+      // Generate unique IDs for each sub-question
       const subQuestionData = subQuestions.map((question, index) => ({
         id: `subq_${Date.now()}_${index}`,
         question,
@@ -404,91 +466,132 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       
       console.log('Sub-question data with IDs:', subQuestionData);
       
-      // 모든 sub-question을 병렬로 분석
+      // 모든 sub-question을 병렬로 분석 (타임아웃과 재시도 로직 추가)
       const analysisPromises = subQuestionData.map(async (subQuestionItem) => {
         const { id, question, index } = subQuestionItem;
         console.log(`📊 Starting analysis ${index + 1} (${id}): ${question}`);
         
-        try {
-          const response = await fetch(`/api/deepresearch/subquestion-analysis`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              subQuestion: question,
-              originalQuery,
-              modelId,
-              context: '',
-              previousSteps: []
-            })
-          });
-
-          if (!response.ok) {
-            throw new Error(`Analysis failed for: ${question}`);
+        // 타임아웃이 있는 fetch 함수
+        const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs: number = 90000) => {
+          const controller = new AbortController();
+          const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+          
+          try {
+            const response = await fetch(url, {
+              ...options,
+              signal: controller.signal
+            });
+            clearTimeout(timeoutId);
+            return response;
+          } catch (error) {
+            clearTimeout(timeoutId);
+            if (controller.signal.aborted) {
+              throw new Error(`Request timeout after ${timeoutMs / 1000} seconds`);
+            }
+            throw error;
           }
+        };
+        
+        // 재시도 로직
+        let lastError: Error | null = null;
+        const maxRetries = 2;
+        
+        for (let attempt = 1; attempt <= maxRetries; attempt++) {
+          try {
+            console.log(`📊 Attempt ${attempt}/${maxRetries} for analysis ${index + 1} (${id})`);
+            
+            const response = await fetchWithTimeout(`/api/deepresearch/subquestion-analysis`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                subQuestion: question,
+                originalQuery,
+                modelId,
+                context: '',
+                previousSteps: []
+              })
+            }, 90000); // 90초 타임아웃 (복잡한 분석을 위해 시간 증가)
 
-          const result = await response.json();
-          console.log(`✅ Completed analysis ${index + 1} (${id}): ${question}`);
-          console.log('🔍 Sub-question analysis result:', result);
-          console.log('🔍 Sub-question analysis keys:', Object.keys(result));
-          console.log('🔍 Sub-question analysis content:', result.analysis);
-          
-          // 각 분석 완료 시 실시간 업데이트 - 고유 ID로 매핑
-          setMessages(prev => 
-            prev.map(m => 
-              m.id === assistantMessageId 
-                ? { 
-                    ...m,
-                    deepResearchStepInfo: {
-                      ...m.deepResearchStepInfo,
-                      [id]: {
-                        title: `Analysis: ${question}`,
-                        content: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
-                        isComplete: true,
-                        index: index,
-                        subQuestionId: id,
-                        originalQuestion: question
+            if (!response.ok) {
+              const errorText = await response.text();
+              throw new Error(`Analysis failed (${response.status}): ${errorText}`);
+            }
+
+            const result = await response.json();
+            console.log(`✅ Completed analysis ${index + 1} (${id}) on attempt ${attempt}: ${question}`);
+            console.log('🔍 Sub-question analysis result:', result);
+            console.log('🔍 Sub-question analysis keys:', Object.keys(result));
+            console.log('🔍 Sub-question analysis content:', result.analysis);
+            
+            // 각 분석 완료 시 실시간 업데이트 - 고유 ID로 매핑
+            setMessages(prev => 
+              prev.map(m => 
+                m.id === assistantMessageId 
+                  ? { 
+                      ...m,
+                      deepResearchStepInfo: {
+                        ...m.deepResearchStepInfo,
+                        [id]: {
+                          title: `Analysis: ${question}`,
+                          content: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
+                          isComplete: true,
+                          index: index,
+                          subQuestionId: id,
+                          originalQuestion: question
+                        }
                       }
                     }
-                  }
-                : m
-            )
-          );
-          
-          return {
-            analysis: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
-            content: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
-            subQuestionId: id,
-            originalQuestion: question,
-            index: index
-          };
-        } catch (error) {
-          console.error(`❌ Failed analysis ${index + 1} (${id}):`, error);
-          
-          // 에러 발생 시에도 상태 업데이트
-          setMessages(prev => 
-            prev.map(m => 
-              m.id === assistantMessageId 
-                ? { 
-                    ...m,
-                    deepResearchStepInfo: {
-                      ...m.deepResearchStepInfo,
-                      [id]: {
-                        title: `Analysis: ${question}`,
-                        content: `❌ 분석 중 오류가 발생했습니다: ${error instanceof Error ? error.message : 'Unknown error'}`,
-                        isComplete: false,
-                        hasError: true,
-                        index: index,
-                        subQuestionId: id,
-                        originalQuestion: question
+                  : m
+              )
+            );
+            
+            return {
+              analysis: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
+              content: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
+              subQuestionId: id,
+              originalQuestion: question,
+              index: index
+            };
+          } catch (error) {
+            lastError = error instanceof Error ? error : new Error(String(error));
+            console.error(`❌ Failed analysis ${index + 1} (${id}) attempt ${attempt}:`, error);
+            
+            // 마지막 시도가 아니면 잠시 대기 후 재시도
+            if (attempt < maxRetries) {
+              console.log(`⏳ Retrying analysis ${index + 1} (${id}) in 2 seconds...`);
+              await new Promise(resolve => setTimeout(resolve, 2000));
+              continue;
+            }
+            
+            // 모든 시도 실패 시 에러 상태 업데이트
+            setMessages(prev => 
+              prev.map(m => 
+                m.id === assistantMessageId 
+                  ? { 
+                      ...m,
+                      deepResearchStepInfo: {
+                        ...m.deepResearchStepInfo,
+                        [id]: {
+                          title: `Analysis: ${question}`,
+                                                     content: `❌ 분석 중 오류가 발생했습니다 (${maxRetries}번 시도 실패): ${lastError?.message || 'Unknown error'}`,
+                          isComplete: false,
+                          hasError: true,
+                          index: index,
+                          subQuestionId: id,
+                          originalQuestion: question
+                        }
                       }
                     }
-                  }
-                : m
-            )
-          );
-          
-          return null;
+                  : m
+              )
+            );
+            
+            // 부분적 실패는 null 반환 (전체 프로세스를 중단하지 않음)
+            return null;
+          }
         }
+        
+        return null; // 모든 시도 실패
       });
 
       // 모든 분석 완료 대기
@@ -508,10 +611,31 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       })));
 
       if (validResults.length === 0) {
-        throw new Error('모든 sub-question 분석이 실패했습니다.');
+        throw new Error('All sub-question analyses failed.');
       }
 
-      // 종합 분석 수행
+      // fetchWithTimeout 함수 정의 (먼저 정의)
+      const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs: number = 60000) => {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+        
+        try {
+          const response = await fetch(url, {
+            ...options,
+            signal: controller.signal
+          });
+          clearTimeout(timeoutId);
+          return response;
+        } catch (error) {
+          clearTimeout(timeoutId);
+          if (controller.signal.aborted) {
+            throw new Error(`Request timeout after ${timeoutMs / 1000} seconds`);
+          }
+          throw error;
+        }
+      };
+
+      // 종합 분석 수행 (타임아웃과 재시도 포함)
       console.log('🔄 Starting synthesis...');
       console.log('🔄 Valid results for synthesis:', validResults.length);
       console.log('🔄 Synthesis request data:', {
@@ -520,27 +644,48 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         analysisStepsCount: validResults.length
       });
       
-      const synthesisResponse = await fetch(`/api/deepresearch/synthesis`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: originalQuery,
-          modelId,
-          analysisSteps: validResults.map(result => ({
-            analysis: result.analysis || result.content || result,
-            subQuestion: result.originalQuestion,
-            index: result.index
-          }))
-        })
-      });
+      let synthesisResult: any = null;
+      const synthesisMaxRetries = 3;
+      let synthesisLastError: Error | null = null;
+      
+      for (let attempt = 1; attempt <= synthesisMaxRetries; attempt++) {
+        try {
+          console.log(`🔄 Synthesis attempt ${attempt}/${synthesisMaxRetries}`);
+          
+          const synthesisResponse = await fetchWithTimeout(`/api/deepresearch/synthesis`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: originalQuery,
+              modelId,
+              analysisSteps: validResults.map(result => ({
+                analysis: result.analysis || result.content || result,
+                subQuestion: result.originalQuestion,
+                index: result.index
+              }))
+            })
+          }, 90000); // 90초 타임아웃 (종합 분석은 더 오래 걸릴 수 있음)
 
-      if (!synthesisResponse.ok) {
-        const errorText = await synthesisResponse.text();
-        console.error('Synthesis failed:', errorText);
-        throw new Error(`Synthesis failed: ${errorText}`);
+          if (!synthesisResponse.ok) {
+            const errorText = await synthesisResponse.text();
+            throw new Error(`Synthesis failed (${synthesisResponse.status}): ${errorText}`);
+          }
+
+          synthesisResult = await synthesisResponse.json();
+          console.log(`✅ Synthesis completed on attempt ${attempt}`);
+          break; // 성공하면 루프 탈출
+        } catch (error) {
+          synthesisLastError = error instanceof Error ? error : new Error(String(error));
+          console.error(`❌ Synthesis attempt ${attempt} failed:`, error);
+          
+          if (attempt < synthesisMaxRetries) {
+            console.log(`⏳ Retrying synthesis in 3 seconds...`);
+            await new Promise(resolve => setTimeout(resolve, 3000));
+          } else {
+            throw new Error(`Synthesis failed after ${synthesisMaxRetries} attempts: ${synthesisLastError?.message || 'Unknown error'}`);
+          }
+        }
       }
-
-      const synthesisResult = await synthesisResponse.json();
       console.log('✅ Synthesis completed:', synthesisResult);
       console.log('🔍 Synthesis result keys:', Object.keys(synthesisResult));
       console.log('🔍 Synthesis content:', synthesisResult.synthesis);
@@ -566,7 +711,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         )
       );
 
-      // 최종 답변 생성
+      // 최종 답변 생성 (타임아웃과 재시도 포함)
       console.log('🎯 Generating final answer...');
       console.log('🎯 Final answer request data:', {
         query: originalQuery,
@@ -575,36 +720,65 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         synthesisLength: synthesisResult.synthesis?.length || 0
       });
       
-      const finalAnswerResponse = await fetch(`/api/deepresearch/final-answer`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          query: originalQuery,
-          modelId,
-          analysisSteps: validResults.map(result => ({
-            analysis: result.analysis || result.content || result,
-            subQuestion: result.originalQuestion,
-            index: result.index
-          })),
-          synthesis: synthesisResult.synthesis
-        })
-      });
+      let finalAnswerResult: any = null;
+      const finalAnswerMaxRetries = 3;
+      let finalAnswerLastError: Error | null = null;
+      
+      for (let attempt = 1; attempt <= finalAnswerMaxRetries; attempt++) {
+        try {
+          console.log(`🎯 Final answer attempt ${attempt}/${finalAnswerMaxRetries}`);
+          
+          const finalAnswerResponse = await fetchWithTimeout(`/api/deepresearch/final-answer`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              query: originalQuery,
+              modelId,
+              analysisSteps: validResults.map(result => ({
+                analysis: result.analysis || result.content || result,
+                subQuestion: result.originalQuestion,
+                index: result.index
+              })),
+              synthesis: synthesisResult.synthesis
+            })
+          }, 120000); // 120초 타임아웃 (최종 답변은 가장 오래 걸릴 수 있음)
 
-      if (!finalAnswerResponse.ok) {
-        const errorText = await finalAnswerResponse.text();
-        console.error('Final answer generation failed:', errorText);
-        throw new Error(`Final answer generation failed: ${errorText}`);
+          if (!finalAnswerResponse.ok) {
+            const errorText = await finalAnswerResponse.text();
+            throw new Error(`Final answer generation failed (${finalAnswerResponse.status}): ${errorText}`);
+          }
+
+          finalAnswerResult = await finalAnswerResponse.json();
+          console.log(`🎉 Final answer generated on attempt ${attempt}`);
+          break; // 성공하면 루프 탈출
+        } catch (error) {
+          finalAnswerLastError = error instanceof Error ? error : new Error(String(error));
+          console.error(`❌ Final answer attempt ${attempt} failed:`, error);
+          
+          if (attempt < finalAnswerMaxRetries) {
+            console.log(`⏳ Retrying final answer generation in 5 seconds...`);
+            await new Promise(resolve => setTimeout(resolve, 5000));
+          } else {
+            throw new Error(`Final answer generation failed after ${finalAnswerMaxRetries} attempts: ${finalAnswerLastError?.message || 'Unknown error'}`);
+          }
+        }
       }
-
-      const finalAnswerResult = await finalAnswerResponse.json();
-      console.log('🎉 Final answer generated:', finalAnswerResult);
-      console.log('🔍 Final answer result keys:', Object.keys(finalAnswerResult));
-      console.log('🔍 Final answer content:', finalAnswerResult.finalAnswer);
-      console.log('🔍 Final answer length:', finalAnswerResult.finalAnswer?.length);
+      console.log('🎉 ========= FINAL ANSWER GENERATION SUCCESS =========');
+      console.log('🎉 Final answer generated successfully!');
+      console.log('🎉 Final answer result:', finalAnswerResult);
+      console.log('🎉 Final answer result keys:', Object.keys(finalAnswerResult));
+      console.log('🎉 Final answer content:', finalAnswerResult.finalAnswer);
+      console.log('🎉 Final answer length:', finalAnswerResult.finalAnswer?.length);
 
       // 최종 답변으로 메시지 업데이트
       const finalAnswerId = `final_answer_${Date.now()}`;
       const finalAnswerContent = finalAnswerResult.finalAnswer || finalAnswerResult.answer || '최종 답변이 생성되지 않았습니다.';
+      
+      console.log('🎉 Final answer content extracted:');
+      console.log('🎉 - finalAnswerId:', finalAnswerId);
+      console.log('🎉 - finalAnswerContent length:', finalAnswerContent.length);
+      console.log('🎉 - finalAnswerContent preview:', finalAnswerContent.substring(0, 100));
+      console.log('🎉 ========= FINAL ANSWER GENERATION SUCCESS END =========');
       
       console.log('🔍 Final answer processing:');
       console.log('- assistantMessageId:', assistantMessageId);
@@ -622,9 +796,9 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           m.id === assistantMessageId 
             ? { 
                 ...m,
-                content: m.content + '\n\n## 최종 답변\n\n' + finalAnswerContent,
+                // Don't add final answer to content - let deep-research-display handle it
                 isDeepResearchComplete: true,
-                deepResearchStepType: 'final' as const, // 최종 답변 단계로 설정
+                deepResearchStepType: 'final' as const, // Set as final answer step
                 deepResearchStepInfo: {
                   ...m.deepResearchStepInfo,
                   [finalAnswerId]: {
@@ -645,11 +819,21 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         return updatedMessages;
       });
 
+      console.log('🎯 ========= FINAL ANSWER PROCESSING COMPLETED =========');
+      console.log('🎯 Final answer has been added to deepResearchStepInfo and will be displayed in Deep Research component');
+      console.log('🎯 Final answer content length:', finalAnswerContent.length);
+      
+      // Note: We no longer save final answer as a separate message
+      // It's displayed as part of the Deep Research component via deepResearchStepInfo
+      
+      console.log('💾 ========= FINAL ANSWER SAVE ATTEMPT END =========');
+
       // 스트리밍 상태 즉시 종료
       console.log('🔄 Ending streaming state immediately...');
       setIsStreaming(false);
       setStreamingMessageId(null);
       setIsSubmitting(false); // 제출 상태도 해제
+      isSubmittingRef.current = false; // Ref도 함께 리셋
       streamingInProgress.current = false;
       
       // 추가 안전장치 - 여러 번 시도
@@ -658,6 +842,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         setIsStreaming(false);
         setStreamingMessageId(null);
         setIsSubmitting(false);
+        isSubmittingRef.current = false;
         streamingInProgress.current = false;
       }, 100);
       
@@ -666,10 +851,16 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         setIsStreaming(false);
         setStreamingMessageId(null);
         setIsSubmitting(false);
+        isSubmittingRef.current = false;
         streamingInProgress.current = false;
       }, 1000);
 
       console.log('🎉 Parallel deep research completed successfully!');
+      
+      // Clean up - remove from active sessions
+      deepResearchInProgress.current.delete(deepResearchKey);
+      console.log('🧹 Cleaned up deep research session:', deepResearchKey);
+      console.log('🧹 Remaining active sessions:', Array.from(deepResearchInProgress.current));
       
     } catch (error) {
       console.error('❌ Parallel deep research error:', error);
@@ -695,11 +886,16 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         )
       );
       
+      // Clean up - remove from active sessions on error
+      deepResearchInProgress.current.delete(deepResearchKey);
+      console.log('🧹 Cleaned up deep research session due to error:', deepResearchKey);
+      
       // 스트리밍 상태 즉시 종료 (에러 시)
       console.log('🔄 Ending streaming state due to error...');
       setIsStreaming(false);
       setStreamingMessageId(null);
       setIsSubmitting(false); // 제출 상태도 해제
+      isSubmittingRef.current = false; // Ref도 함께 리셋
       streamingInProgress.current = false;
       
       // 추가 안전장치
@@ -708,6 +904,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         setIsStreaming(false);
         setStreamingMessageId(null);
         setIsSubmitting(false);
+        isSubmittingRef.current = false;
         streamingInProgress.current = false;
       }, 100);
     }
@@ -850,6 +1047,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       if (reader) {
         let assistantContent = ''
         let assistantMessageId = ''
+        let storedChatId: string | number | undefined = undefined
+        let storedDeepResearchData: any = null // Deep research data 저장용
 
         const processStream = async () => {
           try {
@@ -888,9 +1087,14 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                         content: '',
                         timestamp: new Date(),
                       }])
-                      // Scroll immediately when new AI response message is generated
-                      adjustDynamicPadding()
-                      scrollToBottomSmooth(true) // Set force=true to ensure scroll to bottom
+                      // 새 AI 응답 메시지 생성 시 사용자가 스크롤하지 않았을 때만 스크롤
+                      const container = messagesContainerRef.current
+                      const userScrolled = (container as any)?.userScrolled?.() || false
+                      
+                      if (!userScrolled) {
+                        adjustDynamicPadding()
+                        scrollToBottomSmooth(true) // Set force=true to ensure scroll to bottom
+                      }
                     }
 
                     if (data.content) {
@@ -903,38 +1107,124 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                             : m
                         )
                       )
-                      // Maintain scroll position and adjust padding during streaming (frequency adjusted)
+                      // 스트리밍 중에는 사용자가 스크롤하지 않았을 때만 패딩 조정 및 스크롤
                       if (assistantContent.length % 100 === 0) {
-                        adjustDynamicPadding()
-                        scrollToBottomSmooth(true) // Set force=true to ensure scroll to bottom
+                        const container = messagesContainerRef.current
+                        const userScrolled = (container as any)?.userScrolled?.() || false
+                        
+                        if (!userScrolled) {
+                          adjustDynamicPadding()
+                          scrollToBottomSmooth(true) // Set force=true to ensure scroll to bottom
+                        }
                       }
+                    }
+
+                    // Handle parallel processing started signal (처리 순서 변경)
+                    if (data.parallelProcessingStarted && data.chatId) {
+                      console.log('🚀 ========= PARALLEL PROCESSING STARTED SIGNAL =========');
+                      console.log('🚀 Parallel processing started signal received');
+                      console.log('🚀 Chat ID from parallel signal:', data.chatId);
+                      console.log('🚀 Message ID:', data.messageId);
+                      console.log('🚀 Full data:', data);
+                      
+                      // Store chatId for later use in parallel processing
+                      storedChatId = data.chatId; // chatId를 저장 (dbMessageId 대신)
+                      console.log('🚀 Stored Chat ID:', storedChatId);
+                      
+                      // 저장된 Deep Research 데이터가 있다면 병렬 처리 시작
+                      if (storedDeepResearchData && storedDeepResearchData.stepInfo?.useParallelProcessing && storedDeepResearchData.stepInfo?.subQuestions) {
+                        console.log('🚀 Starting parallel processing with stored data');
+                        console.log('🚀 Stored deep research data:', storedDeepResearchData);
+                        
+                        // Sub-questions를 메시지 내용으로 저장
+                        assistantContent += storedDeepResearchData.content;
+                        
+                        // 병렬 처리 시작
+                        console.log('🚀 About to call handleParallelDeepResearch from stored data...');
+                        
+                        handleParallelDeepResearch(
+                          storedDeepResearchData.stepInfo.subQuestions,
+                          storedDeepResearchData.stepInfo.originalQuery,
+                          storedDeepResearchData.stepInfo.modelId,
+                          assistantMessageId,
+                          storedChatId
+                        );
+                        
+                        console.log('🚀 handleParallelDeepResearch called from stored data');
+                        
+                        // 저장된 데이터 초기화
+                        storedDeepResearchData = null;
+                      } else {
+                        console.log('🚀 No stored deep research data available for parallel processing');
+                        console.log('🚀 storedDeepResearchData:', storedDeepResearchData);
+                      }
+                      
+                      console.log('🚀 ========= PARALLEL PROCESSING STARTED SIGNAL END =========');
                     }
 
                     // Handle Deep Research streaming
                     if (data.deepResearchStream) {
+                      console.log('🚀 Deep Research Stream received:', data);
+                      
                       // 계획된 스탭들 처리
                       if (data.stepInfo && data.stepInfo.plannedSteps) {
                         setDeepResearchPlannedSteps(data.stepInfo.plannedSteps)
                       }
                       
+                      // 병렬 처리용 데이터 저장
+                      if (data.stepInfo?.useParallelProcessing && data.stepInfo?.subQuestions) {
+                        console.log('🚀 Storing deep research data for later parallel processing');
+                        storedDeepResearchData = data;
+                        console.log('🚀 Stored deep research data:', storedDeepResearchData);
+                      }
+                      
                       // 병렬 처리 모드 확인
                       if (data.stepInfo?.useParallelProcessing && data.stepInfo?.subQuestions) {
-                        console.log('🚀 Starting parallel deep research processing');
+                        console.log('🚀 ========= PARALLEL PROCESSING TRIGGER =========');
+                        console.log('🚀 Parallel processing condition met!');
+                        console.log('🚀 data.stepInfo?.useParallelProcessing:', data.stepInfo?.useParallelProcessing);
+                        console.log('🚀 data.stepInfo?.subQuestions length:', data.stepInfo?.subQuestions?.length);
                         console.log('🚀 Step info:', data.stepInfo);
                         console.log('🚀 Sub-questions from step info:', data.stepInfo.subQuestions);
                         console.log('🚀 Assistant message ID:', assistantMessageId);
+                        console.log('🚀 Chat ID from data:', data.chatId);
+                        console.log('🚀 Stored Chat ID:', storedChatId);
                         
                         // Sub-questions를 메시지 내용으로 저장
                         assistantContent += data.content;
                         
-                        // 병렬 처리 시작
+                        // 병렬 처리 시작 (저장된 Chat ID 사용)
+                        const finalChatId = storedChatId || data.chatId;
+                        console.log('🚀 Final Chat ID to use:', finalChatId);
+                        console.log('🚀 Final Chat ID type:', typeof finalChatId);
+                        
+                        console.log('🚀 About to call handleParallelDeepResearch...');
+                        console.log('🚀 Parameters:');
+                        console.log('🚀 - subQuestions:', data.stepInfo.subQuestions);
+                        console.log('🚀 - originalQuery:', data.stepInfo.originalQuery);
+                        console.log('🚀 - modelId:', data.stepInfo.modelId);
+                        console.log('🚀 - assistantMessageId:', assistantMessageId);
+                        console.log('🚀 - finalChatId:', finalChatId);
+                        
                         handleParallelDeepResearch(
                           data.stepInfo.subQuestions,
                           data.stepInfo.originalQuery,
                           data.stepInfo.modelId,
-                          assistantMessageId
+                          assistantMessageId,
+                          finalChatId
                         );
+                        
+                        console.log('🚀 handleParallelDeepResearch called successfully');
+                        console.log('🚀 ========= PARALLEL PROCESSING TRIGGER END =========');
                       } else {
+                        console.log('🚀 ========= PARALLEL PROCESSING NOT TRIGGERED =========');
+                        console.log('🚀 Reason: Parallel processing condition not met');
+                        console.log('🚀 data.stepInfo?.useParallelProcessing:', data.stepInfo?.useParallelProcessing);
+                        console.log('🚀 data.stepInfo?.subQuestions:', data.stepInfo?.subQuestions);
+                        console.log('🚀 data.stepInfo?.subQuestions length:', data.stepInfo?.subQuestions?.length);
+                        console.log('🚀 data.stepInfo full object:', data.stepInfo);
+                        console.log('🚀 ========= PARALLEL PROCESSING NOT TRIGGERED END =========');
+                        
                         // 기존 순차 처리 로직
                         // 스탭별 처리: Sub-questions와 최종답변(final)을 메시지 내용으로 저장
                         if (data.stepType === 'final' || 
@@ -964,9 +1254,14 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                             : m
                         )
                       )
-                      // More frequent scrolling for deep research steps
-                      adjustDynamicPadding()
-                      scrollToBottomSmooth(true)
+                      // 딥리서치 스트리밍 중에는 사용자가 스크롤하지 않았을 때만 더 자주 스크롤
+                      const container = messagesContainerRef.current
+                      const userScrolled = (container as any)?.userScrolled?.() || false
+                      
+                      if (!userScrolled) {
+                        adjustDynamicPadding()
+                        scrollToBottomSmooth(true)
+                      }
                     }
 
                     // Handle Deep Research final result
@@ -979,8 +1274,13 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                             : m
                         )
                       )
-                      adjustDynamicPadding()
-                      scrollToBottomSmooth(true)
+                      const container = messagesContainerRef.current
+                      const userScrolled = (container as any)?.userScrolled?.() || false
+                      
+                      if (!userScrolled) {
+                        adjustDynamicPadding()
+                        scrollToBottomSmooth(true)
+                      }
                     }
 
                     // Handle Deep Research error
@@ -993,8 +1293,13 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                             : m
                         )
                       )
-                      adjustDynamicPadding()
-                      scrollToBottomSmooth(true)
+                      const container = messagesContainerRef.current
+                      const userScrolled = (container as any)?.userScrolled?.() || false
+                      
+                      if (!userScrolled) {
+                        adjustDynamicPadding()
+                        scrollToBottomSmooth(true)
+                      }
                     }
 
                     if (data.titleGenerated) {
@@ -1011,6 +1316,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                       // 스트리밍 완료 시점에서 즉시 상태 리셋
                       console.log('=== Immediate state reset on streaming completion ===')
                       setIsStreaming(false)
+                      setIsSubmitting(false)
+                      isSubmittingRef.current = false
                       setRegeneratingMessageId(null)
                       setStreamingMessageId(null)
                       streamingInProgress.current = false
@@ -1054,6 +1361,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       // 즉시 상태 리셋
       streamingInProgress.current = false
       setIsStreaming(false)
+      setIsSubmitting(false)
+      isSubmittingRef.current = false
       setRegeneratingMessageId(null)
       setStreamingMessageId(null)
       abortControllerRef.current = null
@@ -1064,11 +1373,15 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         console.log('=== First safety check - Reset regeneration state ===')
         setRegeneratingMessageId(null)
         setIsStreaming(false)
+        setIsSubmitting(false)
+        isSubmittingRef.current = false
       }, 100)
       
       setTimeout(() => {
         console.log('=== Second safety check - Reset regeneration state ===')
         setRegeneratingMessageId(null)
+        setIsSubmitting(false)
+        isSubmittingRef.current = false
         setIsStreaming(false)
       }, 500)
       
@@ -1076,31 +1389,31 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         console.log('=== Final safety check - Force reset regeneration state ===')
         setRegeneratingMessageId(null)
         setIsStreaming(false)
+        setIsSubmitting(false)
+        isSubmittingRef.current = false
       }, 1000) // 1초 후 강제 리셋
       
-      // Final padding adjustment and forced scroll when streaming completes
-      adjustDynamicPadding()
-      scrollToBottomSmooth(true) // Force scroll
+      // 스트리밍 완료 후 사용자가 수동으로 스크롤을 올렸다면 강제 스크롤 방지
+      const container = messagesContainerRef.current
+      const userScrolled = (container as any)?.userScrolled?.() || false
       
-      // Scroll one more time after streaming completes (after DOM updates)
-      setTimeout(() => {
-        scrollToBottomSmooth()
-      }, 100)
+      if (!userScrolled) {
+        // 사용자가 스크롤하지 않았을 때만 최종 패딩 조정 및 스크롤
+        adjustDynamicPadding()
+        scrollToBottomSmooth(true) // Force scroll
+        
+        // 스트리밍 완료 후 한 번만 추가 스크롤 (DOM 업데이트 대기)
+        setTimeout(() => {
+          if (!(container as any)?.userScrolled?.()) {
+            scrollToBottomSmooth()
+          }
+        }, 100)
+      }
       
-      // Additional scroll handling - wait for DOM to fully render after streaming
-      setTimeout(() => {
-        scrollToBottomSmooth()
-      }, 100)
-      
-      // Final scroll adjustment
-      setTimeout(() => {
-        scrollToBottomSmooth()
-      }, 500)
-      
-      // Restore base padding after streaming completes
+      // 베이스 패딩 복원 (지연 시간 증가)
       setTimeout(() => {
         setDynamicPadding(isMobile ? 320 : 160)
-      }, 2000)
+      }, 3000) // 3초 후 복원하여 사용자 스크롤 방해 최소화
       
       // Clear duplicate prevention after request completes
       setTimeout(() => {
@@ -1324,20 +1637,27 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   
   useEffect(() => {
     if (messages.length > 0) {
+      // 사용자가 수동으로 스크롤을 올렸는지 확인
+      const container = messagesContainerRef.current
+      const userScrolled = (container as any)?.userScrolled?.() || false
+      
       if (isInitialLoad) {
-        // Move to bottom immediately on first load (without animation)
+        // 초기 로드 시에는 사용자 스크롤 상태에 관계없이 맨 밑으로 이동
         setTimeout(() => scrollToBottomInstant(), 100)
         setTimeout(() => scrollToBottomInstant(), 300)
         setTimeout(() => scrollToBottomInstant(), 600)
         setIsInitialLoad(false)
-      } else {
-        // Smooth scroll when new message is added
+      } else if (!userScrolled || isStreaming) {
+        // 사용자가 스크롤하지 않았거나 스트리밍 중일 때만 스크롤
         setTimeout(() => scrollToBottomSmooth(true), 100)
-        setTimeout(() => scrollToBottomInstant(), 300)
-        setTimeout(() => scrollToBottomInstant(), 600)
+        // 스트리밍 중이 아닐 때는 추가 스크롤 최소화
+        if (isStreaming) {
+          setTimeout(() => scrollToBottomInstant(), 300)
+          setTimeout(() => scrollToBottomInstant(), 600)
+        }
       }
       
-      // Adjust padding when messages change
+      // 패딩 조정은 사용자 스크롤 상태에 관계없이 수행
       setTimeout(() => adjustDynamicPadding(), 200)
       
       // Clean up new message IDs after animation completes
@@ -1345,7 +1665,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         setNewMessageIds(new Set())
       }, 1000)
     }
-  }, [messages, isInitialLoad, adjustDynamicPadding])
+  }, [messages, isInitialLoad, adjustDynamicPadding, isStreaming])
   
   // Reset to initial load state when chatId changes
   useEffect(() => {
@@ -1377,6 +1697,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     if (!container) return
 
     let scrollTimeout: NodeJS.Timeout | null = null
+    let userScrolled = false
 
     const handleScroll = () => {
       // 스크롤 이벤트 디바운싱으로 성능 최적화
@@ -1385,21 +1706,28 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       }
       
       scrollTimeout = setTimeout(() => {
-        // Disable auto scroll flag when user scrolls manually
+        // 사용자가 수동으로 스크롤했는지 확인
         if (!isScrollingToBottom.current) {
           const { scrollTop, scrollHeight, clientHeight } = container
           const isAtBottom = scrollHeight - scrollTop - clientHeight < 80
           
-          // 긴 메시지에서 스크롤 중 렌더링 안정성 확보
+          // 사용자가 위로 스크롤했다면 userScrolled 플래그 설정
           if (!isAtBottom) {
-            // 스크롤이 상단으로 이동할 때 렌더링 강제 업데이트 방지
+            userScrolled = true
+            // 스크롤이 상단으로 이동할 때 렌더링 안정성 확보
             container.style.contentVisibility = 'auto'
+          } else {
+            // 사용자가 다시 맨 밑으로 스크롤했다면 플래그 해제
+            userScrolled = false
           }
         }
       }, 16) // 60fps에 맞춰 디바운싱
     }
 
     container.addEventListener('scroll', handleScroll, { passive: true })
+    
+    // userScrolled 상태를 container에 저장하여 다른 함수에서 접근 가능하게 함
+    ;(container as any).userScrolled = () => userScrolled
     
     return () => {
       container.removeEventListener('scroll', handleScroll)
@@ -1409,19 +1737,26 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     }
   }, [])
 
-  // ResizeObserver를 사용하여 콘텐츠 크기 변경 감지 및 자동 스크롤
+  // Use ResizeObserver to detect content size changes and auto-scroll
   useEffect(() => {
     const container = messagesContainerRef.current
     if (!container) return
 
     const resizeObserver = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        // 콘텐츠 크기가 변경되었을 때 사용자가 하단 근처에 있으면 자동 스크롤
+        // Don't auto-scroll if user has manually scrolled up
+        const userScrolled = (container as any).userScrolled?.() || false
+        if (userScrolled && !isStreaming) {
+          // Prevent auto-scroll if not streaming and user has scrolled
+          return
+        }
+        
+        // Auto-scroll if user is near bottom when content size changes
         const { scrollTop, scrollHeight, clientHeight } = container
         const isNearBottom = scrollHeight - scrollTop - clientHeight < 200
         
         if (isNearBottom && !isScrollingToBottom.current) {
-          // 짧은 지연 후 스크롤 (DOM 업데이트 대기)
+          // Short delay before scrolling (wait for DOM updates)
           setTimeout(() => {
             scrollToBottomInstant()
           }, 50)
@@ -1429,10 +1764,10 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       }
     })
 
-    // 메시지 컨테이너 관찰
+    // Observe message container
     resizeObserver.observe(container)
     
-    // 내부 콘텐츠 컨테이너도 관찰
+    // Also observe inner content container
     const innerContainer = container.querySelector('.max-w-full')
     if (innerContainer) {
       resizeObserver.observe(innerContainer)
@@ -1441,7 +1776,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     return () => {
       resizeObserver.disconnect()
     }
-  }, [])
+  }, [isStreaming])
 
   // Clean up streaming on component unmount
   useEffect(() => {
@@ -2067,8 +2402,13 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         }
       }, 0)
       
-      // 메시지 추가 후 즉시 스크롤
-      scrollToBottomSmooth()
+      // 메시지 추가 후 스크롤 (사용자가 수동으로 스크롤하지 않았을 때만)
+      const container = messagesContainerRef.current
+      const userScrolled = (container as any)?.userScrolled?.() || false
+      
+      if (!userScrolled) {
+        scrollToBottomSmooth()
+      }
 
       // 스트리밍이 중단되었다면 잠시 대기 후 새 메시지 전송
       const sendMessage = () => {
@@ -2105,19 +2445,19 @@ export default function ChatPage({ chatId }: ChatPageProps) {
 
     if (e.key === "Enter") {
       if (e.shiftKey) {
-        // Shift + Enter: 줄바꿈 허용 (기본 동작)
+        // Allow line break with Shift + Enter (default behavior)
         return
       } else {
-        // Enter만 누르면 submit 동작
+        // Submit on Enter only
         e.preventDefault()
         
-        // IME 조합 중인지 확인
+        // Check if IME composition is in progress
         if (e.nativeEvent.isComposing || isComposing) {
-          // 조합 중이면 잠시 대기
+          // Wait if composition is in progress
           return
         }
         
-        // 즉시 실행 (setTimeout 제거로 중복 실행 방지)
+        // Execute immediately (removed setTimeout to prevent duplicate execution)
         handleSubmit()
       }
     }
