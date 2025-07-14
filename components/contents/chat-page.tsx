@@ -796,7 +796,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           m.id === assistantMessageId 
             ? { 
                 ...m,
-                // Don't add final answer to content - let deep-research-display handle it
+                // Add final answer to content as well for backup display
+                content: m.content + '\n\n## 최종 답변\n\n' + finalAnswerContent,
                 isDeepResearchComplete: true,
                 deepResearchStepType: 'final' as const, // Set as final answer step
                 deepResearchStepInfo: {

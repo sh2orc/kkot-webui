@@ -241,6 +241,29 @@ export function DeepResearchDisplay({
         console.log('🔍 deepResearchStepInfo keys:', Object.keys(deepResearchStepInfo));
         console.log('🔍 deepResearchStepInfo entries:', Object.entries(deepResearchStepInfo));
         
+        // Force display final answer if it exists in deepResearchStepInfo
+        const finalAnswerKeys = Object.keys(deepResearchStepInfo).filter(key => 
+          key.startsWith('final_answer_') || 
+          (deepResearchStepInfo[key] && typeof deepResearchStepInfo[key] === 'object' && 
+           ((deepResearchStepInfo[key] as any).isFinalAnswer || (deepResearchStepInfo[key] as any).title === 'Final Answer'))
+        );
+        
+        console.log('🔍 Final answer keys found:', finalAnswerKeys);
+        
+        // If we have final answer keys, force add them to steps
+        finalAnswerKeys.forEach(key => {
+          const stepData = deepResearchStepInfo[key] as any;
+          console.log('🎯 Force adding final answer step:', key, stepData);
+          
+          newSteps.push({
+            id: key,
+            title: 'Final Answer',
+            content: stepData.content || '',
+            status: 'completed',
+            stepType: 'final'
+          });
+        });
+        
         Object.entries(deepResearchStepInfo).forEach(([key, value]) => {
           console.log('🔍 Processing key:', key, 'value type:', typeof value, 'value:', value);
           
