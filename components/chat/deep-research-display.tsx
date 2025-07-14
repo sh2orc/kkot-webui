@@ -238,9 +238,15 @@ export function DeepResearchDisplay({
         const newSteps: DeepResearchStep[] = []
         
         // Iterate through all keys in deepResearchStepInfo to collect results
+        console.log('🔍 deepResearchStepInfo keys:', Object.keys(deepResearchStepInfo));
+        console.log('🔍 deepResearchStepInfo entries:', Object.entries(deepResearchStepInfo));
+        
         Object.entries(deepResearchStepInfo).forEach(([key, value]) => {
+          console.log('🔍 Processing key:', key, 'value type:', typeof value, 'value:', value);
+          
           if (typeof value === 'object' && value !== null && 'content' in value) {
             const stepData = value as any
+            console.log('🔍 Valid stepData for key:', key, 'stepData:', stepData);
             
             // Sub-question analysis result processing
             if (key.startsWith('subq_')) {
@@ -265,6 +271,24 @@ export function DeepResearchDisplay({
             // Final answer processing
             else if (key.startsWith('final_answer_') || stepData.isFinalAnswer) {
               console.log('🎯 Processing final answer:', {
+                key,
+                title: stepData.title,
+                contentLength: stepData.content?.length || 0,
+                contentPreview: stepData.content?.substring(0, 100) || '',
+                isComplete: stepData.isComplete,
+                isFinalAnswer: stepData.isFinalAnswer
+              })
+              newSteps.push({
+                id: key,
+                title: stepData.title || 'Final Answer',
+                content: stepData.content || '',
+                status: stepData.isComplete ? 'completed' : 'in_progress',
+                stepType: 'final'
+              })
+            }
+            // Additional catch-all for final answer (in case key doesn't match expected patterns)
+            else if (stepData.title === 'Final Answer' || stepData.isFinalAnswer === true) {
+              console.log('🎯 Processing final answer (catch-all):', {
                 key,
                 title: stepData.title,
                 contentLength: stepData.content?.length || 0,
@@ -868,15 +892,29 @@ export function DeepResearchDisplay({
       {/* Display final answer with full content */}
       {(() => {
         const finalStep = steps.find(step => step.stepType === 'final')
+        
+        // Also check if there's a final answer in deepResearchStepInfo even if no final step exists
+        const finalAnswerFromStepInfo = Object.entries(deepResearchStepInfo || {}).find(([key, value]) => {
+          if (typeof value === 'object' && value !== null) {
+            const stepData = value as any
+            return key.startsWith('final_answer_') || stepData.isFinalAnswer || stepData.title === 'Final Answer'
+          }
+          return false
+        })
+        
         console.log('🎯 Final answer display check:', {
           hasFinalStep: !!finalStep,
           finalStepId: finalStep?.id,
           finalStepTitle: finalStep?.title,
           finalStepStatus: finalStep?.status,
           finalStepContentLength: finalStep?.content?.length || 0,
-          finalStepContentPreview: finalStep?.content?.substring(0, 100) || ''
+          finalStepContentPreview: finalStep?.content?.substring(0, 100) || '',
+          hasFinalAnswerFromStepInfo: !!finalAnswerFromStepInfo,
+          finalAnswerFromStepInfoKey: finalAnswerFromStepInfo?.[0],
+          finalAnswerFromStepInfoContent: finalAnswerFromStepInfo?.[1] ? (finalAnswerFromStepInfo[1] as any).content?.substring(0, 100) : ''
         })
-        return !!finalStep
+        
+        return !!finalStep || !!finalAnswerFromStepInfo
       })() && (
         <Collapsible>
           <CollapsibleTrigger 
@@ -885,18 +923,76 @@ export function DeepResearchDisplay({
               const finalStep = steps.find(s => s.stepType === 'final');
               if (finalStep) {
                 toggleStep(finalStep.id);
+              } else {
+                // If no final step exists, try to find from deepResearchStepInfo
+                const finalAnswerFromStepInfo = Object.entries(deepResearchStepInfo || {}).find(([key, value]) => {
+                  if (typeof value === 'object' && value !== null) {
+                    const stepData = value as any
+                    return key.startsWith('final_answer_') || stepData.isFinalAnswer || stepData.title === 'Final Answer'
+                  }
+                  return false
+                })
+                
+                if (finalAnswerFromStepInfo) {
+                  const [key] = finalAnswerFromStepInfo
+                  toggleStep(key);
+                }
               }
             }}
           >
             <div className="flex items-center gap-3 flex-wrap">
               <div className="flex-shrink-0">
-                {getStepIcon(steps.find(s => s.stepType === 'final')?.status || 'pending')}
+                {(() => {
+                  const finalStep = steps.find(s => s.stepType === 'final');
+                  if (finalStep) {
+                    return getStepIcon(finalStep.status);
+                  }
+                  
+                  // Check from deepResearchStepInfo if no final step exists
+                  const finalAnswerFromStepInfo = Object.entries(deepResearchStepInfo || {}).find(([key, value]) => {
+                    if (typeof value === 'object' && value !== null) {
+                      const stepData = value as any
+                      return key.startsWith('final_answer_') || stepData.isFinalAnswer || stepData.title === 'Final Answer'
+                    }
+                    return false
+                  })
+                  
+                  if (finalAnswerFromStepInfo) {
+                    const [, stepData] = finalAnswerFromStepInfo
+                    const finalAnswerData = stepData as any
+                    return getStepIcon(finalAnswerData.isComplete ? 'completed' : 'in_progress');
+                  }
+                  
+                  return getStepIcon('pending');
+                })()}
               </div>
               <span className="text-sm font-medium text-green-700">Final Answer</span>
               <Badge className="text-xs bg-green-100 text-green-700 border-green-200 flex-shrink-0 hover:bg-green-300 hover:text-green-900">
                 Final
               </Badge>
-              {steps.find(s => s.stepType === 'final')?.status === 'in_progress' && (
+              {(() => {
+                const finalStep = steps.find(s => s.stepType === 'final');
+                if (finalStep) {
+                  return finalStep.status === 'in_progress';
+                }
+                
+                // Check from deepResearchStepInfo if no final step exists
+                const finalAnswerFromStepInfo = Object.entries(deepResearchStepInfo || {}).find(([key, value]) => {
+                  if (typeof value === 'object' && value !== null) {
+                    const stepData = value as any
+                    return key.startsWith('final_answer_') || stepData.isFinalAnswer || stepData.title === 'Final Answer'
+                  }
+                  return false
+                })
+                
+                if (finalAnswerFromStepInfo) {
+                  const [, stepData] = finalAnswerFromStepInfo
+                  const finalAnswerData = stepData as any
+                  return !finalAnswerData.isComplete;
+                }
+                
+                return false;
+              })() && (
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <div className="flex space-x-1">
                     <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse"></div>
@@ -908,7 +1004,29 @@ export function DeepResearchDisplay({
                   </Badge>
                 </div>
               )}
-              {steps.find(s => s.stepType === 'final')?.status === 'completed' && (
+              {(() => {
+                const finalStep = steps.find(s => s.stepType === 'final');
+                if (finalStep) {
+                  return finalStep.status === 'completed';
+                }
+                
+                // Check from deepResearchStepInfo if no final step exists
+                const finalAnswerFromStepInfo = Object.entries(deepResearchStepInfo || {}).find(([key, value]) => {
+                  if (typeof value === 'object' && value !== null) {
+                    const stepData = value as any
+                    return key.startsWith('final_answer_') || stepData.isFinalAnswer || stepData.title === 'Final Answer'
+                  }
+                  return false
+                })
+                
+                if (finalAnswerFromStepInfo) {
+                  const [, stepData] = finalAnswerFromStepInfo
+                  const finalAnswerData = stepData as any
+                  return finalAnswerData.isComplete;
+                }
+                
+                return false;
+              })() && (
                 <Badge className="text-xs bg-green-50 border-green-200 text-green-700 flex-shrink-0 hover:bg-green-300 hover:text-green-900">
                   Completed
                 </Badge>
@@ -916,15 +1034,76 @@ export function DeepResearchDisplay({
             </div>
             {(() => {
               const finalStep = steps.find(s => s.stepType === 'final');
-              return finalStep && openSteps.has(finalStep.id) ? 
-                <ChevronDown className="w-4 h-4 text-green-600" /> : 
-                <ChevronRight className="w-4 h-4 text-green-600" />
+              if (finalStep) {
+                return openSteps.has(finalStep.id) ? 
+                  <ChevronDown className="w-4 h-4 text-green-600" /> : 
+                  <ChevronRight className="w-4 h-4 text-green-600" />
+              }
+              
+              // Check from deepResearchStepInfo if no final step exists
+              const finalAnswerFromStepInfo = Object.entries(deepResearchStepInfo || {}).find(([key, value]) => {
+                if (typeof value === 'object' && value !== null) {
+                  const stepData = value as any
+                  return key.startsWith('final_answer_') || stepData.isFinalAnswer || stepData.title === 'Final Answer'
+                }
+                return false
+              })
+              
+              if (finalAnswerFromStepInfo) {
+                const [key] = finalAnswerFromStepInfo
+                return openSteps.has(key) ? 
+                  <ChevronDown className="w-4 h-4 text-green-600" /> : 
+                  <ChevronRight className="w-4 h-4 text-green-600" />
+              }
+              
+              return <ChevronRight className="w-4 h-4 text-green-600" />
             })()}
           </CollapsibleTrigger>
           <CollapsibleContent className="px-3 pb-3">
             {(() => {
               const finalStep = steps.find(s => s.stepType === 'final');
-              if (!finalStep) return null;
+              
+              // If no final step exists, try to get from deepResearchStepInfo
+              if (!finalStep) {
+                const finalAnswerFromStepInfo = Object.entries(deepResearchStepInfo || {}).find(([key, value]) => {
+                  if (typeof value === 'object' && value !== null) {
+                    const stepData = value as any
+                    return key.startsWith('final_answer_') || stepData.isFinalAnswer || stepData.title === 'Final Answer'
+                  }
+                  return false
+                })
+                
+                if (finalAnswerFromStepInfo) {
+                  const [key, stepData] = finalAnswerFromStepInfo
+                  const finalAnswerData = stepData as any
+                  
+                  return (
+                    <div className="mt-2 p-4 bg-white rounded-lg border-l-4 border-green-400">
+                      {finalAnswerData.content ? (
+                        <div className="prose prose-sm max-w-none text-gray-700">
+                          {finalAnswerData.content.split('\n').map((line: string, index: number) => (
+                            <p key={index} className="mb-2 last:mb-0">
+                              {line}
+                            </p>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-sm text-gray-500 italic">
+                          Final answer content will be displayed here once generated.
+                        </div>
+                      )}
+                    </div>
+                  );
+                }
+                
+                return (
+                  <div className="mt-2 p-4 bg-white rounded-lg border-l-4 border-green-400">
+                    <div className="text-sm text-gray-500 italic">
+                      Final answer content will be displayed here once generated.
+                    </div>
+                  </div>
+                );
+              }
               
               return (
                 <div className="mt-2 p-4 bg-white rounded-lg border-l-4 border-green-400">
