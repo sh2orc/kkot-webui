@@ -60,7 +60,13 @@
   },
   "saveButton": "Save",
   "error": {
-    "no_model_selected": "No model selected. Please select a model from the model selection menu above."
+    "no_model_selected": "No model selected. Please select a model from the model selection menu above.",
+    "chat_creation_failed": "Failed to create chat session. Please try again.",
+    "image_processing_failed": "An error occurred while processing the images.",
+    "image_too_large": "Image is still too large after compression. Please select a different image.",
+    "max_images_exceeded": "You can upload up to 3 images.",
+    "only_images_allowed": "Only image files can be uploaded.",
+    "chat_id_missing": "Chat ID is missing from server response, cannot navigate"
   },
   "welcome": {
     "greeting": "Hello, {name}! 👋",
@@ -68,5 +74,40 @@
     "noModelMessage": "To use this service, you need to register AI agents and LLM models.",
     "setupRequired": "Setup Required",
     "goToAdmin": "Go to Admin"
+  },
+  "images": {
+    "uploadedImage": "Uploaded image {index}",
+    "chatTitle": "Image Chat",
+    "chatTitleWithImages": "Image Chat ({count} image{plural})",
+    "chatTitleWithText": "{text} (+{count} image{plural})",
+    "charactersLimit": "characters",
+    "imagesLimit": "images (text limit: 1000 characters)"
+  },
+  "tooltips": {
+    "deepResearchActive": "Deep Research Active",
+    "deepResearchInactive": "Deep Research Inactive"
+  },
+  "deepResearch": {
+    "title": "Deep Research Analysis",
+    "preparation": "Deep Research Analysis Preparation...",
+    "analysisTitle": "Deep Research Analysis",
+    "analysisProgress": "Analysis Progress",
+    "finalAnswer": "Final Answer",
+    "completed": "Completed",
+    "stepsTotal": "Steps Total",
+    "status": {
+      "pending": "Pending...",
+      "analyzing": "Analyzing...",
+      "generating": "Generating...",
+      "inProgress": "In Progress",
+      "noContent": "No content."
+    },
+    "stepTypes": {
+      "analysis": "Analysis",
+      "synthesis": "Synthesis",
+      "final": "Final"
+    },
+    "finalAnswerDisplay": "The final answer will be displayed below.",
+    "finalAnswerGenerating": "Generating final answer..."
   }
 } 

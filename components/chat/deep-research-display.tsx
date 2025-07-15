@@ -5,6 +5,7 @@ import { ChevronDown, ChevronRight, Check, Loader2, Brain } from "lucide-react"
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
 import { Badge } from "@/components/ui/badge"
 import { marked } from 'marked'
+import { useTranslation } from "@/lib/i18n"
 
 interface DeepResearchStep {
   id: string
@@ -40,6 +41,7 @@ export function DeepResearchDisplay({
   isDeepResearchComplete = false,
   deepResearchStepInfo = {}
 }: DeepResearchDisplayProps) {
+  const { lang } = useTranslation("chat")
   const [steps, setSteps] = useState<DeepResearchStep[]>([])
   const [openSteps, setOpenSteps] = useState<Set<string>>(new Set())
   const [currentStepId, setCurrentStepId] = useState<string | null>(null)
@@ -781,7 +783,7 @@ export function DeepResearchDisplay({
     return (
       <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-lg">
         <Brain className="w-5 h-5 text-cyan-600" />
-        <span className="text-sm text-cyan-700">Deep Research Analysis Preparation...</span>
+        <span className="text-sm text-cyan-700">{lang("deepResearch.preparation")}</span>
       </div>
     )
   }
@@ -790,13 +792,13 @@ export function DeepResearchDisplay({
     <div className="space-y-2">
       <div className="flex items-center gap-2 mb-3">
         <Brain className="w-5 h-5 text-cyan-600" />
-        <span className="text-sm font-medium text-cyan-700">Deep Research Analysis</span>
+        <span className="text-sm font-medium text-cyan-700">{lang("deepResearch.title")}</span>
         <Badge variant="outline" className="text-xs">
-          {steps.filter(s => s.status === 'completed').length}/{plannedSteps.length > 0 ? plannedSteps.length : steps.length} Completed
+          {steps.filter(s => s.status === 'completed').length}/{plannedSteps.length > 0 ? plannedSteps.length : steps.length} {lang("deepResearch.completed")}
         </Badge>
         {plannedSteps.length > 0 && (
           <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200 text-blue-600">
-            {plannedSteps.length} Steps Total
+            {plannedSteps.length} {lang("deepResearch.stepsTotal")}
           </Badge>
         )}
       </div>
@@ -805,7 +807,7 @@ export function DeepResearchDisplay({
       {plannedSteps.length > 0 && (
         <div className="mb-4 p-3 bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-200 rounded-lg hidden">
           <div className="flex items-center gap-2 mb-2">
-            <span className="text-sm font-medium text-blue-700">Analysis Plan</span>
+            <span className="text-sm font-medium text-blue-700">{lang("deepResearch.analysisProgress")}</span>
             <div className="flex-1 bg-gray-200 rounded-full h-2">
               <div 
                 className="bg-blue-500 h-2 rounded-full transition-all duration-300"
@@ -860,7 +862,7 @@ export function DeepResearchDisplay({
               {getStepIcon(step.status)}
               <span className="text-sm font-medium text-gray-700 truncate min-w-0 max-w-[50%]">{step.title}</span>
               <Badge className={`text-xs flex-shrink-0 ${getStepBadgeColor(step.stepType)}`}>
-                {step.stepType === 'step' ? 'Analysis' : step.stepType === 'synthesis' ? 'Synthesis' : 'Final'}
+                {step.stepType === 'step' ? lang("deepResearch.stepTypes.analysis") : step.stepType === 'synthesis' ? lang("deepResearch.stepTypes.synthesis") : lang("deepResearch.stepTypes.final")}
               </Badge>
               {step.status === 'in_progress' && (
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -870,7 +872,7 @@ export function DeepResearchDisplay({
                     <div className="w-1.5 h-1.5 bg-yellow-500 rounded-full animate-pulse [animation-delay:0.4s]"></div>
                   </div>
                   <Badge className="text-xs bg-yellow-50 border-yellow-200 text-yellow-700 flex-shrink-0">
-                    In Progress
+                    {lang("deepResearch.status.inProgress")}
                   </Badge>
                 </div>
               )}
@@ -889,11 +891,11 @@ export function DeepResearchDisplay({
                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
                     <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
                   </div>
-                  <span>Analyzing...</span>
+                  <span>{lang("deepResearch.status.analyzing")}</span>
                 </div>
               ) : step.status === 'pending' ? (
                 <div className="text-sm text-gray-500 italic">
-                  Pending...
+                  {lang("deepResearch.status.pending")}
                 </div>
               ) : step.content ? (
                 <div className="prose prose-sm max-w-none text-gray-700">
@@ -905,7 +907,7 @@ export function DeepResearchDisplay({
                 </div>
               ) : (
                 <div className="text-sm text-gray-500 italic">
-                  No content.
+                  {lang("deepResearch.status.noContent")}
                 </div>
               )}
             </div>
@@ -990,9 +992,9 @@ export function DeepResearchDisplay({
                   return getStepIcon('pending');
                 })()}
               </div>
-              <span className="text-sm font-medium text-green-700">Final Answer</span>
+              <span className="text-sm font-medium text-green-700">{lang("deepResearch.finalAnswer")}</span>
               <Badge className="text-xs bg-green-100 text-green-700 border-green-200 flex-shrink-0 hover:bg-green-300 hover:text-green-900">
-                Final
+                {lang("deepResearch.stepTypes.final")}
               </Badge>
               {(() => {
                 const finalStep = steps.find(s => s.stepType === 'final');
@@ -1024,7 +1026,7 @@ export function DeepResearchDisplay({
                     <div className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse [animation-delay:0.4s]"></div>
                   </div>
                   <Badge className="text-xs bg-yellow-50 border-yellow-200 text-yellow-700 flex-shrink-0">
-                    Generating...
+                    {lang("deepResearch.status.generating")}
                   </Badge>
                 </div>
               )}
@@ -1052,7 +1054,7 @@ export function DeepResearchDisplay({
                 return false;
               })() && (
                 <Badge className="text-xs bg-green-50 border-green-200 text-green-700 flex-shrink-0 hover:bg-green-300 hover:text-green-900">
-                  Completed
+                  {lang("deepResearch.completed")}
                 </Badge>
               )}
             </div>
@@ -1104,7 +1106,7 @@ export function DeepResearchDisplay({
                   return (
                     <div className="mt-2 p-4 bg-white rounded-lg border-l-4 border-green-400">
                       <div className="text-sm text-gray-500 italic">
-                        최종 답변이 아래에 표시됩니다.
+                        {lang("deepResearch.finalAnswerDisplay")}
                       </div>
                     </div>
                   );
@@ -1113,7 +1115,7 @@ export function DeepResearchDisplay({
                                   return (
                     <div className="mt-2 p-4 bg-white rounded-lg border-l-4 border-green-400">
                       <div className="text-sm text-gray-500 italic">
-                        최종 답변이 아래에 표시됩니다.
+                        {lang("deepResearch.finalAnswerDisplay")}
                       </div>
                     </div>
                   );
@@ -1128,11 +1130,11 @@ export function DeepResearchDisplay({
                             <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
                             <div className="w-2 h-2 bg-green-500 rounded-full animate-bounce"></div>
                           </div>
-                          <span>최종 답변 생성 중...</span>
+                          <span>{lang("deepResearch.finalAnswerGenerating")}</span>
                         </div>
                       ) : (
                         <div className="text-sm text-gray-500 italic">
-                          최종 답변이 아래에 표시됩니다.
+                          {lang("deepResearch.finalAnswerDisplay")}
                         </div>
                       )}
                     </div>

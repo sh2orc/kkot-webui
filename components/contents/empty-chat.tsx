@@ -9,10 +9,8 @@ import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { useTranslation } from "@/lib/i18n"
 import { useModel, type Agent, type PublicModel } from "@/components/providers/model-provider"
-import { Skeleton } from "@/components/ui/skeleton"
 
 // Types are imported from model-provider
-
 interface EmptyChatProps {
   initialAgents?: Agent[]
   initialPublicModels?: PublicModel[]
@@ -77,26 +75,6 @@ export default function Component({
     }
   }, [initialAgents, initialPublicModels, defaultModel, setInitialData])
 
-
-
-  const prompts = [
-    {
-      title: lang("prompts.0.title"),
-      description: lang("prompts.0.description"),
-    },
-    {
-      title: lang("prompts.1.title"),
-      description: lang("prompts.1.description"),
-    },
-    {
-      title: lang("prompts.2.title"),
-      description: lang("prompts.2.description"),
-    },
-    {
-      title: lang("prompts.3.title"),
-      description: lang("prompts.3.description"),
-    },
-  ]
 
   const adjustTextareaHeight = useCallback((textarea: HTMLTextAreaElement) => {
     textarea.style.height = "auto"
@@ -224,7 +202,7 @@ export default function Component({
         if (!response.ok) {
           const errorText = await response.text()
           console.log('Error response content:', errorText)
-          throw new Error(`Failed to create chat session (${response.status}: ${errorText})`)
+          throw new Error(`${lang('error.chat_creation_failed')} (${response.status}: ${errorText})`)
         }
 
         const data = await response.json()
@@ -248,11 +226,16 @@ export default function Component({
 
         // Add new chat to sidebar immediately
         if (typeof window !== 'undefined') {
-          let chatTitle = inputValue?.trim() || 'Image Chat'
+          let chatTitle = inputValue?.trim() || lang('images.chatTitle')
           if (uploadedImages.length > 0 && !inputValue?.trim()) {
-            chatTitle = `Image Chat (${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''})`
+            chatTitle = lang('images.chatTitleWithImages')
+              .replace('{count}', uploadedImages.length.toString())
+              .replace('{plural}', uploadedImages.length > 1 ? 's' : '')
           } else if (uploadedImages.length > 0 && inputValue?.trim()) {
-            chatTitle = inputValue.substring(0, 15) + ` (+${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''})`
+            chatTitle = lang('images.chatTitleWithText')
+              .replace('{text}', inputValue.substring(0, 15))
+              .replace('{count}', uploadedImages.length.toString())
+              .replace('{plural}', uploadedImages.length > 1 ? 's' : '')
           } else {
             chatTitle = inputValue.substring(0, 20) + (inputValue.length > 20 ? '...' : '')
           }
@@ -283,7 +266,7 @@ export default function Component({
         
         if (!chatId) {
           console.error('Chat ID is missing, cannot navigate')
-          throw new Error('Chat ID is missing from server response')
+          throw new Error(lang('error.chat_id_missing'))
         }
         
         // Navigate with URL parameters (simple and reliable)
@@ -322,7 +305,7 @@ export default function Component({
           console.error('Error stack:', error.stack)
         }
         // Error handling - show notification to user
-        alert('Failed to start chat. Please try again.')
+        alert(lang('error.chat_creation_failed'))
       } finally {
         setIsSubmitting(false)
         submitInProgress.current = false
@@ -449,18 +432,18 @@ export default function Component({
     const files = Array.from(e.target.files || [])
     if (files.length === 0) return
 
-    // Filter image files only
-    const imageFiles = files.filter(file => file.type.startsWith('image/'))
-    if (imageFiles.length === 0) {
-      alert("Only image files can be uploaded.")
-      return
-    }
+            // Filter image files only
+        const imageFiles = files.filter(file => file.type.startsWith('image/'))
+        if (imageFiles.length === 0) {
+          alert(lang("error.only_images_allowed"))
+          return
+        }
 
-    // Total image count limit (max 3)
-    if (uploadedImages.length + imageFiles.length > 3) {
-      alert("You can upload up to 3 images.")
-      return
-    }
+        // Total image count limit (max 3)
+        if (uploadedImages.length + imageFiles.length > 3) {
+          alert(lang("error.max_images_exceeded"))
+          return
+        }
 
     try {
       // Resize and compress all images
@@ -472,7 +455,7 @@ export default function Component({
       const maxSize = 2 * 1024 * 1024
       const oversizedFiles = processedImages.filter(file => file.size > maxSize)
       if (oversizedFiles.length > 0) {
-        alert("Image is still too large after compression. Please select a different image.")
+        alert(lang("error.image_too_large"))
         return
       }
 
@@ -497,7 +480,7 @@ export default function Component({
       })
     } catch (error) {
       console.error('Image processing error:', error)
-      alert("An error occurred while processing the images.")
+      alert(lang("error.image_processing_failed"))
     }
 
     // Reset file input
@@ -663,7 +646,7 @@ export default function Component({
                       <div key={index} className="relative">
                         <img
                           src={preview}
-                          alt={`Uploaded image ${index + 1}`}
+                          alt={lang("images.uploadedImage").replace("{index}", (index + 1).toString())}
                           className="w-16 h-16 object-cover rounded-lg border border-gray-200"
                         />
                         <button
@@ -719,10 +702,10 @@ export default function Component({
                   {/* Text length indicator */}
                   {(inputValue.length > 500 || uploadedImages.length > 0) && (
                     <div className="text-xs text-gray-500 mt-1 px-1">
-                      {inputValue.length}/{uploadedImages.length > 0 ? 1000 : 4000} characters
+                      {inputValue.length}/{uploadedImages.length > 0 ? 1000 : 4000} {lang("images.charactersLimit")}
                       {uploadedImages.length > 0 && (
                         <span className="ml-2 text-orange-600">
-                          {uploadedImages.length} images (text limit: 1000 characters)
+                          {uploadedImages.length} {lang("images.imagesLimit")}
                         </span>
                       )}
                     </div>
@@ -764,7 +747,7 @@ export default function Component({
                           onClick={() => {
                             setIsDeepResearchActive(!isDeepResearchActive)
                           }}
-                          title={isDeepResearchActive ? "Deep Research Active" : "Deep Research Inactive"}
+                          title={isDeepResearchActive ? lang("tooltips.deepResearchActive") : lang("tooltips.deepResearchInactive")}
                         >
                           <Brain className="h-4 w-4" />
                         </Button>
@@ -797,11 +780,11 @@ export default function Component({
                     <div className="flex flex-wrap gap-2 p-3 border-b border-gray-200">
                       {imagePreviews.map((preview, index) => (
                         <div key={index} className="relative">
-                          <img
-                            src={preview}
-                            alt={`Uploaded image ${index + 1}`}
-                            className="w-16 h-16 object-cover rounded-lg border border-gray-200"
-                          />
+                                                  <img
+                          src={preview}
+                          alt={lang("images.uploadedImage").replace("{index}", (index + 1).toString())}
+                          className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                        />
                           <button
                             onClick={() => removeImage(index)}
                             className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition"
@@ -846,10 +829,10 @@ export default function Component({
                     {/* Text length indicator */}
                     {(inputValue.length > 500 || uploadedImages.length > 0) && (
                       <div className="text-xs text-gray-500 mt-1 px-1">
-                        {inputValue.length}/{uploadedImages.length > 0 ? 1000 : 4000} characters
+                        {inputValue.length}/{uploadedImages.length > 0 ? 1000 : 4000} {lang("images.charactersLimit")}
                         {uploadedImages.length > 0 && (
                           <span className="ml-2 text-orange-600">
-                            {uploadedImages.length} images (text limit: 1000 characters)
+                            {uploadedImages.length} {lang("images.imagesLimit")}
                           </span>
                         )}
                       </div>
@@ -889,6 +872,7 @@ export default function Component({
                               console.log('  New state will be:', !isDeepResearchActive)
                               setIsDeepResearchActive(!isDeepResearchActive)
                             }}
+                            title={isDeepResearchActive ? lang("tooltips.deepResearchActive") : lang("tooltips.deepResearchInactive")}
                           >
                             <Brain className="h-4 w-4" />
                           </Button>
@@ -915,21 +899,6 @@ export default function Component({
           </div>
           )}
 
-          {/* Prompt Suggestions */}
-          {selectedModel && (
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
-              {prompts.map((prompt, index) => (
-                <div
-                  key={index}
-                  className="p-4 border border-gray-200 rounded-lg hover:border-gray-300 cursor-pointer transition-colors bg-white hover:bg-gray-50"
-                  onClick={() => handlePromptClick(prompt.title)}
-                >
-                  <h3 className="font-medium text-gray-900 mb-1">{prompt.title}</h3>
-                  <p className="text-sm text-gray-600">{prompt.description}</p>
-                </div>
-              ))}
-            </div>
-          )}
           
         </div>
 
