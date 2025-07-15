@@ -38,6 +38,8 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Supported Providers**: OpenAI, Gemini, Ollama, vLLM
 - **Streaming**: Real-time response streaming
 - **Multimodal**: Image processing capabilities
+- **Deep Research**: Advanced multi-step analysis system with parallel processing
+- **Research Engine**: Systematic question decomposition and synthesis capabilities
 
 ### State Management & Context
 - **State Management**: React Context API with hierarchical provider structure
@@ -64,6 +66,19 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Vision Models**: Native support for image analysis and multimodal conversations
 - **Factory Pattern**: Unified LLM provider management
 
+### 🔍 Deep Research System
+- **Advanced Analysis**: Multi-step systematic research with sub-question generation
+- **Intelligent Processing**: Automatic question decomposition and parallel analysis
+- **Streaming Interface**: Real-time progress tracking with collapsible step display
+- **Synthesis Engine**: Comprehensive finding integration and pattern identification
+- **Language Detection**: Automatic language detection with same-language responses
+- **Research Planning**: Pre-planned step structure with progress visualization
+- **Final Answer Generation**: Structured comprehensive answers with markdown formatting
+- **Error Handling**: Robust error handling with graceful fallbacks
+- **Parallel Processing**: Concurrent analysis of multiple sub-questions for efficiency
+- **Step-by-Step API**: Modular API endpoints for each research phase
+- **Progress Visualization**: Interactive UI with status badges and animated indicators
+
 ### 💬 Chat Interface
 - **Real-time Streaming**: Seamless streaming response for natural conversations with abort functionality
 - **Multimodal Support**: Image upload and processing with drag & drop functionality
@@ -78,6 +93,7 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Performance Optimization**: Memoized components with React.memo for optimal re-rendering
 - **Scroll Optimization**: Smooth scrolling with content-visibility and CSS containment
 - **Memory Management**: Efficient handling of long conversations with virtual scrolling techniques
+- **Deep Research Integration**: Seamless integration with advanced research capabilities for complex queries
 
 ### 🤖 Agent Management
 - **Custom AI Agents**: Create and manage personalized AI agents with specific configurations
@@ -291,6 +307,12 @@ kkot-webui/
 │   │   ├── llm-servers/   # LLM server management API
 │   │   ├── llm-models/    # LLM model management API
 │   │   ├── chat/          # Chat API with streaming
+│   │   ├── deepresearch/  # Deep Research API endpoints
+│   │   │   ├── query-analysis/     # Initial query analysis
+│   │   │   ├── subquestions/       # Sub-question generation
+│   │   │   ├── subquestion-analysis/ # Individual sub-question analysis
+│   │   │   ├── synthesis/          # Analysis synthesis
+│   │   │   └── final-answer/       # Final answer generation
 │   │   └── profile/       # User profile API
 │   ├── book/              # Content pages
 │   ├── setting/           # User settings
@@ -298,6 +320,7 @@ kkot-webui/
 ├── components/            # React components
 │   ├── admin/             # Admin components
 │   ├── chat/              # Chat-related components
+│   │   ├── deep-research-display.tsx # Deep Research UI component
 │   ├── layout/            # Layout components
 │   ├── sidebar/           # Sidebar components
 │   ├── contents/          # Page content components
@@ -316,7 +339,8 @@ kkot-webui/
 │   │   ├── openai.ts      # OpenAI integration
 │   │   ├── gemini.ts      # Gemini integration
 │   │   ├── ollama.ts      # Ollama integration
-│   │   └── vllm.ts        # vLLM integration
+│   │   ├── vllm.ts        # vLLM integration
+│   │   └── deepresearch.ts # Deep Research processing logic
 │   ├── i18n.ts            # Client-side internationalization
 │   └── i18n-server.ts     # Server-side internationalization
 ├── i18n/                  # Translation files
@@ -436,6 +460,22 @@ PUT /api/agents/{id}
 DELETE /api/agents/{id}
 # List agents
 GET /api/agents
+```
+
+#### Deep Research API
+```bash
+# Full deep research (streaming)
+POST /api/deepresearch
+# Generate sub-questions
+POST /api/deepresearch/subquestions
+# Initial query analysis
+POST /api/deepresearch/query-analysis
+# Analyze sub-question
+POST /api/deepresearch/subquestion-analysis
+# Synthesis analysis
+POST /api/deepresearch/synthesis
+# Generate final answer
+POST /api/deepresearch/final-answer
 ```
 
 #### Chat Management

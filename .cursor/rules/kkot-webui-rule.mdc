@@ -35,6 +35,8 @@ KKOT WebUI is a universal web interface for various LLM services (OpenAI, Gemini
 - **Google AI**: @langchain/google-genai
 - **LangGraph**: @langchain/langgraph
 - **Factory Pattern**: Provider management via LLMFactory
+- **Deep Research**: Advanced multi-step analysis system with DeepResearchProcessor
+- **Research Architecture**: Modular step-by-step processing with streaming support
 
 ### State Management & Context
 - **State Management**: React Context API
@@ -460,7 +462,197 @@ export async function POST(request: NextRequest) {
 }
 ```
 
-### 12. Error Handling
+### 12. Deep Research System Rules
+
+#### Deep Research Architecture
+- **Main Processor**: `DeepResearchProcessor` class in `lib/llm/deepresearch.ts`
+- **API Endpoints**: Modular endpoints in `app/api/deepresearch/`
+- **UI Component**: `DeepResearchDisplay` in `components/chat/deep-research-display.tsx`
+- **Streaming Support**: Real-time progress updates via Server-Sent Events
+- **Language Detection**: Automatic language detection with same-language responses
+
+#### Core Deep Research Components
+
+##### 1. DeepResearchProcessor (`lib/llm/deepresearch.ts`)
+- **Purpose**: Main processing engine for deep research functionality
+- **Methods**:
+  - `performDeepResearch()`: Full research pipeline with streaming
+  - `generateSubQuestionsStep()`: Sub-question generation
+  - `analyzeQueryStep()`: Initial query analysis
+  - `analyzeSubQuestionStep()`: Individual sub-question analysis
+  - `synthesizeStep()`: Analysis synthesis
+  - `generateFinalAnswerStep()`: Final answer generation
+- **Configuration**: Configurable via `DeepResearchConfig` interface
+- **Streaming**: Built-in streaming support with progress callbacks
+
+```typescript
+// Deep Research usage example
+const processor = new DeepResearchProcessor(llmClient, {
+  maxSteps: 5,
+  analysisDepth: 'intermediate',
+  language: 'ko'
+});
+
+// Execute full deep research with streaming
+const result = await processor.performDeepResearch(
+  query,
+  context,
+  undefined,
+  (content, stepType, stepInfo) => {
+    // Handle streaming updates
+    console.log('Step update:', { content, stepType, stepInfo });
+  }
+);
+```
+
+##### 2. Deep Research API Endpoints (`app/api/deepresearch/`)
+- **Main Endpoint**: `POST /api/deepresearch` - Full research pipeline
+- **Sub-endpoints**: Modular endpoints for each research phase
+  - `POST /api/deepresearch/subquestions` - Generate sub-questions
+  - `POST /api/deepresearch/query-analysis` - Initial query analysis
+  - `POST /api/deepresearch/subquestion-analysis` - Sub-question analysis
+  - `POST /api/deepresearch/synthesis` - Analysis synthesis
+  - `POST /api/deepresearch/final-answer` - Final answer generation
+- **Authentication**: NextAuth session validation required
+- **Duplicate Prevention**: Request deduplication via active request tracking
+- **Error Handling**: Comprehensive error handling with proper HTTP status codes
+
+```typescript
+// API endpoint structure example
+export async function POST(request: NextRequest) {
+  try {
+    // Authentication check
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'User authentication required' }, { status: 401 });
+    }
+
+    // Input validation
+    const { query, modelId, context } = await request.json();
+    if (!query?.trim() || !modelId) {
+      return NextResponse.json({ error: 'Query and modelId are required' }, { status: 400 });
+    }
+
+    // Processing logic
+    // ...
+  } catch (error) {
+    console.error('Deep research error:', error);
+    return NextResponse.json({ error: 'Processing failed' }, { status: 500 });
+  }
+}
+```
+
+##### 3. DeepResearchDisplay Component (`components/chat/deep-research-display.tsx`)
+- **Purpose**: Interactive UI for displaying deep research progress and results
+- **Features**:
+  - Collapsible step display with status indicators
+  - Real-time progress tracking with animated loading states
+  - Step-by-step content visualization
+  - Final answer display with markdown formatting
+  - Responsive design with mobile optimization
+- **State Management**: Complex state management for step tracking and content updates
+- **Internationalization**: Full i18n support with translation keys
+
+```typescript
+// DeepResearchDisplay usage example
+<DeepResearchDisplay
+  messageId={messageId}
+  content={content}
+  isStreaming={isStreaming}
+  deepResearchStepType={stepType}
+  isDeepResearchComplete={isComplete}
+  deepResearchStepInfo={{
+    title: 'Current Step Title',
+    isComplete: false,
+    plannedSteps: plannedSteps,
+    // Additional step information
+  }}
+/>
+```
+
+#### Deep Research Development Rules
+
+##### 1. Processing Logic Rules
+- **Step Structure**: Follow the established 5-step process (sub-questions → analysis → sub-analysis → synthesis → final answer)
+- **Language Consistency**: Maintain same language throughout the research process
+- **Error Handling**: Implement graceful fallbacks for each processing step
+- **Content Parsing**: Use structured content parsing with `[Analysis Start]` markers
+- **Progress Tracking**: Provide real-time progress updates via streaming
+
+##### 2. API Design Rules
+- **Authentication**: All endpoints require valid NextAuth session
+- **Input Validation**: Comprehensive validation for query, modelId, and additional parameters
+- **Response Format**: Consistent JSON response structure with success/error indicators
+- **Streaming Support**: Use Server-Sent Events for real-time updates
+- **Rate Limiting**: Prevent duplicate requests via request tracking
+
+##### 3. UI Component Rules
+- **State Management**: Use React hooks for complex state management
+- **Performance**: Implement memoization and efficient re-rendering
+- **Accessibility**: Ensure proper ARIA labels and keyboard navigation
+- **Responsive Design**: Mobile-first approach with adaptive layouts
+- **Loading States**: Provide clear visual feedback for all processing states
+
+##### 4. Integration Rules
+- **Chat Integration**: Seamless integration with existing chat interface
+- **Agent Support**: Support for agent-specific deep research capabilities
+- **Model Compatibility**: Work with all supported LLM providers (OpenAI, Gemini, Ollama, vLLM)
+- **I18n Support**: Full internationalization with Korean/English support
+- **Database Integration**: Proper integration with existing database schema
+
+#### Deep Research Data Structures
+
+##### DeepResearchStep Interface
+```typescript
+interface DeepResearchStep {
+  id: string;
+  title: string;
+  question: string;
+  analysis: string;
+  sources?: string[];
+  confidence: number;
+}
+```
+
+##### DeepResearchConfig Interface
+```typescript
+interface DeepResearchConfig {
+  maxSteps: number;
+  confidenceThreshold: number;
+  analysisDepth: 'basic' | 'intermediate' | 'advanced';
+  includeSourceCitations: boolean;
+  language: 'ko' | 'en';
+}
+```
+
+##### DeepResearchDisplayProps Interface
+```typescript
+interface DeepResearchDisplayProps {
+  messageId?: string;
+  content: string;
+  isStreaming?: boolean;
+  deepResearchStepType?: 'step' | 'synthesis' | 'final';
+  isDeepResearchComplete?: boolean;
+  deepResearchStepInfo?: {
+    title?: string;
+    isComplete?: boolean;
+    totalSteps?: number;
+    plannedSteps?: Array<{ title: string, type: string }>;
+    currentStepContent?: string;
+    currentStepType?: string;
+    [key: string]: any; // For parallel processing results
+  };
+}
+```
+
+#### Performance Optimization Rules
+- **Parallel Processing**: Support for concurrent sub-question analysis
+- **Streaming Optimization**: Efficient streaming with minimal bandwidth usage
+- **Component Memoization**: Use React.memo and useMemo for optimal performance
+- **State Optimization**: Minimize unnecessary state updates and re-renders
+- **Content Parsing**: Efficient content parsing with minimal computational overhead
+
+### 13. Error Handling
 - Use try-catch blocks
 - User-friendly error messages
 - Utilize logging system
@@ -500,6 +692,12 @@ app/                    # Next.js App Router
 │   ├── llm-servers/   # LLM server management API
 │   ├── llm-models/    # LLM model management API
 │   ├── chat/          # Chat API with streaming
+│   ├── deepresearch/  # Deep Research API endpoints
+│   │   ├── query-analysis/     # Initial query analysis endpoint
+│   │   ├── subquestions/       # Sub-question generation endpoint
+│   │   ├── subquestion-analysis/ # Individual sub-question analysis
+│   │   ├── synthesis/          # Analysis synthesis endpoint
+│   │   └── final-answer/       # Final answer generation endpoint
 │   └── profile/       # User profile API
 ├── chat/              # Chat interface
 ├── book/              # Content pages
@@ -509,6 +707,7 @@ app/                    # Next.js App Router
 components/            # Reusable components
 ├── admin/             # Admin-specific components
 ├── chat/              # Chat-related components
+│   ├── deep-research-display.tsx # Deep Research display component with step visualization
 ├── contents/          # Page content components
 ├── layout/            # Layout components
 │   ├── global-layout.tsx # Global layout wrapper
@@ -536,7 +735,8 @@ lib/                   # Utilities and configuration
 │   ├── openai.ts      # OpenAI integration
 │   ├── gemini.ts      # Gemini integration
 │   ├── ollama.ts      # Ollama integration
-│   └── vllm.ts        # vLLM integration
+│   ├── vllm.ts        # vLLM integration
+│   └── deepresearch.ts # Deep Research processing logic and utilities
 ├── i18n.ts            # Client-side internationalization
 └── i18n-server.ts     # Server-side internationalization
 
@@ -671,6 +871,7 @@ const GlobalLayout = ({ children }: { children: React.ReactNode }) => {
 - **Scroll Optimization**: Smooth scrolling with scroll-behavior and performance optimizations
 - **Loading States**: Enhanced loading indicators with skeleton UI
 - **Message Optimization**: Content-visibility and contain CSS properties for long conversations
+- **Deep Research Integration**: Seamless integration with deep research functionality
 
 ```typescript
 // Optimized message component with memoization
@@ -696,18 +897,28 @@ const MessageWrapper = memo(({ message, ...props }) => {
 }
 ```
 
-### 3. Agent Management (`app/admin/agent/`)
+### 3. Deep Research System (`app/api/deepresearch/`, `components/chat/deep-research-display.tsx`)
+- **Modular Architecture**: Separate API endpoints for each research phase
+- **Streaming Support**: Real-time progress updates via Server-Sent Events
+- **State Management**: Complex state management with React hooks for step tracking
+- **Language Consistency**: Maintain same language throughout research process
+- **Error Handling**: Comprehensive error handling with graceful fallbacks
+- **Performance**: Efficient parallel processing and component memoization
+- **UI/UX**: Interactive step visualization with collapsible content and status indicators
+
+### 4. Agent Management (`app/admin/agent/`)
 - **Image Upload**: Multipart form data handling
 - **Model Connection**: LLM model and agent connection
 - **Profile Management**: Agent metadata management
+- **Deep Research Support**: Agent-specific deep research capabilities
 
-### 4. API Management (`app/admin/api/`)
+### 5. API Management (`app/admin/api/`)
 - **OpenAI Compatibility**: OpenAI API compatible endpoints
 - **Rate Limiting**: Request rate limiting implementation
 - **Usage Tracking**: API usage analytics and monitoring
 - **Key Management**: API key generation and validation
 
-### 5. Database Schema
+### 6. Database Schema
 - **Multi-DB**: Simultaneous SQLite/PostgreSQL support
 - **Repository**: Data access layer separation
 - **Migration**: Schema updates via `npm run db:migrate`
@@ -718,7 +929,7 @@ const MessageWrapper = memo(({ message, ...props }) => {
 - **Build Optimization**: Ignore ESLint/TypeScript errors (during build)
 - **File Watching**: Polling-based file watching (3-second interval)
 - **Caching**: Disable caching in development mode
-- **External Packages**: Server component external package settings for  `drizzle-orm`
+- **External Packages**: Server component external package settings for `drizzle-orm`
 
 ### Environment Variable Management
 - **DB Settings**: `DB_TYPE`, `DATABASE_URL`
@@ -742,8 +953,9 @@ const MessageWrapper = memo(({ message, ...props }) => {
 - **Translation Caching**: Performance improvement via i18n module caching
 - **Image Optimization**: Use Next.js Image component
 - **Suspense**: Asynchronous component loading optimization
+- **Deep Research Optimization**: Parallel processing and efficient streaming for research tasks
 
-### 9. API Management Rules
+### 14. API Management Rules
 - **API Configuration**: Global API settings via `apiManagementRepository`
 - **API Key Management**: Secure key generation with `generateApiKey()` function
 - **Rate Limiting**: Tiered rate limiting system ('basic', 'premium', 'unlimited')
@@ -780,4 +992,4 @@ await apiUsageRepository.create({
 });
 ```
 
-Follow these rules to write code that aligns with the KKOT WebUI project architecture. 
+Follow these rules to write code that aligns with the KKOT WebUI project architecture.
