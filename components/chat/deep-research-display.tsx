@@ -788,13 +788,23 @@ export function DeepResearchDisplay({
     )
   }
 
+  // Debug: Log progress calculation
+  const completedSteps = steps.filter(s => s.status === 'completed').length
+  const totalSteps = steps.length
+  console.log('🔢 Progress calculation:', {
+    completedSteps,
+    totalSteps,
+    stepsDetails: steps.map(s => ({ title: s.title.substring(0, 30), status: s.status, type: s.stepType })),
+    plannedStepsCount: plannedSteps.length
+  })
+
   return (
     <div className="space-y-2">
       <div className="flex items-center gap-2 mb-3">
         <Brain className="w-5 h-5 text-cyan-600" />
         <span className="text-sm font-medium text-cyan-700">{lang("deepResearch.title")}</span>
         <Badge variant="outline" className="text-xs">
-          {steps.filter(s => s.status === 'completed').length}/{plannedSteps.length > 0 ? plannedSteps.length : steps.length} {lang("deepResearch.completed")}
+          {completedSteps}/{totalSteps} {lang("deepResearch.completed")}
         </Badge>
         {plannedSteps.length > 0 && (
           <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200 text-blue-600">
@@ -812,12 +822,12 @@ export function DeepResearchDisplay({
               <div 
                 className="bg-blue-500 h-2 rounded-full transition-all duration-300"
                 style={{ 
-                  width: `${(steps.filter(s => s.status === 'completed').length / (plannedSteps.length > 0 ? plannedSteps.length : steps.length)) * 100}%` 
+                  width: `${(steps.filter(s => s.status === 'completed').length / steps.length) * 100}%` 
                 }}
               />
             </div>
             <span className="text-xs text-blue-600">
-              {steps.filter(s => s.status === 'completed').length}/{plannedSteps.length > 0 ? plannedSteps.length : steps.length}
+              {steps.filter(s => s.status === 'completed').length}/{steps.length}
             </span>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">
