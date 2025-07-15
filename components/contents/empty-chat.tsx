@@ -158,9 +158,8 @@ export default function Component({
       submitInProgress.current = true
       setIsSubmitting(true)
       
-      // 🔥 딥리서치 버튼의 실제 DOM 상태를 직접 확인
-      const deepResearchButton = document.querySelector('[data-testid="deep-research-toggle"]') as HTMLButtonElement;
-      const actualDeepResearchState = deepResearchButton?.getAttribute('data-active') === 'true';
+      // 🔥 React state에서 딥리서치 상태 확인 (더 안전함)
+      const actualDeepResearchState = isDeepResearchActive;
       
       try {
         console.log('=== Client: Chat session creation request started ===')
@@ -169,7 +168,7 @@ export default function Component({
         console.log('Images:', uploadedImages.length)
         console.log('🔍🔍🔍 SUBMIT 시 딥리서치 상태 확인:')
         console.log('  React state isDeepResearchActive:', isDeepResearchActive)
-        console.log('  DOM actual deep research state:', actualDeepResearchState)
+        console.log('  Using deep research state:', actualDeepResearchState)
         console.log('  isGlobeActive:', isGlobeActive)
         
         let response: Response
@@ -235,19 +234,32 @@ export default function Component({
         const chatId = data.chatId
         console.log('Chat ID:', chatId)
 
-        // Save agent information to localStorage (for streaming response)
+        // Save agent information and deep research state to localStorage (for streaming response)
         if (typeof window !== 'undefined') {
           localStorage.setItem(`chat_${chatId}_agent`, JSON.stringify({
             id: selectedModel.id,
             type: selectedModel.type
           }))
+          
+          // Save deep research and globe state for chat-page.tsx
+          localStorage.setItem(`chat_${chatId}_deepResearch`, actualDeepResearchState.toString())
+          localStorage.setItem(`chat_${chatId}_globe`, isGlobeActive.toString())
         }
 
         // Add new chat to sidebar immediately
         if (typeof window !== 'undefined') {
+          let chatTitle = inputValue?.trim() || 'Image Chat'
+          if (uploadedImages.length > 0 && !inputValue?.trim()) {
+            chatTitle = `Image Chat (${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''})`
+          } else if (uploadedImages.length > 0 && inputValue?.trim()) {
+            chatTitle = inputValue.substring(0, 15) + ` (+${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''})`
+          } else {
+            chatTitle = inputValue.substring(0, 20) + (inputValue.length > 20 ? '...' : '')
+          }
+          
           const newChatData = {
             id: chatId,
-            title: inputValue.substring(0, 20) + (inputValue.length > 20 ? '...' : ''),
+            title: chatTitle,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString()
           }
@@ -285,6 +297,8 @@ export default function Component({
         
         const targetUrl = `/chat/${chatId}${urlParams.toString() ? '?' + urlParams.toString() : ''}`
         console.log('🚀 Navigating with URL:', targetUrl)
+        console.log('🚀 Deep research state stored in localStorage:', actualDeepResearchState)
+        console.log('🚀 Globe state stored in localStorage:', isGlobeActive)
         
         router.push(targetUrl)
         console.log('Navigation command sent')
@@ -744,17 +758,13 @@ export default function Component({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation ${isDeepResearchActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white" : "border-2 border-cyan-500"}`}
+                          className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation ${isDeepResearchActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white" : ""}`}
                           data-testid="deep-research-toggle"
                           data-active={isDeepResearchActive}
                           onClick={() => {
-                            console.log('🧠🧠🧠 딥리서치 버튼 클릭됨! 🧠🧠🧠')
-                            console.log('  현재 상태:', isDeepResearchActive)
-                            console.log('  새로운 상태:', !isDeepResearchActive)
-                            alert(`딥리서치 버튼 클릭! ${isDeepResearchActive} → ${!isDeepResearchActive}`)
                             setIsDeepResearchActive(!isDeepResearchActive)
                           }}
-                          title={isDeepResearchActive ? "딥리서치 활성화됨" : "딥리서치 비활성화됨"}
+                          title={isDeepResearchActive ? "Deep Research Active" : "Deep Research Inactive"}
                         >
                           <Brain className="h-4 w-4" />
                         </Button>

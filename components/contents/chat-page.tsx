@@ -294,30 +294,42 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     }
   }, [isMobile])
 
-  // Load initial deep research and globe state from URL parameters (simple and reliable)
+  // Load initial deep research and globe state from URL parameters and localStorage
   useEffect(() => {
     if (typeof window !== 'undefined' && chatId) {
       const urlParams = new URLSearchParams(window.location.search)
-      const deepResearch = urlParams.get('deepResearch') === 'true'
-      const globe = urlParams.get('globe') === 'true'
+      const urlDeepResearch = urlParams.get('deepResearch') === 'true'
+      const urlGlobe = urlParams.get('globe') === 'true'
       
-      console.log('🔍 Loading URL parameters:')
+      // Also check localStorage for deep research and globe state
+      const localDeepResearch = chatId ? localStorage.getItem(`chat_${chatId}_deepResearch`) === 'true' : false
+      const localGlobe = chatId ? localStorage.getItem(`chat_${chatId}_globe`) === 'true' : false
+      
+      // Use URL parameters first, then localStorage as fallback
+      const finalDeepResearch = urlDeepResearch || localDeepResearch
+      const finalGlobe = urlGlobe || localGlobe
+      
+      console.log('🔍 Loading deep research state:')
       console.log('  chatId:', chatId)
-      console.log('  deepResearch:', deepResearch)
-      console.log('  globe:', globe)
+      console.log('  URL deepResearch:', urlDeepResearch)
+      console.log('  localStorage deepResearch:', localDeepResearch)
+      console.log('  Final deepResearch:', finalDeepResearch)
+      console.log('  URL globe:', urlGlobe)
+      console.log('  localStorage globe:', localGlobe)
+      console.log('  Final globe:', finalGlobe)
       
-      if (deepResearch) {
+      if (finalDeepResearch) {
         console.log('🧠 Setting deep research state: true')
         setIsDeepResearchActive(true)
       }
       
-      if (globe) {
+      if (finalGlobe) {
         console.log('🌍 Setting globe state: true')
         setIsGlobeActive(true)
       }
       
       // Clean up URL parameters after reading (optional)
-      if (deepResearch || globe) {
+      if (urlDeepResearch || urlGlobe) {
         const newUrl = window.location.pathname
         window.history.replaceState({}, '', newUrl)
         console.log('🧹 URL parameters cleaned up')
@@ -994,20 +1006,26 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     console.log('images:', images)
     console.log('session?.user?.email:', session?.user?.email)
     
-    // Check URL parameters for deep research state (to handle timing issues)
+    // Check URL parameters and localStorage for deep research state (to handle timing issues)
     const urlParams = new URLSearchParams(window.location.search)
     const urlDeepResearch = urlParams.get('deepResearch') === 'true'
     const urlGlobe = urlParams.get('globe') === 'true'
     
-    // Use URL parameters if available, otherwise fall back to React state
-    const finalDeepResearch = urlDeepResearch || isDeepResearchActive
-    const finalGlobe = urlGlobe || isGlobeActive
+    // Also check localStorage for deep research and globe state
+    const localDeepResearch = chatId ? localStorage.getItem(`chat_${chatId}_deepResearch`) === 'true' : false
+    const localGlobe = chatId ? localStorage.getItem(`chat_${chatId}_globe`) === 'true' : false
+    
+    // Use URL parameters first, then localStorage, then React state as fallback
+    const finalDeepResearch = urlDeepResearch || localDeepResearch || isDeepResearchActive
+    const finalGlobe = urlGlobe || localGlobe || isGlobeActive
     
     console.log('🔍 Deep research state in sendMessageToAI:')
     console.log('  React state - isDeepResearchActive:', isDeepResearchActive)
     console.log('  React state - isGlobeActive:', isGlobeActive)
     console.log('  URL params - deepResearch:', urlDeepResearch)
     console.log('  URL params - globe:', urlGlobe)
+    console.log('  localStorage - deepResearch:', localDeepResearch)
+    console.log('  localStorage - globe:', localGlobe)
     console.log('  Final states - deepResearch:', finalDeepResearch, 'globe:', finalGlobe)
     
     if (!session?.user?.email) {
@@ -1455,7 +1473,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred'
         toast.error(errorMessage)
         
-        // 에러 발생 시에도 재생성 상태 리셋
+        // Reset regenerating state due to error
         console.log('Resetting regenerating state due to error')
         setRegeneratingMessageId(null)
       }
@@ -1463,7 +1481,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       console.log('=== sendMessageToAI finally block ===')
       console.log('Resetting all streaming states')
       
-      // 즉시 상태 리셋
+      // Immediately reset states
       streamingInProgress.current = false
       setIsStreaming(false)
       setIsSubmitting(false)
@@ -1473,7 +1491,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       abortControllerRef.current = null
       console.log('All streaming states reset')
       
-      // 상태 리셋을 여러 번 시도하여 확실히 적용되도록 함
+      // Reset states multiple times to ensure proper application
       setTimeout(() => {
         console.log('=== First safety check - Reset regeneration state ===')
         setRegeneratingMessageId(null)
@@ -1496,18 +1514,18 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         setIsStreaming(false)
         setIsSubmitting(false)
         isSubmittingRef.current = false
-      }, 1000) // 1초 후 강제 리셋
+      }, 1000) // Force reset after 1 second
       
-      // 스트리밍 완료 후 사용자가 수동으로 스크롤을 올렸다면 강제 스크롤 방지
+      // Prevent forced scroll after streaming completion if user manually scrolled
       const container = messagesContainerRef.current
       const userScrolled = (container as any)?.userScrolled?.() || false
       
       if (!userScrolled) {
-        // 사용자가 스크롤하지 않았을 때만 최종 패딩 조정 및 스크롤
+        // Adjust final padding and scroll only if user didn't manually scroll
         adjustDynamicPadding()
         scrollToBottomSmooth(true) // Force scroll
-        
-        // 스트리밍 완료 후 한 번만 추가 스크롤 (DOM 업데이트 대기)
+
+        // Add one more scroll after streaming completion (wait for DOM update)
         setTimeout(() => {
           if (!(container as any)?.userScrolled?.()) {
             scrollToBottomSmooth()
@@ -1515,10 +1533,10 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         }, 100)
       }
       
-      // 베이스 패딩 복원 (지연 시간 증가)
+      // Restore base padding (increased delay)
       setTimeout(() => {
         setDynamicPadding(isMobile ? 320 : 160)
-      }, 3000) // 3초 후 복원하여 사용자 스크롤 방해 최소화
+      }, 3000) // Restore after 3 seconds to minimize user scroll interference
       
       // Clear duplicate prevention after request completes
       setTimeout(() => {
@@ -1557,7 +1575,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           if (isCancelled) return
           
           if (response.status === 401 || response.status === 404) {
-            // 인증 오류 또는 리소스 없음 시 홈페이지로 리다이렉트
+            // Redirect to homepage if authentication error or resource not found
             console.log('Chat session not found or access denied, redirecting to home')
             toast.error('채팅 세션을 찾을 수 없습니다. 홈으로 이동합니다.')
             router.push('/')
@@ -1637,37 +1655,80 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                     if (!isCancelled) {
                       const parsedAgentInfo = JSON.parse(agentInfo)
                       
-                      // Check URL parameters directly for deep research state (to avoid React state timing issues)
+                      // Check URL parameters and localStorage for deep research state (to avoid React state timing issues)
                       const urlParams = new URLSearchParams(window.location.search)
                       const urlDeepResearch = urlParams.get('deepResearch') === 'true'
                       const urlGlobe = urlParams.get('globe') === 'true'
                       
+                      // Also check localStorage for deep research and globe state
+                      const localDeepResearch = chatId ? localStorage.getItem(`chat_${chatId}_deepResearch`) === 'true' : false
+                      const localGlobe = chatId ? localStorage.getItem(`chat_${chatId}_globe`) === 'true' : false
+                      
                       console.log('🚀 Auto-generating AI response for first message')
                       console.log('🚀 React state - deep research:', isDeepResearchActive, 'globe:', isGlobeActive)
                       console.log('🚀 URL params - deep research:', urlDeepResearch, 'globe:', urlGlobe)
+                      console.log('🚀 localStorage - deep research:', localDeepResearch, 'globe:', localGlobe)
                       
-                      // Use URL parameters if available, otherwise fall back to React state
-                      const finalDeepResearch = urlDeepResearch || isDeepResearchActive
-                      const finalGlobe = urlGlobe || isGlobeActive
+                      // Use URL parameters first, then localStorage, then React state as fallback
+                      const finalDeepResearch = urlDeepResearch || localDeepResearch || isDeepResearchActive
+                      const finalGlobe = urlGlobe || localGlobe || isGlobeActive
                       
                       console.log('🚀 Final states - deep research:', finalDeepResearch, 'globe:', finalGlobe)
                       
-                      // Temporarily update React state if URL params indicate different values
-                      if (urlDeepResearch && !isDeepResearchActive) {
+                      // Temporarily update React state if URL params or localStorage indicate different values
+                      if ((urlDeepResearch || localDeepResearch) && !isDeepResearchActive) {
                         setIsDeepResearchActive(true)
                       }
-                      if (urlGlobe && !isGlobeActive) {
+                      if ((urlGlobe || localGlobe) && !isGlobeActive) {
                         setIsGlobeActive(true)
                       }
                       
-                      // Call streaming API with isRegeneration=true to prevent duplicate user message saving
-                      sendMessageToAI(lastMessage.content, parsedAgentInfo, true)
+                      // Extract images from user message if present and call streaming API
+                      const processImagesAndSendMessage = async () => {
+                        let messageContent = lastMessage.content
+                        let imagesToSend: File[] = []
+                        
+                        try {
+                          // Check if message contains JSON with images
+                          const parsed = JSON.parse(lastMessage.content)
+                          if (parsed.hasImages && parsed.images && Array.isArray(parsed.images)) {
+                            messageContent = parsed.text || ''
+                            
+                            // Convert base64 data back to File objects
+                            imagesToSend = await Promise.all(
+                              parsed.images.map(async (imageInfo: any) => {
+                                if (imageInfo.data) {
+                                  // Convert base64 data URL to Blob then to File
+                                  const response = await fetch(imageInfo.data)
+                                  const blob = await response.blob()
+                                  return new File([blob], imageInfo.name || 'image.png', { 
+                                    type: imageInfo.mimeType || 'image/png' 
+                                  })
+                                }
+                                return null
+                              })
+                            ).then(files => files.filter(file => file !== null) as File[])
+                            
+                            console.log('🚀 Extracted images for auto-response:', imagesToSend.length)
+                          }
+                        } catch (e) {
+                          // If JSON parsing fails, treat as plain text
+                          messageContent = lastMessage.content
+                        }
+                        
+                        // Call streaming API with isRegeneration=true to prevent duplicate user message saving
+                        sendMessageToAI(messageContent, parsedAgentInfo, true, imagesToSend)
+                      }
+                      
+                      // Execute the async function
+                      processImagesAndSendMessage()
                       
                       // Clean up localStorage after use (delay to prevent race condition)
                       setTimeout(() => {
                         localStorage.removeItem(`chat_${chatId}_agent`)
                         localStorage.removeItem(`chat_${chatId}_deepResearch`)
                         localStorage.removeItem(`chat_${chatId}_globe`)
+                        console.log('🧹 localStorage cleanup completed')
                       }, 1000)
                     }
                   } else {
@@ -1709,17 +1770,17 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                   console.log('historyLoaded: true, showSkeleton: false')
                   
                   // Move to bottom immediately after content is loaded (without animation)
-                  // 여러 단계로 스크롤 처리하여 확실하게 맨 밑으로 이동
+                  // Multiple steps to ensure proper scrolling to bottom
                   setTimeout(() => {
                     scrollToBottomInstant()
                   }, 100)
                   
-                  // 추가 스크롤 처리 - DOM 완전 렌더링 후
+                  // Additional scroll processing - DOM fully rendered
                   setTimeout(() => {
                     scrollToBottomInstant()
                   }, 300)
                   
-                  // 최종 스크롤 처리
+                  // Final scroll processing
                   setTimeout(() => {
                     scrollToBottomInstant()
                   }, 600)
@@ -1732,7 +1793,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
 
       loadChatHistory()
     } else {
-      // chatId나 session이 없으면 최소 시간 후 로딩 완료 처리
+      // If chatId or session is missing, handle loading completion after minimum time
       const elapsedTime = Date.now() - skeletonStartTime
       const remainingTime = Math.max(0, minSkeletonDisplayTime - elapsedTime)
       
@@ -1770,27 +1831,27 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   
   useEffect(() => {
     if (messages.length > 0) {
-      // 사용자가 수동으로 스크롤을 올렸는지 확인
+      // Check if user manually scrolled
       const container = messagesContainerRef.current
       const userScrolled = (container as any)?.userScrolled?.() || false
       
       if (isInitialLoad) {
-        // 초기 로드 시에는 사용자 스크롤 상태에 관계없이 맨 밑으로 이동
+        // On initial load, scroll to bottom regardless of user scroll state
         setTimeout(() => scrollToBottomInstant(), 100)
         setTimeout(() => scrollToBottomInstant(), 300)
         setTimeout(() => scrollToBottomInstant(), 600)
         setIsInitialLoad(false)
       } else if (!userScrolled || isStreaming) {
-        // 사용자가 스크롤하지 않았거나 스트리밍 중일 때만 스크롤
+        // Scroll only if user didn't scroll or streaming is in progress
         setTimeout(() => scrollToBottomSmooth(true), 100)
-        // 스트리밍 중이 아닐 때는 추가 스크롤 최소화
+        // If not streaming, minimize additional scroll
         if (isStreaming) {
           setTimeout(() => scrollToBottomInstant(), 300)
           setTimeout(() => scrollToBottomInstant(), 600)
         }
       }
       
-      // 패딩 조정은 사용자 스크롤 상태에 관계없이 수행
+      // Adjust padding regardless of user scroll state
       setTimeout(() => adjustDynamicPadding(), 200)
       
       // Clean up new message IDs after animation completes
@@ -1833,33 +1894,33 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     let userScrolled = false
 
     const handleScroll = () => {
-      // 스크롤 이벤트 디바운싱으로 성능 최적화
+      // Optimize scroll event debouncing for performance
       if (scrollTimeout) {
         clearTimeout(scrollTimeout)
       }
       
       scrollTimeout = setTimeout(() => {
-        // 사용자가 수동으로 스크롤했는지 확인
+        // Check if user manually scrolled
         if (!isScrollingToBottom.current) {
           const { scrollTop, scrollHeight, clientHeight } = container
           const isAtBottom = scrollHeight - scrollTop - clientHeight < 80
           
-          // 사용자가 위로 스크롤했다면 userScrolled 플래그 설정
+          // Set userScrolled flag if user scrolled up
           if (!isAtBottom) {
             userScrolled = true
-            // 스크롤이 상단으로 이동할 때 렌더링 안정성 확보
+            // Ensure rendering stability when scrolling up
             container.style.contentVisibility = 'auto'
           } else {
-            // 사용자가 다시 맨 밑으로 스크롤했다면 플래그 해제
+            // Reset userScrolled flag if user scrolled back to bottom
             userScrolled = false
           }
         }
-      }, 16) // 60fps에 맞춰 디바운싱
+      }, 16) // Debounce for 60fps
     }
 
     container.addEventListener('scroll', handleScroll, { passive: true })
     
-    // userScrolled 상태를 container에 저장하여 다른 함수에서 접근 가능하게 함
+    // Save userScrolled state to container for other functions to access
     ;(container as any).userScrolled = () => userScrolled
     
     return () => {
@@ -1928,29 +1989,29 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       const container = messagesContainerRef.current
       isScrollingToBottom.current = true
       
-      // 여러 번 시도하여 확실하게 맨 밑으로 스크롤
+      // Multiple attempts to ensure proper scrolling to bottom
       const scrollToMax = () => {
-        // 스크롤 높이를 다시 계산하여 최신 값 사용
+        // Recalculate scroll height for latest value
         const maxScrollTop = container.scrollHeight - container.clientHeight
         container.scrollTop = Math.max(0, maxScrollTop)
         lastScrollHeight.current = container.scrollHeight
       }
       
-      // 즉시 스크롤
+      // Immediately scroll
       scrollToMax()
       
-      // DOM 업데이트를 위한 다중 시도
+      // Multiple attempts for DOM updates
       requestAnimationFrame(() => {
         scrollToMax()
         
         requestAnimationFrame(() => {
           scrollToMax()
           
-          // 100ms 후 한 번 더
+          // 100ms later, one more time
           setTimeout(() => {
             scrollToMax()
             
-            // 300ms 후 최종 확인
+            // 300ms later
             setTimeout(() => {
               scrollToMax()
               isScrollingToBottom.current = false
@@ -2084,7 +2145,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       }
     } catch (error) {
       console.error('Error updating like:', error)
-      // 실패 시 롤백
+      // Rollback on failure
       setLikedMessages((prev) => {
         const newSet = new Set(prev)
         if (isCurrentlyLiked) {
@@ -2101,14 +2162,14 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     const isCurrentlyDisliked = dislikedMessages.has(messageId)
     const newRating = isCurrentlyDisliked ? 0 : -1
     
-    // 낙관적 업데이트
+          // Optimistic update
     setDislikedMessages((prev) => {
       const newSet = new Set(prev)
       if (isCurrentlyDisliked) {
         newSet.delete(messageId)
       } else {
         newSet.add(messageId)
-        // 싫어요 시 좋아요 제거
+        // Remove like when disliking
         setLikedMessages((prevLiked) => {
           const newLikedSet = new Set(prevLiked)
           newLikedSet.delete(messageId)
@@ -2142,7 +2203,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       }
     } catch (error) {
       console.error('Error updating dislike:', error)
-      // 실패 시 롤백
+      // Rollback on failure
       setDislikedMessages((prev) => {
         const newSet = new Set(prev)
         if (isCurrentlyDisliked) {
@@ -2162,23 +2223,23 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }, [])
 
   const handleSaveEdit = (messageId: string) => {
-    // 메시지 내용 업데이트
+    // Update message content
     const updatedMessages = messages.map((msg) => 
       msg.id === messageId ? { ...msg, content: editingContent } : msg
     )
     setMessages(updatedMessages)
     
-    // 편집 상태 초기화
+    // Reset edit state
     setEditingMessageId(null)
     const savedContent = editingContent
     setEditingContent("")
 
-    // 편집된 사용자 메시지인 경우 해당 메시지 이후 모든 메시지 삭제하고 재생성
+    // If edited message is from user, delete all subsequent messages and regenerate
     const messageIndex = messages.findIndex((msg) => msg.id === messageId)
     const editedMessage = messages[messageIndex]
     
     if (editedMessage && editedMessage.role === "user" && selectedModel && chatId && session?.user?.email) {
-      // 스트리밍 중이면 먼저 중단
+      // Stop streaming if in progress
       if (isStreaming) {
         handleAbort()
       }
@@ -2653,20 +2714,12 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         >
           <div className="sm:px-3 max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto">
             {(() => {
-              console.log('=== Render condition check ===')
-              console.log('!historyLoaded && showSkeleton:', !historyLoaded && showSkeleton)
-              console.log('!historyLoaded && !showSkeleton:', !historyLoaded && !showSkeleton)
-              console.log('else (should render messages):', historyLoaded)
-              console.log('renderedMessages length:', renderedMessages.length)
               
               if (!historyLoaded && showSkeleton) {
-                console.log('Rendering skeleton')
                 return <ChatMessageSkeleton />
               } else if (!historyLoaded && !showSkeleton) {
-                console.log('Rendering empty div')
                 return <div></div>
               } else {
-                console.log('Rendering messages')
                 return renderedMessages
               }
             })()}

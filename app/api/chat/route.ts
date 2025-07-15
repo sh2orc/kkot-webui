@@ -12,22 +12,77 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
     }
     
-    const body = await request.json()
-    console.log('Request body:', body)
-    const { agentId, modelId, modelType, initialMessage, isDeepResearchActive, isGlobeActive } = body
+    // Check Content-Type to determine how to parse the request
+    const contentType = request.headers.get('content-type') || ''
+    let body: any
+    let agentId: string | undefined
+    let modelId: string | undefined
+    let modelType: string
+    let initialMessage: string
+    let isDeepResearchActive: boolean = false
+    let isGlobeActive: boolean = false
+    let images: File[] = []
+    
+    if (contentType.includes('multipart/form-data')) {
+      // Handle FormData (with images)
+      console.log('Processing FormData request')
+      const formData = await request.formData()
+      
+      agentId = formData.get('agentId') as string | undefined
+      modelId = formData.get('modelId') as string | undefined
+      modelType = formData.get('modelType') as string || 'model'
+      initialMessage = formData.get('message') as string || ''
+      isDeepResearchActive = formData.get('isDeepResearchActive') === 'true'
+      isGlobeActive = formData.get('isGlobeActive') === 'true'
+      
+      // Extract image files
+      const imageFiles = formData.getAll('images') as File[]
+      images = imageFiles.filter(file => file instanceof File && file.size > 0)
+      
+      console.log('FormData parsed:', {
+        agentId,
+        modelId,
+        modelType,
+        messageLength: initialMessage.length,
+        imagesCount: images.length,
+        isDeepResearchActive,
+        isGlobeActive
+      })
+    } else {
+      // Handle JSON request (text only)
+      console.log('Processing JSON request')
+      body = await request.json()
+      console.log('Request body:', body)
+      
+      agentId = body.agentId
+      modelId = body.modelId
+      modelType = body.modelType
+      initialMessage = body.initialMessage
+      isDeepResearchActive = body.isDeepResearchActive || false
+      isGlobeActive = body.isGlobeActive || false
+    }
     
     console.log('🔍 Deep research parameters in chat session creation:')
     console.log('  isDeepResearchActive:', isDeepResearchActive)
     console.log('  isGlobeActive:', isGlobeActive)
 
-    if (!initialMessage?.trim()) {
-      return NextResponse.json({ error: 'Initial message is required' }, { status: 400 })
+    if (!initialMessage?.trim() && images.length === 0) {
+      return NextResponse.json({ error: 'Initial message or images are required' }, { status: 400 })
     }
 
     // Create chat session with temporary title
+    let chatTitle = initialMessage?.trim() || 'Image Chat'
+    if (images.length > 0 && !initialMessage?.trim()) {
+      chatTitle = `Image Chat (${images.length} image${images.length > 1 ? 's' : ''})`
+    } else if (images.length > 0 && initialMessage?.trim()) {
+      chatTitle = initialMessage.substring(0, 15) + ` (+${images.length} image${images.length > 1 ? 's' : ''})`
+    } else {
+      chatTitle = initialMessage.substring(0, 20) + (initialMessage.length > 20 ? '...' : '')
+    }
+    
     const sessionData = {
       userEmail: session.user.email,
-      title: initialMessage.substring(0, 20) + (initialMessage.length > 20 ? '...' : '')
+      title: chatTitle
     }
 
     console.log('Session data:', sessionData)
@@ -36,11 +91,45 @@ export async function POST(request: NextRequest) {
     const chatId = createdSession[0]?.id
     console.log('Final chat ID:', chatId)
 
-    // Save user message
+    // Save user message (with image information if present)
+    let userMessageContent = initialMessage
+    
+    // If images are present, convert to JSON format with base64 data
+    if (images && images.length > 0) {
+      const imageInfos = await Promise.all(
+        images.map(async (image) => {
+          // Convert image to base64
+          const arrayBuffer = await image.arrayBuffer()
+          const base64 = Buffer.from(arrayBuffer).toString('base64')
+          const dataUrl = `data:${image.type};base64,${base64}`
+          
+          return {
+            type: 'image',
+            name: image.name,
+            size: image.size,
+            mimeType: image.type,
+            data: dataUrl
+          }
+        })
+      )
+      
+      userMessageContent = JSON.stringify({
+        text: initialMessage || '',
+        images: imageInfos,
+        hasImages: true
+      })
+      
+      console.log('User message with images:', {
+        textLength: initialMessage.length,
+        imagesCount: imageInfos.length,
+        totalContentLength: userMessageContent.length
+      })
+    }
+    
     const userMessage = {
       sessionId: chatId,
       role: 'user' as const,
-      content: initialMessage
+      content: userMessageContent
     }
     console.log('Saving user message:', userMessage)
     await chatMessageRepository.create(userMessage)
@@ -62,11 +151,11 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // 딥리서치가 활성화된 경우 즉시 AI 응답 생성 트리거
+    // If deep research is active, trigger immediate AI response generation
     if (isDeepResearchActive && agentInfo) {
       console.log('🚀 Deep research is active - triggering immediate AI response generation')
       
-      // 즉시 /api/chat/[chatId] 로 요청을 보내서 딥리서치 응답 생성
+      // Immediately send request to /api/chat/[chatId] to create deep research response
       try {
         const aiResponseBody = {
           message: initialMessage,
@@ -81,7 +170,7 @@ export async function POST(request: NextRequest) {
         
         console.log('🚀 Triggering AI response with body:', aiResponseBody)
         
-        // 백그라운드에서 AI 응답 생성 (await 하지 않음)
+        // Create AI response in background (without await)
         fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/chat/${chatId}`, {
           method: 'POST',
           headers: {
