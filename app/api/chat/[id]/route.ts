@@ -523,7 +523,8 @@ Parallel Processing Plan:
               if (type === 'final') {
                 finalDeepResearchResult = content;
               }
-              fullResponse += content;
+              // Don't add to fullResponse to prevent automatic saving
+              // fullResponse += content;
               
               // Send chunk to client safely
               safeEnqueue(
@@ -548,28 +549,33 @@ Parallel Processing Plan:
               // Sub-questions are not saved to database (only final answer is saved)
               // Will be saved as a new message when final answer is completed in frontend
               
-                              // Send parallel processing signal to frontend (including chatId and assistantMessageId)
+              // Send parallel processing signal to frontend (including chatId and assistantMessageId)
               safeEnqueue(
                 new TextEncoder().encode(
                   `data: ${JSON.stringify({ 
                     content: '', 
                     messageId: assistantMessageId,
-                    chatId: chatId, // 채팅 ID 추가
+                    chatId: chatId, // Add chat ID
                     parallelProcessingStarted: true,
                     done: false 
                   })}\n\n`
                 )
               )
               
-              // 여기서는 스트림을 닫지 않고 Frontend에서 병렬 처리 완료 신호를 기다림
+              // Mark completion as handled to prevent normal LLM processing
+              completionHandled = true
+              
+              // Keep stream open for frontend processing, but don't continue with normal LLM processing
               console.log('Parallel deep research initiated, stream remains open for frontend processing')
-              return
+              // Don't return here - let the stream stay open but skip normal processing
             }
           }
 
-          // Skip normal LLM processing if deep research was active (should not reach here)
-          if (isDeepResearchActive) {
-            console.log('Deep research was active but reached normal LLM processing - this should not happen')
+          // Skip normal LLM processing if deep research was active or completion was already handled
+          if (isDeepResearchActive || completionHandled) {
+            console.log('Deep research was active or completion already handled - skipping normal LLM processing')
+            console.log('isDeepResearchActive:', isDeepResearchActive)
+            console.log('completionHandled:', completionHandled)
             return
           }
 

@@ -250,13 +250,13 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   const [regeneratingMessageId, setRegeneratingMessageId] = useState<string | null>(null)
   const [forceUpdateCounter, setForceUpdateCounter] = useState(0)
   
-  // Debug: 재생성 상태 변경 전역 추적
+  // Debug: Track regeneration state changes globally
   useEffect(() => {
     console.log('=== Global regeneratingMessageId changed ===')
     console.log('New regeneratingMessageId:', regeneratingMessageId)
     console.log('Current isStreaming:', isStreaming)
     
-    // 재생성 상태가 변경될 때 강제 리렌더링을 위한 카운터 업데이트
+    // Update counter to force re-rendering when regeneration state changes
     console.log('=== Force re-render trigger ===')
     setForceUpdateCounter(prev => prev + 1)
   }, [regeneratingMessageId])
@@ -293,6 +293,37 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       setDynamicPadding(basePadding)
     }
   }, [isMobile])
+
+  // Load initial deep research and globe state from URL parameters (simple and reliable)
+  useEffect(() => {
+    if (typeof window !== 'undefined' && chatId) {
+      const urlParams = new URLSearchParams(window.location.search)
+      const deepResearch = urlParams.get('deepResearch') === 'true'
+      const globe = urlParams.get('globe') === 'true'
+      
+      console.log('🔍 Loading URL parameters:')
+      console.log('  chatId:', chatId)
+      console.log('  deepResearch:', deepResearch)
+      console.log('  globe:', globe)
+      
+      if (deepResearch) {
+        console.log('🧠 Setting deep research state: true')
+        setIsDeepResearchActive(true)
+      }
+      
+      if (globe) {
+        console.log('🌍 Setting globe state: true')
+        setIsGlobeActive(true)
+      }
+      
+      // Clean up URL parameters after reading (optional)
+      if (deepResearch || globe) {
+        const newUrl = window.location.pathname
+        window.history.replaceState({}, '', newUrl)
+        console.log('🧹 URL parameters cleaned up')
+      }
+    }
+  }, [chatId])
 
   // Detect message container height and adjust dynamic padding
   const adjustDynamicPadding = useCallback(() => {
@@ -360,7 +391,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     setRegeneratingMessageId(null)
     setStreamingMessageId(null)
     
-    // 상태 리셋을 여러 번 시도하여 확실히 적용되도록 함
+    // Try resetting state multiple times to ensure it's applied
     setTimeout(() => {
       console.log('=== handleAbort - First safety check ===')
       setRegeneratingMessageId(null)
@@ -373,12 +404,12 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       setIsStreaming(false)
     }, 500)
     
-    // 사용자가 수동으로 스크롤을 올렸다면 강제 스크롤 방지
+    // Prevent forced scrolling if user manually scrolled up
     const container = messagesContainerRef.current
     const userScrolled = (container as any)?.userScrolled?.() || false
     
     if (!userScrolled) {
-      // 사용자가 스크롤하지 않았을 때만 패딩 조정 및 스크롤
+      // Only adjust padding and scroll if user hasn't scrolled
       adjustDynamicPadding()
       scrollToBottomSmooth(true) // Set force=true to ensure scroll to bottom
     }
@@ -396,7 +427,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     originalQuery: string,
     modelId: string,
     assistantMessageId: string,
-    chatId?: string | number
+    providedChatId?: string | number
   ) => {
     // Create unique key for this deep research session
     const deepResearchKey = `${assistantMessageId}_${originalQuery}_${modelId}`;
@@ -409,9 +440,14 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       console.log('🚀 - originalQuery:', originalQuery);
       console.log('🚀 - modelId:', modelId);
       console.log('🚀 - assistantMessageId:', assistantMessageId);
-      console.log('🚀 - chatId:', chatId);
-      console.log('🚀 - chatId type:', typeof chatId);
+      console.log('🚀 - providedChatId:', providedChatId);
+      console.log('🚀 - providedChatId type:', typeof providedChatId);
+      console.log('🚀 - current chatId from props:', chatId);
+      console.log('🚀 - current chatId type:', typeof chatId);
       console.log('🚀 Starting parallel sub-question analysis');
+      
+      // Use current chatId from props as fallback
+      const finalChatId = providedChatId || chatId;
       
       // Check if this deep research is already in progress
       if (deepResearchInProgress.current.has(deepResearchKey)) {
@@ -439,7 +475,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             m.id === assistantMessageId 
               ? { 
                   ...m,
-                  content: m.content + '\n\n⚠️ 질문이 너무 간단하여 세부 분석 질문을 생성할 수 없습니다. 더 구체적인 질문을 해주세요.\n\n예시: "한국의 경제 발전 과정에 대해 알려주세요" 또는 "한국 문화의 특징은 무엇인가요?"',
+                  content: m.content + '\n\n⚠️ The question is too simple to generate detailed analysis questions. Please ask a more specific question.\n\n Example: "Tell me about the economic development process in Korea" or "What are the characteristics of Korean culture?"',
                   hasDeepResearchError: true,
                   isDeepResearchComplete: true
                 }
@@ -824,10 +860,49 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       console.log('🎯 Final answer has been added to deepResearchStepInfo and will be displayed in Deep Research component');
       console.log('🎯 Final answer content length:', finalAnswerContent.length);
       
-      // Note: We no longer save final answer as a separate message
-      // It's displayed as part of the Deep Research component via deepResearchStepInfo
-      
-      console.log('💾 ========= FINAL ANSWER SAVE ATTEMPT END =========');
+      // Save final answer to database
+      console.log('💾 ========= FINAL ANSWER DATABASE SAVE START =========');
+      try {
+        console.log('💾 Saving final answer to database...');
+        console.log('💾 Final Chat ID:', finalChatId);
+        console.log('💾 Final Chat ID type:', typeof finalChatId);
+        console.log('💾 Model ID:', modelId);
+        console.log('💾 Model ID type:', typeof modelId);
+        console.log('💾 Final answer content length:', finalAnswerContent.length);
+        console.log('💾 Final answer preview:', finalAnswerContent.substring(0, 100));
+        
+        // Validate finalChatId before making the request
+        if (!finalChatId) {
+          throw new Error('Chat ID is missing or invalid');
+        }
+        
+        const saveResponse = await fetch(`/api/chat/${finalChatId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            isFinalAnswer: true,
+            message: finalAnswerContent,
+            modelId: modelId
+          })
+        });
+        
+        console.log('💾 Save response status:', saveResponse.status);
+        console.log('💾 Save response ok:', saveResponse.ok);
+        
+        if (saveResponse.ok) {
+          const saveResult = await saveResponse.json();
+          console.log('💾 ✅ Final answer saved to database successfully');
+          console.log('💾 Save result:', saveResult);
+        } else {
+          const errorText = await saveResponse.text();
+          console.error('💾 ❌ Failed to save final answer to database:', errorText);
+        }
+      } catch (error) {
+        console.error('💾 ❌ Database save error:', error);
+      }
+      console.log('💾 ========= FINAL ANSWER DATABASE SAVE END =========');
 
       // 스트리밍 상태 즉시 종료
       console.log('🔄 Ending streaming state immediately...');
@@ -919,6 +994,22 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     console.log('images:', images)
     console.log('session?.user?.email:', session?.user?.email)
     
+    // Check URL parameters for deep research state (to handle timing issues)
+    const urlParams = new URLSearchParams(window.location.search)
+    const urlDeepResearch = urlParams.get('deepResearch') === 'true'
+    const urlGlobe = urlParams.get('globe') === 'true'
+    
+    // Use URL parameters if available, otherwise fall back to React state
+    const finalDeepResearch = urlDeepResearch || isDeepResearchActive
+    const finalGlobe = urlGlobe || isGlobeActive
+    
+    console.log('🔍 Deep research state in sendMessageToAI:')
+    console.log('  React state - isDeepResearchActive:', isDeepResearchActive)
+    console.log('  React state - isGlobeActive:', isGlobeActive)
+    console.log('  URL params - deepResearch:', urlDeepResearch)
+    console.log('  URL params - globe:', urlGlobe)
+    console.log('  Final states - deepResearch:', finalDeepResearch, 'globe:', finalGlobe)
+    
     if (!session?.user?.email) {
       console.error('User authentication required')
       return
@@ -933,7 +1024,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
 
     // Enhanced duplicate prevention using message content + timestamp + deep research state
     const currentTime = Date.now()
-    const messageKey = `${message}_${images?.length || 0}_${isRegeneration}_${isDeepResearchActive}`
+    const messageKey = `${message}_${images?.length || 0}_${isRegeneration}_${finalDeepResearch}`
     const lastMessageData = sessionStorage.getItem(`lastMessage_${chatId}`)
     
     if (lastMessageData) {
@@ -987,8 +1078,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         }
         formData.append('modelType', agentInfo.type)
         formData.append('isRegeneration', isRegeneration.toString())
-        formData.append('isDeepResearchActive', isDeepResearchActive.toString())
-        formData.append('isGlobeActive', isGlobeActive.toString())
+        formData.append('isDeepResearchActive', finalDeepResearch.toString())
+        formData.append('isGlobeActive', finalGlobe.toString())
         
         // Add image files
         images.forEach((image) => {
@@ -1015,8 +1106,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             modelId: agentInfo.type === 'model' ? agentInfo.id : undefined,
             modelType: agentInfo.type,
             isRegeneration,
-            isDeepResearchActive,
-            isGlobeActive,
+            isDeepResearchActive: finalDeepResearch,
+            isGlobeActive: finalGlobe,
             userId: session?.user?.email
           })
         })
@@ -1070,6 +1161,19 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                 if (line.startsWith('data: ')) {
                   try {
                     const data = JSON.parse(line.slice(6))
+                    
+                    // Debug: Log all received data
+                    console.log('🔍 Received streaming data:', {
+                      keys: Object.keys(data),
+                      messageId: data.messageId,
+                      chatId: data.chatId,
+                      parallelProcessingStarted: data.parallelProcessingStarted,
+                      deepResearchStream: data.deepResearchStream,
+                      stepType: data.stepType,
+                      contentLength: data.content?.length || 0,
+                      contentPreview: data.content?.substring(0, 50) || '',
+                      stepInfo: data.stepInfo ? Object.keys(data.stepInfo) : null
+                    });
                     
                     if (data.error) {
                       console.error('AI response error:', data.error)
@@ -1529,9 +1633,32 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                   // 1. Last message is from user
                   // 2. There's exactly 1 message (first conversation)
                   // 3. Agent info exists in localStorage
-                  if (lastMessage.role === 'user' && messagesWithDateTimestamp.length === 1) {
+                                    if (lastMessage.role === 'user' && messagesWithDateTimestamp.length === 1) {
                     if (!isCancelled) {
                       const parsedAgentInfo = JSON.parse(agentInfo)
+                      
+                      // Check URL parameters directly for deep research state (to avoid React state timing issues)
+                      const urlParams = new URLSearchParams(window.location.search)
+                      const urlDeepResearch = urlParams.get('deepResearch') === 'true'
+                      const urlGlobe = urlParams.get('globe') === 'true'
+                      
+                      console.log('🚀 Auto-generating AI response for first message')
+                      console.log('🚀 React state - deep research:', isDeepResearchActive, 'globe:', isGlobeActive)
+                      console.log('🚀 URL params - deep research:', urlDeepResearch, 'globe:', urlGlobe)
+                      
+                      // Use URL parameters if available, otherwise fall back to React state
+                      const finalDeepResearch = urlDeepResearch || isDeepResearchActive
+                      const finalGlobe = urlGlobe || isGlobeActive
+                      
+                      console.log('🚀 Final states - deep research:', finalDeepResearch, 'globe:', finalGlobe)
+                      
+                      // Temporarily update React state if URL params indicate different values
+                      if (urlDeepResearch && !isDeepResearchActive) {
+                        setIsDeepResearchActive(true)
+                      }
+                      if (urlGlobe && !isGlobeActive) {
+                        setIsGlobeActive(true)
+                      }
                       
                       // Call streaming API with isRegeneration=true to prevent duplicate user message saving
                       sendMessageToAI(lastMessage.content, parsedAgentInfo, true)
@@ -1539,6 +1666,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                       // Clean up localStorage after use (delay to prevent race condition)
                       setTimeout(() => {
                         localStorage.removeItem(`chat_${chatId}_agent`)
+                        localStorage.removeItem(`chat_${chatId}_deepResearch`)
+                        localStorage.removeItem(`chat_${chatId}_globe`)
                       }, 1000)
                     }
                   } else {
@@ -1622,6 +1751,9 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       isCancelled = true
     }
   }, [chatId, session?.user?.email, isMobile])
+
+  // Auto-send first message logic is handled in loadChatHistory useEffect above
+  // This useEffect was causing duplicate message generation and has been removed
 
   // Handle session status changes
   useEffect(() => {

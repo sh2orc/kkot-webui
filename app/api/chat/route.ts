@@ -14,7 +14,11 @@ export async function POST(request: NextRequest) {
     
     const body = await request.json()
     console.log('Request body:', body)
-    const { agentId, modelId, modelType, initialMessage } = body
+    const { agentId, modelId, modelType, initialMessage, isDeepResearchActive, isGlobeActive } = body
+    
+    console.log('🔍 Deep research parameters in chat session creation:')
+    console.log('  isDeepResearchActive:', isDeepResearchActive)
+    console.log('  isGlobeActive:', isGlobeActive)
 
     if (!initialMessage?.trim()) {
       return NextResponse.json({ error: 'Initial message is required' }, { status: 400 })
@@ -58,10 +62,48 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // 딥리서치가 활성화된 경우 즉시 AI 응답 생성 트리거
+    if (isDeepResearchActive && agentInfo) {
+      console.log('🚀 Deep research is active - triggering immediate AI response generation')
+      
+      // 즉시 /api/chat/[chatId] 로 요청을 보내서 딥리서치 응답 생성
+      try {
+        const aiResponseBody = {
+          message: initialMessage,
+          agentId: agentInfo.modelType === 'agent' ? agentInfo.id : undefined,
+          modelId: agentInfo.modelType === 'model' ? agentInfo.id : undefined,
+          modelType: agentInfo.modelType,
+          isRegeneration: false,
+          isDeepResearchActive: true,
+          isGlobeActive: isGlobeActive || false,
+          userId: session.user.email
+        }
+        
+        console.log('🚀 Triggering AI response with body:', aiResponseBody)
+        
+        // 백그라운드에서 AI 응답 생성 (await 하지 않음)
+        fetch(`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/api/chat/${chatId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Cookie': request.headers.get('Cookie') || ''
+          },
+          body: JSON.stringify(aiResponseBody)
+        }).catch(error => {
+          console.error('Background AI response generation failed:', error)
+        })
+        
+        console.log('🚀 Background AI response generation started')
+      } catch (error) {
+        console.error('Failed to trigger AI response:', error)
+      }
+    }
+    
     // Return chat ID and agent info (AI response will be generated via streaming in chat page)
     return NextResponse.json({ 
       chatId,
-      agentInfo
+      agentInfo,
+      deepResearchTriggered: isDeepResearchActive
     })
   } catch (error) {
     console.error('Chat creation error:', error)

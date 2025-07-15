@@ -3,7 +3,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import type React from "react"
 
 import { Button } from "@/components/ui/button"
-import { Mic, Globe, Plus, Search, Zap, Send, Play, Image as ImageIcon, X } from "lucide-react"
+import { Mic, Globe, Plus, Search, Zap, Send, Play, Image as ImageIcon, X, Brain } from "lucide-react"
 import { useRef, useState, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
@@ -146,6 +146,8 @@ export default function Component({
     console.log('Selected model:', selectedModel)
     console.log('Current session user ID:', currentSession?.user?.id)
     
+
+    
     if ((inputValue.trim() || uploadedImages.length > 0) && !isSubmitting && selectedModel && currentSession?.user?.email) {
       // Stop if already submitting
       if (submitInProgress.current) {
@@ -156,15 +158,24 @@ export default function Component({
       submitInProgress.current = true
       setIsSubmitting(true)
       
+      // 🔥 딥리서치 버튼의 실제 DOM 상태를 직접 확인
+      const deepResearchButton = document.querySelector('[data-testid="deep-research-toggle"]') as HTMLButtonElement;
+      const actualDeepResearchState = deepResearchButton?.getAttribute('data-active') === 'true';
+      
       try {
         console.log('=== Client: Chat session creation request started ===')
         console.log('Selected model:', selectedModel)
         console.log('Initial message:', inputValue)
         console.log('Images:', uploadedImages.length)
+        console.log('🔍🔍🔍 SUBMIT 시 딥리서치 상태 확인:')
+        console.log('  React state isDeepResearchActive:', isDeepResearchActive)
+        console.log('  DOM actual deep research state:', actualDeepResearchState)
+        console.log('  isGlobeActive:', isGlobeActive)
         
         let response: Response
 
         if (uploadedImages.length > 0) {
+          
           // Use FormData when images are present
           const formData = new FormData()
           formData.append('message', inputValue || '')
@@ -180,11 +191,15 @@ export default function Component({
             formData.append('images', image)
           })
           
+          formData.append('isDeepResearchActive', actualDeepResearchState.toString())
+          formData.append('isGlobeActive', isGlobeActive.toString())
+          
           response = await fetch('/api/chat', {
             method: 'POST',
             body: formData
           })
         } else {
+          
           // Use JSON for text-only messages
           response = await fetch('/api/chat', {
             method: 'POST',
@@ -195,7 +210,9 @@ export default function Component({
               agentId: selectedModel.type === 'agent' ? selectedModel.id : undefined,
               modelId: selectedModel.type === 'model' ? selectedModel.id : undefined,
               modelType: selectedModel.type,
-              initialMessage: inputValue
+              initialMessage: inputValue,
+              isDeepResearchActive: actualDeepResearchState,
+              isGlobeActive
             })
           })
         }
@@ -246,16 +263,30 @@ export default function Component({
           }
         }
 
-        // Navigate to created chat ID page (no sensitive information exposed in URL)
         console.log('=== Client: Navigating to chat page ===')
         console.log('Navigating to:', `/chat/${chatId}`)
+        console.log('Deep research active:', isDeepResearchActive)
+        console.log('Globe active:', isGlobeActive)
+        console.log('Response data:', data)
         
         if (!chatId) {
           console.error('Chat ID is missing, cannot navigate')
           throw new Error('Chat ID is missing from server response')
         }
         
-        router.push(`/chat/${chatId}`)
+        // Navigate with URL parameters (simple and reliable)
+        const urlParams = new URLSearchParams()
+        if (actualDeepResearchState) {
+          urlParams.set('deepResearch', 'true')
+        }
+        if (isGlobeActive) {
+          urlParams.set('globe', 'true')
+        }
+        
+        const targetUrl = `/chat/${chatId}${urlParams.toString() ? '?' + urlParams.toString() : ''}`
+        console.log('🚀 Navigating with URL:', targetUrl)
+        
+        router.push(targetUrl)
         console.log('Navigation command sent')
         
         // Reset input field and images
@@ -339,6 +370,17 @@ export default function Component({
     }
     return false
   })() : false
+
+  // Check if agent supports features
+  const supportsDeepResearch = selectedModel?.type === 'agent' ? (selectedModel as Agent).supportsDeepResearch ?? true : true
+  const supportsWebSearch = selectedModel?.type === 'agent' ? (selectedModel as Agent).supportsWebSearch ?? true : true
+  
+  // Debug: Log deep research support
+  console.log('🔍 Deep research support check:')
+  console.log('  selectedModel:', selectedModel)
+  console.log('  selectedModel.type:', selectedModel?.type)
+  console.log('  supportsDeepResearch:', supportsDeepResearch)
+  console.log('  agent.supportsDeepResearch:', selectedModel?.type === 'agent' ? (selectedModel as Agent).supportsDeepResearch : 'N/A')
 
   // Image resize and compression function
   const resizeAndCompressImage = (file: File): Promise<File> => {
@@ -510,13 +552,13 @@ export default function Component({
   // Skeleton UI component
   const EmptyChatSkeleton = () => (
     <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-4xl mx-auto w-full pb-32 md:pb-6 animate-pulse">
-      {/* 환영 메시지 스켈레톤 */}
+      {/* Welcome message skeleton */}
       <div className="text-center mb-8 space-y-3">
         <div className="h-6 w-72 bg-gray-200 dark:bg-gray-700 rounded animate-skeleton-pulse mx-auto"></div>
         <div className="h-4 w-56 bg-gray-200 dark:bg-gray-700 rounded animate-skeleton-pulse mx-auto" style={{animationDelay: '0.1s'}}></div>
       </div>
 
-      {/* 입력 영역 스켈레톤 */}
+      {/* Input area skeleton */}
       <div className="w-full max-w-3xl mb-8">
         <div className="hidden md:block">
           <div className="border border-gray-200 dark:border-gray-700 rounded-3xl p-4 space-y-3">
@@ -537,7 +579,7 @@ export default function Component({
         </div>
       </div>
 
-      {/* 프롬프트 제안 스켈레톤 */}
+      {/* Prompt suggestions skeleton */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 w-full max-w-3xl">
         {[...Array(4)].map((_, index) => (
           <div key={index} className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg space-y-2">
@@ -561,7 +603,7 @@ export default function Component({
           <>
             {/* Initial State Content */}
             <div className="flex-1 flex flex-col items-center justify-center p-6 max-w-4xl mx-auto w-full pb-32 md:pb-6">
-              {/* 사용자 환영 메시지 */}
+              {/* User welcome message */}
               {currentSession?.user && (
                 <div className="text-center mb-8">
                   <h1 className="text-3xl font-bold text-gray-900 mb-2">
@@ -599,7 +641,7 @@ export default function Component({
           <div className="w-full max-w-3xl mb-8">
             {/* Desktop Input */}
             <div className="hidden md:block">
-              <div className="flex-1 flex flex-col relative w-full shadow-lg rounded-3xl border border-gray-50 dark:border-gray-850 hover:border-gray-100 focus-within:border-gray-100 hover:dark:border-gray-800 focus-within:dark:border-gray-800 transition px-1 bg-white/90 dark:bg-gray-400/5 dark:text-gray-100">
+              <div className="flex-1 flex flex-col relative w-full shadow-lg rounded-xl border border-gray-200 hover:border-gray-300 focus-within:border-gray-300 transition bg-white">
                 {/* Image previews */}
                 {imagePreviews.length > 0 && (
                   <div className="flex flex-wrap gap-2 p-3 border-b border-gray-200">
@@ -621,17 +663,17 @@ export default function Component({
                   </div>
                 )}
 
-                <div className="flex flex-col p-4">
-                  {/* Text Area */}
-                  <div className="relative">
+                <div className="flex flex-col p-2 sm:p-3">
+                  {/* Text area */}
+                  <div className="relative flex items-end">
                     <textarea
                       ref={textareaRef}
                       placeholder={lang("placeholder")}
-                      className="w-full rounded-lg border border-gray-200 p-3 pr-12 resize-none focus:outline-none focus:ring-1 focus:ring-gray-200 focus:border-gray-400 text-sm leading-6 min-h-[48px]"
+                      className={`w-full rounded-lg border-0 p-1 ${supportsMultimodal ? 'pr-16 sm:pr-20' : 'pr-12 sm:pr-14'} resize-none overflow-hidden focus:outline-none focus:ring-0 text-base leading-6 min-h-[52px] max-h-[120px] sm:max-h-[180px] touch-manipulation`}
                       style={{
                         height: 'auto',
-                        minHeight: '48px',
-                        maxHeight: window.innerHeight * 0.3 + 'px'
+                        minHeight: '52px',
+                        maxHeight: window.innerHeight * 0.4 + 'px'
                       }}
                       value={inputValue}
                       onChange={handleInputChange}
@@ -650,126 +692,213 @@ export default function Component({
                       className="hidden"
                     />
                     <Button
+                      variant="default"
+                      size="icon"
+                      className={`absolute right-0 bottom-2 sm:bottom-3 h-6 w-6 sm:h-9 sm:w-9 rounded-full text-white bg-black hover:bg-gray-800 hover:text-white touch-manipulation`}
                       onClick={handleSubmit}
                       disabled={(!inputValue.trim() && uploadedImages.length === 0) || isSubmitting || !selectedModel}
-                      className="absolute right-3 top-3 rounded-full"
-                      style={{ height: '32px', width: '32px', padding: '0', minHeight: '32px', minWidth: '32px' }}
-                      variant="default"
                     >
                       <Play className="h-4 w-4" />
                     </Button>
                   </div>
 
+                  {/* Text length indicator */}
+                  {(inputValue.length > 500 || uploadedImages.length > 0) && (
+                    <div className="text-xs text-gray-500 mt-1 px-1">
+                      {inputValue.length}/{uploadedImages.length > 0 ? 1000 : 4000} characters
+                      {uploadedImages.length > 0 && (
+                        <span className="ml-2 text-orange-600">
+                          {uploadedImages.length} images (text limit: 1000 characters)
+                        </span>
+                      )}
+                    </div>
+                  )}
+
                   {/* Bottom Controls */}
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between mt-2 sm:mt-3">
                     <div className="flex items-center gap-2">
                       <Button 
                         variant="ghost" 
                         size="icon" 
-                        className="h-10 w-10 rounded-full">
-                        <Plus className="h-5 w-5" />
+                        className="h-8 w-8 sm:h-9 sm:w-9 touch-manipulation">
+                        <Plus className="h-4 w-4" />
                       </Button>
                       {supportsMultimodal && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-10 w-10 rounded-full hover:bg-gray-100"
+                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation"
                           onClick={() => fileInputRef.current?.click()}
                         >
-                          <ImageIcon className="h-5 w-5" />
+                          <ImageIcon className="h-4 w-4" />
                         </Button>
                       )}
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Button variant="ghost" size="icon" className="h-10 w-10">
-                        <Mic className="h-5 w-5" />
+                    <div className="flex items-center gap-2 sm:gap-2">
+                      <Button variant="ghost" 
+                        size="icon" 
+                        className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation">
+                        <Mic className="h-4 w-4" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={`h-10 w-10 rounded-full ${isDeepResearchActive ? "bg-black text-white hover:bg-blue-700 hover:text-white" : "hover:bg-transparent"}`}
-                        onClick={() => setIsDeepResearchActive(!isDeepResearchActive)}
-                      >
-                        <Search className="h-5 w-5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className={`h-10 w-10 rounded-full ${isGlobeActive ? "bg-black text-white hover:bg-blue-700 hover:text-white" : "hover:bg-transparent"}`}
-                        onClick={() => setIsGlobeActive(!isGlobeActive)}
-                      >
-                        <Globe className="h-5 w-5" />
-                      </Button>
+                      {supportsDeepResearch && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation ${isDeepResearchActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white" : "border-2 border-cyan-500"}`}
+                          data-testid="deep-research-toggle"
+                          data-active={isDeepResearchActive}
+                          onClick={() => {
+                            console.log('🧠🧠🧠 딥리서치 버튼 클릭됨! 🧠🧠🧠')
+                            console.log('  현재 상태:', isDeepResearchActive)
+                            console.log('  새로운 상태:', !isDeepResearchActive)
+                            alert(`딥리서치 버튼 클릭! ${isDeepResearchActive} → ${!isDeepResearchActive}`)
+                            setIsDeepResearchActive(!isDeepResearchActive)
+                          }}
+                          title={isDeepResearchActive ? "딥리서치 활성화됨" : "딥리서치 비활성화됨"}
+                        >
+                          <Brain className="h-4 w-4" />
+                        </Button>
+                      )}
+                      {supportsWebSearch && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation ${isGlobeActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white" : ""}`}
+                          onClick={() => setIsGlobeActive(!isGlobeActive)}
+                        >
+                          <Globe className="h-4 w-4" />
+                        </Button>
+                      )}
                     </div>
                   </div>
+                </div>
+                <div className="text-xs text-center text-gray-400 pb-2 mt-3 ">
+                  {lang("disclaimer")}
                 </div>
               </div>
             </div>
 
             {/* Mobile Input - Fixed at bottom */}
-            <div className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50">
-              {/* Image previews for mobile */}
-              {imagePreviews.length > 0 && (
-                <div className="flex flex-wrap gap-2 p-3 border-b border-gray-200">
-                  {imagePreviews.map((preview, index) => (
-                    <div key={index} className="relative">
-                      <img
-                        src={preview}
-                        alt={`Uploaded image ${index + 1}`}
-                        className="w-16 h-16 object-cover rounded-lg border border-gray-200"
-                      />
-                      <button
-                        onClick={() => removeImage(index)}
-                        className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition"
-                      >
-                        <X className="w-3 h-3" />
-                      </button>
+            <div className="md:hidden absolute bottom-0 left-0 right-0 p-0 chat-input-container mobile-keyboard-adjust">
+              <div className="max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto bg-white">
+                <div className="flex-1 flex flex-col relative w-full shadow-lg rounded-xl border border-gray-200 hover:border-gray-300 focus-within:border-gray-300 transition bg-white">
+                  {/* Image previews for mobile */}
+                  {imagePreviews.length > 0 && (
+                    <div className="flex flex-wrap gap-2 p-3 border-b border-gray-200">
+                      {imagePreviews.map((preview, index) => (
+                        <div key={index} className="relative">
+                          <img
+                            src={preview}
+                            alt={`Uploaded image ${index + 1}`}
+                            className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                          />
+                          <button
+                            onClick={() => removeImage(index)}
+                            className="absolute -top-1 -right-1 w-5 h-5 bg-red-500 text-white rounded-full flex items-center justify-center text-xs hover:bg-red-600 transition"
+                          >
+                            <X className="w-3 h-3" />
+                          </button>
+                        </div>
+                      ))}
                     </div>
-                  ))}
-                </div>
-              )}
+                  )}
 
-              <div className="p-4">
-                <div className="flex items-end gap-2">
-                  <div className="flex-1 relative">
-                    <textarea
-                      ref={textareaRef}
-                      placeholder={lang("mobilePlaceholder")}
-                      className={`w-full rounded-2xl border border-gray-200 p-3 ${supportsMultimodal ? 'pr-16' : 'pr-12'} resize-none focus:outline-none focus:ring-1 focus:ring-gray-200 focus:border-gray-400 text-sm leading-6 min-h-[48px] bg`}
-                      style={{
-                        height: 'auto',
-                        minHeight: '48px',
-                        maxHeight: window.innerHeight * 0.3 + 'px'
-                      }}
-                      value={inputValue}
-                      onChange={handleInputChange}
-                      onInput={handleInput}
-                      onKeyDown={handleKeyDown}
-                      onKeyUp={handleKeyUp}
-                      disabled={!selectedModel}
-                    />
-                    {/* Mobile image button */}
-                    {supportsMultimodal && (
+                  <div className="flex flex-col p-2 sm:p-3">
+                    {/* Text area */}
+                    <div className="relative flex items-end">
+                      <textarea
+                        ref={textareaRef}
+                        placeholder={lang("mobilePlaceholder")}
+                        className={`w-full rounded-lg border-0 p-1 ${supportsMultimodal ? 'pr-16 sm:pr-20' : 'pr-12 sm:pr-14'} resize-none overflow-hidden focus:outline-none focus:ring-0 text-base leading-6 min-h-[52px] max-h-[120px] sm:max-h-[180px] touch-manipulation`}
+                        style={{
+                          height: 'auto',
+                          minHeight: '52px',
+                          maxHeight: window.innerHeight * 0.4 + 'px'
+                        }}
+                        value={inputValue}
+                        onChange={handleInputChange}
+                        onInput={handleInput}
+                        onKeyDown={handleKeyDown}
+                        onKeyUp={handleKeyUp}
+                        disabled={!selectedModel}
+                      />
                       <Button
-                        variant="ghost"
+                        variant="default"
                         size="icon"
-                        className="absolute right-12 bottom-3.5 rounded-full hover:bg-gray-100"
-                        onClick={() => fileInputRef.current?.click()}
-                        style={{ height: '32px', width: '32px', padding: '0', minHeight: '32px', minWidth: '32px' }}
+                        className={`absolute right-0 bottom-2 sm:bottom-3 h-6 w-6 sm:h-9 sm:w-9 rounded-full text-white bg-black hover:bg-gray-800 hover:text-white touch-manipulation`}
+                        onClick={handleSubmit}
+                        disabled={(!inputValue.trim() && uploadedImages.length === 0) || isSubmitting || !selectedModel}
                       >
-                        <ImageIcon className="h-4 w-4" />
+                        <Play className="h-4 w-4" />
                       </Button>
+                    </div>
+
+                    {/* Text length indicator */}
+                    {(inputValue.length > 500 || uploadedImages.length > 0) && (
+                      <div className="text-xs text-gray-500 mt-1 px-1">
+                        {inputValue.length}/{uploadedImages.length > 0 ? 1000 : 4000} characters
+                        {uploadedImages.length > 0 && (
+                          <span className="ml-2 text-orange-600">
+                            {uploadedImages.length} images (text limit: 1000 characters)
+                          </span>
+                        )}
+                      </div>
                     )}
-                    <Button
-                      onClick={handleSubmit}
-                      disabled={(!inputValue.trim() && uploadedImages.length === 0) || isSubmitting || !selectedModel}
-                      className="absolute right-3 bottom-3.5 rounded-full"
-                      style={{ height: '32px', width: '32px', padding: '0', minHeight: '32px', minWidth: '32px' }}
-                      variant="default"
-                    >
-                      <Play className="h-4 w-4"/>
-                    </Button>
+
+                    {/* Bottom controls */}
+                    <div className="flex items-center justify-between mt-2 sm:mt-3">
+                      <div className="flex items-center gap-2">
+                        <Button variant="ghost" size="icon" className="h-8 w-8 sm:h-9 sm:w-9 touch-manipulation">
+                          <Plus className="h-4 w-4" />
+                        </Button>
+                        {supportsMultimodal && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation"
+                            onClick={() => fileInputRef.current?.click()}
+                          >
+                            <ImageIcon className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2 sm:gap-2">
+                        <Button variant="ghost" 
+                          size="icon" 
+                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation">
+                          <Mic className="h-4 w-4" />
+                        </Button>
+                        {supportsDeepResearch && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation ${isDeepResearchActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white" : ""}`}
+                            onClick={() => {
+                              console.log('🧠 Deep research button clicked! (Mobile)')
+                              console.log('  Current state:', isDeepResearchActive)
+                              console.log('  New state will be:', !isDeepResearchActive)
+                              setIsDeepResearchActive(!isDeepResearchActive)
+                            }}
+                          >
+                            <Brain className="h-4 w-4" />
+                          </Button>
+                        )}
+                        {supportsWebSearch && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation ${isGlobeActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white" : ""}`}
+                            onClick={() => setIsGlobeActive(!isGlobeActive)}
+                          >
+                            <Globe className="h-4 w-4" />
+                          </Button>
+                        )}
+                      </div>
+                    </div>
                   </div>
+                </div>
+                <div className="text-xs text-center text-gray-400 pb-2 mt-3 ">
+                  {lang("disclaimer")}
                 </div>
               </div>
             </div>

@@ -68,10 +68,10 @@ export function LlmResponse({
                                    content.includes('## 📊 Research Overview') ||
                                    content.includes('## 🔍 Analysis Process') ||
                                    content.includes('Deep Research Methodology:') ||
-                                   content.includes('# 🧠 딥리서치 분석 시작') || 
-                                   content.includes('## 📊 연구 개요') ||
-                                   content.includes('## 🔍 분석 과정') ||
-                                   content.includes('딥리서치 방법론:')
+                                   content.includes('# 🧠 Deep Research Analysis Start') || 
+                                   content.includes('## 📊 Research Overview') ||
+                                   content.includes('## 🔍 Analysis Process') ||
+                                   content.includes('Deep Research Methodology:')
                                  ))
 
   // Check if this contains deep research steps
@@ -79,8 +79,8 @@ export function LlmResponse({
   const hasDeepResearchSteps = !isDeepResearch && content.includes('### ') && (
     content.includes('Question Analysis') || 
     content.includes('Analysis:') ||
-    content.includes('질문 분석') || 
-    content.includes('분석:') ||
+    content.includes('Question Analysis') || 
+    content.includes('Analysis:') ||
     content.includes('### ')
   )
 
@@ -355,6 +355,17 @@ export function LlmResponse({
 
   const contentParts = parseContent(content);
 
+  // Debug logging for deep research final answer
+  console.log('🔍 LlmResponse render:', {
+    id,
+    contentLength: content.length,
+    contentPreview: content.substring(0, 100),
+    isDeepResearch,
+    deepResearchStepType,
+    isDeepResearchComplete,
+    isStreaming
+  });
+
   return (
     <div className="leading-[1.7]">
       {/* Deep Research Badge - Only show for non-structured deep research */}
@@ -410,6 +421,25 @@ export function LlmResponse({
               deepResearchStepInfo={deepResearchStepInfo}
             />
 
+            {/* Display final answer as markdown when deep research is complete */}
+            {isDeepResearchComplete && deepResearchStepType === 'final' && content && (
+              <div className="markdown-content mt-4">
+                {contentParts.map((part, index) => (
+                  <div key={index}>
+                    {part.type === 'text' ? (
+                      <MarkedMarkdown>{part.content}</MarkedMarkdown>
+                    ) : (
+                      <CodeBlock
+                        className={`language-${part.lang || 'text'}`}
+                        inline={false}
+                      >
+                        {part.content}
+                      </CodeBlock>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         ) : (
           /* Regular Content Display */

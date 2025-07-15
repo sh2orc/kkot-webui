@@ -357,10 +357,10 @@ Now generate 3-4 sub-questions for the given query (Korean queries should be ans
     // Korean query patterns
     if (query.includes('한국') || query.includes('대한민국')) {
       return [
-        '한국의 역사적 발전 과정에서 중요한 전환점은 무엇인가요?',
-        '한국의 문화적 정체성은 어떻게 형성되었으며 현대에 어떻게 나타나고 있나요?',
-        '한국의 경제 발전 모델의 특징과 성과는 무엇인가요?',
-        '한국의 정치 체계와 사회 구조의 특징은 무엇인가요?'
+        'What are the important turning points in Korea\'s historical development process?',
+        'How has Korean cultural identity been formed and how is it manifested in modern times?',
+        'What are the characteristics and achievements of Korea\'s economic development model?',
+        'What are the characteristics of Korea\'s political system and social structure?'
       ];
     }
     
@@ -379,10 +379,10 @@ Now generate 3-4 sub-questions for the given query (Korean queries should be ans
     
     if (query.includes('대해') || query.includes('관해')) {
       return [
-        `${topic}의 역사적 배경과 발전 과정은 어떻게 되나요?`,
-        `${topic}의 주요 특징과 특성은 무엇인가요?`,
-        `${topic}의 현재 상황과 동향은 어떻게 되나요?`,
-        `${topic}의 미래 전망과 과제는 무엇인가요?`
+        `What is the historical background and development process of ${topic}?`,
+        `What are the main characteristics and features of ${topic}?`,
+        `What is the current situation and trends of ${topic}?`,
+        `What are the future prospects and challenges of ${topic}?`
       ];
     }
     
@@ -397,10 +397,10 @@ Now generate 3-4 sub-questions for the given query (Korean queries should be ans
     
     // Ultimate fallback for any query
     return [
-      `${query}에 대한 기본적인 정의와 개념은 무엇인가요?`,
-      `${query}의 주요 특징과 요소들은 무엇인가요?`,
-      `${query}와 관련된 현재 상황은 어떻게 되나요?`,
-      `${query}에 대한 다양한 관점과 견해는 무엇인가요?`
+      `What are the basic definitions and concepts of ${query}?`,
+      `What are the main characteristics and elements of ${query}?`,
+      `What is the current situation related to ${query}?`,
+      `What are the various perspectives and views on ${query}?`
     ];
   }
 
@@ -579,17 +579,13 @@ Format example (adapt section headers to the detected language, and feel free to
 
 [Analysis process or additional explanations in the original question's language]
 
-## Core Answer (or Core Answer in the detected language)
-[Content in original language]
+[Core Answer Content in original language]
 
-## Detailed Analysis (or Detailed Analysis in the detected language)
-[Content in original language]
+[Detailed Analysis Content in original language]
 
-## Considerations (or Considerations in the detected language)
-[Content in original language]
+[Considerations Content in original language]
 
-## Conclusion (or Conclusion in the detected language)
-[Content in original language]
+[Conclusion Content in original language]
 
 Remember: The entire response must be in the same language as the original question "${query}"`;
 
