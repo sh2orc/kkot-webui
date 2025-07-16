@@ -123,8 +123,14 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       isDeepResearchActive = body.isDeepResearchActive || false
       isGlobeActive = body.isGlobeActive || false
       
-      console.log('Deep research active:', isDeepResearchActive)
-      console.log('Globe active:', isGlobeActive)
+      console.log('🔍 JSON Request Body Deep Research Debug:')
+      console.log('  Full body:', body)
+      console.log('  body.isDeepResearchActive (raw):', body.isDeepResearchActive)
+      console.log('  body.isDeepResearchActive type:', typeof body.isDeepResearchActive)
+      console.log('  Final isDeepResearchActive:', isDeepResearchActive)
+      console.log('  Final isDeepResearchActive type:', typeof isDeepResearchActive)
+      console.log('  Deep research active:', isDeepResearchActive)
+      console.log('  Globe active:', isGlobeActive)
     }
 
     if (!message?.trim() && images.length === 0) {
@@ -428,7 +434,15 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
           let completionHandled = false
 
           // Check if Deep Research is active
+          console.log('🔍 Checking Deep Research condition:')
+          console.log('  isDeepResearchActive value:', isDeepResearchActive)
+          console.log('  isDeepResearchActive type:', typeof isDeepResearchActive)
+          console.log('  Boolean conversion:', Boolean(isDeepResearchActive))
+          console.log('  Strict comparison with true:', isDeepResearchActive === true)
+          console.log('  Loose comparison with true:', isDeepResearchActive == true)
+          
           if (isDeepResearchActive) {
+            console.log('✅ Deep Research condition MET - Starting Complete Step-by-Step Deep Research')
             console.log('=== Starting Complete Step-by-Step Deep Research ===')
             
             // Parallel processing deep research structure
@@ -572,14 +586,21 @@ Parallel Processing Plan:
           }
 
           // Skip normal LLM processing if deep research was active or completion was already handled
+          console.log('🔍 Checking if normal LLM processing should be skipped:')
+          console.log('  isDeepResearchActive:', isDeepResearchActive)
+          console.log('  completionHandled:', completionHandled)
+          console.log('  Condition (isDeepResearchActive || completionHandled):', (isDeepResearchActive || completionHandled))
+          
           if (isDeepResearchActive || completionHandled) {
+            console.log('✅ SKIPPING normal LLM processing - Deep research was active or completion already handled')
             console.log('Deep research was active or completion already handled - skipping normal LLM processing')
-            console.log('isDeepResearchActive:', isDeepResearchActive)
-            console.log('completionHandled:', completionHandled)
             return
           }
 
           // Define streaming callbacks
+          console.log('❌ STARTING normal LLM processing - Deep research was NOT active')
+          console.log('=== Starting Normal Chat Mode ===')
+          
           const streamCallbacks = {
             onToken: (token: string) => {
               fullResponse += token
