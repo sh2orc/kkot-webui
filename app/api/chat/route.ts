@@ -163,7 +163,7 @@ export async function POST(request: NextRequest) {
           modelId: agentInfo.modelType === 'model' ? agentInfo.id : undefined,
           modelType: agentInfo.modelType,
           isRegeneration: false,
-          isDeepResearchActive: true,
+          isDeepResearchActive: isDeepResearchActive,  // Use actual value instead of hardcoded true
           isGlobeActive: isGlobeActive || false,
           userId: session.user.email
         }

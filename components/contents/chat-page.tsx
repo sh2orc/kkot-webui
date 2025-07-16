@@ -281,7 +281,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   const lastScrollHeight = useRef(0)
   const lastSubmittedMessage = useRef<string | null>(null)
   const lastSubmittedTime = useRef<number>(0)
-  const isSubmittingRef = useRef(false) // 추가적인 중복 방지
+  const isSubmittingRef = useRef(false) // Additional duplicate prevention
   
   // Add ref to prevent duplicate deep research calls
   const deepResearchInProgress = useRef<Set<string>>(new Set())
@@ -317,6 +317,15 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       console.log('  URL globe:', urlGlobe)
       console.log('  localStorage globe:', localGlobe)
       console.log('  Final globe:', finalGlobe)
+      console.log('  window.location.href:', window.location.href)
+      console.log('  window.location.search:', window.location.search)
+      
+      // Check all localStorage contents
+      console.log('  All localStorage keys:', Object.keys(localStorage))
+      console.log('  localStorage content for this chat:')
+      console.log('    chat_' + chatId + '_agent:', localStorage.getItem(`chat_${chatId}_agent`))
+      console.log('    chat_' + chatId + '_deepResearch:', localStorage.getItem(`chat_${chatId}_deepResearch`))
+      console.log('    chat_' + chatId + '_globe:', localStorage.getItem(`chat_${chatId}_globe`))
       
       if (finalDeepResearch) {
         console.log('🧠 Setting deep research state: true')
@@ -433,7 +442,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }, [])
 
   // Continue with new request after short delay
-  // 병렬 딥리서치 처리 함수
+  // Parallel deep research processing function
   const handleParallelDeepResearch = async (
     subQuestions: string[],
     originalQuery: string,
@@ -441,210 +450,146 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     assistantMessageId: string,
     providedChatId?: string | number
   ) => {
-    // Create unique key for this deep research session
-    const deepResearchKey = `${assistantMessageId}_${originalQuery}_${modelId}`;
-    
     try {
-      console.log('🚀 ========= HANDLE PARALLEL DEEP RESEARCH START =========');
-      console.log('🚀 Function called with parameters:');
-      console.log('🚀 - subQuestions:', subQuestions);
-      console.log('🚀 - subQuestions length:', subQuestions?.length);
-      console.log('🚀 - originalQuery:', originalQuery);
-      console.log('🚀 - modelId:', modelId);
-      console.log('🚀 - assistantMessageId:', assistantMessageId);
-      console.log('🚀 - providedChatId:', providedChatId);
-      console.log('🚀 - providedChatId type:', typeof providedChatId);
-      console.log('🚀 - current chatId from props:', chatId);
-      console.log('🚀 - current chatId type:', typeof chatId);
-      console.log('🚀 Starting parallel sub-question analysis');
+      console.log('=== Starting Parallel Deep Research Processing ===')
+      console.log('Sub-questions:', subQuestions)
+      console.log('Original query:', originalQuery)
+      console.log('Model ID:', modelId)
+      console.log('Assistant message ID:', assistantMessageId)
+      console.log('Provided chat ID:', providedChatId)
       
-      // Use current chatId from props as fallback
-      const finalChatId = providedChatId || chatId;
-      
-      // Check if this deep research is already in progress
-      if (deepResearchInProgress.current.has(deepResearchKey)) {
-        console.log('🚫 Deep research already in progress for this session, skipping duplicate call');
-        console.log('🚫 Key:', deepResearchKey);
-        console.log('🚫 Active sessions:', Array.from(deepResearchInProgress.current));
-        return;
-      }
-      
-      // Mark this deep research as in progress
-      deepResearchInProgress.current.add(deepResearchKey);
-      console.log('✅ Deep research session started:', deepResearchKey);
-      
-      // Check if sub-questions are available
-      if (!subQuestions || subQuestions.length === 0) {
-        console.error('❌ No sub-questions provided for parallel deep research');
-        console.error('❌ This usually happens when the query is too simple or vague');
-        console.error('❌ Original query:', originalQuery);
-        console.error('❌ Received sub-questions:', subQuestions);
-        deepResearchInProgress.current.delete(deepResearchKey); // Clean up on error
-        
-        // Update message with helpful error
-        setMessages(prev => 
-          prev.map(m => 
-            m.id === assistantMessageId 
-              ? { 
-                  ...m,
-                  content: m.content + '\n\n⚠️ The question is too simple to generate detailed analysis questions. Please ask a more specific question.\n\n Example: "Tell me about the economic development process in Korea" or "What are the characteristics of Korean culture?"',
-                  hasDeepResearchError: true,
-                  isDeepResearchComplete: true
-                }
-              : m
-          )
-        );
-        
-        // Reset streaming state
-        setIsStreaming(false);
-        setStreamingMessageId(null);
-        setIsSubmitting(false);
-        isSubmittingRef.current = false;
-        streamingInProgress.current = false;
-        
-        return;
-      }
-      
-      // Generate unique IDs for each sub-question
-      const subQuestionData = subQuestions.map((question, index) => ({
-        id: `subq_${Date.now()}_${index}`,
-        question,
-        index
-      }));
-      
-      console.log('Sub-question data with IDs:', subQuestionData);
-      
-      // 모든 sub-question을 병렬로 분석 (타임아웃과 재시도 로직 추가)
-      const analysisPromises = subQuestionData.map(async (subQuestionItem) => {
-        const { id, question, index } = subQuestionItem;
-        console.log(`📊 Starting analysis ${index + 1} (${id}): ${question}`);
-        
-        // 타임아웃이 있는 fetch 함수
-        const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs: number = 90000) => {
-          const controller = new AbortController();
-          const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+      // Process all sub-questions in parallel (with timeout and retry logic)
+      const subQuestionResults = await Promise.all(
+        subQuestions.map(async (question, index) => {
+          console.log(`Processing sub-question ${index + 1}:`, question)
           
-          try {
-            const response = await fetch(url, {
-              ...options,
-              signal: controller.signal
-            });
-            clearTimeout(timeoutId);
-            return response;
-          } catch (error) {
-            clearTimeout(timeoutId);
-            if (controller.signal.aborted) {
-              throw new Error(`Request timeout after ${timeoutMs / 1000} seconds`);
-            }
-            throw error;
-          }
-        };
-        
-        // 재시도 로직
-        let lastError: Error | null = null;
-        const maxRetries = 2;
-        
-        for (let attempt = 1; attempt <= maxRetries; attempt++) {
-          try {
-            console.log(`📊 Attempt ${attempt}/${maxRetries} for analysis ${index + 1} (${id})`);
+          // Fetch function with timeout
+          const fetchWithTimeout = async (url: string, options: RequestInit, timeoutMs: number = 90000) => {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
             
-            const response = await fetchWithTimeout(`/api/deepresearch/subquestion-analysis`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                subQuestion: question,
-                originalQuery,
-                modelId,
-                context: '',
-                previousSteps: []
-              })
-            }, 90000); // 90초 타임아웃 (복잡한 분석을 위해 시간 증가)
-
-            if (!response.ok) {
-              const errorText = await response.text();
-              throw new Error(`Analysis failed (${response.status}): ${errorText}`);
+            try {
+              const response = await fetch(url, {
+                ...options,
+                signal: controller.signal
+              });
+              clearTimeout(timeoutId);
+              return response;
+            } catch (error) {
+              clearTimeout(timeoutId);
+              if (controller.signal.aborted) {
+                throw new Error(`Request timeout after ${timeoutMs / 1000} seconds`);
+              }
+              throw error;
             }
+          };
+          
+          // Retry logic
+          let lastError: Error | null = null;
+          const maxRetries = 2;
+          
+          for (let attempt = 1; attempt <= maxRetries; attempt++) {
+            try {
+              console.log(`📊 Attempt ${attempt}/${maxRetries} for analysis ${index + 1} (${question})`);
+              
+              const response = await fetchWithTimeout(`/api/deepresearch/subquestion-analysis`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  subQuestion: question,
+                  originalQuery,
+                  modelId,
+                  context: '',
+                  previousSteps: []
+                })
+              }, 90000); // 90초 타임아웃 (복잡한 분석을 위해 시간 증가)
 
-            const result = await response.json();
-            console.log(`✅ Completed analysis ${index + 1} (${id}) on attempt ${attempt}: ${question}`);
-            console.log('🔍 Sub-question analysis result:', result);
-            console.log('🔍 Sub-question analysis keys:', Object.keys(result));
-            console.log('🔍 Sub-question analysis content:', result.analysis);
-            
-            // 각 분석 완료 시 실시간 업데이트 - 고유 ID로 매핑
-            setMessages(prev => 
-              prev.map(m => 
-                m.id === assistantMessageId 
-                  ? { 
-                      ...m,
-                      deepResearchStepInfo: {
-                        ...m.deepResearchStepInfo,
-                        [id]: {
-                          title: `Analysis: ${question}`,
-                          content: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
-                          isComplete: true,
-                          index: index,
-                          subQuestionId: id,
-                          originalQuestion: question
+              if (!response.ok) {
+                const errorText = await response.text();
+                throw new Error(`Analysis failed (${response.status}): ${errorText}`);
+              }
+
+              const result = await response.json();
+              console.log(`✅ Completed analysis ${index + 1} (${question}) on attempt ${attempt}: ${question}`);
+              console.log('🔍 Sub-question analysis result:', result);
+              console.log('🔍 Sub-question analysis keys:', Object.keys(result));
+              console.log('🔍 Sub-question analysis content:', result.analysis);
+              
+              // 각 분석 완료 시 실시간 업데이트 - 고유 ID로 매핑
+              setMessages(prev => 
+                prev.map(m => 
+                  m.id === assistantMessageId 
+                    ? { 
+                        ...m,
+                        deepResearchStepInfo: {
+                          ...m.deepResearchStepInfo,
+                          [question]: {
+                            title: `Analysis: ${question}`,
+                            content: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
+                            isComplete: true,
+                            index: index,
+                            subQuestionId: question,
+                            originalQuestion: question
+                          }
                         }
                       }
-                    }
-                  : m
-              )
-            );
-            
-            return {
-              analysis: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
-              content: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
-              subQuestionId: id,
-              originalQuestion: question,
-              index: index
-            };
-          } catch (error) {
-            lastError = error instanceof Error ? error : new Error(String(error));
-            console.error(`❌ Failed analysis ${index + 1} (${id}) attempt ${attempt}:`, error);
-            
-            // 마지막 시도가 아니면 잠시 대기 후 재시도
-            if (attempt < maxRetries) {
-              console.log(`⏳ Retrying analysis ${index + 1} (${id}) in 2 seconds...`);
-              await new Promise(resolve => setTimeout(resolve, 2000));
-              continue;
-            }
-            
-            // 모든 시도 실패 시 에러 상태 업데이트
-            setMessages(prev => 
-              prev.map(m => 
-                m.id === assistantMessageId 
-                  ? { 
-                      ...m,
-                      deepResearchStepInfo: {
-                        ...m.deepResearchStepInfo,
-                        [id]: {
-                          title: `Analysis: ${question}`,
+                    : m
+                )
+              );
+              
+              return {
+                analysis: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
+                content: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
+                subQuestionId: question,
+                originalQuestion: question,
+                index: index
+              };
+            } catch (error) {
+              lastError = error instanceof Error ? error : new Error(String(error));
+              console.error(`❌ Failed analysis ${index + 1} (${question}) attempt ${attempt}:`, error);
+              
+              // If not the last attempt, wait a bit and retry
+              if (attempt < maxRetries) {
+                console.log(`⏳ Retrying analysis ${index + 1} (${question}) in 2 seconds...`);
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                continue;
+              }
+              
+              // 모든 시도 실패 시 에러 상태 업데이트
+              setMessages(prev => 
+                prev.map(m => 
+                  m.id === assistantMessageId 
+                    ? { 
+                        ...m,
+                        deepResearchStepInfo: {
+                          ...m.deepResearchStepInfo,
+                          [question]: {
+                            title: `Analysis: ${question}`,
                                                      content: `❌ 분석 중 오류가 발생했습니다 (${maxRetries}번 시도 실패): ${lastError?.message || 'Unknown error'}`,
-                          isComplete: false,
-                          hasError: true,
-                          index: index,
-                          subQuestionId: id,
-                          originalQuestion: question
+                            isComplete: false,
+                            hasError: true,
+                            index: index,
+                            subQuestionId: question,
+                            originalQuestion: question
+                          }
                         }
                       }
-                    }
-                  : m
-              )
-            );
-            
-            // 부분적 실패는 null 반환 (전체 프로세스를 중단하지 않음)
-            return null;
+                    : m
+                )
+              );
+              
+              // Partial failures return null (doesn't interrupt the entire process)
+              return null;
+            }
           }
-        }
-        
-        return null; // 모든 시도 실패
-      });
+          
+          return null; // All attempts failed
+        })
+      );
 
-      // 모든 분석 완료 대기
+      // Wait for all analyses to complete
       console.log('⏳ Waiting for all analyses to complete...');
-      const analysisResults = await Promise.all(analysisPromises);
+      const analysisResults = await Promise.all(subQuestionResults);
       const validResults = analysisResults.filter(result => result !== null);
       
       console.log(`✅ All analyses completed: ${validResults.length}/${subQuestions.length} successful`);

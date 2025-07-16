@@ -136,7 +136,7 @@ export default function Component({
       submitInProgress.current = true
       setIsSubmitting(true)
       
-      // 🔥 React state에서 딥리서치 상태 확인 (더 안전함)
+      // 🔥 Check deep research state from React state (safer)
       const actualDeepResearchState = isDeepResearchActive;
       
       try {
@@ -148,6 +148,13 @@ export default function Component({
         console.log('  React state isDeepResearchActive:', isDeepResearchActive)
         console.log('  Using deep research state:', actualDeepResearchState)
         console.log('  isGlobeActive:', isGlobeActive)
+        console.log('  selectedModel:', selectedModel)
+        console.log('  selectedModel.type:', selectedModel?.type)
+        console.log('  selectedModel.id:', selectedModel?.id)
+        
+        // Additional debugging: Check if the model supports deep research
+        const supportsDeepResearch = selectedModel?.type === 'agent' ? (selectedModel as any).supportsDeepResearch ?? true : true
+        console.log('  supportsDeepResearch:', supportsDeepResearch)
         
         let response: Response
 
@@ -317,7 +324,7 @@ export default function Component({
       if (!selectedModel) console.log('- No model selected')
       if (!currentSession?.user?.email) console.log('- No user session')
     }
-  }, [inputValue, router, isSubmitting, selectedModel, currentSession?.user?.email])
+  }, [inputValue, router, isSubmitting, selectedModel, currentSession?.user?.email, isDeepResearchActive, isGlobeActive, uploadedImages])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Shift") {
@@ -745,7 +752,11 @@ export default function Component({
                           data-testid="deep-research-toggle"
                           data-active={isDeepResearchActive}
                           onClick={() => {
+                            console.log('🧠 Deep research button clicked!')
+                            console.log('  Current state:', isDeepResearchActive)
+                            console.log('  New state will be:', !isDeepResearchActive)
                             setIsDeepResearchActive(!isDeepResearchActive)
+                            console.log('  setIsDeepResearchActive called with:', !isDeepResearchActive)
                           }}
                           title={isDeepResearchActive ? lang("tooltips.deepResearchActive") : lang("tooltips.deepResearchInactive")}
                         >
