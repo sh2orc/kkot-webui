@@ -804,7 +804,8 @@ export function DeepResearchDisplay({
         <Brain className="w-5 h-5 text-cyan-600" />
         <span className="text-sm font-medium text-cyan-700">{lang("deepResearch.title")}</span>
         <Badge variant="outline" className="text-xs">
-          {completedSteps}/{totalSteps} {lang("deepResearch.completed")}
+          {/* Show the number of the current step in progress, not the number of completed steps */}
+          {Math.min(completedSteps + 1, totalSteps)}/{totalSteps} {lang("deepResearch.completed")}
         </Badge>
         {plannedSteps.length > 0 && (
           <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200 text-blue-600">
@@ -862,7 +863,7 @@ export function DeepResearchDisplay({
       )}
 
       {/* Detailed content for each step - excluding final answer */}
-      {steps.filter(step => step.stepType !== 'final').map((step) => (
+      {steps.filter(step => step.stepType !== 'final').map((step, index) => (
         <Collapsible key={step.id} open={openSteps.has(step.id)}>
           <CollapsibleTrigger 
             className="w-full flex items-center justify-between p-3 bg-white border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
@@ -870,10 +871,11 @@ export function DeepResearchDisplay({
           >
             <div className="flex items-center gap-3 flex-wrap">
               {getStepIcon(step.status)}
-              <span className="text-sm font-medium text-gray-700 truncate min-w-0 max-w-[50%]">{step.title}</span>
+              <span className="text-sm font-medium text-gray-700 truncate min-w-0 max-w-[90%]">{step.title}</span>
               <Badge className={`text-xs flex-shrink-0 ${getStepBadgeColor(step.stepType)}`}>
                 {step.stepType === 'step' ? lang("deepResearch.stepTypes.analysis") : step.stepType === 'synthesis' ? lang("deepResearch.stepTypes.synthesis") : lang("deepResearch.stepTypes.final")}
               </Badge>
+              {/* 각 단계별 카운팅 제거 */}
               {step.status === 'in_progress' && (
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <div className="flex space-x-1">
@@ -1002,10 +1004,13 @@ export function DeepResearchDisplay({
                   return getStepIcon('pending');
                 })()}
               </div>
-              <span className="text-sm font-medium text-green-700">{lang("deepResearch.finalAnswer")}</span>
-              <Badge className="text-xs bg-green-100 text-green-700 border-green-200 flex-shrink-0 hover:bg-green-300 hover:text-green-900">
+              <span className="text-sm font-medium text-green-700 truncate min-w-0 max-w-[90%]">
+                {lang("deepResearch.finalAnswer")}
+              </span>
+              <Badge className={`text-xs flex-shrink-0 ${getStepBadgeColor('final')}`}>
                 {lang("deepResearch.stepTypes.final")}
               </Badge>
+              {/* 최종 단계 카운팅 제거 */}
               {(() => {
                 const finalStep = steps.find(s => s.stepType === 'final');
                 if (finalStep) {
