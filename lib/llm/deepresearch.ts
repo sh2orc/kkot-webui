@@ -564,7 +564,7 @@ Please carefully examine the original question "${query}" and detect its languag
 - If the original question is in Chinese, respond entirely in Chinese
 - For any other language, respond in that detected language
 
-Based on all the analyses above, please provide a comprehensive and in-depth final answer to the original question. You may use markdown formatting to structure your response clearly and effectively, but avoid using emojis.
+Based on all the analyses above, please provide a comprehensive and in-depth and detailed final answer to the original question. You may use markdown formatting to structure your response clearly and effectively, but avoid using emojis.
 
 IMPORTANT: When writing the final answer, please follow this format and write ALL content in the same language as the original question:
 
