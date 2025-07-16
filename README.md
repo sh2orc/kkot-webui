@@ -16,7 +16,7 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
   와 같이 절대경로로 수정해보세요.
 -->
 
-![kkot webui](https://github.com/sh2orc/kkot-webui/raw/main/public/images/screenshot.png)
+![kkot webui](https://github.com/sh2orc/kkot-webui/blob/main/public/images/screenshot.png)
 
 
 > 🔗 **GitHub Repository**: [https://github.com/sh2orc/kkot-webui](https://github.com/sh2orc/kkot-webui)
