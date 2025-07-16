@@ -8,7 +8,15 @@
 
 KKOT WebUI is an open-source project that provides an intuitive and user-friendly web interface for various Large Language Model (LLM) services including OpenAI, Gemini, Ollama, vLLM, and more.
 
-![Screenshot](images/screenshot.png)
+<!--  
+  ⚠️ GitHub에서 이미지가 깨질 경우,  
+  경로를 `/public/images/screenshot.png` 대신  
+  `./images/screenshot.png` 또는  
+  `https://github.com/sh2orc/kkot-webui/raw/main/public/images/screenshot.png`  
+  와 같이 절대경로로 수정해보세요.
+-->
+
+![kkot webui](https://github.com/sh2orc/kkot-webui/raw/main/public/images/screenshot.png)
 
 
 > 🔗 **GitHub Repository**: [https://github.com/sh2orc/kkot-webui](https://github.com/sh2orc/kkot-webui)
