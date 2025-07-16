@@ -26,7 +26,11 @@
     "email": "이메일",
     "bio": "자기소개",
     "bioPlaceholder": "간단한 자기소개를 입력하세요",
-    "saveButton": "저장하기"
+    "saveButton": "저장하기",
+    "role": "역할",
+    "memberSince": "가입일",
+    "changePhoto": "프로필 사진 변경",
+    "photoInfo": "PNG, JPG 파일만 업로드 가능합니다."
   },
   "account": {
     "title": "계정 설정",

@@ -26,7 +26,11 @@
     "email": "Email",
     "bio": "Bio",
     "bioPlaceholder": "Enter a brief self-introduction",
-    "saveButton": "Save"
+    "saveButton": "Save",
+    "role": "Role",
+    "memberSince": "Member Since",
+    "changePhoto": "Change Profile Photo",
+    "photoInfo": "Only PNG and JPG files are supported."
   },
   "account": {
     "title": "Account Settings",
