@@ -52,7 +52,10 @@ export default async function AgentRegisterPage({
           presencePenalty: agent.presencePenalty || '0.0',
           frequencyPenalty: agent.frequencyPenalty || '0.0',
           description: agent.description || '',
-          enabled: agent.enabled
+          enabled: agent.enabled,
+          supportsDeepResearch: agent.supportsDeepResearch,
+          supportsWebSearch: agent.supportsWebSearch,
+          parameterEnabled: agent.parameterEnabled
         }
       } else {
         // 기본 조회 실패 시 전체 목록에서 찾기
@@ -81,7 +84,10 @@ export default async function AgentRegisterPage({
             presencePenalty: agent.presencePenalty || '0.0',
             frequencyPenalty: agent.frequencyPenalty || '0.0',
             description: agent.description || '',
-            enabled: agent.enabled
+            enabled: agent.enabled,
+            supportsDeepResearch: agent.supportsDeepResearch,
+            supportsWebSearch: agent.supportsWebSearch,
+            parameterEnabled: agent.parameterEnabled
           }
         }
       }
