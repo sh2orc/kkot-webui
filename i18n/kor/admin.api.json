@@ -1,6 +1,10 @@
 {
   "title": "API 관리",
   "description": "외부 API 접근 및 OpenAI compatible 서비스 설정을 관리합니다.",
+  "page": {
+    "title": "API 설정",
+    "description": "OpenAI Compatible API 서비스 설정을 관리합니다."
+  },
   "apiService": {
     "title": "API 서비스 설정",
     "description": "전체 API 서비스 활성화 및 기본 설정",
@@ -142,6 +146,14 @@
     "title": "사용 가능한 엔드포인트",
     "description": "OpenAI compatible API 엔드포인트 목록",
     "baseUrl": "기본 URL",
+    "chatCompletions": {
+      "title": "POST /v1/chat/completions",
+      "description": "OpenAI 호환 채팅 완성 API"
+    },
+    "models": {
+      "title": "GET /v1/models",
+      "description": "사용 가능한 모델 목록"
+    },
     "examples": {
       "title": "사용 예시",
       "curl": "cURL 예시",
@@ -149,6 +161,7 @@
       "python": "Python 예시"
     }
   },
+  "comingSoon": "사용량 통계 기능이 곧 추가될 예정입니다.",
   "messages": {
     "saveSuccess": "API 설정이 성공적으로 저장되었습니다.",
     "saveError": "API 설정 저장 중 오류가 발생했습니다.",

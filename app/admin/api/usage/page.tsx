@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { loadTranslationModule, getTranslationKey } from '@/lib/i18n-server'
+import { headers } from 'next/headers'
 
 export default async function ApiUsagePage() {
   const session = await getServerSession(authOptions)
@@ -10,17 +12,25 @@ export default async function ApiUsagePage() {
     redirect('/auth')
   }
 
+  // Extract language information from Accept-Language header (default: 'kor')
+  const headersList = await headers()
+  const acceptLanguage = headersList.get('accept-language') || ''
+  const preferredLanguage = acceptLanguage.includes('en') ? 'eng' : 'kor'
+  
+  // Load translations
+  const translations = await loadTranslationModule(preferredLanguage, 'admin.api')
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>API 사용량 통계</CardTitle>
+        <CardTitle>{getTranslationKey(translations, 'usage.title')}</CardTitle>
         <CardDescription>
-          API 키별 사용량 및 통계 정보
+          {getTranslationKey(translations, 'usage.description')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="text-center py-8 text-gray-500">
-          사용량 통계 기능이 곧 추가될 예정입니다.
+          {getTranslationKey(translations, 'comingSoon')}
         </div>
       </CardContent>
     </Card>

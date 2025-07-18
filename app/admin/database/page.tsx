@@ -6,58 +6,16 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { useTranslation } from "@/lib/i18n"
-import { Database, RefreshCw, AlertTriangle, CheckCircle } from "lucide-react"
+import { Database, RefreshCw, AlertTriangle, CheckCircle, Table } from "lucide-react"
 
 export default function DatabaseSettingsPage() {
-  const { t } = useTranslation('admin.database')
+  const { lang } = useTranslation('admin.database')
   const [dbStatus, setDbStatus] = useState<any>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [translations, setTranslations] = useState<any>({})
+  const [isTranslationsLoaded, setIsTranslationsLoaded] = useState(false)
 
-  // 번역 로드
-  useEffect(() => {
-    const loadTranslations = async () => {
-      try {
-        const title = await t('title')
-        const description = await t('description')
-        const statusTitle = await t('status.title')
-        const statusDescription = await t('status.description')
-        const statusTest = await t('status.test')
-        const statusTesting = await t('status.testing')
-        const statusConnected = await t('status.connected')
-        const statusError = await t('status.error')
-        const statusType = await t('status.type')
-        const statusUrl = await t('status.url')
-        const statusUsers = await t('status.users')
-        const statusLastChecked = await t('status.lastChecked')
-        const settingsTitle = await t('settings.title')
-        const settingsDescription = await t('settings.description')
-
-        setTranslations({
-          title,
-          description,
-          statusTitle,
-          statusDescription,
-          statusTest,
-          statusTesting,
-          statusConnected,
-          statusError,
-          statusType,
-          statusUrl,
-          statusUsers,
-          statusLastChecked,
-          settingsTitle,
-          settingsDescription
-        })
-      } catch (error) {
-        console.error('Translation loading error:', error)
-      }
-    }
-    loadTranslations()
-  }, [t])
-
-  // DB 상태 테스트 함수
+  // Database status test function
   const testDbConnection = async () => {
     setIsLoading(true)
     setError(null)
@@ -69,7 +27,7 @@ export default function DatabaseSettingsPage() {
       if (data.success) {
         setDbStatus(data.results)
       } else {
-        setError(data.message || 'Unknown error occurred')
+        setError(data.message || data.error || 'Unknown error occurred')
       }
     } catch (err: any) {
       setError(err.message || 'Database connection test failed')
@@ -78,13 +36,18 @@ export default function DatabaseSettingsPage() {
     }
   }
 
-  // 페이지 로드 시 DB 상태 테스트
+  // Test DB status on page load
   useEffect(() => {
     testDbConnection()
+    // Mark translations as loaded after a short delay to ensure i18n is ready
+    const timer = setTimeout(() => {
+      setIsTranslationsLoaded(true)
+    }, 100)
+    return () => clearTimeout(timer)
   }, [])
 
-  // 번역이 로드되지 않은 경우 로딩 표시
-  if (!translations.title) {
+  // Show loading if translations are not loaded
+  if (!isTranslationsLoaded) {
     return (
       <AdminLayout>
         <div className="flex justify-center py-8">
@@ -98,17 +61,17 @@ export default function DatabaseSettingsPage() {
     <AdminLayout>
       <div className="space-y-6">
         <div>
-          <h1 className="text-2xl font-bold">{translations.title}</h1>
-          <p className="text-gray-600 mt-1">{translations.description}</p>
+          <h1 className="text-2xl font-bold">{lang('title')}</h1>
+          <p className="text-gray-600 mt-1">{lang('description')}</p>
         </div>
 
-        {/* 데이터베이스 상태 카드 */}
+        {/* Database status card */}
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
                 <Database className="h-5 w-5 text-blue-600" />
-                <CardTitle>{translations.statusTitle}</CardTitle>
+                <CardTitle>{lang('status.title')}</CardTitle>
               </div>
               <Button 
                 variant="outline" 
@@ -117,46 +80,68 @@ export default function DatabaseSettingsPage() {
                 disabled={isLoading}
               >
                 <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-                {isLoading ? translations.statusTesting : translations.statusTest}
+                {isLoading ? lang('status.testing') : lang('status.test')}
               </Button>
             </div>
-            <CardDescription>{translations.statusDescription}</CardDescription>
+            <CardDescription>{lang('status.description')}</CardDescription>
           </CardHeader>
           <CardContent>
             {error ? (
               <Alert variant="destructive">
                 <AlertTriangle className="h-4 w-4" />
-                <AlertTitle>{translations.statusError}</AlertTitle>
+                <AlertTitle>{lang('status.error')}</AlertTitle>
                 <AlertDescription>{error}</AlertDescription>
               </Alert>
             ) : dbStatus ? (
-              <div className="space-y-4">
+              <div className="space-y-6">
                 <div className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5 text-green-500" />
-                  <span className="font-medium">{translations.statusConnected}</span>
+                  <span className="font-medium">{lang('status.connected')}</span>
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">{translations.statusType}</h3>
+                    <h3 className="text-sm font-medium text-gray-500">{lang('status.type')}</h3>
                     <p className="font-medium">{dbStatus.dbType || 'sqlite'}</p>
                   </div>
                   
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">{translations.statusUrl}</h3>
-                    <p className="font-medium">{dbStatus.dbUrl || '기본값'}</p>
+                    <h3 className="text-sm font-medium text-gray-500">{lang('status.url')}</h3>
+                    <p className="font-medium">{dbStatus.dbUrl || lang('status.defaultValue')}</p>
                   </div>
                   
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">{translations.statusUsers}</h3>
-                    <p className="font-medium">{dbStatus.existingUsers?.length || 0}명</p>
+                    <h3 className="text-sm font-medium text-gray-500">{lang('status.users')}</h3>
+                    <p className="font-medium">{dbStatus.existingUsers?.[0]?.count || 0}{lang('status.userCountUnit')}</p>
                   </div>
                   
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">{translations.statusLastChecked}</h3>
+                    <h3 className="text-sm font-medium text-gray-500">{lang('status.lastChecked')}</h3>
                     <p className="font-medium">{new Date(dbStatus.timestamp).toLocaleString()}</p>
                   </div>
                 </div>
+
+                {/* Table statistics */}
+                {dbStatus.tableCounts && (
+                  <div className="border-t pt-4">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Table className="h-4 w-4 text-gray-600" />
+                      <h3 className="font-medium text-gray-700">{lang('tables.statistics')}</h3>
+                    </div>
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                      {Object.entries(dbStatus.tableCounts).map(([tableName, count]) => (
+                        <div key={tableName} className="bg-gray-50 p-3 rounded-lg">
+                          <div className="text-xs text-gray-500 uppercase tracking-wide">
+                            {tableName.replace(/([A-Z])/g, ' $1').trim()}
+                          </div>
+                          <div className="text-lg font-semibold text-gray-900">
+                            {typeof count === 'number' ? count.toLocaleString() : String(count)}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             ) : (
               <div className="flex justify-center py-4">
@@ -166,21 +151,30 @@ export default function DatabaseSettingsPage() {
           </CardContent>
         </Card>
 
-        {/* 데이터베이스 설정 카드 */}
+        {/* Database settings card */}
         <Card>
           <CardHeader>
-            <CardTitle>{translations.settingsTitle}</CardTitle>
-            <CardDescription>{translations.settingsDescription}</CardDescription>
+            <CardTitle>{lang('settings.title')}</CardTitle>
+            <CardDescription>{lang('settings.description')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-500">데이터베이스 설정 기능은 개발 중입니다.</p>
-            <p className="text-sm text-gray-400 mt-2">
-              현재 데이터베이스 타입을 변경하려면 환경 변수를 수정하세요:
-              <br />
-              <code className="bg-gray-100 px-2 py-1 rounded text-sm">DB_TYPE=sqlite|postgresql</code>
-              <br />
-              <code className="bg-gray-100 px-2 py-1 rounded text-sm">DATABASE_URL=your-connection-string</code>
-            </p>
+            <div className="space-y-4">
+              <p className="text-gray-500">{lang('development.message')}</p>
+              <div className="bg-blue-50 p-4 rounded-lg">
+                <h4 className="font-medium text-blue-900 mb-2">{lang('development.environmentVariables')}</h4>
+                <p className="text-sm text-blue-700 mb-3">
+                  {lang('development.changeDescription')}
+                </p>
+                <div className="space-y-2">
+                  <div className="font-mono text-xs bg-blue-100 p-2 rounded border">
+                    <strong>DB_TYPE</strong>=sqlite|postgresql
+                  </div>
+                  <div className="font-mono text-xs bg-blue-100 p-2 rounded border">
+                    <strong>DATABASE_URL</strong>=your-connection-string
+                  </div>
+                </div>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>

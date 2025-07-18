@@ -4,6 +4,8 @@ import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import ApiManagementForm from './api-management-form'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { loadTranslationModule, getTranslationKey } from '@/lib/i18n-server'
+import { headers } from 'next/headers'
 
 export default async function ApiManagementPage() {
   const session = await getServerSession(authOptions)
@@ -12,12 +14,20 @@ export default async function ApiManagementPage() {
     redirect('/auth')
   }
 
+  // Extract language information from Accept-Language header (default: 'kor')
+  const headersList = await headers()
+  const acceptLanguage = headersList.get('accept-language') || ''
+  const preferredLanguage = acceptLanguage.includes('en') ? 'eng' : 'kor'
+  
+  // Load translations
+  const translations = await loadTranslationModule(preferredLanguage, 'admin.api')
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>API 설정</CardTitle>
+        <CardTitle>{getTranslationKey(translations, 'page.title')}</CardTitle>
         <CardDescription>
-          OpenAI Compatible API 서비스 설정을 관리합니다.
+          {getTranslationKey(translations, 'page.description')}
         </CardDescription>
       </CardHeader>
       <CardContent>

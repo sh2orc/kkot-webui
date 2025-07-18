@@ -17,7 +17,14 @@ interface LanguageProviderProps {
 }
 
 export default function LanguageProvider({ children }: LanguageProviderProps) {
-  const [language, setCurrentLanguage] = useState<Language>(defaultLanguage)
+  // 초기값을 getStoredLanguage()로 설정하여 브라우저 언어 감지 적용
+  const [language, setCurrentLanguage] = useState<Language>(() => {
+    // 클라이언트 사이드에서만 실행
+    if (typeof window !== 'undefined') {
+      return getStoredLanguage()
+    }
+    return defaultLanguage
+  })
   const [isLoading, setIsLoading] = useState(true)
 
   // List of all translation modules

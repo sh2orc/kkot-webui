@@ -11,11 +11,22 @@
     "type": "Database Type",
     "url": "Connection URL",
     "users": "User Count",
-    "lastChecked": "Last Checked"
+    "lastChecked": "Last Checked",
+    "defaultValue": "Default",
+    "userCountUnit": "users"
   },
   "settings": {
     "title": "Database Settings",
     "description": "Change database connection settings."
+  },
+  "tables": {
+    "title": "Table Statistics",
+    "statistics": "Table Statistics"
+  },
+  "development": {
+    "message": "Database configuration features are under development.",
+    "environmentVariables": "Environment Variables",
+    "changeDescription": "To change the current database type, modify the following environment variables:"
   },
   "saveButton": "Save Settings",
   "databaseSettings": {

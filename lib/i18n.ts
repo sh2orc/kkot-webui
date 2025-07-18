@@ -162,6 +162,22 @@ export function useLanguage() {
   return context
 }
 
+// Detect browser language
+export function detectBrowserLanguage(): Language {
+  if (typeof window === 'undefined') return defaultLanguage
+  
+  // Get browser language
+  const browserLang = navigator.language || navigator.languages?.[0] || 'en'
+  
+  // Check if it's Korean
+  if (browserLang.startsWith('ko')) {
+    return 'kor'
+  }
+  
+  // Default to English for other languages
+  return 'eng'
+}
+
 // Get language settings from local storage
 export function getStoredLanguage(): Language {
   if (typeof window === 'undefined') return defaultLanguage
@@ -170,7 +186,9 @@ export function getStoredLanguage(): Language {
   if (stored && supportedLanguages.includes(stored as Language)) {
     return stored as Language
   }
-  return defaultLanguage
+  
+  // If no stored language, detect browser language
+  return detectBrowserLanguage()
 }
 
 // Save language settings to local storage

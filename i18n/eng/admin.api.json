@@ -1,6 +1,10 @@
 {
   "title": "API Management",
   "description": "Manage external API access and OpenAI compatible service settings.",
+  "page": {
+    "title": "API Settings",
+    "description": "Manage OpenAI Compatible API service settings."
+  },
   "apiService": {
     "title": "API Service Settings",
     "description": "Global API service activation and basic settings",
@@ -142,6 +146,14 @@
     "title": "Available Endpoints",
     "description": "List of OpenAI compatible API endpoints",
     "baseUrl": "Base URL",
+    "chatCompletions": {
+      "title": "POST /v1/chat/completions",
+      "description": "OpenAI compatible chat completion API"
+    },
+    "models": {
+      "title": "GET /v1/models",
+      "description": "List of available models"
+    },
     "examples": {
       "title": "Usage Examples",
       "curl": "cURL Example",
@@ -149,6 +161,7 @@
       "python": "Python Example"
     }
   },
+  "comingSoon": "Usage statistics feature will be added soon.",
   "messages": {
     "saveSuccess": "API settings saved successfully.",
     "saveError": "Error occurred while saving API settings.",

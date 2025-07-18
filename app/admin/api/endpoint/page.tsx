@@ -2,6 +2,8 @@ import { redirect } from 'next/navigation'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { loadTranslationModule, getTranslationKey } from '@/lib/i18n-server'
+import { headers } from 'next/headers'
 
 export default async function ApiEndpointPage() {
   const session = await getServerSession(authOptions)
@@ -10,18 +12,26 @@ export default async function ApiEndpointPage() {
     redirect('/auth')
   }
 
+  // Extract language information from Accept-Language header (default: 'kor')
+  const headersList = await headers()
+  const acceptLanguage = headersList.get('accept-language') || ''
+  const preferredLanguage = acceptLanguage.includes('en') ? 'eng' : 'kor'
+  
+  // Load translations
+  const translations = await loadTranslationModule(preferredLanguage, 'admin.api')
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>사용 가능한 엔드포인트</CardTitle>
+        <CardTitle>{getTranslationKey(translations, 'endpoints.title')}</CardTitle>
         <CardDescription>
-          OpenAI compatible API 엔드포인트 목록
+          {getTranslationKey(translations, 'endpoints.description')}
         </CardDescription>
       </CardHeader>
       <CardContent>
         <div className="space-y-4 w-full">
           <div className="bg-gray-50 p-4 rounded-lg w-full">
-            <h4 className="font-medium mb-2">기본 URL</h4>
+            <h4 className="font-medium mb-2">{getTranslationKey(translations, 'endpoints.baseUrl')}</h4>
             <input
               type="text"
               readOnly
@@ -32,13 +42,13 @@ export default async function ApiEndpointPage() {
           
           <div className="space-y-3">
             <div className="border rounded-lg p-3">
-              <h4 className="font-medium text-sm">POST /v1/chat/completions</h4>
-              <p className="text-sm text-gray-600">OpenAI 호환 채팅 완성 API</p>
+              <h4 className="font-medium text-sm">{getTranslationKey(translations, 'endpoints.chatCompletions.title')}</h4>
+              <p className="text-sm text-gray-600">{getTranslationKey(translations, 'endpoints.chatCompletions.description')}</p>
             </div>
             
             <div className="border rounded-lg p-3">
-              <h4 className="font-medium text-sm">GET /v1/models</h4>
-              <p className="text-sm text-gray-600">사용 가능한 모델 목록</p>
+              <h4 className="font-medium text-sm">{getTranslationKey(translations, 'endpoints.models.title')}</h4>
+              <p className="text-sm text-gray-600">{getTranslationKey(translations, 'endpoints.models.description')}</p>
             </div>
           </div>
         </div>

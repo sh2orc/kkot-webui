@@ -11,11 +11,22 @@
     "type": "데이터베이스 타입",
     "url": "연결 URL",
     "users": "사용자 수",
-    "lastChecked": "마지막 확인 시간"
+    "lastChecked": "마지막 확인 시간",
+    "defaultValue": "기본값",
+    "userCountUnit": "명"
   },
   "settings": {
     "title": "데이터베이스 설정",
     "description": "데이터베이스 연결 설정을 변경합니다."
+  },
+  "tables": {
+    "title": "테이블 통계",
+    "statistics": "테이블 통계"
+  },
+  "development": {
+    "message": "데이터베이스 설정 기능은 개발 중입니다.",
+    "environmentVariables": "환경 변수",
+    "changeDescription": "현재 데이터베이스 타입을 변경하려면 다음 환경 변수를 수정하세요:"
   },
   "saveButton": "설정 저장",
   "databaseSettings": {

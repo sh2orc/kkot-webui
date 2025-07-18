@@ -28,7 +28,7 @@ export default function AuthPage() {
   const [registerError, setRegisterError] = useState('');
   const router = useRouter();
   const { data: session, status } = useSession();
-  const { t, lang } = useTranslation('auth');
+  const { t, lang, language } = useTranslation('auth');
 
   // Debug logging (simplified)
   useEffect(() => {
@@ -69,6 +69,7 @@ export default function AuthPage() {
         email: loginForm.email,
         password: loginForm.password,
         action: 'login',
+        language: language, // 현재 사용자 언어 설정 사용
         redirect: false,
       });
 
@@ -129,6 +130,7 @@ export default function AuthPage() {
         password: registerForm.password,
         username: registerForm.username,
         action: 'register',
+        language: language, // 현재 사용자 언어 설정 사용
         redirect: false,
       });
 

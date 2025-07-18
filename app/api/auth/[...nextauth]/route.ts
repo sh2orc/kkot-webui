@@ -20,8 +20,8 @@ export const authOptions = {
       },
       async authorize(credentials) {
         try {
-          // Use default language for now (Korean)
-          const language = defaultLanguage;
+          // Use language from credentials or default to Korean
+          const language = (credentials?.language as Language) || defaultLanguage;
           
           if (!credentials?.email || !credentials?.password) {
             const errorMessage = await getServerTranslation(language, 'auth', 'errors.credentialsRequired');
