@@ -68,16 +68,35 @@ export async function POST(request: NextRequest) {
           
           if (response.ok) {
             const data = await response.json();
-            models = data.data.filter((model: any) => 
-              model.id.includes('gpt') || model.id.includes('dall-e') || model.id.includes('whisper')
-            ).map((model: any) => ({
-              modelId: model.id,
-              capabilities: {
-                chat: model.id.includes('gpt'),
-                image: model.id.includes('dall-e'),
-                audio: model.id.includes('whisper')
-              }
-            }));
+            
+            // vLLM 서버인지 확인 (baseUrl에 vllm이 포함되어 있거나 포트가 8000인 경우)
+            const isVLLM = server.baseUrl.toLowerCase().includes('vllm') || 
+                          server.baseUrl.includes(':8000') ||
+                          server.name.toLowerCase().includes('vllm');
+            
+            if (isVLLM) {
+              // vLLM의 경우 모든 모델을 가져옴
+              models = data.data.map((model: any) => ({
+                modelId: model.id,
+                capabilities: {
+                  chat: true, // vLLM의 모든 모델은 채팅 가능
+                  image: false,
+                  audio: false
+                }
+              }));
+            } else {
+              // 일반 OpenAI의 경우 기존 필터링 로직 사용
+              models = data.data.filter((model: any) => 
+                model.id.includes('gpt') || model.id.includes('dall-e') || model.id.includes('whisper')
+              ).map((model: any) => ({
+                modelId: model.id,
+                capabilities: {
+                  chat: model.id.includes('gpt'),
+                  image: model.id.includes('dall-e'),
+                  audio: model.id.includes('whisper')
+                }
+              }));
+            }
           }
         } catch (err) {
           console.error('Failed to retrieve OpenAI models:', err);

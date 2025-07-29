@@ -43,7 +43,7 @@ export function ModelDropdown() {
       return (agent.name || '').charAt(0).toUpperCase() || 'A'
     } else {
       const publicModel = model as PublicModel
-      return (publicModel.provider || '').charAt(0).toUpperCase() || 'M'
+      return (publicModel.serverName || publicModel.provider || '').charAt(0).toUpperCase() || 'M'
     }
   }
 
@@ -208,7 +208,7 @@ export function ModelDropdown() {
                       <div className="flex flex-col">
                         <span>{model.modelId}</span>
                         <span className="text-xs text-muted-foreground">
-                          {model.provider}
+                          {model.serverName || model.provider}
                         </span>
                       </div>
                       <Check

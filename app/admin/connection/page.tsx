@@ -14,14 +14,15 @@ async function fetchOpenAIModels(server: any) {
     
     if (response.ok) {
       const data = await response.json();
-      return data.data.filter((model: any) => 
-        model.id.includes('gpt') || model.id.includes('dall-e') || model.id.includes('whisper')
-      ).map((model: any) => ({
+      
+      // Get all models and set default capabilities  
+      return data.data.map((model: any) => ({
         modelId: model.id,
         capabilities: {
-          chat: model.id.includes('gpt'),
-          image: model.id.includes('dall-e'),
-          audio: model.id.includes('whisper')
+          // Infer capabilities from model name
+          chat: model.id.includes('gpt') || model.id.includes('llama') || model.id.includes('mistral') || model.id.includes('qwen') || !model.id.includes('dall-e') && !model.id.includes('whisper'),
+          image: model.id.includes('dall-e') || model.id.includes('vision') || model.id.includes('-VL'),
+          audio: model.id.includes('whisper') || model.id.includes('tts')
         }
       }));
     }
@@ -89,6 +90,18 @@ export default async function ConnectionSettingsPage() {
         });
       } catch (err) {
         console.error('Error upserting model:', err);
+      }
+    }
+    
+    // Update server's models field with actual model list
+    if (models.length > 0) {
+      try {
+        const modelIds = models.map((model: any) => model.modelId);
+        await llmServerRepository.update(server.id, {
+          models: modelIds
+        });
+      } catch (err) {
+        console.error('Error updating server models field:', err);
       }
     }
   }

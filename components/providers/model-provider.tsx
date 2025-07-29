@@ -25,6 +25,7 @@ export interface PublicModel {
   modelId: string
   provider: string
   serverId: string
+  serverName?: string
   capabilities?: { 
     chat?: boolean
     image?: boolean

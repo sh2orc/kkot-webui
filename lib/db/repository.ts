@@ -543,7 +543,24 @@ export const llmModelRepository = {
    * Find public models
    */
   findPublic: async () => {
-    return await db.select().from(schema.llmModels)
+    return await db
+      .select({
+        id: schema.llmModels.id,
+        serverId: schema.llmModels.serverId,
+        modelId: schema.llmModels.modelId,
+        provider: schema.llmModels.provider,
+        enabled: schema.llmModels.enabled,
+        isPublic: schema.llmModels.isPublic,
+        capabilities: schema.llmModels.capabilities,
+        contextLength: schema.llmModels.contextLength,
+        supportsMultimodal: schema.llmModels.supportsMultimodal,
+        createdAt: schema.llmModels.createdAt,
+        updatedAt: schema.llmModels.updatedAt,
+        serverName: schema.llmServers.name,
+        serverBaseUrl: schema.llmServers.baseUrl
+      })
+      .from(schema.llmModels)
+      .leftJoin(schema.llmServers, eq(schema.llmModels.serverId, schema.llmServers.id))
       .where(and(
         eq(schema.llmModels.enabled, 1 as any),
         eq(schema.llmModels.isPublic, 1 as any)

@@ -14,26 +14,48 @@ async function fetchOpenAIModels(server: any) {
     
     if (response.ok) {
       const data = await response.json();
-      return data.data.filter((model: any) => 
-        model.id.includes('gpt') || model.id.includes('dall-e') || model.id.includes('whisper')
-      ).map((model: any) => {
-        // GPT-4 계열 모델의 멀티모달 지원 자동 감지
-        const supportsMultimodal = model.id.includes('gpt-4') && (
-          model.id.includes('vision') || 
-          model.id.includes('gpt-4o') ||
-          model.id.includes('gpt-4-turbo')
-        );
-        
-        return {
-          modelId: model.id,
-          supportsMultimodal,
-          capabilities: {
-            chat: model.id.includes('gpt'),
-            image: model.id.includes('dall-e'),
-            audio: model.id.includes('whisper')
-          }
-        };
-      });
+      
+      // vLLM 서버인지 확인 (baseUrl에 vllm이 포함되어 있거나 포트가 8000인 경우)
+      const isVLLM = server.baseUrl.toLowerCase().includes('vllm') || 
+                    server.baseUrl.includes(':8000') ||
+                    server.name.toLowerCase().includes('vllm');
+      
+      if (isVLLM) {
+        // vLLM의 경우 모든 모델을 가져옴
+        return data.data.map((model: any) => {
+          return {
+            modelId: model.id,
+            supportsMultimodal: false, // vLLM의 경우 기본적으로 false, 필요시 수동 설정
+            capabilities: {
+              chat: true, // vLLM의 모든 모델은 채팅 가능
+              image: false,
+              audio: false
+            }
+          };
+        });
+      } else {
+        // 일반 OpenAI의 경우 기존 필터링 로직 사용
+        return data.data.filter((model: any) => 
+          model.id.includes('gpt') || model.id.includes('dall-e') || model.id.includes('whisper')
+        ).map((model: any) => {
+          // GPT-4 계열 모델의 멀티모달 지원 자동 감지
+          const supportsMultimodal = model.id.includes('gpt-4') && (
+            model.id.includes('vision') || 
+            model.id.includes('gpt-4o') ||
+            model.id.includes('gpt-4-turbo')
+          );
+          
+          return {
+            modelId: model.id,
+            supportsMultimodal,
+            capabilities: {
+              chat: model.id.includes('gpt'),
+              image: model.id.includes('dall-e'),
+              audio: model.id.includes('whisper')
+            }
+          };
+        });
+      }
     }
   } catch (err) {
     console.error('Failed to fetch OpenAI models:', err);
