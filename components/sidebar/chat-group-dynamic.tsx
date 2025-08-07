@@ -4,8 +4,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { MoreHorizontal, Edit2, Trash2, Check, X } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
-import { useTranslation } from "@/lib/i18n"
-import { useState } from "react"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
+import { useState, useEffect } from "react"
 import { useSession } from "next-auth/react"
 import { useRouter, usePathname } from "next/navigation"
 import { toast } from "sonner"
@@ -40,7 +50,7 @@ export function ChatGroupDynamic({
   setMobileSidebarOpen,
   isMobile = false,
 }: ChatGroupDynamicProps) {
-  const { lang } = useTranslation("common")
+  const { lang, language } = useTranslation("common")
   const { data: session } = useSession()
   const router = useRouter()
   const pathname = usePathname()
@@ -48,15 +58,29 @@ export function ChatGroupDynamic({
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editingTitle, setEditingTitle] = useState("")
   const [isUpdating, setIsUpdating] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [itemToDelete, setItemToDelete] = useState<ChatItem | null>(null)
 
-  const handleChatClick = (item: ChatItem) => {
-    // Don't navigate if we're editing
-    if (editingId === item.id) return
+  // Preload common translation module
+  useEffect(() => {
+    preloadTranslationModule(language, "common")
+  }, [language])
+
+  const handleChatClick = (item: ChatItem, e?: React.MouseEvent) => {
+    // Don't navigate if we're editing or if dropdown is open
+    if (editingId === item.id || openMenuId === item.id) {
+      e?.preventDefault()
+      e?.stopPropagation()
+      return
+    }
     
     setSelectedChatId(item.id)
     if (isMobile && setMobileSidebarOpen) {
       setMobileSidebarOpen(false)
     }
+    
+    // Navigate to the chat
+    router.push(`/chat/${item.id}`)
   }
 
   const handleStartEdit = (item: ChatItem) => {
@@ -72,7 +96,7 @@ export function ChatGroupDynamic({
 
   const handleSaveEdit = async (item: ChatItem) => {
     if (!session?.user?.id) {
-      toast.error("User authentication required")
+      toast.error(lang("sidebar.messages.userAuthRequired"))
       return
     }
 
@@ -96,7 +120,7 @@ export function ChatGroupDynamic({
 
       if (response.ok) {
         const data = await response.json()
-        toast.success("Chat title has been updated")
+        toast.success(lang("sidebar.messages.chatTitleUpdated"))
         
         // Update the title in the UI by dispatching an event
         if (typeof window !== 'undefined') {
@@ -109,36 +133,40 @@ export function ChatGroupDynamic({
         handleCancelEdit()
       } else {
         const errorData = await response.json()
-        toast.error(errorData.error || "Failed to update title")
+        toast.error(errorData.error || lang("sidebar.messages.failedToUpdateTitle"))
       }
     } catch (error) {
       console.error('Error updating chat title:', error)
-      toast.error("An error occurred while updating the title")
+      toast.error(lang("sidebar.messages.errorUpdatingTitle"))
     } finally {
       setIsUpdating(false)
     }
   }
 
-  const handleDeleteChat = async (item: ChatItem) => {
-    if (!session?.user?.id) {
-      toast.error("User authentication required")
-      return
-    }
+  const handleDeleteChatClick = (item: ChatItem, e?: Event) => {
+    e?.preventDefault?.()
+    e?.stopPropagation?.()
+    setItemToDelete(item)
+    setDeleteDialogOpen(true)
+    setOpenMenuId(null)
+  }
 
-    if (!confirm("Are you sure you want to delete this chat?")) {
+  const handleDeleteChat = async () => {
+    if (!itemToDelete || !session?.user?.id) {
+      toast.error(lang("sidebar.messages.userAuthRequired"))
       return
     }
 
     try {
-      const response = await fetch(`/api/chat/${item.id}?userId=${session.user.id}`, {
+      const response = await fetch(`/api/chat/${itemToDelete.id}?userId=${session.user.id}`, {
         method: 'DELETE'
       })
 
       if (response.ok) {
-        toast.success("Chat has been deleted")
+        toast.success(lang("sidebar.messages.chatDeleted"))
         
         // If the deleted chat is currently being viewed, redirect to new chat
-        if (selectedChatId === item.id || pathname === `/chat/${item.id}`) {
+        if (selectedChatId === itemToDelete.id || pathname === `/chat/${itemToDelete.id}`) {
           router.push('/chat')
         }
         
@@ -148,14 +176,15 @@ export function ChatGroupDynamic({
         }
       } else {
         const errorData = await response.json()
-        toast.error(errorData.error || "Failed to delete chat")
+        toast.error(errorData.error || lang("sidebar.messages.failedToDeleteChat"))
       }
     } catch (error) {
       console.error('Error deleting chat:', error)
-      toast.error("An error occurred while deleting the chat")
+      toast.error(lang("sidebar.messages.errorDeletingChat"))
     }
     
-    setOpenMenuId(null)
+    setDeleteDialogOpen(false)
+    setItemToDelete(null)
   }
 
   const handleKeyDown = (e: React.KeyboardEvent, item: ChatItem) => {
@@ -185,15 +214,15 @@ export function ChatGroupDynamic({
                 {editingId === item.id ? (
                   // Edit mode
                   <div className="flex items-center p-2 bg-gray-50 rounded">
-                    <Input
-                      value={editingTitle}
-                      onChange={(e) => setEditingTitle(e.target.value)}
-                      onKeyDown={(e) => handleKeyDown(e, item)}
-                      className="flex-1 h-7 text-sm px-2 pr-2"
-                      placeholder="Enter chat title"
-                      autoFocus
-                      disabled={isUpdating}
-                    />
+                                      <Input
+                    value={editingTitle}
+                    onChange={(e) => setEditingTitle(e.target.value)}
+                    onKeyDown={(e) => handleKeyDown(e, item)}
+                    className="flex-1 h-7 text-sm px-2 pr-2"
+                    placeholder={lang("sidebar.placeholders.enterChatTitle")}
+                    autoFocus
+                    disabled={isUpdating}
+                  />
                     <Button
                       size="sm"
                       variant="ghost"
@@ -215,10 +244,14 @@ export function ChatGroupDynamic({
                   </div>
                 ) : (
                   // Normal mode
-                  <TransitionLink
-                    href={`/chat/${item.id}`}
+                  <div
                     className="block"
-                    onClick={() => handleChatClick(item)}
+                    onClick={(e) => {
+                      // Only navigate if not interacting with dropdown
+                      if (openMenuId !== item.id) {
+                        handleChatClick(item, e)
+                      }
+                    }}
                   >
                     <div
                       className={`group flex items-center justify-between p-1 hover:bg-gray-100 rounded cursor-pointer transition-opacity duration-200 px-2 ${
@@ -252,6 +285,7 @@ export function ChatGroupDynamic({
                             <DropdownMenuItem 
                               onSelect={(e) => {
                                 e.preventDefault()
+                                e.stopPropagation()
                                 handleStartEdit(item)
                               }}
                             >
@@ -260,9 +294,10 @@ export function ChatGroupDynamic({
                             </DropdownMenuItem>
                             <DropdownMenuItem 
                               className="text-red-600" 
-                              onSelect={(e) => {
+                              onClick={(e) => {
                                 e.preventDefault()
-                                handleDeleteChat(item)
+                                e.stopPropagation()
+                                handleDeleteChatClick(item, e as unknown as Event)
                               }}
                             >
                               <Trash2 className="h-4 w-4 mr-2" />
@@ -272,13 +307,34 @@ export function ChatGroupDynamic({
                         </DropdownMenu>
                       </div>
                     </div>
-                  </TransitionLink>
+                  </div>
                 )}
               </div>
             ))}
           </div>
         </div>
       ))}
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{lang("sidebar.dialogs.deleteChat.title")}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {lang("sidebar.dialogs.deleteChat.description")}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>{lang("sidebar.dialogs.deleteChat.cancel")}</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleDeleteChat}
+              className="bg-red-600 hover:bg-red-700"
+            >
+              {lang("sidebar.dialogs.deleteChat.delete")}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

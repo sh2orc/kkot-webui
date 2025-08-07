@@ -40,6 +40,26 @@
       "archive": "Archive",
       "share": "Share",
       "delete": "Delete"
+    },
+    "messages": {
+      "userAuthRequired": "User authentication required",
+      "chatTitleUpdated": "Chat title has been updated",
+      "failedToUpdateTitle": "Failed to update title",
+      "errorUpdatingTitle": "An error occurred while updating the title",
+      "chatDeleted": "Chat has been deleted",
+      "failedToDeleteChat": "Failed to delete chat",
+      "errorDeletingChat": "An error occurred while deleting the chat"
+    },
+    "placeholders": {
+      "enterChatTitle": "Enter chat title"
+    },
+    "dialogs": {
+      "deleteChat": {
+        "title": "Delete Chat",
+        "description": "Are you sure you want to delete this chat? This action cannot be undone.",
+        "cancel": "Cancel",
+        "delete": "Delete"
+      }
     }
   },
   "navbar": {

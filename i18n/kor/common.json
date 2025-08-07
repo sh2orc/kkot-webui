@@ -40,6 +40,26 @@
       "archive": "보관하기",
       "share": "공유하기",
       "delete": "삭제하기"
+    },
+    "messages": {
+      "userAuthRequired": "사용자 인증이 필요합니다",
+      "chatTitleUpdated": "채팅 제목이 업데이트되었습니다",
+      "failedToUpdateTitle": "제목 업데이트에 실패했습니다",
+      "errorUpdatingTitle": "제목을 업데이트하는 중 오류가 발생했습니다",
+      "chatDeleted": "채팅이 삭제되었습니다",
+      "failedToDeleteChat": "채팅 삭제에 실패했습니다",
+      "errorDeletingChat": "채팅을 삭제하는 중 오류가 발생했습니다"
+    },
+    "placeholders": {
+      "enterChatTitle": "채팅 제목을 입력하세요"
+    },
+    "dialogs": {
+      "deleteChat": {
+        "title": "채팅 삭제",
+        "description": "정말로 이 채팅을 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+        "cancel": "취소",
+        "delete": "삭제"
+      }
     }
   },
   "navbar": {

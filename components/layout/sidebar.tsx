@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo } from "react"
+import { useState, useEffect, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ChevronLeft, Search, Plus, Menu, Book, Link as LinkIcon, X } from "lucide-react"
@@ -51,49 +51,32 @@ export default function Sidebar({
   const { data: session, status } = useSession()
   const [selectedChatId, setSelectedChatId] = useState<string | null>(null)
   const [chatGroups, setChatGroups] = useState<ChatGroup[]>([])
+  const [rawChatSessions, setRawChatSessions] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true) // Set initial value to true
   const { lang, language } = useTranslation('common')
   const { branding } = useBranding()
 
-  // Preload translation files
-  useEffect(() => {
-    preloadTranslationModule(language, 'common')
-  }, [language])
-
-  // Filter chat groups based on search query
+  // Filtered chat groups based on search query
   const filteredChatGroups = useMemo(() => {
     if (!searchQuery.trim()) {
       return chatGroups
     }
-
-    const query = searchQuery.toLowerCase()
+    
     return chatGroups.map(group => ({
       ...group,
       items: group.items.filter(item => 
-        item.title.toLowerCase().includes(query)
+        item.title.toLowerCase().includes(searchQuery.toLowerCase())
       )
     })).filter(group => group.items.length > 0)
   }, [chatGroups, searchQuery])
 
-  // Clear search
+  // Clear search function
   const clearSearch = () => {
     setSearchQuery("")
   }
 
-  // Update selectedChatId based on current pathname
-  useEffect(() => {
-    const chatIdMatch = pathname.match(/^\/chat\/(.+)$/)
-    if (chatIdMatch) {
-      // We're on a specific chat page
-      setSelectedChatId(chatIdMatch[1])
-    } else if (pathname === '/chat') {
-      // We're on the new chat page
-      setSelectedChatId(null)
-    }
-  }, [pathname])
-
   // Date-based grouping function
-  const groupChatSessionsByDate = (sessions: any[]): ChatGroup[] => {
+  const groupChatSessionsByDate = useCallback((sessions: any[]): ChatGroup[] => {
     const now = new Date()
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
     const yesterday = new Date(today)
@@ -213,13 +196,14 @@ export default function Sidebar({
     })
 
     return result
-  }
+  }, [lang])
 
   // Fetch chat sessions list (CSR fallback)
-  const fetchChatSessions = async () => {
+  const fetchChatSessions = useCallback(async () => {
     if (!session?.user?.id) {
       console.log('No session available, skipping chat sessions fetch')
       setIsLoading(false)
+      setRawChatSessions([])
       setChatGroups([])
       return
     }
@@ -237,6 +221,8 @@ export default function Sidebar({
       }
       
       if (data.sessions) {
+        // Store raw sessions for language switching
+        setRawChatSessions(data.sessions)
         // Group by date
         const groups = groupChatSessionsByDate(data.sessions)
         setChatGroups(groups)
@@ -247,24 +233,165 @@ export default function Sidebar({
           router.push('/')
           return
         }
+        setRawChatSessions([])
         setChatGroups([])
       }
     } catch (error) {
       console.error('Error fetching chat sessions:', error)
+      setRawChatSessions([])
       setChatGroups([])
     } finally {
       setIsLoading(false)
     }
-  }
+  }, [session?.user?.id, router, groupChatSessionsByDate])
 
   // Set initial chat groups with SSR data
   useEffect(() => {
     if (initialChatSessions.length > 0) {
+      setRawChatSessions(initialChatSessions)
       const groups = groupChatSessionsByDate(initialChatSessions)
       setChatGroups(groups)
       setIsLoading(false) // Loading complete when initial data exists
     }
-  }, [initialChatSessions, lang])
+  }, [initialChatSessions, groupChatSessionsByDate])
+
+  // Re-group chat sessions when language changes using useMemo to prevent infinite loops
+  const chatGroupsWithCurrentLanguage = useMemo(() => {
+    if (rawChatSessions.length === 0) return []
+    
+    const now = new Date()
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate())
+    const yesterday = new Date(today)
+    yesterday.setDate(yesterday.getDate() - 1)
+    const sevenDaysAgo = new Date(today)
+    sevenDaysAgo.setDate(today.getDate() - 7)
+    const thirtyDaysAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000)
+    
+    const groups: { [key: string]: ChatItem[] } = {
+      today: [],
+      yesterday: [],
+      previous7Days: [],
+      previous30Days: [],
+    }
+    const monthGroups: { [key: string]: ChatItem[] } = {}
+
+    rawChatSessions.forEach((session: any) => {
+      let sessionDate: Date;
+      if (session.createdAt) {
+        sessionDate = new Date(session.createdAt);
+        if (isNaN(sessionDate.getTime())) {
+          sessionDate = new Date();
+        }
+      } else {
+        sessionDate = new Date();
+      }
+      
+      const sessionDateOnly = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate())
+      const timeStr = sessionDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+      const diffInHours = Math.floor((now.getTime() - sessionDate.getTime()) / (1000 * 60 * 60))
+      const diffInDays = Math.floor(diffInHours / 24)
+      let timeAgo = ''
+      
+      if (diffInHours < 24) {
+        timeAgo = lang('sidebar.timeAgo.hoursAgo').replace('{{hours}}', diffInHours.toString())
+      } else {
+        timeAgo = lang('sidebar.timeAgo.daysAgo').replace('{{days}}', diffInDays.toString())
+      }
+
+      const chatItem: ChatItem = {
+        id: session.id,
+        title: session.title,
+        time: timeStr,
+        timeAgo: timeAgo
+      }
+
+      if (sessionDateOnly.getTime() === today.getTime()) {
+        groups.today.push(chatItem)
+      } else if (sessionDateOnly.getTime() === yesterday.getTime()) {
+        groups.yesterday.push(chatItem)
+      } else if (sessionDate.getTime() >= sevenDaysAgo.getTime()) {
+        groups.previous7Days.push(chatItem)
+      } else if (sessionDate.getTime() >= thirtyDaysAgo.getTime()) {
+        groups.previous30Days.push(chatItem)
+      } else {
+        const monthKey = sessionDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })
+        if (!monthGroups[monthKey]) {
+          monthGroups[monthKey] = []
+        }
+        monthGroups[monthKey].push(chatItem)
+      }
+    })
+
+    const result: ChatGroup[] = []
+    
+    if (groups.today.length > 0) {
+      result.push({
+        label: lang('sidebar.chatGroups.today'),
+        items: groups.today
+      })
+    }
+    
+    if (groups.yesterday.length > 0) {
+      result.push({
+        label: lang('sidebar.chatGroups.yesterday'),
+        items: groups.yesterday
+      })
+    }
+    
+    if (groups.previous7Days.length > 0) {
+      result.push({
+        label: lang('sidebar.chatGroups.previous7Days'),
+        items: groups.previous7Days
+      })
+    }
+    
+    if (groups.previous30Days.length > 0) {
+      result.push({
+        label: lang('sidebar.chatGroups.previous30Days'),
+        items: groups.previous30Days
+      })
+    }
+    
+    const sortedMonths = Object.keys(monthGroups).sort((a, b) => {
+      const dateA = new Date(a)
+      const dateB = new Date(b)
+      return dateB.getTime() - dateA.getTime()
+    })
+    
+    sortedMonths.forEach(month => {
+      result.push({
+        label: month,
+        items: monthGroups[month]
+      })
+    })
+
+    return result
+  }, [rawChatSessions, lang])
+
+  // Update chatGroups when the memoized value changes
+  useEffect(() => {
+    if (chatGroupsWithCurrentLanguage.length > 0 || rawChatSessions.length === 0) {
+      setChatGroups(prev => {
+        // Shallow comparison to prevent unnecessary updates
+        if (prev.length !== chatGroupsWithCurrentLanguage.length) {
+          return chatGroupsWithCurrentLanguage
+        }
+        
+        const hasChanges = prev.some((group, index) => {
+          const newGroup = chatGroupsWithCurrentLanguage[index]
+          return !newGroup || 
+                 group.label !== newGroup.label || 
+                 group.items.length !== newGroup.items.length ||
+                 group.items.some((item, itemIndex) => {
+                   const newItem = newGroup.items[itemIndex]
+                   return !newItem || item.id !== newItem.id || item.title !== newItem.title
+                 })
+        })
+        
+        return hasChanges ? chatGroupsWithCurrentLanguage : prev
+      })
+    }
+  }, [chatGroupsWithCurrentLanguage, rawChatSessions.length])
 
   // Session state and data loading management
   useEffect(() => {
@@ -281,17 +408,13 @@ export default function Sidebar({
       return
     }
 
-    if (status === 'authenticated') {
-      // Authenticated state
-      if (initialChatSessions.length === 0 && session?.user?.id) {
-        // Only fetch data with CSR when there's no SSR data and session exists
+    if (status === 'authenticated' && session?.user?.id) {
+      // Authenticated state - only fetch if we don't have data already
+      if (rawChatSessions.length === 0) {
         fetchChatSessions()
-      } else if (initialChatSessions.length === 0) {
-        // Loading complete if there's no initial data and no session
-        setIsLoading(false)
       }
     }
-  }, [status, session?.user?.id, initialChatSessions.length, router])
+  }, [status, session?.user?.id, router, fetchChatSessions, rawChatSessions.length])
 
   // Register global functions and set up event listeners
   useEffect(() => {
@@ -309,35 +432,10 @@ export default function Sidebar({
       
       if (chat) {
         console.log(`Adding new chat ${chat.id} with title: ${chat.title}`)
-        // Add new chat to the beginning of today's group
-        setChatGroups(prevGroups => {
-          const newChatItem: ChatItem = {
-            id: chat.id,
-            title: chat.title,
-            time: new Date(chat.createdAt).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' }),
-            timeAgo: 'Just now'
-          }
-          
-          // Find or create today's group
-          const todayLabel = lang('sidebar.chatGroups.today')
-          const existingTodayIndex = prevGroups.findIndex(group => group.label === todayLabel)
-          
-          if (existingTodayIndex >= 0) {
-            // Add to existing today group
-            const updatedGroups = [...prevGroups]
-            updatedGroups[existingTodayIndex] = {
-              ...updatedGroups[existingTodayIndex],
-              items: [newChatItem, ...updatedGroups[existingTodayIndex].items]
-            }
-            return updatedGroups
-          } else {
-            // Create new today group
-            return [
-              { label: todayLabel, items: [newChatItem] },
-              ...prevGroups
-            ]
-          }
-        })
+        // Instead of using lang function inside the handler, refresh the entire sidebar
+        if (session?.user?.id) {
+          fetchChatSessions()
+        }
       }
     }
 
@@ -404,7 +502,7 @@ export default function Sidebar({
         window.removeEventListener('chatTitleUpdated', handleChatTitleUpdate as EventListener)
       }
     }
-  }, [session?.user?.id, initialChatSessions.length])
+  }, [session?.user?.id, fetchChatSessions])
 
   return (
     <>
@@ -534,7 +632,7 @@ export default function Sidebar({
                     )}
                     {filteredChatGroups.map((group, groupIndex) => (
                       <ChatGroupComponent
-                        key={groupIndex}
+                        key={group.label}
                         group={group}
                         groupIndex={groupIndex}
                         sidebarCollapsed={sidebarCollapsed}
@@ -669,7 +767,7 @@ export default function Sidebar({
                     )}
                     {filteredChatGroups.map((group, groupIndex) => (
                       <ChatGroupComponent
-                        key={groupIndex}
+                        key={group.label}
                         group={group}
                         groupIndex={groupIndex}
                         sidebarCollapsed={false}
