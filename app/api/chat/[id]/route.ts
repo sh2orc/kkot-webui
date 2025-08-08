@@ -137,12 +137,12 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       return NextResponse.json({ error: 'Message or images are required' }, { status: 400 })
     }
 
-    // 이미지 개수 제한 확인
+    // Check image count limit
     if (images.length > 3) {
       return NextResponse.json({ error: 'Maximum 3 images allowed per message' }, { status: 400 })
     }
 
-    // 텍스트 길이 제한 확인 (이미지가 있을 때 더 엄격)
+    // Check text length limit (more strict when images are present)
     const maxTextLength = images.length > 0 ? 500 : 4000
     if (message && message.trim().length > maxTextLength) {
       return NextResponse.json({ 
@@ -823,18 +823,18 @@ Title:`
           // Streaming call
           console.log('Starting streaming call...')
           try {
-            // 이미지가 있을 때 토큰 제한 조정
+            // Adjust token limit when images are present
             let dynamicMaxTokens = llmParams.maxTokens || 2048
             if (images.length > 0) {
-              // 이미지 개수에 따라 토큰 수 조정 (이미지가 많을수록 응답 토큰 줄임)
+              // Adjust token count based on number of images (reduce response tokens as image count increases)
               dynamicMaxTokens = Math.max(1024, dynamicMaxTokens - (images.length * 200))
               console.log(`Adjusted maxTokens for ${images.length} images: ${dynamicMaxTokens}`)
             }
             
             await llmClient.streamChat(messages, streamCallbacks, {
               stream: true,
-              // maxTokens은 OpenAI Responses 전용 모델(gpt-5 계열 등)에서 거부될 수 있으므로
-              // LLM 구현에서 모델에 따라 안전하게 생략되도록 처리되어 있음
+              // maxTokens parameter may be rejected by OpenAI Responses-only models (e.g., gpt-5 family)
+              // The LLM implementation safely omits it depending on the model
               maxTokens: dynamicMaxTokens
             })
             console.log('Streaming call completed, fullResponse length:', fullResponse.length)

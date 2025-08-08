@@ -1,4 +1,4 @@
-"use client"
+"use client"['/;"?']
 
 import { useState, useEffect, useMemo, useCallback } from "react"
 import { Button } from "@/components/ui/button"
@@ -216,7 +216,7 @@ export default function Sidebar({
       const data = await response.json()
       
       if (response.status === 401 || response.status === 404) {
-        // 인증 오류 또는 리소스 없음 시 홈페이지로 리다이렉트
+        // Redirect to homepage on authentication error or resource not found
         router.push('/')
         return
       }
@@ -670,7 +670,7 @@ export default function Sidebar({
                   </Avatar>
                   {!sidebarCollapsed && (
                     <span className="text-sm font-medium ml-2 transition-opacity duration-300">
-                      {session?.user?.name || session?.user?.email?.split('@')[0] || '사용자'}
+                      {session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}
                     </span>
                   )}
                 </Button>
@@ -804,7 +804,7 @@ export default function Sidebar({
                     </AvatarFallback>
                   </Avatar>
                   <span className="text-sm font-medium ml-3">
-                    {session?.user?.name || session?.user?.email?.split('@')[0] || '사용자'}
+                    {session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}
                   </span>
                 </Button>
               </AccountMenu>

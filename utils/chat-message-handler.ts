@@ -252,7 +252,7 @@ export const sendMessageToAI = async (
                     
                     if (!userScrolled) {
                       if (adjustDynamicPadding) adjustDynamicPadding();
-                      if (scrollToBottomSmooth) scrollToBottomSmooth(true); // force=true로 설정하여 스크롤 보장
+                      if (scrollToBottomSmooth) scrollToBottomSmooth(true); // force=true to ensure scrolling
                     }
                   }
 
@@ -273,13 +273,13 @@ export const sendMessageToAI = async (
                       
                       if (!userScrolled) {
                         if (adjustDynamicPadding) adjustDynamicPadding();
-                        if (scrollToBottomSmooth) scrollToBottomSmooth(true); // force=true로 설정하여 스크롤 보장
+                        if (scrollToBottomSmooth) scrollToBottomSmooth(true); // force=true to ensure scrolling
                       }
                     }
                   }
                   
                   if (data.parallelProcessingStarted && data.chatId) {
-                    console.log('🚀 병렬 처리 시작 신호 수신:', {
+                    console.log('🚀 Received parallel processing start signal:', {
                       chatId: data.chatId,
                       hasStoredData: !!storedDeepResearchData,
                       storedDataSubQuestions: storedDeepResearchData?.stepInfo?.subQuestions?.length || 0
@@ -290,7 +290,7 @@ export const sendMessageToAI = async (
                     
                     // Start parallel processing if stored deep research data exists
                     if (storedDeepResearchData && storedDeepResearchData.stepInfo?.useParallelProcessing && storedDeepResearchData.stepInfo?.subQuestions) {
-                      console.log('🎯 저장된 데이터로 병렬 처리 시작:', {
+                      console.log('🎯 Starting parallel processing with stored data:', {
                         subQuestionsCount: storedDeepResearchData.stepInfo.subQuestions.length,
                         originalQuery: storedDeepResearchData.stepInfo.originalQuery,
                         modelId: storedDeepResearchData.stepInfo.modelId,
