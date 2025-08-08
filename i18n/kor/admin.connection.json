@@ -64,5 +64,15 @@
   "saveFailureMessage": "설정을 저장하는데 실패했습니다.",
   "modelsSynced": "개 모델 동기화됨",
   "defaultServer": "기본 서버",
-  "noEnabledServersWarning": "활성화된 LLM 서버가 없습니다. 최소 하나 이상의 서버를 활성화해야 채팅 기능을 사용할 수 있습니다."
+  "noEnabledServersWarning": "활성화된 LLM 서버가 없습니다. 최소 하나 이상의 서버를 활성화해야 채팅 기능을 사용할 수 있습니다.",
+  "duplicateServerError": "동일한 URL과 API Key 조합이 중복되어 저장할 수 없습니다.",
+  "conflictServerError": "동일한 URL과 API Key 조합이 이미 존재합니다.",
+  "savingStarted": "저장 시작",
+  "serversUpdating": "개 서버 업데이트 중...",
+  "serverUpdateStatus": "서버 업데이트",
+  "serverSaveFailure": "저장 실패",
+  "serverSaveSuccess": "저장 성공",
+  "allServersSaveComplete": "모든 서버 저장 완료, 페이지 새로고침 중...",
+  "pageRefreshExecuting": "페이지 새로고침 실행",
+  "settingsSaveError": "설정 저장 오류"
 } 

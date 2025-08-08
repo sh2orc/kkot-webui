@@ -68,12 +68,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Normalize baseUrl and apiKey for consistent duplicate checks
+    const normalizedBaseUrl = String(body.baseUrl).trim().replace(/\/+$/, '');
+    const normalizedApiKey = body.apiKey ? String(body.apiKey).trim() : '';
+
+    // Prevent duplicates by baseUrl + apiKey
+    const duplicates = await llmServerRepository.findByBaseUrlAndApiKey(normalizedBaseUrl, normalizedApiKey);
+    if (duplicates && duplicates.length > 0) {
+      return NextResponse.json(
+        { error: 'Duplicate server: the same baseUrl and apiKey already exist.' },
+        { status: 409 }
+      );
+    }
+
     // Create server
     const result = await llmServerRepository.create({
       provider: body.provider,
       name: body.name,
-      baseUrl: body.baseUrl,
-      apiKey: body.apiKey,
+      baseUrl: normalizedBaseUrl,
+      apiKey: normalizedApiKey,
       models: body.models,
       enabled: body.enabled,
       isDefault: body.isDefault,
@@ -109,12 +122,39 @@ export async function PUT(request: NextRequest) {
       );
     }
 
+    // Normalize for duplicate check if provided
+    const normalizedBaseUrl = body.baseUrl !== undefined ? String(body.baseUrl).trim().replace(/\/+$/, '') : undefined;
+    const normalizedApiKey = body.apiKey !== undefined ? (body.apiKey ? String(body.apiKey).trim() : '') : undefined;
+
+    if (normalizedBaseUrl !== undefined || normalizedApiKey !== undefined) {
+      // Need current values to form the pair
+      const existing = await llmServerRepository.findById(body.id);
+      const current = existing && existing[0];
+      if (!current) {
+        return NextResponse.json(
+          { error: 'LLM server not found.' },
+          { status: 404 }
+        );
+      }
+
+      const checkBaseUrl = normalizedBaseUrl !== undefined ? normalizedBaseUrl : current.baseUrl;
+      const checkApiKey = normalizedApiKey !== undefined ? normalizedApiKey : (current.apiKey || '');
+
+      const duplicates = await llmServerRepository.findByBaseUrlAndApiKeyExcludingId(body.id, checkBaseUrl, checkApiKey);
+      if (duplicates && duplicates.length > 0) {
+        return NextResponse.json(
+          { error: 'Duplicate server: the same baseUrl and apiKey already exist.' },
+          { status: 409 }
+        );
+      }
+    }
+
     // Update server
     const result = await llmServerRepository.update(body.id, {
       provider: body.provider,
       name: body.name,
-      baseUrl: body.baseUrl,
-      apiKey: body.apiKey,
+      baseUrl: normalizedBaseUrl,
+      apiKey: normalizedApiKey,
       models: body.models,
       enabled: body.enabled,
       isDefault: body.isDefault,

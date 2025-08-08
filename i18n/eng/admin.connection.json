@@ -56,5 +56,15 @@
   "saveFailureMessage": "Failed to save settings.",
   "modelsSynced": "models synced",
   "defaultServer": "Default Server",
-  "noEnabledServersWarning": "No LLM servers are enabled. You must enable at least one server to use the chat feature."
+  "noEnabledServersWarning": "No LLM servers are enabled. You must enable at least one server to use the chat feature.",
+  "duplicateServerError": "Cannot save due to duplicate URL and API Key combination.",
+  "conflictServerError": "A server with the same URL and API Key combination already exists.",
+  "savingStarted": "Saving started",
+  "serversUpdating": "servers updating...",
+  "serverUpdateStatus": "Server update",
+  "serverSaveFailure": "Save failed",
+  "serverSaveSuccess": "Save success",
+  "allServersSaveComplete": "All servers saved, refreshing page...",
+  "pageRefreshExecuting": "Page refresh executing",
+  "settingsSaveError": "Settings save error"
 } 

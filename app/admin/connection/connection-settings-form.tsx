@@ -12,12 +12,6 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Eye, EyeOff, Plus, Trash2, AlertCircle, CheckCircle, RefreshCw } from "lucide-react"
 import { useToast } from "@/hooks/use-toast"
 import { Alert, AlertDescription } from "@/components/ui/alert"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipProvider,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 
 interface LLMServer {
   id: string
@@ -215,18 +209,46 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
     try {
       setIsSaving(true)
       
-      // Update all servers
+      // Normalize helpers
+      const normalizeBaseUrl = (u: string) => (u || '').trim().replace(/\/+$/, '')
+      const normalizeApiKey = (k?: string) => (k ?? '').trim()
+      
+      // Preflight duplicate check within current form state
       const allServers = Object.values(servers).flat()
+      const keyToServers = new Map<string, LLMServer[]>()
+      for (const s of allServers) {
+        const key = `${normalizeBaseUrl(s.baseUrl)}|${normalizeApiKey(s.apiKey)}`
+        const arr = keyToServers.get(key) || []
+        arr.push(s)
+        keyToServers.set(key, arr)
+      }
+      const duplicates = Array.from(keyToServers.entries()).filter(([, arr]) => arr.length > 1)
+      if (duplicates.length > 0) {
+        const dupNames = duplicates
+          .flatMap(([, arr]) => arr.map(x => x.name))
+          .slice(0, 5)
+          .join(', ')
+        toast({
+          title: lang('saveFailure'),
+          description: `${lang('saveServerError')} ${dupNames}: ${lang('duplicateServerError')}`,
+          variant: 'destructive'
+        })
+        setIsSaving(false)
+        return
+      }
+      
+      // Update all servers
+      // const allServers = Object.values(servers).flat() // moved upward
       const updatedServers: Record<string, LLMServer[]> = {}
       
-      console.log('저장 시작:', allServers.length, '개 서버 업데이트 중...')
+      console.log(`${lang('savingStarted')}:`, allServers.length, lang('serversUpdating'))
       
       for (const server of allServers) {
         const isNew = server.id.startsWith('new-')
         const endpoint = '/api/llm-servers'
         const method = isNew ? 'POST' : 'PUT'
         
-        console.log(`서버 ${server.name} (${server.provider}) 업데이트: enabled=${server.enabled}`)
+        console.log(`${lang('serverUpdateStatus')} ${server.name} (${server.provider}): enabled=${server.enabled}`)
         
         const response = await fetch(endpoint, {
           method,
@@ -235,18 +257,29 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
           },
           body: JSON.stringify({
             ...server,
+            baseUrl: normalizeBaseUrl(server.baseUrl),
+            apiKey: normalizeApiKey(server.apiKey),
             id: isNew ? undefined : server.id
           })
         })
         
         if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          console.error(`${server.name} 저장 실패:`, response.status, errorData)
-          throw new Error(`${lang('saveServerError')} ${server.name}: ${errorData.error || response.statusText}`)
+          const errorData = await response.json().catch(() => ({} as any))
+          console.error(`${server.name} ${lang('serverSaveFailure')}:`, response.status, errorData)
+
+          // duplication error
+          if (response.status === 409) {
+            toast({
+              title: lang('saveFailure'),
+              description: `${lang('saveServerError')} ${server.name}: ${lang('conflictServerError')}`,
+              variant: 'destructive'
+            })
+          }
+          throw new Error(`${lang('saveServerError')} ${server.name}: ${errorData.error || (response.status === 409 ? 'Conflict' : response.statusText)}`)
         }
         
         const result = await response.json()
-        console.log(`서버 ${server.name} 저장 성공:`, result)
+        console.log(`${lang('serverSaveSuccess')} ${server.name}:`, result)
         
         // Update with ID from response for newly created servers
         if (isNew) {
@@ -264,7 +297,7 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
         }
       }
       
-      console.log('모든 서버 저장 완료, 페이지 새로고침 중...')
+      console.log(lang('allServersSaveComplete'))
       
       toast({
         title: lang('saveSuccess'),
@@ -276,12 +309,12 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
       
       // 저장 후 페이지 새로고침하여 서버 상태 동기화
       setTimeout(() => {
-        console.log('페이지 새로고침 실행')
+        console.log(lang('pageRefreshExecuting'))
         router.refresh()
       }, 1000)
       
     } catch (error) {
-      console.error('Settings save error:', error)
+      console.error(`${lang('settingsSaveError')}:`, error)
       toast({
         title: lang('saveFailure'),
         description: error instanceof Error ? error.message : lang('saveFailureMessage'),

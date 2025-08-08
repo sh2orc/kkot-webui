@@ -20,3 +20,7 @@ VALUES
     ('default-gemini', 'gemini', 'Google Gemini', 'https://generativelanguage.googleapis.com/v1beta', NULL, '["gemini-pro", "gemini-pro-vision"]', 0, 0, strftime('%s', 'now'), strftime('%s', 'now')),
     ('default-ollama', 'ollama', 'Ollama Local', 'http://localhost:11434', NULL, '[]', 0, 0, strftime('%s', 'now'), strftime('%s', 'now'))
 ON CONFLICT(id) DO NOTHING; 
+
+-- Prevent duplicate servers with the same base_url and api_key
+CREATE UNIQUE INDEX IF NOT EXISTS idx_llm_servers_base_url_api_key
+ON llm_servers(base_url, api_key);

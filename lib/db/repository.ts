@@ -369,6 +369,35 @@ export const llmServerRepository = {
   findDefault: async () => {
     return await db.select().from(schema.llmServers).where(eq(schema.llmServers.isDefault, 1 as any)).limit(1);
   },
+  /**
+   * Find LLM servers by baseUrl and apiKey
+   */
+  findByBaseUrlAndApiKey: async (baseUrl: string, apiKey: string) => {
+    return await db
+      .select()
+      .from(schema.llmServers)
+      .where(
+        and(
+          eq(schema.llmServers.baseUrl, baseUrl),
+          eq(schema.llmServers.apiKey, apiKey)
+        )
+      );
+  },
+  /**
+   * Find LLM servers by baseUrl and apiKey excluding a specific id
+   */
+  findByBaseUrlAndApiKeyExcludingId: async (id: string, baseUrl: string, apiKey: string) => {
+    return await db
+      .select()
+      .from(schema.llmServers)
+      .where(
+        and(
+          eq(schema.llmServers.baseUrl, baseUrl),
+          eq(schema.llmServers.apiKey, apiKey),
+          ne(schema.llmServers.id, id)
+        )
+      );
+  },
   
   /**
    * Create LLM server
@@ -393,12 +422,16 @@ export const llmServerRepository = {
         .where(eq(schema.llmServers.isDefault, 1 as any));
     }
     
+    // Normalize values
+    const normalizedBaseUrl = (serverData.baseUrl || '').trim().replace(/\/+$/, '');
+    const normalizedApiKey = (serverData.apiKey ?? '').trim();
+
     return await db.insert(schema.llmServers).values({
       id,
       provider: serverData.provider,
       name: serverData.name,
-      baseUrl: serverData.baseUrl,
-      apiKey: serverData.apiKey,
+      baseUrl: normalizedBaseUrl,
+      apiKey: normalizedApiKey,
       models: serverData.models ? JSON.stringify(serverData.models) : null,
       enabled: serverData.enabled === false ? 0 : 1 as any,
       isDefault: serverData.isDefault ? 1 : 0 as any,
@@ -432,8 +465,8 @@ export const llmServerRepository = {
     
     if (serverData.provider !== undefined) data.provider = serverData.provider;
     if (serverData.name !== undefined) data.name = serverData.name;
-    if (serverData.baseUrl !== undefined) data.baseUrl = serverData.baseUrl;
-    if (serverData.apiKey !== undefined) data.apiKey = serverData.apiKey;
+    if (serverData.baseUrl !== undefined) data.baseUrl = serverData.baseUrl.trim().replace(/\/+$/, '');
+    if (serverData.apiKey !== undefined) data.apiKey = serverData.apiKey.trim();
     if (serverData.models !== undefined) data.models = JSON.stringify(serverData.models);
     if (typeof serverData.enabled === 'boolean') data.enabled = serverData.enabled ? 1 : 0;
     if (typeof serverData.isDefault === 'boolean') data.isDefault = serverData.isDefault ? 1 : 0;
