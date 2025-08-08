@@ -1,10 +1,12 @@
 "use client"
 
-import React from "react"
-import { Copy, ThumbsUp, ThumbsDown, RefreshCw, Check, Brain, Search } from "lucide-react"
+import React, { useState } from "react"
+import { Copy, ThumbsUp, ThumbsDown, Check, Brain, Search } from "lucide-react"
 import { useTranslation } from "@/lib/i18n"
-import { useState } from "react"
-import { marked } from 'marked'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
+import remarkMath from 'remark-math'
+import rehypeKatex from 'rehype-katex'
 import { CodeBlock } from './code-block'
 import { useIsMobile } from '@/hooks/use-mobile'
 import { DeepResearchDisplay } from './deep-research-display'
@@ -96,30 +98,58 @@ export function LlmResponse({
 
   // MarkedMarkdown component definition
   function MarkedMarkdown({ children }: { children: string }) {
-    // First handle inline code in original text
+    // Keep original markdown; only normalize MathJax-style delimiters
     let processedText = children;
-    
-    // Convert all text surrounded by backticks to <code> tags
-    processedText = processedText.replace(/`([^`\n]+)`/g, '<span class="bg-gray-100 px-1 py-0.5 rounded text-sm font-mono font-semibold">$1</span>');
-    
-    // Convert **text** pattern to <span class="font-semibold"> tag
-    processedText = processedText.replace(/\*\*(.*?)\*\*/g, '<span class="font-semibold">$1</span>');
 
-    // Convert unconverted *text* pattern to <em> tag (excluding those already converted with **)
-    processedText = processedText.replace(/(?<!\*)\*([^*]+?)\*(?!\*)/g, '<span>$1</span>');
+    // Support MathJax-style delimiters by converting to remark-math compatible ones
+    // \( inline \) -> $ inline $
+    // \[ block \] -> $$ block $$
+    // 1) Convert MathJax-style block delimiters to $$ with enforced blank lines
+    processedText = processedText
+      .replace(/(^|\n)\s*\\\[\s*/g, '$1\n\n$$\n')
+      .replace(/\s*\\\]\s*(?=\n|$)/g, '\n$$\n\n');
+
+    // 2) Ensure any $$ ... $$ blocks are surrounded by blank lines (idempotent)
+    processedText = processedText.replace(/(^|\n)\s*\$\$\s*([\s\S]*?)\s*\$\$\s*(?=\n|$)/g, (_m, pre, inner) => {
+      return `${pre}\n\n$$\n${inner.trim()}\n$$\n\n`;
+    });
+
+    // 3) Convert inline MathJax \( ... \) to $ ... $
+    processedText = processedText
+      .replace(/\\\(/g, '$')
+      .replace(/\\\)/g, '$');
    
-    // Now process remaining markdown with marked
-    let htmlContent = marked(processedText, { 
-      gfm: true, 
-      breaks: true
-    }) as string;
-       
+    // Prefer ReactMarkdown pipeline with remark-math/rehype-katex for robust math rendering
     return (
-      <div
-        className="prose max-w-none dark:prose-invert prose-headings:font-semibold prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-strong:font-bold prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded dark:prose-code:bg-gray-800"
-        style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}
-        dangerouslySetInnerHTML={{ __html: htmlContent }}
-      />
+      <div className="prose max-w-none dark:prose-invert prose-headings:font-semibold prose-p:my-5 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-strong:font-bold prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded dark:prose-code:bg-gray-800" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+        <ReactMarkdown
+          remarkPlugins={[remarkMath, remarkGfm]}
+          rehypePlugins={[rehypeKatex]}
+          components={{
+            // Ensure block math paragraphs become divs with proper spacing
+            p: ({ node, children, ...props }: any) => {
+              const childArray = React.Children.toArray(children);
+              if (childArray.length === 1) {
+                const onlyChild: any = childArray[0] as any;
+                if (
+                  React.isValidElement(onlyChild) &&
+                  typeof onlyChild.props?.className === 'string' &&
+                  onlyChild.props.className.includes('katex-display')
+                ) {
+                  return (
+                    <div className="my-4 flex justify-center" {...props}>
+                      {onlyChild}
+                    </div>
+                  );
+                }
+              }
+              return <p {...props}>{children}</p>;
+            },
+          }}
+        >
+          {processedText}
+        </ReactMarkdown>
+      </div>
     );
   }
 
