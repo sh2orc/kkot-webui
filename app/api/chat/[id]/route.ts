@@ -778,22 +778,40 @@ Title:`
             onError: (error: Error) => {
               console.error('Streaming response error:', error)
               
-              // Provide more specific error messages
-              let errorMessage = 'An error occurred while generating AI response'
+              // Build user-visible message
+              let summary = 'An error occurred while generating AI response'
+              const rawMsg = (error?.message || '')
+              const lower = rawMsg.toLowerCase()
+              const status = (error as any)?.status
               
-              if (error.message.includes('multimodal') || error.message.includes('vision') || error.message.includes('image')) {
-                errorMessage = 'This model does not support image analysis. Please try with a text-only message or switch to a vision-capable model (like GPT-4 Vision).'
-              } else if (error.message.includes('context') || error.message.includes('token')) {
-                errorMessage = 'The message is too long. Please try with shorter text or fewer images.'
-              } else if (error.message.includes('format') || error.message.includes('content')) {
-                errorMessage = 'Invalid message format. Please try again with a different image or text.'
+              const isUnsupportedParam = lower.includes('unsupported parameter') || lower.includes('invalid_request_error')
+              const mentionsMaxTokensParam = lower.includes('max_tokens')
+              const isTokenOrContextLimit = (
+                (lower.includes('context length') || lower.includes('maximum context') || lower.includes('max context') || lower.includes('context window')) ||
+                (lower.includes('too many tokens') || lower.includes('token limit') || lower.includes('maximum tokens'))
+              )
+              const isGenericTokenMention = lower.includes(' token') || lower.includes('tokens')
+              
+              if (lower.includes('multimodal') || lower.includes('vision') || lower.includes('image')) {
+                summary = 'This model does not support image analysis. Please try with a text-only message or switch to a vision-capable model (like GPT-4 Vision).'
+              } else if (isUnsupportedParam && mentionsMaxTokensParam) {
+                summary = 'Model configuration mismatch detected. Please update the model/server settings and try again.'
+              } else if (isTokenOrContextLimit || (!isUnsupportedParam && isGenericTokenMention)) {
+                summary = 'The message is too long. Please try with shorter text or fewer images.'
+              } else if (lower.includes('format') || lower.includes('content')) {
+                summary = 'Invalid message format. Please try again with a different image or text.'
               }
               
-              // Send error signal safely
+              const statusPrefix = status ? `HTTP ${status} - ` : ''
+              const details = `${statusPrefix}${rawMsg}`.trim()
+              const displayContent = details ? `${summary}\n\nDetails: ${details}` : summary
+              
+              // Send as assistant content so it appears in chat
               safeEnqueue(
                 new TextEncoder().encode(
                   `data: ${JSON.stringify({ 
-                    error: errorMessage,
+                    messageId: assistantMessageId || uuidv4(),
+                    content: displayContent,
                     done: true 
                   })}\n\n`
                 )
@@ -815,6 +833,8 @@ Title:`
             
             await llmClient.streamChat(messages, streamCallbacks, {
               stream: true,
+              // maxTokens은 OpenAI Responses 전용 모델(gpt-5 계열 등)에서 거부될 수 있으므로
+              // LLM 구현에서 모델에 따라 안전하게 생략되도록 처리되어 있음
               maxTokens: dynamicMaxTokens
             })
             console.log('Streaming call completed, fullResponse length:', fullResponse.length)
@@ -897,28 +917,48 @@ Title:`
           console.error('Streaming initialization error:', error)
           
           // Provide more specific error messages
-          let errorMessage = 'An error occurred while generating AI response'
+          let summary = 'An error occurred while generating AI response'
           
           if (error instanceof Error) {
-            if (error.message.includes('multimodal') || error.message.includes('vision') || error.message.includes('image')) {
-              errorMessage = 'This model does not support image analysis. Please try with a text-only message or switch to a vision-capable model (like GPT-4 Vision).'
-            } else if (error.message.includes('context') || error.message.includes('token')) {
-              errorMessage = 'The message is too long. Please try with shorter text or fewer images.'
-            } else if (error.message.includes('format') || error.message.includes('content')) {
-              errorMessage = 'Invalid message format. Please try again with a different image or text.'
-            }
-          }
-          
-          // Send error signal safely
-          safeEnqueue(
-            new TextEncoder().encode(
-              `data: ${JSON.stringify({ 
-                error: errorMessage,
-                done: true 
-              })}\n\n`
+            const rawMsg = (error.message || '')
+            const msg = rawMsg.toLowerCase()
+            const status = (error as any)?.status
+            const isUnsupportedParam = msg.includes('unsupported parameter') || msg.includes('invalid_request_error')
+            const mentionsMaxTokensParam = msg.includes('max_tokens')
+            const isTokenOrContextLimit = (
+              (msg.includes('context length') || msg.includes('maximum context') || msg.includes('max context') || msg.includes('context window')) ||
+              (msg.includes('too many tokens') || msg.includes('token limit') || msg.includes('maximum tokens'))
             )
-          )
-          safeClose()
+            const isGenericTokenMention = msg.includes(' token') || msg.includes('tokens')
+
+            if (msg.includes('multimodal') || msg.includes('vision') || msg.includes('image')) {
+              summary = 'This model does not support image analysis. Please try with a text-only message or switch to a vision-capable model (like GPT-4 Vision).'
+            } else if (isUnsupportedParam && mentionsMaxTokensParam) {
+              summary = 'Model configuration mismatch detected. Please update the model/server settings and try again.'
+            } else if (isTokenOrContextLimit) {
+              summary = 'The message is too long. Please try with shorter text or fewer images.'
+            } else if (!isUnsupportedParam && isGenericTokenMention) {
+              summary = 'The message is too long. Please try with shorter text or fewer images.'
+            } else if (msg.includes('format') || msg.includes('content')) {
+              summary = 'Invalid message format. Please try again with a different image or text.'
+            }
+            const statusPrefix = status ? `HTTP ${status} - ` : ''
+            const details = `${statusPrefix}${rawMsg}`.trim()
+            const displayContent = details ? `${summary}\n\nDetails: ${details}` : summary
+
+            // Send assistant content safely with a new messageId (no stream started yet)
+            const errorMessageId = uuidv4()
+            safeEnqueue(
+              new TextEncoder().encode(
+                `data: ${JSON.stringify({ 
+                  messageId: errorMessageId,
+                  content: displayContent,
+                  done: true 
+                })}\n\n`
+              )
+            )
+            safeClose()
+          }
         }
       }
     })

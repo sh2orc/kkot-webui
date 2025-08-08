@@ -221,7 +221,16 @@ export const sendMessageToAI = async (
                   const data = JSON.parse(line.slice(6));
                   
                   if (data.error) {
-                    console.error('AI response error:', data.error);
+                    // Avoid triggering Next.js error overlay; show toast to user instead
+                    console.warn('AI response warning:', data.error);
+                    try {
+                      toast.error(data.error);
+                    } catch {}
+                    // Reset streaming state on error for UX consistency
+                    setIsStreaming(false);
+                    if (setRegeneratingMessageId) setRegeneratingMessageId(null);
+                    setStreamingMessageId(null);
+                    if (streamingInProgress) streamingInProgress.current = false;
                     break;
                   }
 

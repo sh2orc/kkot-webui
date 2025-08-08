@@ -55,6 +55,7 @@ export default function Sidebar({
   const [isLoading, setIsLoading] = useState(true) // Set initial value to true
   const { lang, language } = useTranslation('common')
   const { branding } = useBranding()
+  const [hasFetchedChatSessions, setHasFetchedChatSessions] = useState(false)
 
   // Filtered chat groups based on search query
   const filteredChatGroups = useMemo(() => {
@@ -393,28 +394,30 @@ export default function Sidebar({
     }
   }, [chatGroupsWithCurrentLanguage, rawChatSessions.length])
 
+  // Reset fetch guard when user changes
+  useEffect(() => {
+    setHasFetchedChatSessions(false)
+  }, [session?.user?.id])
+
   // Session state and data loading management
   useEffect(() => {
     if (status === 'loading') {
-      // Session loading
       setIsLoading(true)
       return
     }
 
     if (status === 'unauthenticated') {
-      // Unauthenticated state
       setIsLoading(false)
       setChatGroups([])
       return
     }
 
-    if (status === 'authenticated' && session?.user?.id) {
-      // Authenticated state - only fetch if we don't have data already
-      if (rawChatSessions.length === 0) {
-        fetchChatSessions()
-      }
+    if (status === 'authenticated' && session?.user?.id && !hasFetchedChatSessions) {
+      // Guard to prevent infinite refetch when there are zero sessions
+      setHasFetchedChatSessions(true)
+      fetchChatSessions()
     }
-  }, [status, session?.user?.id, router, fetchChatSessions, rawChatSessions.length])
+  }, [status, session?.user?.id, fetchChatSessions, hasFetchedChatSessions])
 
   // Register global functions and set up event listeners
   useEffect(() => {

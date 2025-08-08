@@ -21,13 +21,19 @@ export class OpenAILLM extends BaseLLM {
     
     this.config.supportsMultimodal = config.supportsMultimodal ?? supportsMultimodal;
     
+    // Some newer OpenAI models (e.g., gpt-5 family) require the Responses API and
+    // do not accept the 'max_tokens' parameter. Avoid passing it for those models
+    // to prevent 400 errors like: "Unsupported parameter: 'max_tokens' ..."
+    const omitMaxTokens = this.isResponsesOnlyModel(config.modelName);
+    const omitTuningParams = omitMaxTokens; // conservative: omit tuning params for Responses-only models
+
     this.client = new ChatOpenAI({
       modelName: config.modelName,
-      temperature: config.temperature,
-      maxTokens: config.maxTokens,
-      topP: config.topP,
-      frequencyPenalty: config.frequencyPenalty,
-      presencePenalty: config.presencePenalty,
+      ...(omitTuningParams ? {} : { temperature: config.temperature }),
+      ...(omitMaxTokens ? {} : { maxTokens: config.maxTokens }),
+      ...(omitTuningParams ? {} : { topP: config.topP }),
+      ...(omitTuningParams ? {} : { frequencyPenalty: config.frequencyPenalty }),
+      ...(omitTuningParams ? {} : { presencePenalty: config.presencePenalty }),
       streaming: config.streaming,
       openAIApiKey: config.apiKey,
       configuration: {
@@ -48,13 +54,15 @@ export class OpenAILLM extends BaseLLM {
     const functionCallOptions = this.prepareFunctionCallOptions(options?.functions);
     
     // Create client with dynamic options
+    const omitMaxTokens = this.isResponsesOnlyModel(this.config.modelName);
+    const omitTuningParams = omitMaxTokens;
     const clientOptions = {
       modelName: this.config.modelName,
-      temperature: this.config.temperature,
-      maxTokens: options?.maxTokens ?? this.config.maxTokens,
-      topP: this.config.topP,
-      frequencyPenalty: this.config.frequencyPenalty,
-      presencePenalty: this.config.presencePenalty,
+      ...(omitTuningParams ? {} : { temperature: this.config.temperature }),
+      ...(omitMaxTokens ? {} : { maxTokens: options?.maxTokens ?? this.config.maxTokens }),
+      ...(omitTuningParams ? {} : { topP: this.config.topP }),
+      ...(omitTuningParams ? {} : { frequencyPenalty: this.config.frequencyPenalty }),
+      ...(omitTuningParams ? {} : { presencePenalty: this.config.presencePenalty }),
       streaming: this.config.streaming,
       openAIApiKey: this.config.apiKey,
       configuration: {
@@ -94,13 +102,15 @@ export class OpenAILLM extends BaseLLM {
     
     const langChainMessages = this.convertToLangChainMessages(messages);
     
+    const omitMaxTokens = this.isResponsesOnlyModel(this.config.modelName);
+    const omitTuningParams = omitMaxTokens;
     const streamingClient = new ChatOpenAI({
       modelName: this.config.modelName,
-      temperature: this.config.temperature,
-      maxTokens: options?.maxTokens ?? this.config.maxTokens,
-      topP: this.config.topP,
-      frequencyPenalty: this.config.frequencyPenalty,
-      presencePenalty: this.config.presencePenalty,
+      ...(omitTuningParams ? {} : { temperature: this.config.temperature }),
+      ...(omitMaxTokens ? {} : { maxTokens: options?.maxTokens ?? this.config.maxTokens }),
+      ...(omitTuningParams ? {} : { topP: this.config.topP }),
+      ...(omitTuningParams ? {} : { frequencyPenalty: this.config.frequencyPenalty }),
+      ...(omitTuningParams ? {} : { presencePenalty: this.config.presencePenalty }),
       streaming: true,
       openAIApiKey: this.config.apiKey,
       configuration: {
@@ -202,5 +212,14 @@ export class OpenAILLM extends BaseLLM {
     }
     
     return totalTokens;
+  }
+
+  /**
+   * Detect models that require the Responses API (do not accept 'max_tokens').
+   * Keep this conservative to avoid breaking older models.
+   */
+  private isResponsesOnlyModel(modelName: string): boolean {
+    const lower = modelName.toLowerCase();
+    return lower.includes("gpt-5");
   }
 } 
