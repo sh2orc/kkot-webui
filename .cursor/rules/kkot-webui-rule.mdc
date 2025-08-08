@@ -62,6 +62,29 @@ KKOT WebUI is a universal web interface for various LLM services (OpenAI, Gemini
 ### Database Schema Overview
 The project uses a multi-database architecture supporting both SQLite and PostgreSQL with identical schema definitions.
 
+#### Database Schema Relationships
+```
+Users (1) → (N) Chat Sessions → (N) Chat Messages
+                                       ↓ (rating system)
+
+LLM Servers (1) → (N) LLM Models (1) → (N) Agent Management
+                                              ↓ (multimodal & features)
+
+Users (1) → (N) API Keys → (N) API Usage
+                  ↓ (tracking & rate limiting)
+            API Management (global settings)
+
+Legacy Tables:
+API Connections (1) → (N) Model Settings (deprecated)
+```
+
+#### Key Relationships:
+- **Users to Chat**: One user can have multiple chat sessions, each with multiple messages
+- **LLM Architecture**: Servers contain models, models are used by agents
+- **API Management**: Global API settings manage keys, keys track usage
+- **Message Rating**: Chat messages support user feedback (-1, 0, +1)
+- **Agent Features**: Agents support multimodal, deep research, and web search capabilities
+
 #### Core Tables
 
 ##### 1. Users (`users`)
@@ -78,11 +101,11 @@ The project uses a multi-database architecture supporting both SQLite and Postgr
 - **Purpose**: Chat session management
 - **Fields**:
   - `id`: Primary key
-  - `userId`: Foreign key to users table
+  - `userEmail`: User email (instead of userId for session management)
   - `title`: Session title
   - `createdAt`, `updatedAt`: Timestamps
 - **Relationships**: 
-  - One-to-many with users
+  - Many-to-one with users via email
   - One-to-many with chat messages
 
 ##### 3. Chat Messages (`chat_messages`)
@@ -94,6 +117,7 @@ The project uses a multi-database architecture supporting both SQLite and Postgr
   - `content`: Message content
   - `contentType`: Content type ('text', 'multimodal')
   - `attachments`: JSON string for multimodal content
+  - `rating`: Message rating (-1 for dislike, 0 for neutral, +1 for like)
   - `createdAt`: Timestamp
 - **Relationships**: Many-to-one with chat sessions
 
@@ -140,11 +164,13 @@ The project uses a multi-database architecture supporting both SQLite and Postgr
   - `topK`, `topP`: Sampling parameters
   - `maxTokens`: Maximum tokens
   - `presencePenalty`, `frequencyPenalty`: Penalty settings
-  - `imageData`: Binary image data (BLOB)
+  - `imageData`: Binary image data (BLOB for SQLite, Base64 text for PostgreSQL)
   - `description`: Agent description
   - `enabled`: Boolean flag
   - `parameterEnabled`: Parameter customization flag
   - `supportsMultimodal`: Multimodal support flag
+  - `supportsDeepResearch`: Deep Research capability flag
+  - `supportsWebSearch`: Web Search capability flag
   - `createdAt`, `updatedAt`: Timestamps
 - **Relationships**: Many-to-one with llm_models
 
@@ -175,6 +201,7 @@ The project uses a multi-database architecture supporting both SQLite and Postgr
   - `permissions`: JSON array of permissions
   - `rateLimitTier`: Rate limit tier ('basic', 'premium', 'unlimited')
   - `maxRequestsPerHour`, `maxRequestsPerDay`: Rate limits
+  - `allowedIps`: JSON array of allowed IP addresses
   - `expiresAt`: Expiration timestamp
   - `lastUsedAt`: Last usage timestamp
   - `isActive`: Active flag
@@ -197,9 +224,34 @@ The project uses a multi-database architecture supporting both SQLite and Postgr
   - `createdAt`: Timestamp
 - **Relationships**: Many-to-one with api_keys
 
+#### Legacy/Deprecated Tables (Still in Schema)
+
+##### 10. API Connections (`api_connections`) - Legacy
+- **Purpose**: Legacy API connection management (replaced by llm_servers)
+- **Fields**:
+  - `id`: Primary key
+  - `type`: Provider type ('openai', 'gemini', 'ollama', 'vllm')
+  - `name`: Connection name
+  - `url`: API URL
+  - `apiKey`: API key
+  - `enabled`: Boolean flag
+  - `createdAt`, `updatedAt`: Timestamps
+
+##### 11. Model Settings (`model_settings`) - Legacy
+- **Purpose**: Legacy model configuration (replaced by llm_models)
+- **Fields**:
+  - `id`: Primary key
+  - `connectionId`: Foreign key to api_connections
+  - `modelName`: Model name
+  - `temperature`: Temperature setting
+  - `maxTokens`: Maximum tokens
+  - `isDefault`: Default model flag
+  - `createdAt`, `updatedAt`: Timestamps
+- **Relationships**: Many-to-one with api_connections
+
 #### Settings Tables
 
-##### 10. System Settings (`system_settings`)
+##### 12. System Settings (`system_settings`)
 - **Purpose**: Global system configuration
 - **Fields**:
   - `id`: Primary key
@@ -207,10 +259,35 @@ The project uses a multi-database architecture supporting both SQLite and Postgr
   - `value`: Setting value (JSON string)
   - `updatedAt`: Timestamp
 
-##### 11. Service Settings Tables
-- **Web Search Settings (`web_search_settings`)**: SearchXNG, Google, Bing configuration
-- **Image Settings (`image_settings`)**: OpenAI, Stability AI, local image generation
-- **Audio Settings (`audio_settings`)**: OpenAI, ElevenLabs, local audio processing
+##### 13. Web Search Settings (`web_search_settings`)
+- **Purpose**: Web search engine configuration
+- **Fields**:
+  - `id`: Primary key
+  - `engine`: Search engine ('searchxng', 'google', 'bing')
+  - `apiKey`: API key for the search service
+  - `url`: Search service URL
+  - `enabled`: Boolean flag
+  - `createdAt`, `updatedAt`: Timestamps
+
+##### 14. Image Settings (`image_settings`)
+- **Purpose**: Image generation service configuration
+- **Fields**:
+  - `id`: Primary key
+  - `provider`: Image provider ('openai', 'stability', 'local')
+  - `apiKey`: API key for the image service
+  - `url`: Image service URL
+  - `enabled`: Boolean flag
+  - `createdAt`, `updatedAt`: Timestamps
+
+##### 15. Audio Settings (`audio_settings`)
+- **Purpose**: Audio processing service configuration
+- **Fields**:
+  - `id`: Primary key
+  - `provider`: Audio provider ('openai', 'elevenlabs', 'local')
+  - `apiKey`: API key for the audio service
+  - `url`: Audio service URL
+  - `enabled`: Boolean flag
+  - `createdAt`, `updatedAt`: Timestamps
 
 ### Repository Pattern Implementation
 
@@ -220,11 +297,16 @@ The project uses a multi-database architecture supporting both SQLite and Postgr
 - **Functions**:
   - `userRepository`: User CRUD operations
   - `chatSessionRepository`: Chat session management
-  - `chatMessageRepository`: Message operations with cascade delete
-  - `apiConnectionRepository`: API connection management
-  - `llmServerRepository`: LLM server operations
-  - `agentRepository`: Agent management
-  - `apiManagementRepository`: API management operations
+  - `chatMessageRepository`: Message operations with cascade delete and rating system
+  - `apiConnectionRepository`: Legacy API connection management
+  - `modelSettingsRepository`: Legacy model settings management
+  - `llmServerRepository`: LLM server operations with provider management
+  - `llmModelRepository`: LLM model operations with server relationships
+  - `agentManageRepository`: Agent management with multimodal and feature support
+  - `apiManagementRepository`: Global API management operations
+  - `apiKeysRepository`: API key management with rate limiting
+  - `apiUsageRepository`: API usage tracking and analytics
+  - `adminSettingsRepository`: System settings and configuration
 
 #### Key Repository Features
 - **Type Safety**: Leverages Drizzle ORM type inference
@@ -236,11 +318,11 @@ The project uses a multi-database architecture supporting both SQLite and Postgr
 ### Migration System
 
 #### Migration Files (`lib/db/migrations/`)
-- **0000_initial.sql**: Base schema creation
-- **0001_llm_servers.sql**: LLM server management
-- **0002_llm_models.sql**: LLM model configuration
-- **0003_agent_manage.sql**: Agent management system
-- **0004_api_management.sql**: API management and usage tracking
+- **0000_initial.sql**: Base schema creation (users, chat_sessions, chat_messages, api_connections, model_settings, web_search_settings, image_settings, audio_settings, system_settings)
+- **0001_llm_servers.sql**: LLM server management with provider support and default configurations
+- **0002_llm_models.sql**: LLM model configuration with server relationships and capabilities
+- **0003_agent_manage.sql**: Agent management system with multimodal, deep research, and web search support
+- **0004_api_management.sql**: API management, API keys, and usage tracking system
 
 #### Migration Process
 - **Automatic**: Runs on application startup
@@ -413,10 +495,18 @@ export const config = {
 - **Image Data**: Image data should be stored in the database as Base64 encoding instead of BLOB. When reading images from the database, use Buffer.from(agent.imageData).toString() to convert to Base64 string, then add the data:image/png;base64, prefix to convert to image URL format.
 - **Message Rating**: Chat messages support rating system with values (-1 for dislike, 0 for neutral, +1 for like) to collect user feedback on AI responses.
 - **Agent Features**: Agents support additional feature flags like `supportsDeepResearch` and `supportsWebSearch` to enable specific capabilities for different agent types.
+- **LLM Management**: Use `llmServerRepository` and `llmModelRepository` for modern LLM management instead of legacy `apiConnectionRepository` and `modelSettingsRepository`.
+- **API Management**: Use `apiManagementRepository` for global API settings, `apiKeysRepository` for key management, and `apiUsageRepository` for usage tracking.
+- **Multi-DB Support**: All repository functions support both SQLite and PostgreSQL through dynamic schema selection based on `DB_TYPE` environment variable.
 
 ```typescript
-// Database operation example
-import { userRepository } from '@/lib/db/repository';
+// Database operation examples
+import { 
+  userRepository, 
+  llmServerRepository, 
+  agentManageRepository,
+  apiKeysRepository 
+} from '@/lib/db/repository';
 
 // Create user with proper error handling
 try {
@@ -430,6 +520,37 @@ try {
   console.error('User creation failed:', error);
   throw new Error('Failed to create user');
 }
+
+// LLM Server management
+const llmServer = await llmServerRepository.create({
+  provider: 'openai',
+  name: 'OpenAI GPT',
+  baseUrl: 'https://api.openai.com/v1',
+  apiKey: process.env.OPENAI_API_KEY,
+  enabled: true
+});
+
+// Agent with deep research capabilities
+const agent = await agentManageRepository.create({
+  agentId: 'research-agent',
+  modelId: 'gpt-4-model-id',
+  name: 'Research Assistant',
+  systemPrompt: 'You are a helpful research assistant.',
+  supportsDeepResearch: true,
+  supportsWebSearch: true,
+  supportsMultimodal: true
+});
+
+// API key with rate limiting
+const apiKey = await apiKeysRepository.create({
+  name: 'Production API Key',
+  keyHash: hashedKey,
+  keyPrefix: 'sk-...',
+  permissions: ['chat', 'models'],
+  rateLimitTier: 'premium',
+  maxRequestsPerHour: 1000,
+  maxRequestsPerDay: 10000
+});
 ```
 
 #### API Development
