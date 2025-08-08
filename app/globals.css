@@ -294,6 +294,19 @@ body.no-loading [data-nextjs-loading-state] {
   animation: skeleton-pulse 2s ease-in-out infinite;
 }
 
+  /* KaTeX block display spacing inside markdown content */
+  .markdown-content .katex-display {
+    display: block;
+    margin-top: 0.9rem; /* ~14px */
+    margin-bottom: 0.9rem;
+  }
+
+  /* If rehype-katex renders display math inside a paragraph, bump p margins */
+  .markdown-content p:has(> .katex-display) {
+    margin-top: 0.9rem !important;
+    margin-bottom: 0.9rem !important;
+  }
+
 /* Thumbs up animation */
 @keyframes thumbs-up-hover {
   0% {

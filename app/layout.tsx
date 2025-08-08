@@ -1,4 +1,5 @@
 import './globals.css'
+import 'katex/dist/katex.min.css'
 import ClientProviders from '@/components/providers/client-providers'
 import GlobalLayout from '@/components/layout/global-layout'
 import { Metadata, Viewport } from 'next'
