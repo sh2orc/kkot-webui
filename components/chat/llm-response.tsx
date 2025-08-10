@@ -1,7 +1,7 @@
 "use client"
 
-import React, { useState } from "react"
-import { Copy, ThumbsUp, ThumbsDown, Check, Brain, Search } from "lucide-react"
+import React, { useRef, useState } from "react"
+import { Copy, Clipboard, FileCode, ThumbsUp, ThumbsDown, Check, Brain, Search } from "lucide-react"
 import { useTranslation } from "@/lib/i18n"
 import ReactMarkdown from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -58,8 +58,10 @@ export function LlmResponse({
   const [thumbsUpHover, setThumbsUpHover] = useState(false)
   const [thumbsUpClick, setThumbsUpClick] = useState(false)
   const [thumbsDownHover, setThumbsDownHover] = useState(false)
+  const [copiedRendered, setCopiedRendered] = useState(false)
   const { lang } = useTranslation('chat')
   const isMobile = useIsMobile()
+  const contentRef = useRef<HTMLDivElement | null>(null)
 
   // Check if this is a deep research response
   // If isDeepResearch is explicitly provided, use that value
@@ -133,8 +135,8 @@ export function LlmResponse({
                 const onlyChild: any = childArray[0] as any;
                 if (
                   React.isValidElement(onlyChild) &&
-                  typeof onlyChild.props?.className === 'string' &&
-                  onlyChild.props.className.includes('katex-display')
+                  typeof (onlyChild as any).props?.className === 'string' &&
+                  (onlyChild as any).props.className.includes('katex-display')
                 ) {
                   return (
                     <div className="my-4 flex justify-center" {...props}>
@@ -438,6 +440,7 @@ export function LlmResponse({
           wordBreak: 'break-word',          
         }}
       >
+        <div ref={contentRef}>
         {/* Deep Research Display */}
         {isDeepResearchResponse ? (
           <div>
@@ -490,6 +493,7 @@ export function LlmResponse({
             ))}
           </div>
         )}
+        </div>
         
 
         <div className="text-xs text-gray-400 mt-1">
@@ -510,13 +514,79 @@ export function LlmResponse({
         </div>
         <div className="flex mt-2">
           <button
-            onClick={() => onCopy(content, id)}
+            onClick={async () => {
+              try {
+                const node = contentRef.current
+                if (!node) return
+
+                // Clone and clean KaTeX: remove accessibility MathML to avoid duplicated text,
+                // but keep the rendered HTML branch as-is so formatting is preserved on paste.
+                const cleaned = node.cloneNode(true) as HTMLElement
+
+                // Prefer MathML for portability: replace each .katex with its MathML child
+                cleaned.querySelectorAll('.katex').forEach((el) => {
+                  const mathml = el.querySelector('.katex-mathml')
+                  if (mathml) {
+                    const clone = mathml.cloneNode(true)
+                    el.replaceWith(clone)
+                  } else {
+                    // If MathML not present, at least remove .katex-html to prevent duplicate text
+                    const htmlEl = el.querySelector('.katex-html')
+                    if (htmlEl) htmlEl.remove()
+                  }
+                })
+
+                const html = cleaned.innerHTML
+                const text = cleaned.textContent || ''
+                const ClipboardItemAny = (window as any).ClipboardItem
+                if (navigator.clipboard && ClipboardItemAny) {
+                  const item = new ClipboardItemAny({
+                    'text/html': new Blob([html], { type: 'text/html' }),
+                    'text/plain': new Blob([text], { type: 'text/plain' }),
+                  })
+                  await navigator.clipboard.write([item])
+                } else {
+                  // Create a temporary container with cleaned HTML to avoid KaTeX duplication
+                  const temp = document.createElement('div')
+                  temp.style.position = 'fixed'
+                  temp.style.left = '-9999px'
+                  temp.style.top = '0'
+                  temp.style.whiteSpace = 'pre-wrap'
+                  temp.innerHTML = html
+                  document.body.appendChild(temp)
+
+                  const selection = window.getSelection()
+                  if (!selection) throw new Error('No selection available')
+                  const range = document.createRange()
+                  range.selectNodeContents(temp)
+                  selection.removeAllRanges()
+                  selection.addRange(range)
+                  const ok = document.execCommand('copy')
+                  selection.removeAllRanges()
+                  document.body.removeChild(temp)
+                  if (!ok) throw new Error('execCommand copy failed')
+                }
+                setCopiedRendered(true)
+                setTimeout(() => setCopiedRendered(false), 2000)
+              } catch (err) {
+                console.error('Failed to copy formatted content:', err)
+              }
+            }}
             className={`p-1 rounded-full transition-all duration-200 ${
+              copiedRendered ? "bg-green-100 text-green-600 scale-110" : "hover:bg-gray-100 text-gray-500"
+            }`}
+            title={copiedRendered ? lang('actions.copied') : lang('actions.copyFormatted')}
+          >
+            {copiedRendered ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+          </button>
+          <button
+            onClick={() => onCopy(content, id)}
+            className={`ml-1 p-1 rounded-full transition-all duration-200 ${
               copiedMessageId === id ? "bg-green-100 text-green-600 scale-110" : "hover:bg-gray-100 text-gray-500"
             }`}
             title={copiedMessageId === id ? lang('actions.copied') : lang('actions.copy')}
           >
-            {copiedMessageId === id ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+            {copiedMessageId === id ? <Check className="h-4 w-4" /> : <FileCode className="h-4 w-4" />}
           </button>
           <button
             onClick={handleLikeClick}

@@ -36,6 +36,7 @@
   ],
   "actions": {
     "copy": "복사",
+    "copyFormatted": "서식 그대로 복사",
     "copied": "복사됨",
     "like": "좋아요",
     "dislike": "싫어요",

@@ -36,6 +36,7 @@
   ],
   "actions": {
     "copy": "Copy",
+    "copyFormatted": "Copy formatted",
     "copied": "Copied",
     "like": "Like",
     "dislike": "Dislike",
