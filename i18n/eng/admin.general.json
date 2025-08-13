@@ -25,6 +25,12 @@
   "basicSystem": {
     "title": "Basic System Settings",
     "description": "Configure basic system behavior.",
+    "timezone": {
+      "label": "Standard Time (GMT)",
+      "description": "Select one of the global GMT offsets. If not set, the browser's GMT is applied automatically.",
+      "search": "Search GMT",
+      "noResults": "No results found"
+    },
     "enableSignup": {
       "label": "Enable New User Registration",
       "description": "Allow new users to register."

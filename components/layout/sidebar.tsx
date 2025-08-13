@@ -11,6 +11,8 @@ import { AccountMenu } from "@/components/ui/account-menu"
 import { ChatGroupComponent } from "@/components/sidebar/chat-group"
 import { ChatHistorySkeleton } from "@/components/sidebar/chat-history-skeleton"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
+import { useTimezone, formatGmtWithCity } from "@/components/providers/timezone-provider"
+import { getPrimaryCityForOffset } from "@/components/ui/timezone-data"
 import { useBranding } from "@/components/providers/branding-provider"
 import Image from "next/image"
 import TransitionLink from "@/components/ui/transition-link"
@@ -54,6 +56,7 @@ export default function Sidebar({
   const [rawChatSessions, setRawChatSessions] = useState<any[]>([])
   const [isLoading, setIsLoading] = useState(true) // Set initial value to true
   const { lang, language } = useTranslation('common')
+  const { formatTime, formatDate, gmtOffsetMinutes } = useTimezone()
   const { branding } = useBranding()
   const [hasFetchedChatSessions, setHasFetchedChatSessions] = useState(false)
 
@@ -108,8 +111,8 @@ export default function Sidebar({
       
       const sessionDateOnly = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate())
       
-      // Generate time format
-      const timeStr = sessionDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+      // Generate time format using configured GMT
+      const timeStr = formatTime(sessionDate, 'ko-KR', { hour: '2-digit', minute: '2-digit' })
       
       // Calculate elapsed time
       const diffInHours = Math.floor((now.getTime() - sessionDate.getTime()) / (1000 * 60 * 60))
@@ -140,7 +143,7 @@ export default function Sidebar({
         groups.previous30Days.push(chatItem)
       } else {
         // Monthly groups
-        const monthKey = sessionDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })
+        const monthKey = formatDate(sessionDate, 'ko-KR', { year: 'numeric', month: 'long' })
         if (!monthGroups[monthKey]) {
           monthGroups[monthKey] = []
         }
@@ -288,7 +291,7 @@ export default function Sidebar({
       }
       
       const sessionDateOnly = new Date(sessionDate.getFullYear(), sessionDate.getMonth(), sessionDate.getDate())
-      const timeStr = sessionDate.toLocaleTimeString('ko-KR', { hour: '2-digit', minute: '2-digit' })
+      const timeStr = formatTime(sessionDate, 'ko-KR', { hour: '2-digit', minute: '2-digit' })
       const diffInHours = Math.floor((now.getTime() - sessionDate.getTime()) / (1000 * 60 * 60))
       const diffInDays = Math.floor(diffInHours / 24)
       let timeAgo = ''
@@ -315,7 +318,7 @@ export default function Sidebar({
       } else if (sessionDate.getTime() >= thirtyDaysAgo.getTime()) {
         groups.previous30Days.push(chatItem)
       } else {
-        const monthKey = sessionDate.toLocaleDateString('ko-KR', { year: 'numeric', month: 'long' })
+        const monthKey = formatDate(sessionDate, 'ko-KR', { year: 'numeric', month: 'long' })
         if (!monthGroups[monthKey]) {
           monthGroups[monthKey] = []
         }
@@ -574,6 +577,7 @@ export default function Sidebar({
 
                   <div className={`overflow-hidden ml-1 transition-all duration-300 ${sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
                     <span className="whitespace-nowrap text-gray-500 text-sm">{branding.appName}</span>
+                    {/* <span className="ml-2 text-[11px] text-gray-400">{formatGmtWithCity(gmtOffsetMinutes, getPrimaryCityForOffset(gmtOffsetMinutes) || undefined)}</span> */}
                   </div>
 
                 </div>

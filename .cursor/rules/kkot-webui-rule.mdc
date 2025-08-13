@@ -1114,3 +1114,129 @@ await apiUsageRepository.create({
 ```
 
 Follow these rules to write code that aligns with the KKOT WebUI project architecture.
+
+## Timezone & GMT Handling Rules
+
+### Overview
+- **Storage**: Persist all server/DB timestamps in UTC (ISO string).
+- **Display**: Convert and render times on the client using `gmtOffsetMinutes` from `TimezoneProvider`.
+- **Global Setting**: Save/load the admin-selected GMT offset to `/api/admin-settings` with key `system.gmtOffsetMinutes`. The unit is minutes (e.g., GMT+9 → 540).
+- **Browser Default**: If no global setting exists, fall back to the browser timezone offset.
+
+### Provider & Hook
+- File: `components/providers/timezone-provider.tsx`
+- Provides:
+  - `gmtOffsetMinutes: number` global GMT offset in minutes
+  - `setGmtOffsetMinutes(offset: number)` update offset
+  - `formatTime(date: Date, locale?: string, options?: Intl.DateTimeFormatOptions)` formatted time string
+  - `formatDate(date: Date, locale?: string, options?: Intl.DateTimeFormatOptions)` formatted date string
+  - `shiftToGmtDate(date: Date)` `Date` adjusted for the selected GMT
+  - `formatGmtLabel(offsetMinutes: number)` e.g., `GMT+09:00`
+
+```tsx
+// Example usage (arbitrary component)
+import { useTimezone, formatGmtLabel } from '@/components/providers/timezone-provider'
+
+function TimestampText({ ts }: { ts: string }) {
+  const { gmtOffsetMinutes, formatDate, formatTime } = useTimezone()
+  const date = new Date(ts) // ts is a UTC ISO string
+  return (
+    <span>
+      {formatDate(date)} {formatTime(date)} ({formatGmtLabel(gmtOffsetMinutes)})
+    </span>
+  )
+}
+```
+
+### Admin Integration
+- Read: `GET /api/admin-settings?key=system.gmtOffsetMinutes`
+- Write: `POST /api/admin-settings` with body `{ key: 'system.gmtOffsetMinutes', value: <number> }`
+- On mount, the provider fetches this key and applies the global offset automatically. On failure, it keeps the browser default.
+
+```ts
+// Example: save payload
+await fetch('/api/admin-settings', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ key: 'system.gmtOffsetMinutes', value: 540 }), // GMT+09:00
+})
+```
+
+### GMT Combobox (UI)
+- File: `components/ui/timezone-combobox.tsx`
+- Data: `components/ui/timezone-data.ts`
+- Features: Covers -12:00 ~ +14:00 including 15-minute steps, shows primary city labels, searchable
+- Usage: `value` is the offset in minutes; use `onChange` to set the selection along with provider `setGmtOffsetMinutes`
+
+```tsx
+import TimezoneCombobox from '@/components/ui/timezone-combobox'
+import { useTimezone } from '@/components/providers/timezone-provider'
+
+function TimezoneSettingRow() {
+  const { gmtOffsetMinutes, setGmtOffsetMinutes } = useTimezone()
+  return (
+    <TimezoneCombobox
+      value={gmtOffsetMinutes}
+      onChange={(v) => setGmtOffsetMinutes(v)}
+      placeholder="Select GMT"
+    />
+  )
+}
+```
+
+### Edge Cases
+- Quarter/half-hour zones (e.g., +05:30) are supported via minute-based offsets.
+- Locale: default render is `ko-KR`. Override with `locale`/`options` in `formatDate/formatTime` as needed.
+
+## Table Usage Guidelines (with Timezone)
+
+### Components
+- File: `components/ui/table.tsx`
+- Exports: `Table`, `TableHeader`, `TableBody`, `TableRow`, `TableHead`, `TableCell`, `TableFooter`, `TableCaption`
+
+### Basic Example
+```tsx
+import {
+  Table, TableHeader, TableBody, TableRow, TableHead, TableCell, TableCaption
+} from '@/components/ui/table'
+import { useTimezone, formatGmtLabel } from '@/components/providers/timezone-provider'
+
+type Row = { id: string; name: string; createdAt: string }
+
+export default function ExampleTable({ rows }: { rows: Row[] }) {
+  const { gmtOffsetMinutes, formatDate, formatTime } = useTimezone()
+  return (
+    <Table>
+      <TableCaption>Example data</TableCaption>
+      <TableHeader>
+        <TableRow>
+          <TableHead>ID</TableHead>
+          <TableHead>Name</TableHead>
+          <TableHead>
+            Created ({formatGmtLabel(gmtOffsetMinutes)})
+          </TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {rows.map((r) => {
+          const d = new Date(r.createdAt) // UTC ISO from server/DB
+          return (
+            <TableRow key={r.id}>
+              <TableCell>{r.id}</TableCell>
+              <TableCell>{r.name}</TableCell>
+              <TableCell>
+                {formatDate(d)} {formatTime(d)}
+              </TableCell>
+            </TableRow>
+          )
+        })}
+      </TableBody>
+    </Table>
+  )
+}
+```
+
+### Recommended Rules
+- Show the current GMT label in the table header for date/time columns.
+- Each cell should consume UTC from server/DB and format via the provider utilities.
+- Perform sorting/filtering on the server in UTC; the frontend converts for display only.

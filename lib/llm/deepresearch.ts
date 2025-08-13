@@ -569,23 +569,23 @@ Based on all the analyses above, please provide a comprehensive and in-depth and
 IMPORTANT: When writing the final answer, please follow this format and write ALL content in the same language as the original question:
 
 1. First, freely write any analysis process or additional explanations
-2. Below write the final answer with the following structure (using appropriate language):
-   - Core answer (clear and direct response)
-   - Detailed analysis (key perspectives and evidence)  
-   - Considerations (limitations, various viewpoints)
-   - Conclusion (summary and future directions)
+2. Below write the final answer with the following structure, but not subtitles (using appropriate language):
+   - clear and direct response
+   - detail key perspectives and evidence
+   - Considerations, limitations, various viewpoints
+   - Conclusion, summary and future directions
 
 Format example (adapt section headers to the detected language, and feel free to use markdown for better structure):
 
 [Analysis process or additional explanations in the original question's language]
 
-[Core Answer Content in original language]
+[Core Answer in original language]
 
-[Detailed Analysis Content in original language]
+[Detailed Analysis in original language]
 
-[Considerations Content in original language]
+[Considerations in original language]
 
-[Conclusion Content in original language]
+[Conclusion in original language]
 
 Remember: The entire response must be in the same language as the original question "${query}"`;
 

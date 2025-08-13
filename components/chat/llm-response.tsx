@@ -9,6 +9,7 @@ import remarkMath from 'remark-math'
 import rehypeKatex from 'rehype-katex'
 import { CodeBlock } from './code-block'
 import { useIsMobile } from '@/hooks/use-mobile'
+import { useTimezone } from '@/components/providers/timezone-provider'
 import { DeepResearchDisplay } from './deep-research-display'
 
 interface LlmResponseProps {
@@ -61,6 +62,7 @@ export function LlmResponse({
   const [copiedRendered, setCopiedRendered] = useState(false)
   const { lang } = useTranslation('chat')
   const isMobile = useIsMobile()
+  const { formatTime } = useTimezone()
   const contentRef = useRef<HTMLDivElement | null>(null)
 
   // Check if this is a deep research response
@@ -509,7 +511,8 @@ export function LlmResponse({
             } else {
               displayTime = new Date();
             }
-            return displayTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+            const { language } = useTranslation('chat');
+            return formatTime(displayTime, language === 'kor' ? 'ko-KR' : 'en-US', { hour: '2-digit', minute: '2-digit' })
           })()}
         </div>
         <div className="flex mt-2">

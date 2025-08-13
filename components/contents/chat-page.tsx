@@ -1264,17 +1264,17 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   return (
     <>
       {/* Message container */}
-      <div className="flex-1 flex flex-col px-3 sm:px-0 relative overflow-hidden">
+      <div className="flex-1 flex flex-col px-1 relative overflow-hidden">
         <div 
           ref={messagesContainerRef}
-          className="messages-container flex-1 overflow-y-auto p-3 sm:p-4 md:p-6 transition-all duration-200 ease-out mobile-scroll touch-scroll"
+          className="messages-container flex-1 overflow-y-auto sm:p-4 md:p-6 transition-all duration-200 ease-out mobile-scroll touch-scroll"
           style={{ 
             scrollBehavior: 'smooth',
             paddingBottom: `${dynamicPadding}px`,
             overflowAnchor: 'none'
           }}
         >
-          <div className="sm:px-3 max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto">
+          <div className="px-3 max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto">
             {(() => {
               
               if (!historyLoaded && showSkeleton) {

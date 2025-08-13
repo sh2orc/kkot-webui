@@ -96,6 +96,13 @@
     "finalAnswer": "Final Answer",
     "completed": "Completed",
     "stepsTotal": "Steps Total",
+    "titles": {
+      "analysisPrefix": "Analysis",
+      "synthesisAnalysis": "Synthesis Analysis",
+      "questionAnalysis": "Question Analysis",
+      "subQuestionsGenerated": "Sub-questions Generated",
+      "analysisPlanning": "Analysis Planning"
+    },
     "status": {
       "pending": "Pending...",
       "analyzing": "Analyzing...",
@@ -109,6 +116,17 @@
       "final": "Final"
     },
     "finalAnswerDisplay": "The final answer will be displayed below.",
-    "finalAnswerGenerating": "Generating final answer..."
+    "finalAnswerGenerating": "Generating final answer...",
+    "errors": {
+      "invalidChatId": "Chat ID is missing or invalid.",
+      "parallelErrorOccurred": "⚠️ Error occurred during parallel deep research",
+      "analysisEmpty": "Analysis result is empty.",
+      "analysisError": "❌ Error during analysis (failed after {retries} attempts): {message}",
+      "unknownError": "Unknown error",
+      "finalAnswerNotGenerated": "Final answer is not generated.",
+      "allSubAnalysesFailed": "All sub-question analyses failed.",
+      "synthesisAttemptsFailed": "{retries} attempts failed: {message}",
+      "finalAttemptsFailed": "{retries} attempts failed: {message}"
+    }
   }
 } 

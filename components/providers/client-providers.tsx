@@ -8,6 +8,7 @@ import { ModelProvider } from './model-provider'
 import { PageTransitionProvider } from './page-transition-provider'
 import { Toaster } from '@/components/ui/toaster'
 import Loading from '@/components/ui/loading'
+import { TimezoneProvider } from './timezone-provider'
 
 // Basic Loading UI Component
 const LoadingFallback = () => <Loading />
@@ -23,10 +24,12 @@ export default function ClientProviders({ children }: { children: ReactNode }) {
           <Suspense fallback={<LoadingFallback />}>
             <LanguageProvider>
               <ModelProvider>
-                <PageTransitionProvider>
-                  {children}
-                  <Toaster />
-                </PageTransitionProvider>
+                <TimezoneProvider>
+                  <PageTransitionProvider>
+                    {children}
+                    <Toaster />
+                  </PageTransitionProvider>
+                </TimezoneProvider>
               </ModelProvider>
             </LanguageProvider>
           </Suspense>

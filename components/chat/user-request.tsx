@@ -4,6 +4,7 @@ import { Copy, Edit, Check, X, RefreshCw, Image, ZoomIn } from "lucide-react"
 import { useRef, useEffect, useCallback, useMemo, useState } from "react"
 import { useTranslation } from "@/lib/i18n"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useTimezone } from "@/components/providers/timezone-provider"
 
 interface UserRequestProps {
   id: string
@@ -41,6 +42,7 @@ export function UserRequest({
   const { lang } = useTranslation("chat")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [selectedImage, setSelectedImage] = useState<{src: string, name: string} | null>(null)
+  const { formatTime } = useTimezone()
 
   // Debug: Tracking regeneration state changes
   useEffect(() => {
@@ -224,7 +226,7 @@ export function UserRequest({
             </div>
             <div className="flex items-center justify-between mt-2 sm:gap-2">
               <div className="text-xs text-gray-400">
-                {(() => {
+              {(() => {
                   let displayTime: Date;
                   if (timestamp instanceof Date && !isNaN(timestamp.getTime())) {
                     displayTime = timestamp;
@@ -236,10 +238,11 @@ export function UserRequest({
                   } else {
                     displayTime = new Date();
                   }
-                  return displayTime.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+                  const { language } = useTranslation('chat');
+                  return formatTime(displayTime, language === 'kor' ? 'ko-KR' : 'en-US', { hour: '2-digit', minute: '2-digit' })
                 })()}
               </div>
-              <div className="flex sm:gap-1">
+              <div className="flex sm:gap-1 space-x-3 sm:space-x-1 md:space-x-0">
                 <button
                   onClick={handleCopy}
                   className={`sm:p-1 rounded-full transition-all duration-200 ${

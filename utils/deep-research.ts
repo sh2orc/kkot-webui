@@ -2,6 +2,7 @@
  * Deep research utility functions
  */
 import { fetchWithTimeout } from './chat-utils';
+import { loadTranslationModule, getStoredLanguage, getTranslationKey } from '@/lib/i18n';
 import { Message } from '@/components/contents/chat-types';
 
 /**
@@ -36,9 +37,14 @@ export const handleParallelDeepResearch = async (
   // Validate required parameters
   if (!setMessages) return;
   
+  // Load translations (chat module)
+  const language = getStoredLanguage();
+  const translations = await loadTranslationModule(language, 'chat');
+  const lang = (key: string) => getTranslationKey(translations, key);
+  
   // Validate chat ID - check early to avoid errors
   if (!providedChatId) {
-    console.error('병렬 딥 리서치를 시작할 수 없습니다: 채팅 ID가 없거나 유효하지 않습니다.');
+    console.error(lang('deepResearch.errors.invalidChatId'));
     
     // Display error message in UI
     setMessages(prev => 
@@ -46,7 +52,7 @@ export const handleParallelDeepResearch = async (
         m.id === assistantMessageId 
           ? { 
               ...m,
-              content: m.content + '\n\n⚠️ 병렬 딥 리서치 중 오류 발생: 채팅 ID가 없거나 유효하지 않습니다.',
+              content: m.content + `\n\n${lang('deepResearch.errors.parallelErrorOccurred')}: ${lang('deepResearch.errors.invalidChatId')}`,
               hasDeepResearchError: true
             }
           : m
@@ -104,8 +110,8 @@ export const handleParallelDeepResearch = async (
                       deepResearchStepInfo: {
                         ...m.deepResearchStepInfo,
                         [stepKey]: {
-                          title: `분석: ${question}`,
-                          content: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
+                          title: `${lang('deepResearch.titles.analysisPrefix')}: ${question}`,
+                          content: result.analysis?.analysis || result.analysis || lang('deepResearch.errors.analysisEmpty'),
                           isComplete: true,
                           index: index,
                           subQuestionId: question,
@@ -118,8 +124,8 @@ export const handleParallelDeepResearch = async (
             );
             
             return {
-              analysis: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
-              content: result.analysis?.analysis || result.analysis || '분석 결과가 비어있습니다.',
+              analysis: result.analysis?.analysis || result.analysis || lang('deepResearch.errors.analysisEmpty'),
+              content: result.analysis?.analysis || result.analysis || lang('deepResearch.errors.analysisEmpty'),
               subQuestionId: question,
               originalQuestion: question,
               index: index
@@ -143,8 +149,10 @@ export const handleParallelDeepResearch = async (
                       deepResearchStepInfo: {
                         ...m.deepResearchStepInfo,
                         [errorStepKey]: {
-                          title: `분석: ${question}`,
-                          content: `❌ 분석 중 오류 발생 (${maxRetries}회 시도 실패): ${lastError?.message || '알 수 없는 오류'}`,
+                          title: `${lang('deepResearch.titles.analysisPrefix')}: ${question}`,
+                          content: lang('deepResearch.errors.analysisError')
+                            .replace('{retries}', String(maxRetries))
+                            .replace('{message}', lastError?.message || lang('deepResearch.errors.unknownError')),
                           isComplete: false,
                           hasError: true,
                           index: index,
@@ -171,7 +179,7 @@ export const handleParallelDeepResearch = async (
     const validResults = analysisResults.filter(result => result !== null);
 
     if (validResults.length === 0) {
-      throw new Error('All sub-question analyses failed.');
+      throw new Error(lang('deepResearch.errors.allSubAnalysesFailed'));
     }
 
     // Perform synthesis analysis (timeout and retry)
@@ -208,7 +216,11 @@ export const handleParallelDeepResearch = async (
         if (attempt < synthesisMaxRetries) {
           await new Promise(resolve => setTimeout(resolve, 3000));
         } else {
-          throw new Error(`${synthesisMaxRetries} attempts failed: ${synthesisLastError?.message || 'Unknown error'}`);
+          throw new Error(
+            lang('deepResearch.errors.synthesisAttemptsFailed')
+              .replace('{retries}', String(synthesisMaxRetries))
+              .replace('{message}', synthesisLastError?.message || lang('deepResearch.errors.unknownError'))
+          );
         }
       }
     }
@@ -223,8 +235,8 @@ export const handleParallelDeepResearch = async (
               deepResearchStepInfo: {
                 ...m.deepResearchStepInfo,
                 [synthesisId]: {
-                  title: 'Synthesis Analysis',
-                  content: synthesisResult.synthesis || 'Synthesis analysis result is empty.',
+                  title: lang('deepResearch.titles.synthesisAnalysis'),
+                  content: synthesisResult.synthesis || lang('deepResearch.status.noContent'),
                   isComplete: true,
                   isSynthesis: true
                 }
@@ -269,14 +281,18 @@ export const handleParallelDeepResearch = async (
         if (attempt < finalAnswerMaxRetries) {
           await new Promise(resolve => setTimeout(resolve, 5000));
         } else {
-          throw new Error(`${finalAnswerMaxRetries} attempts failed: ${finalAnswerLastError?.message || 'Unknown error'}`);
+          throw new Error(
+            lang('deepResearch.errors.finalAttemptsFailed')
+              .replace('{retries}', String(finalAnswerMaxRetries))
+              .replace('{message}', finalAnswerLastError?.message || lang('deepResearch.errors.unknownError'))
+          );
         }
       }
     }
 
     // Update message with final answer
     const finalAnswerId = `final_answer_${Date.now()}`;
-    const finalAnswerContent = finalAnswerResult.finalAnswer || finalAnswerResult.answer || 'Final answer is not generated.';
+    const finalAnswerContent = finalAnswerResult.finalAnswer || finalAnswerResult.answer || lang('deepResearch.errors.finalAnswerNotGenerated');
     
     setMessages(prev => 
       prev.map(m => 
@@ -290,7 +306,7 @@ export const handleParallelDeepResearch = async (
               deepResearchStepInfo: {
                 ...m.deepResearchStepInfo,
                 [finalAnswerId]: {
-                  title: 'Final Answer',
+                  title: lang('deepResearch.finalAnswer'),
                   content: '', // Final answer block is empty
                   isComplete: true,
                   isFinalAnswer: true
@@ -366,7 +382,7 @@ export const handleParallelDeepResearch = async (
         m.id === assistantMessageId 
           ? { 
               ...m,
-              content: m.content + '\n\n⚠️ Parallel deep research error occurred: ' + errorContent,
+              content: m.content + `\n\n${lang('deepResearch.errors.parallelErrorOccurred')}: ` + errorContent,
               hasDeepResearchError: true
             }
           : m

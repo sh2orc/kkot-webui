@@ -779,6 +779,31 @@ export function DeepResearchDisplay({
     }
   }
 
+  // Localize raw step titles coming from server or utils
+  const localizeStepTitle = (rawTitle: string): string => {
+    if (!rawTitle) return ''
+    const title = rawTitle.trim()
+    const analysisPrefix = lang("deepResearch.titles.analysisPrefix")
+    const exactMap: Record<string, string> = {
+      'Synthesis Analysis': lang("deepResearch.titles.synthesisAnalysis"),
+      'Question Analysis': lang("deepResearch.titles.questionAnalysis"),
+      'Sub-questions Generated': lang("deepResearch.titles.subQuestionsGenerated"),
+      'Analysis Planning': lang("deepResearch.titles.analysisPlanning"),
+      'Deep Research Analysis': lang("deepResearch.analysisTitle"),
+      '종합 분석': lang("deepResearch.titles.synthesisAnalysis"),
+      '질문 분석': lang("deepResearch.titles.questionAnalysis"),
+      '하위 질문 생성': lang("deepResearch.titles.subQuestionsGenerated"),
+      '분석 계획': lang("deepResearch.titles.analysisPlanning"),
+      '딥 리서치 분석': lang("deepResearch.analysisTitle")
+    }
+    if (exactMap[title]) return exactMap[title]
+    const en = title.match(/^Analysis:\s*(.+)$/)
+    if (en) return `${analysisPrefix}: ${en[1]}`
+    const ko = title.match(/^분석:\s*(.+)$/)
+    if (ko) return `${analysisPrefix}: ${ko[1]}`
+    return title
+  }
+
   if (steps.length === 0) {
     return (
       <div className="flex items-center gap-2 p-3 bg-gradient-to-r from-cyan-50 to-blue-50 border border-cyan-200 rounded-lg">
@@ -854,7 +879,7 @@ export function DeepResearchDisplay({
                   <div className="flex-shrink-0">
                     {getStepIcon(stepStatus)}
                   </div>
-                  <span className="truncate min-w-0">{plannedStep.title}</span>
+                  <span className="truncate min-w-0">{localizeStepTitle(plannedStep.title)}</span>
                 </div>
               )
             })}
@@ -871,7 +896,7 @@ export function DeepResearchDisplay({
           >
             <div className="flex items-center gap-3 flex-wrap">
               {getStepIcon(step.status)}
-              <span className="text-sm font-medium text-gray-700 truncate min-w-0 max-w-[90%]">{step.title}</span>
+              <span className="text-sm font-medium text-gray-700 truncate min-w-0 max-w-[90%]">{localizeStepTitle(step.title)}</span>
               <Badge className={`text-xs flex-shrink-0 ${getStepBadgeColor(step.stepType)}`}>
                 {step.stepType === 'step' ? lang("deepResearch.stepTypes.analysis") : step.stepType === 'synthesis' ? lang("deepResearch.stepTypes.synthesis") : lang("deepResearch.stepTypes.final")}
               </Badge>

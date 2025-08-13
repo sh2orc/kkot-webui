@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
@@ -12,6 +12,9 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import TimezoneCombobox from "@/components/ui/timezone-combobox"
+import { useTimezone, formatGmtLabel } from "@/components/providers/timezone-provider"
+import { getPrimaryCityForOffset } from "@/components/ui/timezone-data"
 import { Eye, EyeOff, Upload, X } from "lucide-react"
 import { useTranslation } from "@/lib/i18n"
 import { useToast } from "@/hooks/use-toast"
@@ -56,12 +59,16 @@ const SETTING_KEYS = {
   OAUTH_GITHUB_ENABLED: 'auth.oauth.github.enabled',
   OAUTH_GITHUB_CLIENT_ID: 'auth.oauth.github.clientId',
   OAUTH_GITHUB_CLIENT_SECRET: 'auth.oauth.github.clientSecret',
+  API_KEY_ENABLED: 'auth.apiKeyEnabled',
+  API_KEY_ENDPOINT_LIMITED: 'auth.apiKeyEndpointLimited',
 };
 
 // Zod schema definition
 const formSchema = z.object({
   appName: z.string().min(1, "App name is required"),
   signupEnabled: z.boolean(),
+  apiKeyEnabled: z.boolean().optional(),
+  apiKeyEndpointLimited: z.boolean().optional(),
   jwtExpiry: z.string(),
   ldapEnabled: z.boolean(),
   ldapLabel: z.string().optional(),
@@ -88,6 +95,7 @@ const formSchema = z.object({
   githubEnabled: z.boolean(),
   githubClientId: z.string().optional(),
   githubClientSecret: z.string().optional(),
+  gmtOffsetMinutes: z.number().optional(),
 })
 
 type FormData = z.infer<typeof formSchema>
@@ -102,6 +110,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
   const { toast } = useToast()
   const { updateBranding } = useBranding()
   const [isSaving, setIsSaving] = useState(false)
+  const { gmtOffsetMinutes, setGmtOffsetMinutes } = useTimezone()
   
   // Password visibility state
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({
@@ -119,6 +128,8 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
     defaultValues: {
       appName: initialSettings[SETTING_KEYS.APP_NAME] || "kkot-webui",
       signupEnabled: initialSettings[SETTING_KEYS.SIGNUP_ENABLED] === 'true',
+      apiKeyEnabled: initialSettings[SETTING_KEYS.API_KEY_ENABLED] === 'true',
+      apiKeyEndpointLimited: initialSettings[SETTING_KEYS.API_KEY_ENDPOINT_LIMITED] === 'true',
       jwtExpiry: initialSettings[SETTING_KEYS.JWT_EXPIRY] || "-1",
       ldapEnabled: initialSettings[SETTING_KEYS.LDAP_ENABLED] === 'true',
       ldapLabel: initialSettings[SETTING_KEYS.LDAP_LABEL] || "LDAP Server",
@@ -145,8 +156,29 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
       githubEnabled: initialSettings[SETTING_KEYS.OAUTH_GITHUB_ENABLED] === 'true',
       githubClientId: initialSettings[SETTING_KEYS.OAUTH_GITHUB_CLIENT_ID] || "",
       githubClientSecret: initialSettings[SETTING_KEYS.OAUTH_GITHUB_CLIENT_SECRET] ? "******" : "",
+      gmtOffsetMinutes: initialSettings['system.gmtOffsetMinutes'] ? parseInt(initialSettings['system.gmtOffsetMinutes'], 10) : gmtOffsetMinutes,
     },
   })
+
+  // Auto-assign GMT from browser if not set in DB
+  const [timezoneInitialized, setTimezoneInitialized] = useState(false)
+  React.useEffect(() => {
+    if (timezoneInitialized) return
+    const hasKey = !!initialSettings['system.gmtOffsetMinutes']
+    if (!hasKey) {
+      const browserOffset = -new Date().getTimezoneOffset()
+      form.setValue('gmtOffsetMinutes', browserOffset as any)
+      setGmtOffsetMinutes(browserOffset)
+      // Save immediately to DB (fire-and-forget)
+      fetch('/api/admin-settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: [{ key: 'system.gmtOffsetMinutes', value: String(browserOffset) }] })
+      }).catch(() => {})
+    }
+    setTimezoneInitialized(true)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
   
   // Form submit handler
   const onSubmit = async (data: FormData) => {
@@ -157,6 +189,8 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
       const settings = [
         { key: SETTING_KEYS.APP_NAME, value: data.appName },
         { key: SETTING_KEYS.SIGNUP_ENABLED, value: data.signupEnabled ? 'true' : 'false' },
+        { key: SETTING_KEYS.API_KEY_ENABLED, value: data.apiKeyEnabled ? 'true' : 'false' },
+        { key: SETTING_KEYS.API_KEY_ENDPOINT_LIMITED, value: data.apiKeyEndpointLimited ? 'true' : 'false' },
         { key: SETTING_KEYS.JWT_EXPIRY, value: data.jwtExpiry },
         { key: SETTING_KEYS.LDAP_ENABLED, value: data.ldapEnabled ? 'true' : 'false' },
         { key: SETTING_KEYS.LDAP_LABEL, value: data.ldapLabel || '' },
@@ -184,6 +218,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
         { key: SETTING_KEYS.OAUTH_GITHUB_ENABLED, value: data.githubEnabled ? 'true' : 'false' },
         { key: SETTING_KEYS.OAUTH_GITHUB_CLIENT_ID, value: data.githubClientId || '' },
         ...(data.githubClientSecret && !data.githubClientSecret.startsWith('******') ? [{ key: SETTING_KEYS.OAUTH_GITHUB_CLIENT_SECRET, value: data.githubClientSecret }] : []),
+        ...(typeof data.gmtOffsetMinutes === 'number' ? [{ key: 'system.gmtOffsetMinutes', value: String(data.gmtOffsetMinutes) }] : []),
       ]
       
       // Save settings via API
@@ -219,6 +254,10 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
           updateBranding({
             appName: data.appName
           })
+
+          if (typeof data.gmtOffsetMinutes === 'number') {
+            setGmtOffsetMinutes(data.gmtOffsetMinutes)
+          }
           
           toast({
             title: lang('saveSuccessTitle'),
@@ -291,6 +330,27 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
               <CardDescription>{lang('basicSystem.description')}</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
+              {/* Timezone (GMT) */}
+              <FormField
+                control={form.control}
+                name="gmtOffsetMinutes"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{lang('basicSystem.timezone.label')}</FormLabel>
+                    <FormControl>
+                      <TimezoneCombobox
+                        value={field.value ?? null}
+                        onChange={(val) => field.onChange(val)}
+                        placeholder={`${formatGmtLabel(gmtOffsetMinutes)}${getPrimaryCityForOffset(gmtOffsetMinutes) ? ` (${getPrimaryCityForOffset(gmtOffsetMinutes)!.toUpperCase()})` : ''}`}
+                      />
+                    </FormControl>
+                    <FormDescription>
+                      {lang('basicSystem.timezone.description')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
               <FormField
                 control={form.control}
                 name="signupEnabled"
