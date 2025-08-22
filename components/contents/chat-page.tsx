@@ -192,12 +192,18 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }
 
   const handleAbort = () => {
+    console.log('🔴 handleAbort called - cleaning up all states')
+    
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
       abortControllerRef.current = null
     }
+    
+    // Clean up all states immediately
     streamingInProgress.current = false
+    isSubmittingRef.current = false
     setIsStreaming(false)
+    setIsSubmitting(false)
     setRegeneratingMessageId(null)
     setStreamingMessageId(null)
     
@@ -206,12 +212,14 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       console.log('=== handleAbort - First safety check ===')
       setRegeneratingMessageId(null)
       setIsStreaming(false)
+      setIsSubmitting(false)
     }, 100)
     
     setTimeout(() => {
       console.log('=== handleAbort - Final safety check ===')
       setRegeneratingMessageId(null)
       setIsStreaming(false)
+      setIsSubmitting(false)
     }, 500)
     
     // Prevent forced scrolling if user manually scrolled up
@@ -251,7 +259,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       setStreamingMessageId,
       setIsSubmitting,
       isSubmittingRef,
-      streamingInProgress
+      streamingInProgress,
+      abortControllerRef.current?.signal
     )
   }
 

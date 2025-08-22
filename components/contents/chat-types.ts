@@ -7,6 +7,7 @@ export interface Message {
   deepResearchStepType?: 'step' | 'synthesis' | 'final'
   isDeepResearchComplete?: boolean
   hasDeepResearchError?: boolean
+  isDeepResearchAborted?: boolean
   deepResearchStepInfo?: Record<string, any>
 }
 

@@ -28,6 +28,7 @@ interface LlmResponseProps {
   deepResearchStepType?: 'step' | 'synthesis' | 'final'
   isDeepResearchComplete?: boolean
   hasDeepResearchError?: boolean
+  isDeepResearchAborted?: boolean
   deepResearchStepInfo?: {
     title?: string
     isComplete?: boolean
@@ -54,6 +55,7 @@ export function LlmResponse({
   deepResearchStepType,
   isDeepResearchComplete = false,
   hasDeepResearchError = false,
+  isDeepResearchAborted = false,
   deepResearchStepInfo,
 }: LlmResponseProps) {
   const [thumbsUpHover, setThumbsUpHover] = useState(false)
@@ -424,6 +426,7 @@ export function LlmResponse({
               <span>⚠️ Error Occurred</span>
             </div>
           )}
+
           {isStreaming && isDeepResearch && (
             <div className="inline-flex items-center gap-1 px-2 py-0.5 bg-blue-50 border border-blue-200 rounded-full text-xs text-blue-700">
               <div className="w-2 h-2 bg-blue-500 rounded-full animate-pulse"></div>
@@ -497,6 +500,13 @@ export function LlmResponse({
         )}
         </div>
         
+        {/* Show abort message above timestamp */}
+        {isDeepResearchAborted && (
+          <div className="text-xs text-orange-600 mt-2 mb-1 flex items-center gap-1">
+            <span>⏹️</span>
+            <span>분석이 중단되었습니다</span>
+          </div>
+        )}
 
         <div className="text-xs text-gray-400 mt-1">
           {(() => {

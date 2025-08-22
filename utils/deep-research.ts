@@ -35,8 +35,62 @@ export const handleParallelDeepResearch = async (
   streamingInProgress?: React.MutableRefObject<boolean>,
   abortSignal?: AbortSignal
 ) => {
+  console.log('🔍 Deep research started with abortSignal:', abortSignal, 'aborted:', abortSignal?.aborted);
+  
+  // Add abort event listener to detect when abort happens
+  if (abortSignal) {
+    abortSignal.addEventListener('abort', () => {
+      console.log('🔴 ABORT EVENT DETECTED - Setting abort flag and cleaning up states');
+      
+      // Set abort flag in message
+      setMessages(prev => 
+        prev.map(m => {
+          if (m.id === assistantMessageId) {
+            console.log('🔴 Setting isDeepResearchAborted=true due to abort event for message:', m.id);
+            return {
+              ...m,
+              isDeepResearchAborted: true
+            };
+          }
+          return m;
+        })
+      );
+      
+      // Clean up all states immediately
+      console.log('🔴 Cleaning up streaming states after abort');
+      if (setIsStreaming) setIsStreaming(false);
+      if (setStreamingMessageId) setStreamingMessageId(null);
+      if (setIsSubmitting) setIsSubmitting(false);
+      if (isSubmittingRef) isSubmittingRef.current = false;
+      if (streamingInProgress) streamingInProgress.current = false;
+      
+      // Remove from deep research in progress
+      if (deepResearchInProgress) {
+        deepResearchInProgress.current.delete(assistantMessageId);
+      }
+    });
+  }
+  
   // Validate required parameters
   if (!setMessages) return;
+  
+  // Check if already aborted at start
+  if (abortSignal?.aborted) {
+    console.log('🔴 Deep research was aborted before starting - setting abort flag');
+    setMessages(prev => 
+      prev.map(m => {
+        if (m.id === assistantMessageId) {
+          console.log('🔴 Setting isDeepResearchAborted=true for message:', m.id);
+          return {
+            ...m,
+            isDeepResearchAborted: true
+          };
+        }
+        return m;
+      })
+    );
+    return;
+  }
   
   // Load translations (chat module)
   const language = getStoredLanguage();
@@ -84,7 +138,19 @@ export const handleParallelDeepResearch = async (
           try {
             // Check if operation was aborted before making API call
             if (abortSignal?.aborted) {
-              throw new Error('Deep research was aborted');
+              console.log('Deep research subquestion analysis was aborted before API call');
+              // Set abort flag in message
+              setMessages(prev => 
+                prev.map(m => 
+                  m.id === assistantMessageId 
+                    ? { 
+                        ...m,
+                        isDeepResearchAborted: true
+                      }
+                    : m
+                )
+              );
+              return null;
             }
             
             const response = await fetchWithTimeout(`/api/deepresearch/subquestion-analysis`, {
@@ -138,6 +204,23 @@ export const handleParallelDeepResearch = async (
             };
           } catch (error) {
             lastError = error instanceof Error ? error : new Error(String(error));
+            
+            // If it's an abort error, log and return gracefully without retry
+            if (lastError.message.includes('aborted')) {
+              console.log('Deep research subquestion analysis was aborted');
+              // Set abort flag in message
+              setMessages(prev => 
+                prev.map(m => 
+                  m.id === assistantMessageId 
+                    ? { 
+                        ...m,
+                        isDeepResearchAborted: true
+                      }
+                    : m
+                )
+              );
+              return null;
+            }
             
             // If not last attempt, wait and retry
             if (attempt < maxRetries) {
@@ -197,7 +280,19 @@ export const handleParallelDeepResearch = async (
       try {
         // Check if operation was aborted before making API call
         if (abortSignal?.aborted) {
-          throw new Error('Deep research was aborted');
+          console.log('Deep research synthesis was aborted before API call');
+          // Set abort flag in message
+          setMessages(prev => 
+            prev.map(m => 
+              m.id === assistantMessageId 
+                ? { 
+                    ...m,
+                    isDeepResearchAborted: true
+                  }
+                : m
+            )
+          );
+          return;
         }
         
         const synthesisResponse = await fetchWithTimeout(`/api/deepresearch/synthesis`, {
@@ -223,6 +318,23 @@ export const handleParallelDeepResearch = async (
         break; // End loop on success
       } catch (error) {
         synthesisLastError = error instanceof Error ? error : new Error(String(error));
+        
+        // If it's an abort error, log and return gracefully without retry
+        if (synthesisLastError.message.includes('aborted')) {
+          console.log('Deep research synthesis was aborted');
+          // Set abort flag in message
+          setMessages(prev => 
+            prev.map(m => 
+              m.id === assistantMessageId 
+                ? { 
+                    ...m,
+                    isDeepResearchAborted: true
+                  }
+                : m
+            )
+          );
+          return; // Exit function gracefully
+        }
         
         if (attempt < synthesisMaxRetries) {
           await new Promise(resolve => setTimeout(resolve, 3000));
@@ -266,7 +378,19 @@ export const handleParallelDeepResearch = async (
       try {
         // Check if operation was aborted before making API call
         if (abortSignal?.aborted) {
-          throw new Error('Deep research was aborted');
+          console.log('Deep research final answer was aborted before API call');
+          // Set abort flag in message
+          setMessages(prev => 
+            prev.map(m => 
+              m.id === assistantMessageId 
+                ? { 
+                    ...m,
+                    isDeepResearchAborted: true
+                  }
+                : m
+            )
+          );
+          return;
         }
         
         const finalAnswerResponse = await fetchWithTimeout(`/api/deepresearch/final-answer`, {
@@ -293,6 +417,23 @@ export const handleParallelDeepResearch = async (
         break; // End loop on success
       } catch (error) {
         finalAnswerLastError = error instanceof Error ? error : new Error(String(error));
+        
+        // If it's an abort error, log and return gracefully without retry
+        if (finalAnswerLastError.message.includes('aborted')) {
+          console.log('Deep research final answer was aborted');
+          // Set abort flag in message
+          setMessages(prev => 
+            prev.map(m => 
+              m.id === assistantMessageId 
+                ? { 
+                    ...m,
+                    isDeepResearchAborted: true
+                  }
+                : m
+            )
+          );
+          return; // Exit function gracefully
+        }
         
         if (attempt < finalAnswerMaxRetries) {
           await new Promise(resolve => setTimeout(resolve, 5000));
@@ -344,7 +485,19 @@ export const handleParallelDeepResearch = async (
       
       // Check if operation was aborted before saving
       if (abortSignal?.aborted) {
-        throw new Error('Deep research was aborted');
+        console.log('Deep research was aborted before saving');
+        // Set abort flag in message
+        setMessages(prev => 
+          prev.map(m => 
+            m.id === assistantMessageId 
+              ? { 
+                  ...m,
+                  isDeepResearchAborted: true
+                }
+              : m
+          )
+        );
+        return;
       }
       
       const saveResponse = await fetch(`/api/chat/${chatIdToUse}`, {
@@ -396,19 +549,36 @@ export const handleParallelDeepResearch = async (
   } catch (error) {
     console.error('Parallel deep research error:', error);
     
-    // Handle error
     const errorContent = error instanceof Error ? error.message : 'Unknown error occurred.';
-    setMessages(prev => 
-      prev.map(m => 
-        m.id === assistantMessageId 
-          ? { 
-              ...m,
-              content: m.content + `\n\n${lang('deepResearch.errors.parallelErrorOccurred')}: ` + errorContent,
-              hasDeepResearchError: true
-            }
-          : m
-      )
-    );
+    
+    // Check if it's an abort error - if so, don't show error message to user
+    if (errorContent.includes('aborted')) {
+      console.log('Deep research was aborted by user - cleaning up gracefully');
+      // Update message to show it was aborted (without error content)
+      setMessages(prev => 
+        prev.map(m => 
+          m.id === assistantMessageId 
+            ? { 
+                ...m,
+                isDeepResearchAborted: true
+              }
+            : m
+        )
+      );
+    } else {
+      // Handle actual errors (not abort)
+      setMessages(prev => 
+        prev.map(m => 
+          m.id === assistantMessageId 
+            ? { 
+                ...m,
+                content: m.content + `\n\n${lang('deepResearch.errors.parallelErrorOccurred')}: ` + errorContent,
+                hasDeepResearchError: true
+              }
+            : m
+        )
+      );
+    }
     
     // Clean up on error
     

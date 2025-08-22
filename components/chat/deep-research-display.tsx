@@ -814,13 +814,29 @@ export function DeepResearchDisplay({
   }
 
   // Debug: Log progress calculation
-  const completedSteps = steps.filter(s => s.status === 'completed').length
-  const totalSteps = steps.length
+  let completedSteps = steps.filter(s => s.status === 'completed').length
+  // Use plannedSteps.length as the true total, fallback to a reasonable number
+  const totalSteps = plannedSteps.length > 0 ? plannedSteps.length : Math.max(steps.length, 8)
+  
+  // If deep research is complete, mark all steps as completed
+  if (isDeepResearchComplete && completedSteps < totalSteps) {
+    completedSteps = totalSteps
+  }
   console.log('🔢 Progress calculation:', {
     completedSteps,
     totalSteps,
-    stepsDetails: steps.map(s => ({ title: s.title.substring(0, 30), status: s.status, type: s.stepType })),
-    plannedStepsCount: plannedSteps.length
+    plannedStepsCount: plannedSteps.length,
+    actualStepsCount: steps.length,
+    isComplete: isDeepResearchComplete,
+    stepsDetails: steps.map(s => ({ 
+      title: s.title.substring(0, 50), 
+      status: s.status, 
+      type: s.stepType 
+    })),
+    plannedStepsDetails: plannedSteps.map(p => ({ 
+      title: p.title?.substring(0, 50), 
+      type: p.type 
+    }))
   })
 
   return (
@@ -829,8 +845,8 @@ export function DeepResearchDisplay({
         <Brain className="w-5 h-5 text-cyan-600" />
         <span className="text-sm font-medium text-cyan-700">{lang("deepResearch.title")}</span>
         <Badge variant="outline" className="text-xs">
-          {/* Show the number of the current step in progress, not the number of completed steps */}
-          {Math.min(completedSteps + 1, totalSteps)}/{totalSteps} {lang("deepResearch.completed")}
+          {/* Show actual completed steps out of total planned steps */}
+          {completedSteps}/{plannedSteps.length > 0 ? plannedSteps.length : Math.max(steps.length, 8)} {lang("deepResearch.completed")}
         </Badge>
         {plannedSteps.length > 0 && (
           <Badge variant="outline" className="text-xs bg-blue-50 border-blue-200 text-blue-600">

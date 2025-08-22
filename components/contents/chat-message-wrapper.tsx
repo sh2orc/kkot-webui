@@ -68,6 +68,7 @@ export const ChatMessageWrapper = memo(({
           deepResearchStepType={message.deepResearchStepType}
           isDeepResearchComplete={message.isDeepResearchComplete}
           hasDeepResearchError={message.hasDeepResearchError}
+          isDeepResearchAborted={message.isDeepResearchAborted}
           deepResearchStepInfo={message.deepResearchStepInfo}
         />
       )}
