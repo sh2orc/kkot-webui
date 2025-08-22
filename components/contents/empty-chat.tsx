@@ -648,7 +648,7 @@ export default function Component({
               <div className="flex-1 flex flex-col relative w-full shadow-lg rounded-xl border border-gray-200 hover:border-gray-300 focus-within:border-gray-300 transition bg-white">
                 {/* Image previews */}
                 {imagePreviews.length > 0 && (
-                  <div className="flex flex-wrap gap-2 p-3 border-b border-gray-200">
+                  <div className="flex flex-wrap gap-2 p-3">
                     {imagePreviews.map((preview, index) => (
                       <div key={index} className="relative">
                         <img
@@ -788,7 +788,7 @@ export default function Component({
                 <div className="flex-1 flex flex-col relative w-full shadow-lg rounded-xl border border-gray-200 hover:border-gray-300 focus-within:border-gray-300 transition bg-white">
                   {/* Image previews for mobile */}
                   {imagePreviews.length > 0 && (
-                    <div className="flex flex-wrap gap-2 p-3 border-b border-gray-200">
+                    <div className="flex flex-wrap gap-2 p-3">
                       {imagePreviews.map((preview, index) => (
                         <div key={index} className="relative">
                                                   <img

@@ -73,7 +73,7 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
             </div>
           )}
           {isChatPage && (
-            <div className="flex-1 min-w-0 max-w-[200px] sm:max-w-[240px] md:max-w-xs lg:w-60">
+            <div className="flex-1 min-w-0 max-w-[200px] sm:max-w-[240px] md:max-w-[240px] lg:w-60">
               <ModelDropdown />
             </div>
           )}
