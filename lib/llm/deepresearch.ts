@@ -50,16 +50,27 @@ export class DeepResearchProcessor {
     query: string,
     context: string = "",
     onProgress?: (step: DeepResearchStep) => void,
-    onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void
+    onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void,
+    abortSignal?: AbortSignal
   ): Promise<DeepResearchResult> {
     try {
       console.log('=== Deep Research Started ===');
       console.log('Query:', query);
       
+      // Check if operation was aborted before starting
+      if (abortSignal?.aborted) {
+        throw new Error('Deep research was aborted');
+      }
+      
       // Step 1: Generate sub-questions and display immediately
       console.log('1. Generating and displaying sub-questions...');
-      const subQuestions = await this.generateSubQuestions(query, context);
+      const subQuestions = await this.generateSubQuestions(query, context, abortSignal);
       console.log('Sub-questions generated:', subQuestions);
+      
+      // Check if operation was aborted after sub-questions
+      if (abortSignal?.aborted) {
+        throw new Error('Deep research was aborted');
+      }
       
       // Pass planned steps in advance (display sub-questions first)
       const plannedSteps = [
@@ -107,30 +118,50 @@ Systematic analysis will be conducted for each question.
 
       // Step 2: Initial question analysis
       console.log('3. Starting initial query analysis...');
-      const analysisStep = await this.analyzeQuery(query, context, onStream);
+      const analysisStep = await this.analyzeQuery(query, context, onStream, abortSignal);
       console.log('Initial analysis completed:', analysisStep.title);
+
+      // Check if operation was aborted after initial analysis
+      if (abortSignal?.aborted) {
+        throw new Error('Deep research was aborted');
+      }
 
       // Step 3: Analyze each sub-question (map to individual components)
       const steps = [analysisStep];
       
       console.log('4. Starting sub-question analysis...');
       for (let i = 0; i < Math.min(subQuestions.length, this.config.maxSteps - 1); i++) {
+        // Check if operation was aborted before each sub-question
+        if (abortSignal?.aborted) {
+          throw new Error('Deep research was aborted');
+        }
+        
         const subQuestion = subQuestions[i];
         const plannedTitle = `Analysis: ${subQuestion}`;
         console.log(`4.${i+1}. Analyzing sub-question: ${plannedTitle}`);
-        const step = await this.analyzeSubQuestion(subQuestion, context, steps, onStream, plannedTitle);
+        const step = await this.analyzeSubQuestion(subQuestion, context, steps, onStream, plannedTitle, abortSignal);
         steps.push(step);
         console.log(`4.${i+1}. Sub-question analysis completed`);
       }
 
+      // Check if operation was aborted after sub-question analysis
+      if (abortSignal?.aborted) {
+        throw new Error('Deep research was aborted');
+      }
+
       // Step 4: Synthesis analysis
       console.log('5. Starting synthesis...');
-      const synthesis = await this.synthesizeFindings(query, steps, onStream);
+      const synthesis = await this.synthesizeFindings(query, steps, onStream, abortSignal);
       console.log('Synthesis completed');
+      
+      // Check if operation was aborted after synthesis
+      if (abortSignal?.aborted) {
+        throw new Error('Deep research was aborted');
+      }
       
       // Step 5: Generate final answer
       console.log('6. Generating final answer...');
-      const finalAnswer = await this.generateFinalAnswer(query, steps, synthesis, onStream);
+      const finalAnswer = await this.generateFinalAnswer(query, steps, synthesis, onStream, abortSignal);
       console.log('Final answer generated');
 
       console.log('=== Deep Research Completed ===');
@@ -227,7 +258,7 @@ Systematic analysis will be conducted for each question.
   /**
    * Initial question analysis
    */
-  private async analyzeQuery(query: string, context: string, onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void): Promise<DeepResearchStep> {
+  private async analyzeQuery(query: string, context: string, onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void, abortSignal?: AbortSignal): Promise<DeepResearchStep> {
     console.log('analyzeQuery started');
     
     const prompt = `Please analyze the following question systematically. Detect the language of the input and respond in the same language. Do not use markdown formatting or emojis in your response.
@@ -263,7 +294,17 @@ Please analyze thoroughly and systematically without using markdown or emoji for
       { role: "user", content: prompt }
     ];
 
+    // Check if operation was aborted before LLM call
+    if (abortSignal?.aborted) {
+      throw new Error('Deep research was aborted');
+    }
+
     const response = await this.llm.chat(messages);
+    
+    // Check if operation was aborted after LLM call
+    if (abortSignal?.aborted) {
+      throw new Error('Deep research was aborted');
+    }
     
     const analysisResult: DeepResearchStep = {
       id: 'analysis-query',
@@ -285,7 +326,7 @@ Please analyze thoroughly and systematically without using markdown or emoji for
   /**
    * Generate sub-questions
    */
-  private async generateSubQuestions(query: string, context: string): Promise<string[]> {
+  private async generateSubQuestions(query: string, context: string, abortSignal?: AbortSignal): Promise<string[]> {
     const trimmedQuery = query.trim();
     
     // Create more specific prompt based on query content
@@ -317,7 +358,17 @@ Now generate 3-4 sub-questions for the given query (Korean queries should be ans
     ];
 
     try {
+      // Check if operation was aborted before LLM call
+      if (abortSignal?.aborted) {
+        throw new Error('Deep research was aborted');
+      }
+      
       const response = await this.llm.chat(messages);
+      
+      // Check if operation was aborted after LLM call
+      if (abortSignal?.aborted) {
+        throw new Error('Deep research was aborted');
+      }
       
       // Parse sub-questions (one per line)
       let subQuestions = response.content
@@ -412,7 +463,8 @@ Now generate 3-4 sub-questions for the given query (Korean queries should be ans
     context: string, 
     previousSteps: DeepResearchStep[],
     onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void,
-    plannedTitle?: string
+    plannedTitle?: string,
+    abortSignal?: AbortSignal
   ): Promise<DeepResearchStep> {
     const stepTitle = plannedTitle || `Analysis: ${question}`;
     console.log(`Analyzing sub-question: ${stepTitle}`);
@@ -461,7 +513,17 @@ Please analyze thoroughly and systematically without using markdown or emoji for
       { role: "user", content: prompt }
     ];
 
+    // Check if operation was aborted before LLM call
+    if (abortSignal?.aborted) {
+      throw new Error('Deep research was aborted');
+    }
+
     const response = await this.llm.chat(messages);
+    
+    // Check if operation was aborted after LLM call
+    if (abortSignal?.aborted) {
+      throw new Error('Deep research was aborted');
+    }
     
     const analysisResult: DeepResearchStep = {
       id: `analysis-${Date.now()}`,
@@ -483,7 +545,7 @@ Please analyze thoroughly and systematically without using markdown or emoji for
   /**
    * Synthesize findings
    */
-  private async synthesizeFindings(query: string, steps: DeepResearchStep[], onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void): Promise<string> {
+  private async synthesizeFindings(query: string, steps: DeepResearchStep[], onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void, abortSignal?: AbortSignal): Promise<string> {
     console.log('synthesizeFindings started');
     
     const analysisResults = steps.map(step => 
@@ -528,7 +590,17 @@ Please synthesize thoroughly without using markdown or emoji formatting.`;
       { role: "user", content: prompt }
     ];
 
+    // Check if operation was aborted before LLM call
+    if (abortSignal?.aborted) {
+      throw new Error('Deep research was aborted');
+    }
+
     const response = await this.llm.chat(messages);
+    
+    // Check if operation was aborted after LLM call
+    if (abortSignal?.aborted) {
+      throw new Error('Deep research was aborted');
+    }
     
     // Send streaming content on completion
     if (onStream) {
@@ -545,7 +617,8 @@ Please synthesize thoroughly without using markdown or emoji formatting.`;
     query: string, 
     steps: DeepResearchStep[], 
     synthesis: string,
-    onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void
+    onStream?: (content: string, type: 'step' | 'synthesis' | 'final', stepInfo?: { title?: string, isComplete?: boolean }) => void,
+    abortSignal?: AbortSignal
   ): Promise<string> {
     const prompt = `Original Question: "${query}"
 
@@ -599,7 +672,17 @@ Remember: The entire response must be in the same language as the original quest
       onStream('', 'final', { title: 'Final Answer', isComplete: false });
     }
 
+    // Check if operation was aborted before LLM call
+    if (abortSignal?.aborted) {
+      throw new Error('Deep research was aborted');
+    }
+
     const response = await this.llm.chat(messages);
+    
+    // Check if operation was aborted after LLM call
+    if (abortSignal?.aborted) {
+      throw new Error('Deep research was aborted');
+    }
     
     // During streaming, send full content and extract markers only in final result
     if (onStream) {

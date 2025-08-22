@@ -32,7 +32,8 @@ export const handleParallelDeepResearch = async (
   setStreamingMessageId?: React.Dispatch<React.SetStateAction<string | null>>,
   setIsSubmitting?: React.Dispatch<React.SetStateAction<boolean>>,
   isSubmittingRef?: React.MutableRefObject<boolean>,
-  streamingInProgress?: React.MutableRefObject<boolean>
+  streamingInProgress?: React.MutableRefObject<boolean>,
+  abortSignal?: AbortSignal
 ) => {
   // Validate required parameters
   if (!setMessages) return;
@@ -81,6 +82,11 @@ export const handleParallelDeepResearch = async (
         
         for (let attempt = 1; attempt <= maxRetries; attempt++) {
           try {
+            // Check if operation was aborted before making API call
+            if (abortSignal?.aborted) {
+              throw new Error('Deep research was aborted');
+            }
+            
             const response = await fetchWithTimeout(`/api/deepresearch/subquestion-analysis`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -189,6 +195,11 @@ export const handleParallelDeepResearch = async (
     
     for (let attempt = 1; attempt <= synthesisMaxRetries; attempt++) {
       try {
+        // Check if operation was aborted before making API call
+        if (abortSignal?.aborted) {
+          throw new Error('Deep research was aborted');
+        }
+        
         const synthesisResponse = await fetchWithTimeout(`/api/deepresearch/synthesis`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -253,6 +264,11 @@ export const handleParallelDeepResearch = async (
     
     for (let attempt = 1; attempt <= finalAnswerMaxRetries; attempt++) {
       try {
+        // Check if operation was aborted before making API call
+        if (abortSignal?.aborted) {
+          throw new Error('Deep research was aborted');
+        }
+        
         const finalAnswerResponse = await fetchWithTimeout(`/api/deepresearch/final-answer`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -324,6 +340,11 @@ export const handleParallelDeepResearch = async (
       if (!chatIdToUse) {
         console.error('Chat ID is invalid. Skipping final answer save.');
         return; // Early return to avoid further processing
+      }
+      
+      // Check if operation was aborted before saving
+      if (abortSignal?.aborted) {
+        throw new Error('Deep research was aborted');
       }
       
       const saveResponse = await fetch(`/api/chat/${chatIdToUse}`, {

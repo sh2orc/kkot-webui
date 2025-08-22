@@ -76,6 +76,9 @@ export async function POST(request: NextRequest) {
       language: 'ko'
     });
 
+    // Create AbortController for this request
+    const abortController = new AbortController();
+    
     // Generate streaming response
     const stream = new ReadableStream({
       async start(controller) {
@@ -109,7 +112,7 @@ export async function POST(request: NextRequest) {
         // Generate and register request processing Promise
         const processingPromise = (async () => {
           try {
-            // Execute deep research
+            // Execute deep research with abort signal
             const result = await processor.performDeepResearch(
               query,
               context,
@@ -127,7 +130,8 @@ export async function POST(request: NextRequest) {
                     })}\n\n`
                   )
                 );
-              }
+              },
+              abortController.signal
             );
 
             // Send final result (with markers extracted) after deep research completion
@@ -169,6 +173,14 @@ export async function POST(request: NextRequest) {
 
         // Start processing
         await processingPromise;
+      },
+      
+      cancel(reason) {
+        console.log('ReadableStream cancelled:', reason);
+        // Abort the deep research when stream is cancelled
+        abortController.abort(reason);
+        // Remove from active requests
+        activeRequests.delete(requestKey);
       }
     });
 

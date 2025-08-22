@@ -281,7 +281,7 @@ export const ChatInput = memo(function ChatInput({
                 size="icon"
                 className={`absolute right-0 bottom-2 sm:bottom-3 h-6 w-6 sm:h-9 sm:w-9 rounded-full text-white bg-black hover:bg-gray-800 hover:text-white touch-manipulation`}
                 onClick={isStreaming ? handleAbort : handleSubmitClick}
-                disabled={!isStreaming && (!inputValue.trim() && uploadedImages.length === 0) || isSubmitting}
+                disabled={isStreaming ? false : ((!inputValue.trim() && uploadedImages.length === 0) || isSubmitting)}
               >
                 {isStreaming ? (
                   <Square className="h-4 w-4" />
