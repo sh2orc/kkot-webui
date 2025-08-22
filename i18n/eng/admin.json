@@ -59,6 +59,10 @@
       "api": {
         "label": "API Management",
         "description": "External API access and OpenAI compatible service settings"
+      },
+      "rag": {
+        "label": "RAG Knowledge Base",
+        "description": "Build knowledge-based search systems by managing vector databases and documents"
       }
     },
     "systemStatus": {
@@ -83,6 +87,7 @@
     "audio": "Audio",
     "pipeline": "Pipeline",
     "database": "Database",
-    "api": "API"
+    "api": "API",
+    "rag": "RAG"
   }
 } 

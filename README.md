@@ -6,7 +6,7 @@
 
 **A Universal Web Interface for Multiple LLM Services**
 
-KKOT WebUI is an open-source project that provides an intuitive and user-friendly web interface for various Large Language Model (LLM) services including OpenAI, Gemini, Ollama, vLLM, and more.
+KKOT WebUI is an open-source project that provides an intuitive and user-friendly web interface for various Large Language Model (LLM) services including OpenAI, Gemini, Ollama, vLLM, and more. It features a comprehensive RAG (Retrieval-Augmented Generation) system for knowledge-based search and document processing.
 
 <!--  
   ⚠️ GitHub에서 이미지가 깨질 경우,  
@@ -51,6 +51,7 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Multimodal**: Image processing capabilities
 - **Deep Research**: Advanced multi-step analysis system with parallel processing
 - **Research Engine**: Systematic question decomposition and synthesis capabilities
+- **RAG System**: Knowledge-based search with vector databases and document processing
 
 ### State Management & Context
 - **State Management**: React Context API with hierarchical provider structure
@@ -105,6 +106,19 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Scroll Optimization**: Smooth scrolling with content-visibility and CSS containment
 - **Memory Management**: Efficient handling of long conversations with virtual scrolling techniques
 - **Deep Research Integration**: Seamless integration with advanced research capabilities for complex queries
+- **RAG Integration**: Knowledge-based responses using vector search and document retrieval
+
+### 📚 RAG (Retrieval-Augmented Generation) System
+- **Multi-Vector Database Support**: ChromaDB, pgvector, Faiss integration with unified interface
+- **Document Processing**: PDF, Word, PowerPoint, Text, HTML, Markdown, CSV, JSON support
+- **Advanced Chunking**: Fixed-size, sentence, paragraph, sliding window, and semantic chunking strategies
+- **Data Cleansing**: Basic and LLM-powered text cleaning with customizable rules
+- **Embedding Management**: OpenAI embedding models with dedicated API key support
+- **Collection Management**: Create and manage document collections with metadata
+- **Batch Processing**: Asynchronous document processing with progress tracking
+- **Search Capabilities**: Semantic search with similarity scoring and filtering
+- **Admin Interface**: Complete GUI for vector store, collection, and document management
+- **Cost Optimization**: Separate embedding API keys for cost tracking and rate limit management
 
 ### 🤖 Agent Management
 - **Custom AI Agents**: Create and manage personalized AI agents with specific configurations
@@ -120,6 +134,7 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Connection Management**: Multiple API server management for OpenAI, Gemini, Ollama, vLLM
 - **Model Configuration**: Model selection, token limits, temperature settings, multimodal capabilities
 - **Agent Management**: Create, edit, and delete custom AI agents with image upload
+- **RAG Management**: Vector database configuration, collection management, document processing
 - **API Management**: OpenAI-compatible API endpoints with rate limiting and usage tracking
 - **MCP Integration**: Model Context Protocol support
 - **Evaluation Tools**: Model performance evaluation features
@@ -211,6 +226,12 @@ DATABASE_URL=file:./kkot.db
 # LLM API Keys (Optional)
 OPENAI_API_KEY=your-openai-api-key
 GOOGLE_API_KEY=your-google-api-key
+
+# RAG System Configuration (Optional)
+EMBEDDING_API_KEY=your-embedding-api-key  # Dedicated for embeddings (recommended)
+CHROMA_URL=http://localhost:8000          # ChromaDB server
+PGVECTOR_URL=postgresql://user:password@localhost:5432/vectordb  # pgvector database
+FAISS_DATA_PATH=./data/faiss              # Faiss data directory
 ```
 
 4. **Database Migration**
@@ -290,6 +311,40 @@ npm run start
 - **Purpose**: API usage tracking and analytics
 - **Key Fields**: id, apiKeyId, endpoint, method, statusCode, tokensUsed, responseTime
 
+### RAG System Tables
+
+#### RAG Vector Stores
+- **Purpose**: Vector database connection management
+- **Key Fields**: id, name, type, connectionString, apiKey, enabled, isDefault
+- **Relationships**: One-to-many with collections
+
+#### RAG Collections
+- **Purpose**: Document collection management within vector stores
+- **Key Fields**: id, vectorStoreId, name, embeddingModel, dimensions, isActive
+- **Relationships**: Many-to-one with vector stores, one-to-many with documents
+
+#### RAG Documents
+- **Purpose**: Uploaded document metadata and processing status
+- **Key Fields**: id, collectionId, filename, fileType, contentType, processingStatus
+- **Relationships**: Many-to-one with collections, one-to-many with chunks
+
+#### RAG Document Chunks
+- **Purpose**: Text chunks with embeddings for semantic search
+- **Key Fields**: id, documentId, chunkIndex, content, embeddingVector, metadata
+- **Relationships**: Many-to-one with documents
+
+#### RAG Chunking Strategies
+- **Purpose**: Text chunking configuration templates
+- **Key Fields**: id, name, type, chunkSize, chunkOverlap, customRules
+
+#### RAG Cleansing Configs
+- **Purpose**: Data cleansing rule configurations
+- **Key Fields**: id, name, llmModelId, cleansingPrompt, removeHeaders, customRules
+
+#### RAG Batch Jobs
+- **Purpose**: Asynchronous document processing job tracking
+- **Key Fields**: id, jobType, collectionId, status, totalItems, processedItems
+
 ## 📁 Project Structure
 
 ```
@@ -302,6 +357,7 @@ kkot-webui/
 │   │   ├── connection/    # API connections
 │   │   ├── model/         # Model management
 │   │   ├── agent/         # Agent management
+│   │   ├── rag/           # RAG management
 │   │   ├── api/           # API management
 │   │   ├── mcp/           # MCP integration
 │   │   ├── evaluation/    # Model evaluation
@@ -318,6 +374,13 @@ kkot-webui/
 │   │   ├── llm-servers/   # LLM server management API
 │   │   ├── llm-models/    # LLM model management API
 │   │   ├── chat/          # Chat API with streaming
+│   │   ├── rag/           # RAG system API endpoints
+│   │   │   ├── vector-stores/      # Vector database management
+│   │   │   ├── collections/        # Collection management
+│   │   │   ├── documents/          # Document upload and processing
+│   │   │   ├── search/             # Semantic search
+│   │   │   ├── chunking-strategies/ # Chunking configuration
+│   │   │   └── cleansing-configs/  # Data cleansing settings
 │   │   ├── deepresearch/  # Deep Research API endpoints
 │   │   │   ├── query-analysis/     # Initial query analysis
 │   │   │   ├── subquestions/       # Sub-question generation
@@ -352,6 +415,24 @@ kkot-webui/
 │   │   ├── ollama.ts      # Ollama integration
 │   │   ├── vllm.ts        # vLLM integration
 │   │   └── deepresearch.ts # Deep Research processing logic
+│   ├── rag/               # RAG system
+│   │   ├── vectordb/      # Vector database wrapper
+│   │   │   ├── base.ts    # Base vector store class
+│   │   │   ├── chromadb.ts # ChromaDB implementation
+│   │   │   ├── pgvector.ts # pgvector implementation
+│   │   │   ├── faiss.ts   # Faiss implementation
+│   │   │   └── factory.ts # Vector store factory
+│   │   ├── embedding/     # Embedding management
+│   │   │   ├── openai.ts  # OpenAI embeddings
+│   │   │   └── factory.ts # Embedding provider factory
+│   │   ├── document/      # Document processing
+│   │   │   ├── processor.ts # Document text extraction
+│   │   │   ├── service.ts # Document processing service
+│   │   │   └── chunking/  # Text chunking strategies
+│   │   └── cleansing/     # Data cleansing
+│   │       ├── base.ts    # Basic text cleaning
+│   │       ├── llm.ts     # LLM-powered cleaning
+│   │       └── service.ts # Cleansing service
 │   ├── i18n.ts            # Client-side internationalization
 │   └── i18n-server.ts     # Server-side internationalization
 ├── i18n/                  # Translation files
@@ -410,6 +491,14 @@ NEXTAUTH_URL=http://localhost:3000
 # LLM API Keys
 OPENAI_API_KEY=your-openai-key
 GOOGLE_API_KEY=your-google-key
+
+# RAG System API Keys
+EMBEDDING_API_KEY=your-embedding-api-key  # Dedicated for embeddings (recommended)
+
+# Vector Database Configuration
+CHROMA_URL=http://localhost:8000
+PGVECTOR_URL=postgresql://user:password@localhost:5432/vectordb
+FAISS_DATA_PATH=./data/faiss
 ```
 
 ## 🛡️ Security Features
@@ -487,6 +576,29 @@ POST /api/deepresearch/subquestion-analysis
 POST /api/deepresearch/synthesis
 # Generate final answer
 POST /api/deepresearch/final-answer
+```
+
+#### RAG System API
+```bash
+# Vector store management
+POST /api/rag/vector-stores
+GET /api/rag/vector-stores
+PUT /api/rag/vector-stores/{id}
+DELETE /api/rag/vector-stores/{id}
+
+# Collection management
+POST /api/rag/collections
+GET /api/rag/collections
+PUT /api/rag/collections/{id}
+DELETE /api/rag/collections/{id}
+
+# Document management
+POST /api/rag/documents
+GET /api/rag/documents
+DELETE /api/rag/documents/{id}
+
+# Semantic search
+POST /api/rag/search
 ```
 
 #### Chat Management

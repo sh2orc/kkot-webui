@@ -37,6 +37,16 @@ KKOT WebUI is a universal web interface for various LLM services (OpenAI, Gemini
 - **Factory Pattern**: Provider management via LLMFactory
 - **Deep Research**: Advanced multi-step analysis system with DeepResearchProcessor
 - **Research Architecture**: Modular step-by-step processing with streaming support
+- **RAG System**: Retrieval-Augmented Generation with vector databases and document processing
+
+### RAG (Retrieval-Augmented Generation) Integration
+- **Vector Databases**: ChromaDB, pgvector, Faiss support via unified wrapper library
+- **Document Processing**: PDF, Word, PowerPoint, Text, HTML, Markdown, CSV, JSON support
+- **Embedding Providers**: OpenAI embedding models with dedicated API key management
+- **Text Chunking**: Multiple strategies (fixed-size, sentence, paragraph, sliding-window, semantic)
+- **Data Cleansing**: Basic and LLM-powered text cleaning with customizable rules
+- **Batch Processing**: Asynchronous document processing with progress tracking
+- **Semantic Search**: Vector similarity search with filtering and scoring
 
 ### State Management & Context
 - **State Management**: React Context API
@@ -307,6 +317,13 @@ API Connections (1) → (N) Model Settings (deprecated)
   - `apiKeysRepository`: API key management with rate limiting
   - `apiUsageRepository`: API usage tracking and analytics
   - `adminSettingsRepository`: System settings and configuration
+  - `ragVectorStoreRepository`: Vector database connection management
+  - `ragCollectionRepository`: Document collection operations
+  - `ragDocumentRepository`: Document metadata and content management
+  - `ragDocumentChunkRepository`: Text chunk and embedding management
+  - `ragChunkingStrategyRepository`: Chunking strategy configuration
+  - `ragCleansingConfigRepository`: Data cleansing configuration
+  - `ragBatchJobRepository`: Batch processing job tracking
 
 #### Key Repository Features
 - **Type Safety**: Leverages Drizzle ORM type inference
@@ -314,6 +331,112 @@ API Connections (1) → (N) Model Settings (deprecated)
 - **Cascade Operations**: Proper foreign key relationships
 - **ID Generation**: Custom ID generation for consistent formatting
 - **Multi-DB Support**: Handles both SQLite and PostgreSQL
+
+### RAG System Tables
+
+#### 16. RAG Vector Stores (`rag_vector_stores`)
+- **Purpose**: Vector database connection management and configuration
+- **Fields**:
+  - `id`: Primary key
+  - `name`: Vector store name
+  - `type`: Vector store type ('chromadb', 'pgvector', 'faiss')
+  - `connectionString`: Database connection string
+  - `apiKey`: API key for the vector database service
+  - `settings`: JSON string for provider-specific settings
+  - `enabled`: Boolean flag for store availability
+  - `isDefault`: Default vector store flag
+  - `createdAt`, `updatedAt`: Timestamps
+- **Relationships**: One-to-many with rag_collections
+
+#### 17. RAG Collections (`rag_collections`)
+- **Purpose**: Document collection management within vector stores
+- **Fields**:
+  - `id`: Primary key
+  - `vectorStoreId`: Foreign key to rag_vector_stores
+  - `name`: Collection name
+  - `description`: Collection description
+  - `embeddingModel`: Embedding model used ('text-embedding-ada-002', etc.)
+  - `dimensions`: Embedding dimensions
+  - `distance`: Distance metric ('cosine', 'euclidean', 'dot')
+  - `isActive`: Active collection flag
+  - `createdAt`, `updatedAt`: Timestamps
+- **Relationships**: Many-to-one with vector stores, one-to-many with documents
+
+#### 18. RAG Documents (`rag_documents`)
+- **Purpose**: Uploaded document metadata and processing status
+- **Fields**:
+  - `id`: Primary key
+  - `collectionId`: Foreign key to rag_collections
+  - `filename`: Original file name
+  - `fileType`: File extension (.pdf, .docx, .txt, etc.)
+  - `contentType`: MIME type
+  - `fileSize`: File size in bytes
+  - `content`: Extracted text content
+  - `processingStatus`: Processing status ('pending', 'processing', 'completed', 'failed')
+  - `errorMessage`: Error message if processing failed
+  - `chunkCount`: Number of chunks created from this document
+  - `metadata`: JSON string for additional metadata
+  - `createdAt`, `updatedAt`: Timestamps
+- **Relationships**: Many-to-one with collections, one-to-many with chunks
+
+#### 19. RAG Document Chunks (`rag_document_chunks`)
+- **Purpose**: Text chunks with embeddings for semantic search
+- **Fields**:
+  - `id`: Primary key
+  - `documentId`: Foreign key to rag_documents
+  - `chunkIndex`: Index within the document
+  - `content`: Chunk text content
+  - `embeddingVector`: Embedding vector (JSON array or vector type)
+  - `metadata`: JSON string for chunk-specific metadata
+  - `createdAt`: Timestamp
+- **Relationships**: Many-to-one with documents
+
+#### 20. RAG Chunking Strategies (`rag_chunking_strategies`)
+- **Purpose**: Text chunking configuration templates
+- **Fields**:
+  - `id`: Primary key
+  - `name`: Strategy name
+  - `type`: Chunking type ('fixed_size', 'sentence', 'paragraph', 'sliding_window', 'semantic')
+  - `chunkSize`: Chunk size in characters/tokens
+  - `chunkOverlap`: Overlap size between chunks
+  - `separator`: Text separator pattern
+  - `customRules`: JSON string for custom chunking rules
+  - `isDefault`: Default strategy flag
+  - `createdAt`, `updatedAt`: Timestamps
+
+#### 21. RAG Cleansing Configs (`rag_cleansing_configs`)
+- **Purpose**: Data cleansing rule configurations
+- **Fields**:
+  - `id`: Primary key
+  - `name`: Configuration name
+  - `llmModelId`: Foreign key to llm_models for LLM-based cleansing
+  - `cleansingPrompt`: LLM prompt for data cleansing
+  - `removeHeaders`: Remove header/footer flag
+  - `removeFooters`: Remove footer text flag
+  - `fixEncoding`: Fix text encoding issues flag
+  - `normalizeWhitespace`: Normalize whitespace flag
+  - `removeEmptyLines`: Remove empty lines flag
+  - `customRules`: JSON string for custom cleansing rules
+  - `isDefault`: Default configuration flag
+  - `createdAt`, `updatedAt`: Timestamps
+- **Relationships**: Many-to-one with llm_models (optional)
+
+#### 22. RAG Batch Jobs (`rag_batch_jobs`)
+- **Purpose**: Asynchronous document processing job tracking
+- **Fields**:
+  - `id`: Primary key
+  - `jobType`: Job type ('document_processing', 'embedding_generation', 'index_rebuild')
+  - `collectionId`: Foreign key to rag_collections (optional)
+  - `status`: Job status ('pending', 'running', 'completed', 'failed', 'cancelled')
+  - `totalItems`: Total number of items to process
+  - `processedItems`: Number of processed items
+  - `failedItems`: Number of failed items
+  - `startedAt`: Job start timestamp
+  - `completedAt`: Job completion timestamp
+  - `errorMessage`: Error message if job failed
+  - `metadata`: JSON string for job-specific metadata
+  - `createdAt`, `updatedAt`: Timestamps
+- **Relationships**: Many-to-one with collections (optional)
 
 ### Migration System
 
@@ -323,6 +446,7 @@ API Connections (1) → (N) Model Settings (deprecated)
 - **0002_llm_models.sql**: LLM model configuration with server relationships and capabilities
 - **0003_agent_manage.sql**: Agent management system with multimodal, deep research, and web search support
 - **0004_api_management.sql**: API management, API keys, and usage tracking system
+- **0005_rag_system.sql**: RAG system tables for vector databases, collections, documents, chunks, strategies, and batch jobs
 
 #### Migration Process
 - **Automatic**: Runs on application startup
@@ -797,6 +921,8 @@ app/                    # Next.js App Router
 │   ├── connection/    # API connections
 │   ├── model/         # Model management
 │   ├── agent/         # Agent management
+│   ├── rag/           # RAG system management
+│   │   └── components/ # RAG-specific UI components
 │   ├── api/           # API management
 │   ├── mcp/           # MCP integration
 │   ├── evaluation/    # Model evaluation
@@ -813,6 +939,13 @@ app/                    # Next.js App Router
 │   ├── llm-servers/   # LLM server management API
 │   ├── llm-models/    # LLM model management API
 │   ├── chat/          # Chat API with streaming
+│   ├── rag/           # RAG system API endpoints
+│   │   ├── vector-stores/      # Vector database management API
+│   │   ├── collections/        # Collection management API
+│   │   ├── documents/          # Document upload and processing API
+│   │   ├── search/             # Semantic search API
+│   │   ├── chunking-strategies/ # Chunking configuration API
+│   │   └── cleansing-configs/  # Data cleansing settings API
 │   ├── deepresearch/  # Deep Research API endpoints
 │   │   ├── query-analysis/     # Initial query analysis endpoint
 │   │   ├── subquestions/       # Sub-question generation endpoint
@@ -858,13 +991,53 @@ lib/                   # Utilities and configuration
 │   ├── ollama.ts      # Ollama integration
 │   ├── vllm.ts        # vLLM integration
 │   └── deepresearch.ts # Deep Research processing logic and utilities
+├── rag/               # RAG system (Retrieval-Augmented Generation)
+│   ├── vectordb/      # Vector database wrapper library
+│   │   ├── types.ts   # Vector store interfaces and types
+│   │   ├── base.ts    # Base vector store class
+│   │   ├── chromadb.ts # ChromaDB implementation
+│   │   ├── pgvector.ts # pgvector implementation
+│   │   ├── faiss.ts   # Faiss implementation
+│   │   ├── factory.ts # Vector store factory
+│   │   └── index.ts   # Main exports
+│   ├── embedding/     # Embedding provider management
+│   │   ├── types.ts   # Embedding provider interfaces
+│   │   ├── openai.ts  # OpenAI embeddings implementation
+│   │   ├── factory.ts # Embedding provider factory
+│   │   └── index.ts   # Main exports
+│   ├── document/      # Document processing and chunking
+│   │   ├── types.ts   # Document processing types
+│   │   ├── processor.ts # Document text extraction
+│   │   ├── service.ts # Document processing service
+│   │   ├── chunking/  # Text chunking strategies
+│   │   │   ├── base.ts # Base chunking class
+│   │   │   ├── fixed-size.ts # Fixed-size chunking
+│   │   │   ├── sentence.ts # Sentence-based chunking
+│   │   │   ├── paragraph.ts # Paragraph-based chunking
+│   │   │   ├── sliding-window.ts # Sliding window chunking
+│   │   │   ├── factory.ts # Chunking strategy factory
+│   │   │   └── index.ts # Main exports
+│   │   └── index.ts   # Main exports
+│   ├── cleansing/     # Data cleansing modules
+│   │   ├── types.ts   # Cleansing types and interfaces
+│   │   ├── base.ts    # Basic text cleaning rules
+│   │   ├── llm.ts     # LLM-powered data cleansing
+│   │   ├── service.ts # Cleansing service
+│   │   └── index.ts   # Main exports
+│   └── index.ts       # RAG system main exports
 ├── i18n.ts            # Client-side internationalization
 └── i18n-server.ts     # Server-side internationalization
 
 hooks/                 # Custom React hooks
 i18n/                  # Internationalization translation files
 ├── eng/               # English translations
+│   ├── admin.rag.json # RAG system translations
+│   ├── admin.json     # Admin panel translations
+│   └── [other modules]
 └── kor/               # Korean translations
+    ├── admin.rag.json # RAG system translations
+    ├── admin.json     # Admin panel translations
+    └── [other modules]
 scripts/               # Utility scripts (migrations, etc.)
 ```
 
@@ -1055,7 +1228,23 @@ const MessageWrapper = memo(({ message, ...props }) => {
 ### Environment Variable Management
 - **DB Settings**: `DB_TYPE`, `DATABASE_URL`
 - **API Keys**: `OPENAI_API_KEY`, `GOOGLE_API_KEY`, etc.
+- **RAG System**: `EMBEDDING_API_KEY`, `CHROMA_URL`, `PGVECTOR_URL`, `FAISS_DATA_PATH`
 - **JWT**: Token secret management
+
+#### RAG Environment Variables
+```bash
+# Embedding API Key (Dedicated for embeddings - recommended)
+EMBEDDING_API_KEY=sk-your-embedding-api-key
+
+# Vector Database Configuration
+CHROMA_URL=http://localhost:8000                      # ChromaDB server URL
+PGVECTOR_URL=postgresql://user:password@localhost:5432/vectordb  # pgvector connection
+FAISS_DATA_PATH=./data/faiss                          # Faiss data directory
+
+# Vector Database API Keys (if required)
+CHROMA_API_KEY=your-chroma-api-key
+PGVECTOR_API_KEY=your-pgvector-api-key
+```
 
 ## Security Considerations
 - **Authentication**: NextAuth JWT-based authentication with secure session management
@@ -1112,6 +1301,292 @@ await apiUsageRepository.create({
   responseTimeMs: 850
 });
 ```
+
+### 15. RAG System Development Rules
+
+#### RAG Architecture Overview
+- **Vector Database Abstraction**: Unified interface for ChromaDB, pgvector, and Faiss
+- **Document Pipeline**: Upload → Extract → Clean → Chunk → Embed → Store
+- **Search Pipeline**: Query → Embed → Search → Rank → Return
+- **Batch Processing**: Asynchronous processing with progress tracking
+- **Cost Optimization**: Dedicated embedding API key for cost separation
+
+#### Vector Database Rules
+
+##### 1. Vector Store Factory Pattern
+```typescript
+// Vector store creation via factory
+import { VectorStoreFactory } from '@/lib/rag/vectordb/factory';
+
+const vectorStore = VectorStoreFactory.create({
+  type: 'chromadb',
+  connectionString: process.env.CHROMA_URL,
+  apiKey: process.env.CHROMA_API_KEY,
+  settings: { /* provider-specific settings */ }
+});
+```
+
+##### 2. Vector Store Implementation Rules
+- **Base Class**: All vector stores inherit from `BaseVectorStore`
+- **Interface Consistency**: Unified methods across all providers
+- **Error Handling**: Provider-specific error handling with fallbacks
+- **Connection Management**: Automatic connection pooling and retry logic
+
+```typescript
+// Base vector store interface
+export abstract class BaseVectorStore {
+  abstract createCollection(name: string, options: CollectionOptions): Promise<void>;
+  abstract deleteCollection(name: string): Promise<void>;
+  abstract addDocuments(collectionName: string, documents: Document[]): Promise<void>;
+  abstract search(collectionName: string, query: string, options: SearchOptions): Promise<SearchResult[]>;
+}
+```
+
+#### Document Processing Rules
+
+##### 1. Document Processor
+- **File Type Support**: PDF, Word, PowerPoint, Text, HTML, Markdown, CSV, JSON
+- **Text Extraction**: Provider-specific extractors for each file type
+- **Error Handling**: Graceful fallbacks for unsupported formats
+- **Metadata Preservation**: Extract and preserve document metadata
+
+```typescript
+// Document processing example
+import { DocumentProcessor } from '@/lib/rag/document/processor';
+
+const processor = new DocumentProcessor();
+const extractedText = await processor.extractText(file, {
+  preserveFormatting: true,
+  extractMetadata: true
+});
+```
+
+##### 2. Text Chunking Strategies
+- **Strategy Pattern**: Pluggable chunking strategies
+- **Configurable Parameters**: Chunk size, overlap, separators
+- **Context Preservation**: Maintain document context across chunks
+
+```typescript
+// Chunking strategy usage
+import { ChunkingStrategyFactory } from '@/lib/rag/document/chunking/factory';
+
+const chunker = ChunkingStrategyFactory.create({
+  type: 'sliding_window',
+  chunkSize: 1000,
+  chunkOverlap: 200,
+  separator: '\n\n'
+});
+
+const chunks = await chunker.chunkText(text);
+```
+
+##### 3. Data Cleansing Rules
+- **Basic Cleansing**: Header/footer removal, encoding fixes, whitespace normalization
+- **LLM Cleansing**: AI-powered text refinement with custom prompts
+- **Configurable Rules**: User-defined cleansing configurations
+
+```typescript
+// Data cleansing example
+import { CleansingService } from '@/lib/rag/cleansing/service';
+
+const cleansingService = new CleansingService();
+const cleanedText = await cleansingService.cleanText(rawText, {
+  removeHeaders: true,
+  removeFooters: true,
+  llmModel: 'gpt-4',
+  customPrompt: 'Clean and improve the following text...'
+});
+```
+
+#### Embedding Management Rules
+
+##### 1. Embedding Provider
+- **Dedicated API Key**: Use `EMBEDDING_API_KEY` for embedding operations
+- **Cost Tracking**: Separate embedding costs from general LLM usage
+- **Model Support**: Support for all OpenAI embedding models
+
+```typescript
+// Embedding generation
+import { EmbeddingProviderFactory } from '@/lib/rag/embedding/factory';
+
+const embeddingProvider = EmbeddingProviderFactory.create({
+  provider: 'openai',
+  model: 'text-embedding-ada-002',
+  apiKey: process.env.EMBEDDING_API_KEY || process.env.OPENAI_API_KEY
+});
+
+const embeddings = await embeddingProvider.generateEmbeddings(['text1', 'text2']);
+```
+
+##### 2. Environment Variable Hierarchy
+- **Primary**: `EMBEDDING_API_KEY` for embedding operations
+- **Fallback**: `OPENAI_API_KEY` if dedicated key not available
+- **Cost Separation**: Enables separate billing and rate limit management
+
+#### RAG API Development Rules
+
+##### 1. API Endpoint Structure
+- **RESTful Design**: Consistent REST API patterns
+- **Authentication**: NextAuth session validation required
+- **Error Handling**: Comprehensive error responses with proper status codes
+- **Input Validation**: Zod schema validation for all endpoints
+
+```typescript
+// RAG API endpoint example
+export async function POST(request: NextRequest) {
+  try {
+    // Authentication check
+    const session = await getServerSession(authOptions);
+    if (!session?.user?.email) {
+      return NextResponse.json({ error: 'Authentication required' }, { status: 401 });
+    }
+
+    // Input validation
+    const body = await request.json();
+    const validatedData = ragSchema.parse(body);
+
+    // Business logic
+    const result = await processRAGRequest(validatedData);
+
+    return NextResponse.json({ data: result });
+  } catch (error) {
+    console.error('RAG API error:', error);
+    return NextResponse.json({ error: 'Processing failed' }, { status: 500 });
+  }
+}
+```
+
+##### 2. API Endpoints
+- **Vector Stores**: `/api/rag/vector-stores` - CRUD operations
+- **Collections**: `/api/rag/collections` - Collection management
+- **Documents**: `/api/rag/documents` - Document upload and processing
+- **Search**: `/api/rag/search` - Semantic search queries
+- **Chunking**: `/api/rag/chunking-strategies` - Chunking configuration
+- **Cleansing**: `/api/rag/cleansing-configs` - Data cleansing settings
+
+#### RAG UI Development Rules
+
+##### 1. Admin Interface Components
+- **Modular Design**: Separate components for each RAG feature
+- **State Management**: React Hook Form + Zod validation
+- **Real-time Updates**: Immediate reflection of changes
+- **Progress Tracking**: Visual progress indicators for batch operations
+
+```typescript
+// RAG component example
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+
+const VectorStoreForm = ({ onSave }: { onSave: () => void }) => {
+  const form = useForm<VectorStoreFormData>({
+    resolver: zodResolver(vectorStoreSchema),
+  });
+
+  const onSubmit = async (data: VectorStoreFormData) => {
+    try {
+      await fetch('/api/rag/vector-stores', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      });
+      onSave();
+    } catch (error) {
+      console.error('Save failed:', error);
+    }
+  };
+
+  return <Form {...form}>{/* Form components */}</Form>;
+};
+```
+
+##### 2. Document Management UI
+- **File Upload**: Drag-and-drop interface with progress indicators
+- **Processing Status**: Real-time status updates for document processing
+- **Document Viewer**: Preview and manage uploaded documents
+- **Batch Operations**: Bulk document upload and processing
+
+#### RAG Database Rules
+
+##### 1. Repository Pattern Usage
+- **RAG Repositories**: Use dedicated RAG repositories for data access
+- **Transaction Support**: Use transactions for multi-table operations
+- **Type Safety**: Leverage Drizzle ORM type inference
+- **Error Handling**: Proper error catching and logging
+
+```typescript
+// RAG repository usage example
+import { 
+  ragVectorStoreRepository,
+  ragCollectionRepository,
+  ragDocumentRepository 
+} from '@/lib/db/repository';
+
+// Create vector store with collection
+const vectorStore = await ragVectorStoreRepository.create({
+  name: 'My Vector Store',
+  type: 'chromadb',
+  connectionString: process.env.CHROMA_URL,
+  enabled: true,
+  isDefault: true
+});
+
+const collection = await ragCollectionRepository.create({
+  vectorStoreId: vectorStore.id,
+  name: 'My Collection',
+  embeddingModel: 'text-embedding-ada-002',
+  dimensions: 1536,
+  isActive: true
+});
+```
+
+##### 2. Migration Management
+- **Schema Evolution**: Use migrations for RAG table changes
+- **Data Migration**: Handle data migration for schema updates
+- **Rollback Support**: Ensure rollback capability for all migrations
+
+#### RAG Performance Optimization Rules
+
+##### 1. Embedding Optimization
+- **Batch Processing**: Process embeddings in batches for efficiency
+- **Caching**: Cache frequently used embeddings
+- **Rate Limiting**: Respect API rate limits for embedding providers
+
+##### 2. Search Optimization
+- **Vector Indexing**: Optimize vector database indexes
+- **Query Caching**: Cache search results for repeated queries
+- **Result Filtering**: Implement efficient filtering and ranking
+
+##### 3. Document Processing Optimization
+- **Parallel Processing**: Process multiple documents concurrently
+- **Memory Management**: Efficient memory usage for large documents
+- **Progress Tracking**: Provide real-time progress updates
+
+#### RAG Internationalization Rules
+
+##### 1. Translation Structure
+- **RAG Module**: Dedicated translation module `admin.rag.json`
+- **Hierarchical Keys**: Organized translation keys for RAG features
+- **Error Messages**: Translated error messages for all RAG operations
+
+```json
+// i18n/kor/admin.rag.json example
+{
+  "vectorStores": {
+    "title": "벡터 데이터베이스",
+    "create": "벡터 스토어 생성",
+    "edit": "벡터 스토어 편집"
+  },
+  "collections": {
+    "title": "컬렉션",
+    "upload": "문서 업로드"
+  }
+}
+```
+
+##### 2. Component Integration
+- **Translation Hook**: Use `useTranslation('admin.rag')` for RAG components
+- **Dynamic Loading**: Load RAG translations on-demand
+- **Fallback Handling**: Graceful fallback to default language
 
 Follow these rules to write code that aligns with the KKOT WebUI project architecture.
 

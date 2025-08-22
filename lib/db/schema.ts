@@ -396,4 +396,209 @@ export const apiUsage = getDbType() === 'sqlite'
       createdAt: timestamp('created_at').defaultNow(),
     });
 
+// RAG Vector Store Configuration table
+export const ragVectorStores = getDbType() === 'sqlite'
+  ? sqliteTable('rag_vector_stores', {
+      id: integer('id').primaryKey(),
+      name: text('name').notNull(),
+      type: text('type', { enum: ['chromadb', 'pgvector', 'faiss'] }).notNull(),
+      connectionString: text('connection_string'),
+      apiKey: text('api_key'),
+      settings: text('settings'), // JSON string for provider-specific settings
+      enabled: integer('enabled', { mode: 'boolean' }).default(true),
+      isDefault: integer('is_default', { mode: 'boolean' }).default(false),
+      createdAt: integer('created_at', { mode: 'timestamp' }),
+      updatedAt: integer('updated_at', { mode: 'timestamp' }),
+    })
+  : pgTable('rag_vector_stores', {
+      id: serial('id').primaryKey(),
+      name: varchar('name', { length: 255 }).notNull(),
+      type: varchar('type', { length: 50 }).notNull(),
+      connectionString: varchar('connection_string', { length: 500 }),
+      apiKey: varchar('api_key', { length: 255 }),
+      settings: pgText('settings'),
+      enabled: boolean('enabled').default(true),
+      isDefault: boolean('is_default').default(false),
+      createdAt: timestamp('created_at').defaultNow(),
+      updatedAt: timestamp('updated_at').defaultNow(),
+    });
+
+// RAG Collections table
+export const ragCollections = getDbType() === 'sqlite'
+  ? sqliteTable('rag_collections', {
+      id: integer('id').primaryKey(),
+      vectorStoreId: integer('vector_store_id').references(() => ragVectorStores.id, { onDelete: 'cascade' }),
+      name: text('name').notNull(),
+      description: text('description'),
+      embeddingModel: text('embedding_model').default('text-embedding-ada-002'),
+      embeddingDimensions: integer('embedding_dimensions').default(1536),
+      metadata: text('metadata'), // JSON string
+      isActive: integer('is_active', { mode: 'boolean' }).default(true),
+      createdAt: integer('created_at', { mode: 'timestamp' }),
+      updatedAt: integer('updated_at', { mode: 'timestamp' }),
+    })
+  : pgTable('rag_collections', {
+      id: serial('id').primaryKey(),
+      vectorStoreId: serial('vector_store_id').references(() => ragVectorStores.id, { onDelete: 'cascade' }),
+      name: varchar('name', { length: 255 }).notNull(),
+      description: pgText('description'),
+      embeddingModel: varchar('embedding_model', { length: 255 }).default('text-embedding-ada-002'),
+      embeddingDimensions: integer('embedding_dimensions').default(1536),
+      metadata: pgText('metadata'),
+      isActive: boolean('is_active').default(true),
+      createdAt: timestamp('created_at').defaultNow(),
+      updatedAt: timestamp('updated_at').defaultNow(),
+    });
+
+// RAG Documents table
+export const ragDocuments = getDbType() === 'sqlite'
+  ? sqliteTable('rag_documents', {
+      id: integer('id').primaryKey(),
+      collectionId: integer('collection_id').references(() => ragCollections.id, { onDelete: 'cascade' }),
+      title: text('title').notNull(),
+      filename: text('filename').notNull(),
+      fileType: text('file_type').notNull(),
+      fileSize: integer('file_size'),
+      fileHash: text('file_hash'),
+      contentType: text('content_type', { enum: ['pdf', 'docx', 'pptx', 'txt', 'html', 'markdown', 'csv', 'json'] }),
+      rawContent: text('raw_content'),
+      metadata: text('metadata'), // JSON string
+      processingStatus: text('processing_status', { enum: ['pending', 'processing', 'completed', 'failed'] }).default('pending'),
+      errorMessage: text('error_message'),
+      createdAt: integer('created_at', { mode: 'timestamp' }),
+      updatedAt: integer('updated_at', { mode: 'timestamp' }),
+    })
+  : pgTable('rag_documents', {
+      id: serial('id').primaryKey(),
+      collectionId: serial('collection_id').references(() => ragCollections.id, { onDelete: 'cascade' }),
+      title: varchar('title', { length: 255 }).notNull(),
+      filename: varchar('filename', { length: 255 }).notNull(),
+      fileType: varchar('file_type', { length: 50 }).notNull(),
+      fileSize: integer('file_size'),
+      fileHash: varchar('file_hash', { length: 255 }),
+      contentType: varchar('content_type', { length: 50 }),
+      rawContent: pgText('raw_content'),
+      metadata: pgText('metadata'),
+      processingStatus: varchar('processing_status', { length: 50 }).default('pending'),
+      errorMessage: pgText('error_message'),
+      createdAt: timestamp('created_at').defaultNow(),
+      updatedAt: timestamp('updated_at').defaultNow(),
+    });
+
+// Document Chunks table
+export const ragDocumentChunks = getDbType() === 'sqlite'
+  ? sqliteTable('rag_document_chunks', {
+      id: integer('id').primaryKey(),
+      documentId: integer('document_id').references(() => ragDocuments.id, { onDelete: 'cascade' }),
+      chunkIndex: integer('chunk_index').notNull(),
+      content: text('content').notNull(),
+      cleanedContent: text('cleaned_content'),
+      embeddingVector: text('embedding_vector'), // JSON array
+      metadata: text('metadata'), // JSON string
+      tokenCount: integer('token_count'),
+      createdAt: integer('created_at', { mode: 'timestamp' }),
+    })
+  : pgTable('rag_document_chunks', {
+      id: serial('id').primaryKey(),
+      documentId: serial('document_id').references(() => ragDocuments.id, { onDelete: 'cascade' }),
+      chunkIndex: integer('chunk_index').notNull(),
+      content: pgText('content').notNull(),
+      cleanedContent: pgText('cleaned_content'),
+      embeddingVector: pgText('embedding_vector'),
+      metadata: pgText('metadata'),
+      tokenCount: integer('token_count'),
+      createdAt: timestamp('created_at').defaultNow(),
+    });
+
+// Chunking Strategies table
+export const ragChunkingStrategies = getDbType() === 'sqlite'
+  ? sqliteTable('rag_chunking_strategies', {
+      id: integer('id').primaryKey(),
+      name: text('name').notNull().unique(),
+      type: text('type', { enum: ['fixed_size', 'sentence', 'paragraph', 'semantic', 'sliding_window', 'custom'] }).notNull(),
+      chunkSize: integer('chunk_size').default(1000),
+      chunkOverlap: integer('chunk_overlap').default(200),
+      separator: text('separator'),
+      customRules: text('custom_rules'), // JSON string
+      isDefault: integer('is_default', { mode: 'boolean' }).default(false),
+      createdAt: integer('created_at', { mode: 'timestamp' }),
+      updatedAt: integer('updated_at', { mode: 'timestamp' }),
+    })
+  : pgTable('rag_chunking_strategies', {
+      id: serial('id').primaryKey(),
+      name: varchar('name', { length: 255 }).notNull().unique(),
+      type: varchar('type', { length: 50 }).notNull(),
+      chunkSize: integer('chunk_size').default(1000),
+      chunkOverlap: integer('chunk_overlap').default(200),
+      separator: varchar('separator', { length: 255 }),
+      customRules: pgText('custom_rules'),
+      isDefault: boolean('is_default').default(false),
+      createdAt: timestamp('created_at').defaultNow(),
+      updatedAt: timestamp('updated_at').defaultNow(),
+    });
+
+// Data Cleansing Configurations table
+export const ragCleansingConfigs = getDbType() === 'sqlite'
+  ? sqliteTable('rag_cleansing_configs', {
+      id: integer('id').primaryKey(),
+      name: text('name').notNull().unique(),
+      llmModelId: integer('llm_model_id').references(() => llmModels.id, { onDelete: 'set null' }),
+      cleansingPrompt: text('cleansing_prompt'),
+      removeHeaders: integer('remove_headers', { mode: 'boolean' }).default(true),
+      removeFooters: integer('remove_footers', { mode: 'boolean' }).default(true),
+      removePageNumbers: integer('remove_page_numbers', { mode: 'boolean' }).default(true),
+      normalizeWhitespace: integer('normalize_whitespace', { mode: 'boolean' }).default(true),
+      fixEncoding: integer('fix_encoding', { mode: 'boolean' }).default(true),
+      customRules: text('custom_rules'), // JSON string
+      isDefault: integer('is_default', { mode: 'boolean' }).default(false),
+      createdAt: integer('created_at', { mode: 'timestamp' }),
+      updatedAt: integer('updated_at', { mode: 'timestamp' }),
+    })
+  : pgTable('rag_cleansing_configs', {
+      id: serial('id').primaryKey(),
+      name: varchar('name', { length: 255 }).notNull().unique(),
+      llmModelId: serial('llm_model_id').references(() => llmModels.id, { onDelete: 'set null' }),
+      cleansingPrompt: pgText('cleansing_prompt'),
+      removeHeaders: boolean('remove_headers').default(true),
+      removeFooters: boolean('remove_footers').default(true),
+      removePageNumbers: boolean('remove_page_numbers').default(true),
+      normalizeWhitespace: boolean('normalize_whitespace').default(true),
+      fixEncoding: boolean('fix_encoding').default(true),
+      customRules: pgText('custom_rules'),
+      isDefault: boolean('is_default').default(false),
+      createdAt: timestamp('created_at').defaultNow(),
+      updatedAt: timestamp('updated_at').defaultNow(),
+    });
+
+// Batch Processing Jobs table
+export const ragBatchJobs = getDbType() === 'sqlite'
+  ? sqliteTable('rag_batch_jobs', {
+      id: integer('id').primaryKey(),
+      jobType: text('job_type', { enum: ['import', 'reindex', 'cleanse', 'delete'] }).notNull(),
+      collectionId: integer('collection_id').references(() => ragCollections.id, { onDelete: 'cascade' }),
+      status: text('status', { enum: ['pending', 'running', 'completed', 'failed', 'cancelled'] }).default('pending'),
+      totalItems: integer('total_items').default(0),
+      processedItems: integer('processed_items').default(0),
+      failedItems: integer('failed_items').default(0),
+      settings: text('settings'), // JSON string
+      errorLog: text('error_log'), // JSON array
+      startedAt: integer('started_at', { mode: 'timestamp' }),
+      completedAt: integer('completed_at', { mode: 'timestamp' }),
+      createdAt: integer('created_at', { mode: 'timestamp' }),
+    })
+  : pgTable('rag_batch_jobs', {
+      id: serial('id').primaryKey(),
+      jobType: varchar('job_type', { length: 50 }).notNull(),
+      collectionId: serial('collection_id').references(() => ragCollections.id, { onDelete: 'cascade' }),
+      status: varchar('status', { length: 50 }).default('pending'),
+      totalItems: integer('total_items').default(0),
+      processedItems: integer('processed_items').default(0),
+      failedItems: integer('failed_items').default(0),
+      settings: pgText('settings'),
+      errorLog: pgText('error_log'),
+      startedAt: timestamp('started_at'),
+      completedAt: timestamp('completed_at'),
+      createdAt: timestamp('created_at').defaultNow(),
+    });
+
  
