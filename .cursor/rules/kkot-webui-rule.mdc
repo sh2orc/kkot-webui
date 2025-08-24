@@ -563,6 +563,128 @@ const form = useForm<z.infer<typeof schema>>({
 - **Key Structure**: Hierarchical translation keys with dot notation (e.g., `admin.general.title`)
 - **Translation Modules**: All translation modules must be defined in `components/providers/language-provider.tsx` in the `translationModules` array when adding new i18n modules
 
+#### Adding New i18n Modules - Complete Guide
+
+When adding new internationalization modules, **ALL** of the following steps must be completed for translations to work:
+
+##### Step 1: Create Translation Files
+Create translation files for both languages:
+```bash
+# Korean translation file
+/i18n/kor/{module-name}.json
+
+# English translation file  
+/i18n/eng/{module-name}.json
+```
+
+**Example for `admin.rag` module:**
+```json
+// /i18n/kor/admin.rag.json
+{
+  "title": "RAG 지식베이스",
+  "description": "벡터 데이터베이스와 문서를 관리합니다.",
+  "vectorStores": {
+    "title": "벡터 스토어 관리",
+    "name": "이름",
+    "type": "유형"
+  }
+}
+
+// /i18n/eng/admin.rag.json
+{
+  "title": "RAG Knowledge Base", 
+  "description": "Manage vector databases and documents.",
+  "vectorStores": {
+    "title": "Vector Store Management",
+    "name": "Name",
+    "type": "Type"
+  }
+}
+```
+
+##### Step 2: Update lib/i18n.ts
+Add the new module to the `translationModules` object for **BOTH** languages:
+
+```typescript
+// lib/i18n.ts
+const translationModules = {
+  kor: {
+    // ... existing modules
+    'admin.rag': () => import('@/i18n/kor/admin.rag.json'),  // ADD THIS
+    // ... other modules
+  },
+  eng: {
+    // ... existing modules  
+    'admin.rag': () => import('@/i18n/eng/admin.rag.json'),  // ADD THIS
+    // ... other modules
+  },
+} as const
+```
+
+##### Step 3: Update components/providers/language-provider.tsx
+Add the new module to the `translationModules` array for preloading:
+
+```typescript
+// components/providers/language-provider.tsx
+const translationModules = [
+  'auth',
+  'common',
+  'admin',
+  // ... existing modules
+  'admin.rag',  // ADD THIS
+  // ... other modules
+]
+```
+
+##### Step 4: Use in Components
+```typescript
+import { useTranslation } from "@/lib/i18n";
+
+export default function Component() {
+  const { lang } = useTranslation('admin.rag');
+  
+  return (
+    <div>
+      <h1>{lang('title')}</h1>
+      <p>{lang('vectorStores.name')}</p>
+    </div>
+  );
+}
+```
+
+##### Step 5: Critical Validation & Testing
+1. **JSON Validation**: Ensure valid JSON syntax and no duplicate keys
+```bash
+node -e "try { require('./i18n/kor/your-module.json'); console.log('✅ Valid'); } catch(e) { console.log('❌ Error:', e.message); }"
+```
+
+2. **Restart Development Server**: New modules require server restart
+3. **Browser Test**: Verify translations display correctly (not translation keys)
+
+##### Step 6: Complete Checklist
+- [ ] `/i18n/kor/{module}.json` created with valid JSON
+- [ ] `/i18n/eng/{module}.json` created with valid JSON  
+- [ ] `lib/i18n.ts` updated - `translationModules` object (both kor & eng)
+- [ ] `components/providers/language-provider.tsx` updated - `translationModules` array
+- [ ] Components updated to use `useTranslation('{module}')`
+- [ ] JSON files validated (no duplicate keys, valid syntax)
+- [ ] Development server restarted
+- [ ] Browser tested - translations work correctly
+
+##### Common Pitfalls to Avoid
+- **Duplicate JSON Keys**: Same key defined twice in one JSON object
+- **Missing Language**: Adding to only one language file
+- **Missing Registration**: Forgetting to update `lib/i18n.ts` or `language-provider.tsx`
+- **Server Restart**: Not restarting dev server after adding new modules
+- **Case Sensitivity**: Module names must match exactly across all files
+
+##### Troubleshooting
+If translations show as keys (e.g., `vectorStores.title`):
+1. Check browser console for errors
+2. Verify all 3 files are updated correctly
+3. Restart development server
+4. Hard refresh browser (Ctrl+Shift+R)
+
 ```typescript
 // Translation usage example
 const { t, lang } = useTranslation('admin.general');

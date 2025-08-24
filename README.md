@@ -183,11 +183,14 @@ KKOT WebUI is an open-source project that provides an intuitive and user-friendl
 - **Authentication Options**: Optional authentication for API endpoints
 
 ### 🌐 Internationalization
-- Multi-language support (Korean, English)
-- Easy language switching
-- Extensible translation system
-- Server-side translation utilities for improved performance
-- Dynamic module loading with caching
+- **Multi-language support**: Korean and English with easy extensibility
+- **Dynamic module loading**: Efficient translation loading with caching system  
+- **Easy language switching**: Real-time language switching without page reload
+- **Extensible translation system**: Modular translation files for easy maintenance
+- **Server-side utilities**: Server-side translation support for improved performance
+- **Type-safe translations**: TypeScript support for translation keys and modules
+- **Context-based providers**: React Context API for global language state management
+- **Automatic language detection**: Browser language detection with localStorage persistence
 
 ## 🚀 Quick Start
 
@@ -446,6 +449,50 @@ kkot-webui/
 ```
 
 ## 🔧 Development
+
+### Adding New i18n Modules
+
+When adding new internationalization modules, follow these steps:
+
+1. **Create translation files** for both languages:
+   ```bash
+   /i18n/kor/{module-name}.json
+   /i18n/eng/{module-name}.json
+   ```
+
+2. **Update `lib/i18n.ts`** - Add the module to `translationModules`:
+   ```typescript
+   const translationModules = {
+     kor: {
+       'your.module': () => import('@/i18n/kor/your.module.json'),
+     },
+     eng: {
+       'your.module': () => import('@/i18n/eng/your.module.json'),
+     },
+   }
+   ```
+
+3. **Update `components/providers/language-provider.tsx`** - Add to preload array:
+   ```typescript
+   const translationModules = [
+     // ... existing modules
+     'your.module',
+   ]
+   ```
+
+4. **Use in components**:
+   ```typescript
+   import { useTranslation } from "@/lib/i18n";
+   
+   export default function Component() {
+     const { lang } = useTranslation('your.module');
+     return <h1>{lang('title')}</h1>;
+   }
+   ```
+
+5. **Restart development server** to load new modules
+
+> 📖 **Detailed Guide**: See [kkot-webui-rule.mdc](./.cursor/rules/kkot-webui-rule.mdc) for comprehensive development guidelines including step-by-step i18n module addition.
 
 ### Database Operations
 
