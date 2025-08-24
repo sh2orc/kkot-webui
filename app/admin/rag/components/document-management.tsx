@@ -148,19 +148,11 @@ export function DocumentManagement() {
     doc.filename.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  if (loading) {
-    return <div>{lang('loading')}</div>;
-  }
-
   return (
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>{lang('documents.title')}</CardTitle>
-              <CardDescription>{lang('documents.description')}</CardDescription>
-            </div>
+          <div className="flex items-center justify-end">
             <Button onClick={() => setUploadDialogOpen(true)} disabled={collections.length === 0}>
               <Upload className="h-4 w-4 mr-2" />
               {lang('documents.upload')}

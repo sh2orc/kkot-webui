@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db/config';
 import { ragDocuments, ragCollections, ragVectorStores, ragDocumentChunks } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     const collectionId = searchParams.get('collectionId');
     const status = searchParams.get('status');
 
+    const db = getDb();
     let query = db
       .select({
         id: ragDocuments.id,

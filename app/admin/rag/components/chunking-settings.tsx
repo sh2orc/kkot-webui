@@ -57,18 +57,14 @@ export function ChunkingSettings() {
     }
   };
 
-  if (loading) {
-    return <div>{lang('loading')}</div>;
-  }
+  // if (loading) {
+  //   return <div>{lang('loading')}</div>;
+  // }
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>{lang('chunking.title')}</CardTitle>
-            <CardDescription>{lang('chunking.description')}</CardDescription>
-          </div>
+        <div className="flex items-center justify-end">
           <Button size="sm">
             <Plus className="h-4 w-4 mr-2" />
             {lang('chunking.add')}

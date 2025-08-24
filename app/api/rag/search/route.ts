@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db/config';
 import { ragCollections, ragVectorStores, ragDocuments } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { VectorStoreFactory, VectorStoreConfig, EmbeddingProviderFactory } from '@/lib/rag';
@@ -27,6 +27,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get collection and vector store info
+    const db = getDb();
     const collection = await db
       .select()
       .from(ragCollections)

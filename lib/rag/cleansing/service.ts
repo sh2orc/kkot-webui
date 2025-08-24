@@ -3,7 +3,7 @@
 import { BaseDataCleanser } from './base';
 import { LLMDataCleanser } from './llm';
 import { CleansingOptions, LLMCleansingConfig, CleansingError } from './types';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db/config';
 import { ragCleansingConfigs, llmModels } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -64,6 +64,7 @@ export class CleansingService {
 
     try {
       // Load cleansing configuration from database
+      const db = getDb();
       const cleansingConfig = await db
         .select()
         .from(ragCleansingConfigs)
@@ -141,6 +142,7 @@ export class CleansingService {
 
   async getAvailableCleansingConfigs() {
     try {
+      const db = getDb();
       const configs = await db
         .select({
           id: ragCleansingConfigs.id,

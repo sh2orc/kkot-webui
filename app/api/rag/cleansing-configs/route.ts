@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db/config';
 import { ragCleansingConfigs, llmModels } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const db = getDb();
     const configs = await db
       .select({
         id: ragCleansingConfigs.id,
@@ -73,6 +74,8 @@ export async function POST(request: NextRequest) {
         { status: 400 }
       );
     }
+
+    const db = getDb();
 
     // If LLM model is specified, verify it exists
     if (llmModelId) {
@@ -160,6 +163,8 @@ export async function PUT(request: NextRequest) {
       isDefault,
     } = body;
 
+    const db = getDb();
+
     // If LLM model is specified, verify it exists
     if (llmModelId !== undefined && llmModelId !== null) {
       const model = await db
@@ -235,6 +240,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Config ID is required' }, { status: 400 });
     }
 
+    const db = getDb();
     await db
       .delete(ragCleansingConfigs)
       .where(eq(ragCleansingConfigs.id, parseInt(id)));

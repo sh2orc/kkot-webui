@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db/config';
 import { ragDocuments, ragDocumentChunks, ragCollections, ragVectorStores } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { VectorStoreFactory, VectorStoreConfig } from '@/lib/rag';

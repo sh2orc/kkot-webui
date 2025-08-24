@@ -1,4 +1,4 @@
-# KKOT WebUI - Cursor Rules
+# KKOT WebUI
 
 ## Project Overview
 KKOT WebUI is a universal web interface for various LLM services (OpenAI, Gemini, Ollama, vLLM, etc.).
@@ -509,14 +509,32 @@ export const users = getDbType() === 'sqlite'
 - Use appropriate HTTP status codes
 - Implement error handling
 - Type-safe response structure
+- **MANDATORY**: Always use repository pattern for database access - NEVER use `db` directly in API routes
+- Use `getDb()` function or repository pattern instead of direct `db` import
 
 ```typescript
+// ❌ WRONG: Direct db access
+import { db } from '@/lib/db/config'; // DON'T DO THIS
+
+// ✅ CORRECT: Repository pattern (RECOMMENDED)
+import { userRepository } from '@/lib/db/repository';
+
+// ✅ CORRECT: getDb() function (alternative)
+import { getDb } from '@/lib/db/config';
+
 // app/api/example/route.ts
 export async function GET() {
   try {
-    // Logic implementation
-    return Response.json({ data: result });
+    // Method 1: Repository pattern (RECOMMENDED)
+    const users = await userRepository.findAll();
+    
+    // Method 2: getDb() function (alternative)
+    const db = getDb();
+    const users = await db.select().from(schema.users);
+    
+    return Response.json({ data: users });
   } catch (error) {
+    console.error('API Error:', error);
     return Response.json({ error: 'Internal Server Error' }, { status: 500 });
   }
 }
@@ -612,7 +630,9 @@ export const config = {
 ### 11. Backend Development Rules
 
 #### Database Operations
-- **Repository Usage**: Always use repository pattern for data access
+- **MANDATORY Repository Usage**: Always use repository pattern for data access in API routes - NEVER import `db` directly
+- **Forbidden Pattern**: `import { db } from '@/lib/db/config'` is strictly prohibited in API routes
+- **Required Patterns**: Use either repository functions or `getDb()` function
 - **Transaction Handling**: Use transactions for multi-table operations
 - **Error Handling**: Proper error catching and logging
 - **Validation**: Server-side validation for all data operations
@@ -624,7 +644,7 @@ export const config = {
 - **Multi-DB Support**: All repository functions support both SQLite and PostgreSQL through dynamic schema selection based on `DB_TYPE` environment variable.
 
 ```typescript
-// Database operation examples
+// ✅ CORRECT: Database operation examples with repository pattern
 import { 
   userRepository, 
   llmServerRepository, 
@@ -644,6 +664,15 @@ try {
   console.error('User creation failed:', error);
   throw new Error('Failed to create user');
 }
+
+// ❌ WRONG: Direct db import in API routes
+// import { db } from '@/lib/db/config'; // DON'T DO THIS
+// const users = await db.select().from(schema.users); // FORBIDDEN
+
+// ✅ CORRECT: Alternative with getDb() function
+import { getDb } from '@/lib/db/config';
+const db = getDb(); // Get instance dynamically
+const users = await db.select().from(schema.users);
 
 // LLM Server management
 const llmServer = await llmServerRepository.create({
@@ -1359,7 +1388,7 @@ const extractedText = await processor.extractText(file, {
   preserveFormatting: true,
   extractMetadata: true
 });
-```
+``ㅇ
 
 ##### 2. Text Chunking Strategies
 - **Strategy Pattern**: Pluggable chunking strategies
@@ -1430,9 +1459,13 @@ const embeddings = await embeddingProvider.generateEmbeddings(['text1', 'text2']
 - **Authentication**: NextAuth session validation required
 - **Error Handling**: Comprehensive error responses with proper status codes
 - **Input Validation**: Zod schema validation for all endpoints
+- **MANDATORY Database Pattern**: Always use repository pattern or `getDb()` function - NEVER import `db` directly
 
 ```typescript
-// RAG API endpoint example
+// ✅ CORRECT: RAG API endpoint example with repository pattern
+import { ragCollectionRepository } from '@/lib/db/repository';
+import { getDb } from '@/lib/db/config';
+
 export async function POST(request: NextRequest) {
   try {
     // Authentication check
@@ -1445,10 +1478,18 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
     const validatedData = ragSchema.parse(body);
 
-    // Business logic
-    const result = await processRAGRequest(validatedData);
+    // ✅ CORRECT: Use repository pattern
+    const collections = await ragCollectionRepository.findAll();
+    
+    // ✅ CORRECT: Alternative with getDb()
+    const db = getDb();
+    const configs = await db.select().from(ragCleansingConfigs);
+    
+    // ❌ WRONG: Direct db import
+    // import { db } from '@/lib/db/config'; // FORBIDDEN
+    // const data = await db.select()... // DON'T DO THIS
 
-    return NextResponse.json({ data: result });
+    return NextResponse.json({ data: collections });
   } catch (error) {
     console.error('RAG API error:', error);
     return NextResponse.json({ error: 'Processing failed' }, { status: 500 });
@@ -1508,13 +1549,15 @@ const VectorStoreForm = ({ onSave }: { onSave: () => void }) => {
 #### RAG Database Rules
 
 ##### 1. Repository Pattern Usage
-- **RAG Repositories**: Use dedicated RAG repositories for data access
+- **MANDATORY RAG Repositories**: Always use dedicated RAG repositories for data access in RAG API routes
+- **Forbidden Direct Access**: `import { db } from '@/lib/db/config'` is strictly prohibited in RAG API routes  
+- **Required Pattern**: Use repository pattern or `getDb()` function for database operations
 - **Transaction Support**: Use transactions for multi-table operations
 - **Type Safety**: Leverage Drizzle ORM type inference
 - **Error Handling**: Proper error catching and logging
 
 ```typescript
-// RAG repository usage example
+// ✅ CORRECT: RAG repository usage exampleㄷ34
 import { 
   ragVectorStoreRepository,
   ragCollectionRepository,
@@ -1537,6 +1580,15 @@ const collection = await ragCollectionRepository.create({
   dimensions: 1536,
   isActive: true
 });
+
+// ❌ WRONG: Direct db access in RAG API routes
+// import { db } from '@/lib/db/config'; // FORBIDDEN
+// const configs = await db.select().from(ragCleansingConfigs); // DON'T DO THIS
+
+// ✅ CORRECT: Alternative with getDb() function
+import { getDb } from '@/lib/db/config';
+const db = getDb();
+const configs = await db.select().from(ragCleansingConfigs);
 ```
 
 ##### 2. Migration Management

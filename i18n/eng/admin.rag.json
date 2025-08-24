@@ -45,11 +45,13 @@
     "apiKey": "API Key",
     "apiKeyPlaceholder": "Optional",
     "status": "Status",
+    "default": "Default",
     "enabled": "Enabled",
     "setAsDefault": "Set as default",
     "advancedSettings": "Advanced Settings (JSON)",
     "settingsPlaceholder": "Optional: Additional settings in JSON format",
     "empty": "No vector stores configured.",
+    "manage": "Manage Vector Stores",
     "success": {
       "created": "Vector store created successfully.",
       "updated": "Vector store updated successfully."
@@ -65,7 +67,6 @@
     "allVectorStores": "All Vector Stores",
     "name": "Name",
     "namePlaceholder": "e.g., Technical Documentation",
-    "description": "Description",
     "descriptionPlaceholder": "Enter a description for this collection.",
     "vectorStore": "Vector Store",
     "embeddingModel": "Embedding Model",
@@ -75,6 +76,7 @@
     "active": "Active",
     "empty": "No collections found.",
     "noVectorStores": "Please create a vector store first.",
+    "manage": "Manage Collections",
     "success": {
       "created": "Collection created successfully.",
       "updated": "Collection updated successfully."
@@ -94,7 +96,6 @@
     "collection": "Collection",
     "type": "Type",
     "size": "Size",
-    "status": "Status",
     "uploadedAt": "Uploaded At",
     "files": "Files",
     "selectCollection": "Select a collection",
@@ -108,6 +109,7 @@
     "chunk": "Chunk",
     "metadata": "Metadata",
     "noChunks": "No chunks available.",
+    "manage": "Manage Documents",
     "status": {
       "pending": "Pending",
       "processing": "Processing",
@@ -134,5 +136,21 @@
     "rules": "Rules",
     "basicOnly": "Basic rules only",
     "empty": "No cleansing configurations found."
+  },
+  "settings": {
+    "description": "Configure chunking strategies and data cleansing settings.",
+    "manage": "Manage Settings"
+  },
+  "quickActions": {
+    "title": "Quick Actions",
+    "description": "Quick access to frequently used operations.",
+    "addVectorStore": "Add Vector Store",
+    "createCollection": "Create Collection",
+    "uploadDocument": "Upload Document",
+    "configureSettings": "Configure Settings"
+  },
+  "common": {
+    "manage": "Manage",
+    "configure": "Configure"
   }
 }

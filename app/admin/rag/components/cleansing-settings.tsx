@@ -3,8 +3,8 @@
 import { useState, useEffect } from "react";
 import { useTranslation } from "@/lib/i18n";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, Star, Bot } from "lucide-react";
 import { toast } from "sonner";
@@ -61,18 +61,14 @@ export function CleansingSettings() {
     }
   };
 
-  if (loading) {
-    return <div>{lang('loading')}</div>;
-  }
+  // if (loading) {
+  //   return <div>{lang('loading')}</div>;
+  // }
 
   return (
     <Card>
       <CardHeader>
-        <div className="flex items-center justify-between">
-          <div>
-            <CardTitle>{lang('cleansing.title')}</CardTitle>
-            <CardDescription>{lang('cleansing.description')}</CardDescription>
-          </div>
+        <div className="flex items-center justify-end">
           <Button size="sm">
             <Plus className="h-4 w-4 mr-2" />
             {lang('cleansing.add')}

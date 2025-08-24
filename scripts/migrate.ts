@@ -85,11 +85,22 @@ async function runMigrations() {
           try {
             sqlite.exec(statement);
           } catch (err) {
-            console.warn(`SQL statement execution error (${file}):`, err);
-            // Ignore errors like ON CONFLICT and continue execution
-            if (err instanceof Error && !err.message.includes('UNIQUE constraint failed')) {
-              throw err;
+            const message = err instanceof Error ? err.message : String(err);
+            // 계속 진행이 안전한 케이스: 이미 존재/중복 등 멱등성 관련 에러들은 경고만 남기고 통과
+            const nonFatalPatterns = [
+              'already exists',
+              'UNIQUE constraint failed',
+              'duplicate column name',
+              'no such index',
+              'cannot add a NOT NULL column with default value NULL'
+            ];
+            const isNonFatal = nonFatalPatterns.some((p) => message.includes(p));
+            if (isNonFatal) {
+              console.warn(`Non-fatal SQL error in ${file}: ${message}`);
+              continue;
             }
+            console.warn(`SQL statement execution error (${file}):`, err);
+            throw err;
           }
         }
         

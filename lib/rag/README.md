@@ -1,3 +1,9 @@
+---
+noteId: "d37676407f5111f092388bc1449f93c2"
+tags: []
+
+---
+
 # RAG (Retrieval-Augmented Generation) System
 
 ## 환경변수 설정

@@ -45,11 +45,13 @@
     "apiKey": "API 키",
     "apiKeyPlaceholder": "선택사항",
     "status": "상태",
+    "default": "기본값",
     "enabled": "활성화",
     "setAsDefault": "기본값으로 설정",
     "advancedSettings": "고급 설정 (JSON)",
     "settingsPlaceholder": "선택사항: JSON 형식의 추가 설정",
     "empty": "등록된 벡터 스토어가 없습니다.",
+    "manage": "벡터 스토어 관리",
     "success": {
       "created": "벡터 스토어가 생성되었습니다.",
       "updated": "벡터 스토어가 수정되었습니다."
@@ -65,7 +67,6 @@
     "allVectorStores": "모든 벡터 스토어",
     "name": "이름",
     "namePlaceholder": "예: 기술 문서",
-    "description": "설명",
     "descriptionPlaceholder": "이 컬렉션에 대한 설명을 입력하세요.",
     "vectorStore": "벡터 스토어",
     "embeddingModel": "임베딩 모델",
@@ -75,6 +76,7 @@
     "active": "활성화",
     "empty": "등록된 컬렉션이 없습니다.",
     "noVectorStores": "먼저 벡터 스토어를 생성해주세요.",
+    "manage": "컬렉션 관리",
     "success": {
       "created": "컬렉션이 생성되었습니다.",
       "updated": "컬렉션이 수정되었습니다."
@@ -94,7 +96,6 @@
     "collection": "컬렉션",
     "type": "유형",
     "size": "크기",
-    "status": "상태",
     "uploadedAt": "업로드 일시",
     "files": "파일",
     "selectCollection": "컬렉션을 선택하세요",
@@ -108,6 +109,7 @@
     "chunk": "청크",
     "metadata": "메타데이터",
     "noChunks": "청크가 없습니다.",
+    "manage": "문서 관리",
     "status": {
       "pending": "대기 중",
       "processing": "처리 중",
@@ -134,5 +136,21 @@
     "rules": "규칙",
     "basicOnly": "기본 규칙만",
     "empty": "등록된 클린징 설정이 없습니다."
+  },
+  "settings": {
+    "description": "청킹 전략 및 데이터 클린징 설정을 구성합니다.",
+    "manage": "설정 관리"
+  },
+  "quickActions": {
+    "title": "빠른 작업",
+    "description": "자주 사용하는 작업들에 빠르게 접근할 수 있습니다.",
+    "addVectorStore": "벡터 스토어 추가",
+    "createCollection": "컬렉션 생성",
+    "uploadDocument": "문서 업로드",
+    "configureSettings": "설정 구성"
+  },
+  "common": {
+    "manage": "관리",
+    "configure": "구성"
   }
 }

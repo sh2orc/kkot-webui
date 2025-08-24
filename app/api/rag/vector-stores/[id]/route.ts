@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db/config';
 import { ragVectorStores, ragCollections } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { VectorStoreFactory, VectorStoreConfig } from '@/lib/rag';
@@ -21,6 +21,7 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const db = getDb();
     const store = await db
       .select()
       .from(ragVectorStores)
@@ -53,6 +54,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { name, connectionString, apiKey, settings, enabled, isDefault } = body;
 
     // Check if store exists
+    const db = getDb();
     const existing = await db
       .select()
       .from(ragVectorStores)
@@ -128,6 +130,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check if any collections use this vector store
+    const db = getDb();
     const collections = await db.query.ragCollections.findMany({
       where: eq(ragCollections.vectorStoreId, parseInt(params.id)),
     });

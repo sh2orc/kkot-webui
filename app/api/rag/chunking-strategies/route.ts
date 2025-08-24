@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db/config';
 import { ragChunkingStrategies } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { ChunkingStrategyFactory } from '@/lib/rag/document';
@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const db = getDb();
     const strategies = await db.select().from(ragChunkingStrategies);
     
     // Add available types that can be used
@@ -61,6 +62,8 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    const db = getDb();
+    
     // If this is set as default, unset other defaults
     if (isDefault) {
       await db

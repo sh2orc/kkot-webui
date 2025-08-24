@@ -38,6 +38,7 @@ export default function LanguageProvider({ children }: LanguageProviderProps) {
     'admin.agent',
     'admin.api',
     'admin.evaluation',
+    'admin.rag',
     'admin.tools',
     'admin.documents',
     'admin.database',

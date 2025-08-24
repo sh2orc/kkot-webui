@@ -114,9 +114,9 @@ CREATE TABLE IF NOT EXISTS rag_batch_jobs (
 );
 
 -- Create indexes
-CREATE INDEX idx_rag_collections_vector_store ON rag_collections(vector_store_id);
-CREATE INDEX idx_rag_documents_collection ON rag_documents(collection_id);
-CREATE INDEX idx_rag_documents_status ON rag_documents(processing_status);
-CREATE INDEX idx_rag_chunks_document ON rag_document_chunks(document_id);
-CREATE INDEX idx_rag_batch_jobs_status ON rag_batch_jobs(status);
-CREATE INDEX idx_rag_batch_jobs_collection ON rag_batch_jobs(collection_id);
+CREATE INDEX IF NOT EXISTS idx_rag_collections_vector_store ON rag_collections(vector_store_id);
+CREATE INDEX IF NOT EXISTS idx_rag_documents_collection ON rag_documents(collection_id);
+CREATE INDEX IF NOT EXISTS idx_rag_documents_status ON rag_documents(processing_status);
+CREATE INDEX IF NOT EXISTS idx_rag_chunks_document ON rag_document_chunks(document_id);
+CREATE INDEX IF NOT EXISTS idx_rag_batch_jobs_status ON rag_batch_jobs(status);
+CREATE INDEX IF NOT EXISTS idx_rag_batch_jobs_collection ON rag_batch_jobs(collection_id);

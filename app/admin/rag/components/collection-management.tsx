@@ -123,41 +123,35 @@ export function CollectionManagement() {
     return 'bg-gray-100 text-gray-800';
   };
 
-  if (loading) {
-    return <div>{lang('loading')}</div>;
-  }
+  // if (loading) {
+  //   return <div>{lang('loading')}</div>;
+  // }
 
   return (
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-between">
-            <div>
-              <CardTitle>{lang('collections.title')}</CardTitle>
-              <CardDescription>{lang('collections.description')}</CardDescription>
-            </div>
-            <div className="flex items-center gap-2">
-              <Select value={selectedVectorStore} onValueChange={setSelectedVectorStore}>
-                <SelectTrigger className="w-[200px]">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{lang('collections.allVectorStores')}</SelectItem>
-                  {vectorStores.map((store) => (
-                    <SelectItem key={store.id} value={store.id.toString()}>
-                      <div className="flex items-center gap-2">
-                        <Database className="h-3 w-3" />
-                        {store.name}
-                      </div>
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Button onClick={handleCreate} disabled={vectorStores.length === 0}>
-                <Plus className="h-4 w-4 mr-2" />
-                {lang('collections.add')}
-              </Button>
-            </div>
+          <div className="flex items-center justify-end gap-2">
+            <Select value={selectedVectorStore} onValueChange={setSelectedVectorStore}>
+              <SelectTrigger className="w-[200px]">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">{lang('collections.allVectorStores')}</SelectItem>
+                {vectorStores.map((store) => (
+                  <SelectItem key={store.id} value={store.id.toString()}>
+                    <div className="flex items-center gap-2">
+                      <Database className="h-3 w-3" />
+                      {store.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            <Button onClick={handleCreate} disabled={vectorStores.length === 0}>
+              <Plus className="h-4 w-4 mr-2" />
+              {lang('collections.add')}
+            </Button>
           </div>
         </CardHeader>
         <CardContent>

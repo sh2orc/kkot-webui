@@ -116,9 +116,7 @@ export function DocumentViewDialog({
           <Separator />
 
           {/* Content Tabs */}
-          {loading ? (
-            <div className="text-center py-8">{lang('loading')}</div>
-          ) : (
+          {
             <Tabs defaultValue="chunks" className="flex-1">
               <TabsList>
                 <TabsTrigger value="chunks">
@@ -165,7 +163,7 @@ export function DocumentViewDialog({
                 </ScrollArea>
               </TabsContent>
             </Tabs>
-          )}
+          }
         </div>
       </DialogContent>
     </Dialog>

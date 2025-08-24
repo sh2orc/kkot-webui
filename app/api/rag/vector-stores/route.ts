@@ -2,7 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { db } from '@/lib/db';
+import { getDb } from '@/lib/db/config';
 import { ragVectorStores } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 import { VectorStoreFactory, VectorStoreConfig } from '@/lib/rag';
@@ -15,6 +15,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const db = getDb();
     const stores = await db.select().from(ragVectorStores);
     
     return NextResponse.json({ stores });
@@ -73,6 +74,7 @@ export async function POST(request: NextRequest) {
     }
 
     // If this is set as default, unset other defaults
+    const db = getDb();
     if (isDefault) {
       await db
         .update(ragVectorStores)

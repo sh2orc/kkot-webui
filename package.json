@@ -11,6 +11,7 @@
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.10.0",
+    "@chroma-core/default-embed": "^0.1.8",
     "@hookform/resolvers": "^3.9.1",
     "@langchain/community": "^0.3.47",
     "@langchain/core": "^0.3.61",
@@ -52,6 +53,7 @@
     "bcryptjs": "^3.0.2",
     "better-sqlite3": "^11.10.0",
     "cheerio": "^1.1.2",
+    "chromadb": "^3.0.14",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "cmdk": "1.0.4",
@@ -61,6 +63,7 @@
     "dotenv": "^16.6.0",
     "drizzle-orm": "^0.44.2",
     "embla-carousel-react": "8.5.1",
+    "faiss-node": "^0.5.1",
     "input-otp": "1.4.1",
     "jose": "^6.0.11",
     "jsonwebtoken": "^9.0.2",
