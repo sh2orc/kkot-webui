@@ -6,6 +6,7 @@ CREATE TABLE IF NOT EXISTS llm_models (
     provider TEXT NOT NULL,
     enabled INTEGER DEFAULT 1,
     is_public INTEGER DEFAULT 0,
+    is_embedding_model INTEGER DEFAULT 0,
     capabilities TEXT, -- JSON string
     context_length INTEGER,
     supports_multimodal INTEGER DEFAULT 0, -- 멀티모달 지원 여부

@@ -2,9 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { getDb } from '@/lib/db/config';
-import { ragCollections, ragVectorStores } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { ragCollectionRepository, ragVectorStoreRepository } from '@/lib/db/repository';
 import { VectorStoreFactory, VectorStoreConfig } from '@/lib/rag';
 
 // GET /api/rag/collections - List all collections
@@ -18,30 +16,9 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams;
     const vectorStoreId = searchParams.get('vectorStoreId');
 
-    const db = getDb();
-    let query = db
-      .select({
-        id: ragCollections.id,
-        vectorStoreId: ragCollections.vectorStoreId,
-        name: ragCollections.name,
-        description: ragCollections.description,
-        embeddingModel: ragCollections.embeddingModel,
-        embeddingDimensions: ragCollections.embeddingDimensions,
-        metadata: ragCollections.metadata,
-        isActive: ragCollections.isActive,
-        createdAt: ragCollections.createdAt,
-        updatedAt: ragCollections.updatedAt,
-        vectorStoreName: ragVectorStores.name,
-        vectorStoreType: ragVectorStores.type,
-      })
-      .from(ragCollections)
-      .innerJoin(ragVectorStores, eq(ragCollections.vectorStoreId, ragVectorStores.id));
-
-    if (vectorStoreId) {
-      query = query.where(eq(ragCollections.vectorStoreId, parseInt(vectorStoreId)));
-    }
-
-    const collections = await query;
+    const collections = await ragCollectionRepository.findAllWithVectorStore(
+      vectorStoreId ? parseInt(vectorStoreId) : undefined
+    );
     
     return NextResponse.json({ collections });
   } catch (error) {
@@ -62,6 +39,8 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
+    console.log('Collection creation request body:', body);
+    
     const { 
       vectorStoreId, 
       name, 
@@ -73,6 +52,7 @@ export async function POST(request: NextRequest) {
 
     // Validate required fields
     if (!vectorStoreId || !name) {
+      console.log('Validation failed - missing required fields:', { vectorStoreId, name });
       return NextResponse.json(
         { error: 'Vector store ID and name are required' },
         { status: 400 }
@@ -80,20 +60,18 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if vector store exists and is enabled
-    const vectorStore = await db
-      .select()
-      .from(ragVectorStores)
-      .where(eq(ragVectorStores.id, vectorStoreId))
-      .limit(1);
+    const vectorStore = await ragVectorStoreRepository.findById(vectorStoreId);
 
-    if (vectorStore.length === 0) {
+    if (!vectorStore) {
+      console.log('Vector store not found:', vectorStoreId);
       return NextResponse.json(
         { error: 'Vector store not found' },
         { status: 404 }
       );
     }
 
-    if (!vectorStore[0].enabled) {
+    if (!vectorStore.enabled) {
+      console.log('Vector store is disabled:', vectorStore);
       return NextResponse.json(
         { error: 'Vector store is disabled' },
         { status: 400 }
@@ -102,10 +80,10 @@ export async function POST(request: NextRequest) {
 
     // Create collection in vector store
     const config: VectorStoreConfig = {
-      type: vectorStore[0].type as any,
-      connectionString: vectorStore[0].connectionString,
-      apiKey: vectorStore[0].apiKey,
-      settings: vectorStore[0].settings ? JSON.parse(vectorStore[0].settings) : undefined,
+      type: vectorStore.type as any,
+      connectionString: vectorStore.connectionString,
+      apiKey: vectorStore.apiKey,
+      settings: vectorStore.settings ? JSON.parse(vectorStore.settings) : undefined,
     };
 
     try {
@@ -124,17 +102,15 @@ export async function POST(request: NextRequest) {
     }
 
     // Create collection record in database
-    const result = await db.insert(ragCollections).values({
+    const result = await ragCollectionRepository.create({
       vectorStoreId,
       name,
       description,
       embeddingModel: embeddingModel || 'text-embedding-ada-002',
       embeddingDimensions: embeddingDimensions || 1536,
-      metadata: metadata ? JSON.stringify(metadata) : null,
+      metadata: metadata ? JSON.parse(metadata) : undefined,
       isActive: true,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    }).returning();
+    });
 
     return NextResponse.json({ collection: result[0] });
   } catch (error) {

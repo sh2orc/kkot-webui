@@ -2,9 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { getDb } from '@/lib/db/config';
-import { ragCleansingConfigs, llmModels } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { ragCleansingConfigRepository, llmModelRepository } from '@/lib/db/repository';
 
 // GET /api/rag/cleansing-configs - List all cleansing configurations
 export async function GET(request: NextRequest) {
@@ -14,26 +12,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const db = getDb();
-    const configs = await db
-      .select({
-        id: ragCleansingConfigs.id,
-        name: ragCleansingConfigs.name,
-        llmModelId: ragCleansingConfigs.llmModelId,
-        cleansingPrompt: ragCleansingConfigs.cleansingPrompt,
-        removeHeaders: ragCleansingConfigs.removeHeaders,
-        removeFooters: ragCleansingConfigs.removeFooters,
-        removePageNumbers: ragCleansingConfigs.removePageNumbers,
-        normalizeWhitespace: ragCleansingConfigs.normalizeWhitespace,
-        fixEncoding: ragCleansingConfigs.fixEncoding,
-        customRules: ragCleansingConfigs.customRules,
-        isDefault: ragCleansingConfigs.isDefault,
-        createdAt: ragCleansingConfigs.createdAt,
-        updatedAt: ragCleansingConfigs.updatedAt,
-        llmModelName: llmModels.modelId,
-      })
-      .from(ragCleansingConfigs)
-      .leftJoin(llmModels, eq(ragCleansingConfigs.llmModelId, llmModels.id));
+    const configs = await ragCleansingConfigRepository.findAllWithModel();
     
     return NextResponse.json({ configs });
   } catch (error) {
@@ -75,17 +54,11 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = getDb();
-
     // If LLM model is specified, verify it exists
     if (llmModelId) {
-      const model = await db
-        .select()
-        .from(llmModels)
-        .where(eq(llmModels.id, llmModelId))
-        .limit(1);
+      const model = await llmModelRepository.findById(llmModelId);
 
-      if (model.length === 0) {
+      if (!model || model.length === 0) {
         return NextResponse.json(
           { error: 'LLM model not found' },
           { status: 404 }
@@ -93,16 +66,8 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // If this is set as default, unset other defaults
-    if (isDefault) {
-      await db
-        .update(ragCleansingConfigs)
-        .set({ isDefault: false })
-        .where(eq(ragCleansingConfigs.isDefault, true));
-    }
-
     // Create the configuration
-    const result = await db.insert(ragCleansingConfigs).values({
+    const result = await ragCleansingConfigRepository.create({
       name,
       llmModelId: llmModelId || null,
       cleansingPrompt,
@@ -111,11 +76,9 @@ export async function POST(request: NextRequest) {
       removePageNumbers: removePageNumbers ?? true,
       normalizeWhitespace: normalizeWhitespace ?? true,
       fixEncoding: fixEncoding ?? true,
-      customRules: customRules ? JSON.stringify(customRules) : null,
+      customRules,
       isDefault: isDefault || false,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    }).returning();
+    });
 
     return NextResponse.json({ config: result[0] });
   } catch (error: any) {
@@ -163,17 +126,11 @@ export async function PUT(request: NextRequest) {
       isDefault,
     } = body;
 
-    const db = getDb();
-
     // If LLM model is specified, verify it exists
     if (llmModelId !== undefined && llmModelId !== null) {
-      const model = await db
-        .select()
-        .from(llmModels)
-        .where(eq(llmModels.id, llmModelId))
-        .limit(1);
+      const model = await llmModelRepository.findById(llmModelId);
 
-      if (model.length === 0) {
+      if (!model || model.length === 0) {
         return NextResponse.json(
           { error: 'LLM model not found' },
           { status: 404 }
@@ -181,35 +138,19 @@ export async function PUT(request: NextRequest) {
       }
     }
 
-    // If this is set as default, unset other defaults
-    if (isDefault) {
-      await db
-        .update(ragCleansingConfigs)
-        .set({ isDefault: false })
-        .where(eq(ragCleansingConfigs.isDefault, true));
-    }
-
     // Update the configuration
-    const updateData: any = {
-      updatedAt: Date.now(),
-    };
-
-    if (name !== undefined) updateData.name = name;
-    if (llmModelId !== undefined) updateData.llmModelId = llmModelId;
-    if (cleansingPrompt !== undefined) updateData.cleansingPrompt = cleansingPrompt;
-    if (removeHeaders !== undefined) updateData.removeHeaders = removeHeaders;
-    if (removeFooters !== undefined) updateData.removeFooters = removeFooters;
-    if (removePageNumbers !== undefined) updateData.removePageNumbers = removePageNumbers;
-    if (normalizeWhitespace !== undefined) updateData.normalizeWhitespace = normalizeWhitespace;
-    if (fixEncoding !== undefined) updateData.fixEncoding = fixEncoding;
-    if (customRules !== undefined) updateData.customRules = JSON.stringify(customRules);
-    if (isDefault !== undefined) updateData.isDefault = isDefault;
-
-    const result = await db
-      .update(ragCleansingConfigs)
-      .set(updateData)
-      .where(eq(ragCleansingConfigs.id, parseInt(id)))
-      .returning();
+    const result = await ragCleansingConfigRepository.update(parseInt(id), {
+      name,
+      llmModelId,
+      cleansingPrompt,
+      removeHeaders,
+      removeFooters,
+      removePageNumbers,
+      normalizeWhitespace,
+      fixEncoding,
+      customRules,
+      isDefault,
+    });
 
     if (result.length === 0) {
       return NextResponse.json({ error: 'Configuration not found' }, { status: 404 });
@@ -240,10 +181,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Config ID is required' }, { status: 400 });
     }
 
-    const db = getDb();
-    await db
-      .delete(ragCleansingConfigs)
-      .where(eq(ragCleansingConfigs.id, parseInt(id)));
+    await ragCleansingConfigRepository.delete(parseInt(id));
 
     return NextResponse.json({ success: true });
   } catch (error) {

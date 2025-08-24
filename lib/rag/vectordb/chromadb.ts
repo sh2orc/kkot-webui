@@ -25,8 +25,13 @@ export class ChromaDBVectorStore extends BaseVectorStore {
       // Dynamic import to avoid loading the library if not used
       const { ChromaClient } = await import('chromadb');
       
+      const connectionUrl = this.config.connectionString || 'http://localhost:8000';
+      const url = new URL(connectionUrl);
+      
       const clientConfig: any = {
-        path: this.config.connectionString || 'http://localhost:8000',
+        host: url.hostname,
+        port: url.port ? parseInt(url.port) : (url.protocol === 'https:' ? 443 : 8000),
+        ssl: url.protocol === 'https:',
       };
 
       if (this.config.apiKey) {

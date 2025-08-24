@@ -2,9 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { getDb } from '@/lib/db/config';
-import { ragVectorStores } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { ragVectorStoreRepository } from '@/lib/db/repository';
 import { VectorStoreFactory, VectorStoreConfig } from '@/lib/rag';
 
 // GET /api/rag/vector-stores - List all vector stores
@@ -15,8 +13,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const db = getDb();
-    const stores = await db.select().from(ragVectorStores);
+    const stores = await ragVectorStoreRepository.findAll();
     
     return NextResponse.json({ stores });
   } catch (error) {
@@ -67,23 +64,18 @@ export async function POST(request: NextRequest) {
       const store = await VectorStoreFactory.create(config);
       await store.disconnect();
     } catch (error) {
+      let errorMessage = error instanceof Error ? error.message : 'Unknown error';
       return NextResponse.json(
-        { error: `Failed to connect to vector store: ${error instanceof Error ? error.message : 'Unknown error'}` },
+        { 
+          error: `the vector store conneciton failed: ${errorMessage}`,
+          troubleshooting: "the vector DB connection failed" || undefined
+        },
         { status: 400 }
       );
     }
 
-    // If this is set as default, unset other defaults
-    const db = getDb();
-    if (isDefault) {
-      await db
-        .update(ragVectorStores)
-        .set({ isDefault: false })
-        .where(eq(ragVectorStores.isDefault, true));
-    }
-
     // Create the vector store record
-    const result = await db.insert(ragVectorStores).values({
+    const result = await ragVectorStoreRepository.create({
       name,
       type,
       connectionString,
@@ -91,9 +83,7 @@ export async function POST(request: NextRequest) {
       settings: settings ? JSON.stringify(settings) : null,
       enabled: enabled ?? true,
       isDefault: isDefault ?? false,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    }).returning();
+    });
 
     return NextResponse.json({ store: result[0] });
   } catch (error) {

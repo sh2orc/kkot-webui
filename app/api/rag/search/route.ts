@@ -2,9 +2,10 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { getDb } from '@/lib/db/config';
-import { ragCollections, ragVectorStores, ragDocuments } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { 
+  ragCollectionRepository,
+  ragDocumentRepository 
+} from '@/lib/db/repository';
 import { VectorStoreFactory, VectorStoreConfig, EmbeddingProviderFactory } from '@/lib/rag';
 
 // POST /api/rag/search - Search in a collection
@@ -27,19 +28,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Get collection and vector store info
-    const db = getDb();
-    const collection = await db
-      .select()
-      .from(ragCollections)
-      .innerJoin(ragVectorStores, eq(ragCollections.vectorStoreId, ragVectorStores.id))
-      .where(eq(ragCollections.id, collectionId))
-      .limit(1);
+    const col = await ragCollectionRepository.findByIdWithVectorStore(collectionId);
 
-    if (collection.length === 0) {
+    if (!col) {
       return NextResponse.json({ error: 'Collection not found' }, { status: 404 });
     }
-
-    const col = collection[0];
 
     if (!col.ragCollections.isActive) {
       return NextResponse.json(
@@ -86,20 +79,16 @@ export async function POST(request: NextRequest) {
       results.map(async (result) => {
         const documentId = parseInt(result.metadata?.documentId || result.documentId);
         
-        const document = await db
-          .select({
-            id: ragDocuments.id,
-            title: ragDocuments.title,
-            filename: ragDocuments.filename,
-            contentType: ragDocuments.contentType,
-          })
-          .from(ragDocuments)
-          .where(eq(ragDocuments.id, documentId))
-          .limit(1);
+        const document = await ragDocumentRepository.findById(documentId);
 
         return {
           ...result,
-          document: document[0] || null,
+          document: document ? {
+            id: document.id,
+            title: document.title,
+            filename: document.filename,
+            contentType: document.contentType,
+          } : null,
         };
       })
     );

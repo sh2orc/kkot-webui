@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
-import { getDb } from '@/lib/db/config'
-import { users } from '@/lib/db/schema'
-import { eq } from 'drizzle-orm'
+import { userRepository } from '@/lib/db/repository'
 import { hashPassword, verifyPassword } from '@/lib/auth'
 
 // GET - Fetch current user profile information
@@ -17,16 +15,9 @@ export async function GET() {
       )
     }
 
-    const db = getDb()
-    const user = await db.select({
-      id: users.id,
-      username: users.username,
-      email: users.email,
-      role: users.role,
-      createdAt: users.createdAt
-    }).from(users).where(eq(users.email, session.user.email)).limit(1)
+    const user = await userRepository.findByEmail(session.user.email)
 
-    if (user.length === 0) {
+    if (!user) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
@@ -34,7 +25,13 @@ export async function GET() {
     }
 
     return NextResponse.json({
-      user: user[0]
+      user: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        role: user.role,
+        createdAt: user.createdAt
+      }
     })
   } catch (error) {
     console.error('Failed to fetch user profile:', error)
@@ -60,12 +57,10 @@ export async function PUT(request: NextRequest) {
     const body = await request.json()
     const { username, currentPassword, newPassword } = body
 
-    const db = getDb()
-    
     // Get current user information
-    const currentUser = await db.select().from(users).where(eq(users.email, session.user.email)).limit(1)
+    const currentUser = await userRepository.findByEmail(session.user.email)
     
-    if (currentUser.length === 0) {
+    if (!currentUser) {
       return NextResponse.json(
         { error: 'User not found' },
         { status: 404 }
@@ -84,7 +79,7 @@ export async function PUT(request: NextRequest) {
     // Change password
     if (currentPassword && newPassword) {
       // Verify current password
-      const isValidPassword = verifyPassword(currentPassword, currentUser[0].password)
+      const isValidPassword = verifyPassword(currentPassword, currentUser.password)
       
       if (!isValidPassword) {
         return NextResponse.json(
@@ -105,22 +100,17 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update user information
-    await db.update(users)
-      .set(updateData)
-      .where(eq(users.email, session.user.email))
-
-    // Return updated user information
-    const updatedUser = await db.select({
-      id: users.id,
-      username: users.username,
-      email: users.email,
-      role: users.role,
-      createdAt: users.createdAt
-    }).from(users).where(eq(users.email, session.user.email)).limit(1)
+    const [updatedUser] = await userRepository.update(currentUser.id, updateData)
 
     return NextResponse.json({
       message: 'Profile updated successfully',
-      user: updatedUser[0]
+      user: {
+        id: updatedUser.id,
+        username: updatedUser.username,
+        email: updatedUser.email,
+        role: updatedUser.role,
+        createdAt: updatedUser.createdAt
+      }
     })
   } catch (error) {
     console.error('Failed to update user profile:', error)

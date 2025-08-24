@@ -2,9 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { getDb } from '@/lib/db/config';
-import { ragVectorStores, ragCollections } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { ragVectorStoreRepository, ragCollectionRepository } from '@/lib/db/repository';
 import { VectorStoreFactory, VectorStoreConfig } from '@/lib/rag';
 
 interface RouteParams {
@@ -21,18 +19,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const db = getDb();
-    const store = await db
-      .select()
-      .from(ragVectorStores)
-      .where(eq(ragVectorStores.id, parseInt(params.id)))
-      .limit(1);
+    const store = await ragVectorStoreRepository.findById(parseInt(params.id));
 
-    if (store.length === 0) {
+    if (!store) {
       return NextResponse.json({ error: 'Vector store not found' }, { status: 404 });
     }
 
-    return NextResponse.json({ store: store[0] });
+    return NextResponse.json({ store });
   } catch (error) {
     console.error('Failed to fetch vector store:', error);
     return NextResponse.json(
@@ -54,24 +47,19 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { name, connectionString, apiKey, settings, enabled, isDefault } = body;
 
     // Check if store exists
-    const db = getDb();
-    const existing = await db
-      .select()
-      .from(ragVectorStores)
-      .where(eq(ragVectorStores.id, parseInt(params.id)))
-      .limit(1);
+    const existing = await ragVectorStoreRepository.findById(parseInt(params.id));
 
-    if (existing.length === 0) {
+    if (!existing) {
       return NextResponse.json({ error: 'Vector store not found' }, { status: 404 });
     }
 
     // Test connection if connection details changed
     if (connectionString !== undefined || apiKey !== undefined) {
       const config: VectorStoreConfig = {
-        type: existing[0].type as any,
-        connectionString: connectionString ?? existing[0].connectionString,
-        apiKey: apiKey ?? existing[0].apiKey,
-        settings: settings ? JSON.parse(settings) : existing[0].settings,
+        type: existing.type as any,
+        connectionString: connectionString ?? existing.connectionString,
+        apiKey: apiKey ?? existing.apiKey,
+        settings: settings ? JSON.parse(settings) : existing.settings,
       };
 
       try {
@@ -85,31 +73,15 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    // If this is set as default, unset other defaults
-    if (isDefault) {
-      await db
-        .update(ragVectorStores)
-        .set({ isDefault: false })
-        .where(eq(ragVectorStores.isDefault, true));
-    }
-
     // Update the vector store
-    const updateData: any = {
-      updatedAt: Date.now(),
-    };
-
-    if (name !== undefined) updateData.name = name;
-    if (connectionString !== undefined) updateData.connectionString = connectionString;
-    if (apiKey !== undefined) updateData.apiKey = apiKey;
-    if (settings !== undefined) updateData.settings = JSON.stringify(settings);
-    if (enabled !== undefined) updateData.enabled = enabled;
-    if (isDefault !== undefined) updateData.isDefault = isDefault;
-
-    const result = await db
-      .update(ragVectorStores)
-      .set(updateData)
-      .where(eq(ragVectorStores.id, parseInt(params.id)))
-      .returning();
+    const result = await ragVectorStoreRepository.update(parseInt(params.id), {
+      name,
+      connectionString,
+      apiKey,
+      settings,
+      enabled,
+      isDefault,
+    });
 
     return NextResponse.json({ store: result[0] });
   } catch (error) {
@@ -130,10 +102,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Check if any collections use this vector store
-    const db = getDb();
-    const collections = await db.query.ragCollections.findMany({
-      where: eq(ragCollections.vectorStoreId, parseInt(params.id)),
-    });
+    const collections = await ragCollectionRepository.findByVectorStoreId(parseInt(params.id));
 
     if (collections.length > 0) {
       return NextResponse.json(
@@ -142,9 +111,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await db
-      .delete(ragVectorStores)
-      .where(eq(ragVectorStores.id, parseInt(params.id)));
+    await ragVectorStoreRepository.delete(parseInt(params.id));
 
     return NextResponse.json({ success: true });
   } catch (error) {

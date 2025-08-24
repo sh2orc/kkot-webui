@@ -237,6 +237,7 @@ export const llmModels = getDbType() === 'sqlite'
       capabilities: text('capabilities'), // JSON string for model capabilities
       contextLength: integer('context_length'),
       supportsMultimodal: integer('supports_multimodal', { mode: 'boolean' }).default(false), // Multimodal support
+      isEmbeddingModel: integer('is_embedding_model', { mode: 'boolean' }).default(false), // Embedding model flag
       createdAt: integer('created_at', { mode: 'timestamp' }),
       updatedAt: integer('updated_at', { mode: 'timestamp' }),
     })
@@ -250,6 +251,7 @@ export const llmModels = getDbType() === 'sqlite'
       capabilities: pgText('capabilities'),
       contextLength: integer('context_length'),
       supportsMultimodal: boolean('supports_multimodal').default(false), // Multimodal support
+      isEmbeddingModel: boolean('is_embedding_model').default(false), // Embedding model flag
       createdAt: timestamp('created_at').defaultNow(),
       updatedAt: timestamp('updated_at').defaultNow(),
     });

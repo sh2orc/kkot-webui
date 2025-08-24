@@ -2,9 +2,12 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { getDb } from '@/lib/db/config';
-import { ragDocuments, ragCollections, ragVectorStores, ragDocumentChunks } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { 
+  ragDocumentRepository, 
+  ragDocumentChunkRepository, 
+  ragCollectionRepository,
+  ragVectorStoreRepository 
+} from '@/lib/db/repository';
 
 // GET /api/rag/documents - List documents
 export async function GET(request: NextRequest) {
@@ -18,34 +21,10 @@ export async function GET(request: NextRequest) {
     const collectionId = searchParams.get('collectionId');
     const status = searchParams.get('status');
 
-    const db = getDb();
-    let query = db
-      .select({
-        id: ragDocuments.id,
-        collectionId: ragDocuments.collectionId,
-        title: ragDocuments.title,
-        filename: ragDocuments.filename,
-        fileType: ragDocuments.fileType,
-        fileSize: ragDocuments.fileSize,
-        contentType: ragDocuments.contentType,
-        processingStatus: ragDocuments.processingStatus,
-        errorMessage: ragDocuments.errorMessage,
-        createdAt: ragDocuments.createdAt,
-        updatedAt: ragDocuments.updatedAt,
-        collectionName: ragCollections.name,
-      })
-      .from(ragDocuments)
-      .innerJoin(ragCollections, eq(ragDocuments.collectionId, ragCollections.id));
-
-    if (collectionId) {
-      query = query.where(eq(ragDocuments.collectionId, parseInt(collectionId)));
-    }
-
-    if (status) {
-      query = query.where(eq(ragDocuments.processingStatus, status));
-    }
-
-    const documents = await query;
+    const documents = await ragDocumentRepository.findAllWithCollection(
+      collectionId ? parseInt(collectionId) : undefined,
+      status || undefined
+    );
     
     return NextResponse.json({ documents });
   } catch (error) {
@@ -88,20 +67,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if collection exists and is active
-    const collection = await db
-      .select()
-      .from(ragCollections)
-      .where(eq(ragCollections.id, parseInt(collectionId)))
-      .limit(1);
+    const collection = await ragCollectionRepository.findById(parseInt(collectionId));
 
-    if (collection.length === 0) {
+    if (!collection) {
       return NextResponse.json(
         { error: 'Collection not found' },
         { status: 404 }
       );
     }
 
-    if (!collection[0].isActive) {
+    if (!collection.isActive) {
       return NextResponse.json(
         { error: 'Collection is not active' },
         { status: 400 }
@@ -116,7 +91,7 @@ export async function POST(request: NextRequest) {
         const buffer = Buffer.from(await file.arrayBuffer());
         const fileHash = require('crypto').createHash('sha256').update(buffer).digest('hex');
 
-        const [document] = await db.insert(ragDocuments).values({
+        const [document] = await ragDocumentRepository.create({
           collectionId: parseInt(collectionId),
           title: file.name,
           filename: file.name,
@@ -125,9 +100,7 @@ export async function POST(request: NextRequest) {
           fileHash,
           contentType: getContentType(file.type),
           processingStatus: 'pending',
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
-        }).returning();
+        });
 
         results.push({
           id: document.id,
@@ -195,37 +168,24 @@ async function processDocumentAsync(
     const { VectorStoreFactory, EmbeddingProviderFactory } = await import('@/lib/rag');
 
     // Update status to processing
-    await db
-      .update(ragDocuments)
-      .set({ 
-        processingStatus: 'processing',
-        updatedAt: Date.now()
-      })
-      .where(eq(ragDocuments.id, documentId));
+    await ragDocumentRepository.update(documentId, {
+      processingStatus: 'processing'
+    });
 
     // Get document and collection info
-    const document = await db
-      .select()
-      .from(ragDocuments)
-      .where(eq(ragDocuments.id, documentId))
-      .limit(1);
+    const document = await ragDocumentRepository.findById(documentId);
 
-    if (document.length === 0) return;
+    if (!document) return;
 
-    const collection = await db
-      .select()
-      .from(ragCollections)
-      .innerJoin(ragVectorStores, eq(ragCollections.vectorStoreId, ragVectorStores.id))
-      .where(eq(ragCollections.id, document[0].collectionId))
-      .limit(1);
+    const collection = await ragCollectionRepository.findByIdWithVectorStore(document.collectionId);
 
-    if (collection.length === 0) return;
+    if (!collection) return;
 
     // Process document
     const processingService = new DocumentProcessingService();
     const processed = await processingService.processDocument(
       buffer,
-      document[0].filename,
+      document.filename,
       mimeType,
       {
         chunkingStrategy: options.chunkingStrategy,
@@ -238,14 +198,10 @@ async function processDocumentAsync(
     );
 
     // Update document with content
-    await db
-      .update(ragDocuments)
-      .set({
-        rawContent: processed.content,
-        metadata: JSON.stringify(processed.metadata),
-        updatedAt: Date.now(),
-      })
-      .where(eq(ragDocuments.id, documentId));
+    await ragDocumentRepository.update(documentId, {
+      rawContent: processed.content,
+      metadata: processed.metadata
+    });
 
     // Apply cleansing if configured
     let chunks = processed.chunks;
@@ -265,7 +221,7 @@ async function processDocumentAsync(
     // Generate embeddings
     const embeddingProvider = EmbeddingProviderFactory.create({
       provider: 'openai',
-      model: collection[0].embeddingModel,
+      model: collection.ragCollections.embeddingModel,
       apiKey: process.env.EMBEDDING_API_KEY || process.env.OPENAI_API_KEY,
     });
 
@@ -274,10 +230,10 @@ async function processDocumentAsync(
 
     // Store in vector database
     const vectorStoreConfig = {
-      type: collection[0].type as any,
-      connectionString: collection[0].connectionString,
-      apiKey: collection[0].apiKey,
-      settings: collection[0].settings ? JSON.parse(collection[0].settings) : undefined,
+      type: collection.ragVectorStores.type as any,
+      connectionString: collection.ragVectorStores.connectionString,
+      apiKey: collection.ragVectorStores.apiKey,
+      settings: collection.ragVectorStores.settings ? JSON.parse(collection.ragVectorStores.settings) : undefined,
     };
 
     const vectorStore = await VectorStoreFactory.create(vectorStoreConfig);
@@ -291,48 +247,39 @@ async function processDocumentAsync(
       embedding: embeddings[i],
       metadata: {
         ...chunk.metadata,
-        documentTitle: document[0].title,
-        documentType: document[0].contentType,
+        documentTitle: document.title,
+        documentType: document.contentType,
       },
     }));
 
-    await vectorStore.addDocuments(collection[0].name, documentChunks);
+    await vectorStore.addDocuments(collection.ragCollections.name, documentChunks);
     await vectorStore.disconnect();
 
     // Store chunks in database
-    await db.insert(ragDocumentChunks).values(
+    await ragDocumentChunkRepository.createMany(
       documentChunks.map(chunk => ({
         documentId,
         chunkIndex: chunk.chunkIndex,
         content: chunk.content,
         cleanedContent: chunk.cleanedContent,
         embeddingVector: JSON.stringify(chunk.embedding),
-        metadata: JSON.stringify(chunk.metadata),
+        metadata: chunk.metadata,
         tokenCount: chunk.content.split(/\s+/).length,
-        createdAt: Date.now(),
       }))
     );
 
     // Update document status
-    await db
-      .update(ragDocuments)
-      .set({
-        processingStatus: 'completed',
-        updatedAt: Date.now(),
-      })
-      .where(eq(ragDocuments.id, documentId));
+    await ragDocumentRepository.update(documentId, {
+      processingStatus: 'completed'
+    });
 
   } catch (error) {
     console.error('Document processing failed:', error);
     
     // Update document with error
-    await db
-      .update(ragDocuments)
-      .set({
-        processingStatus: 'failed',
-        errorMessage: error instanceof Error ? error.message : 'Unknown error',
-        updatedAt: Date.now(),
-      })
-      .where(eq(ragDocuments.id, documentId));
+    await ragDocumentRepository.update(documentId, {
+      processingStatus: 'failed',
+      errorMessage: error instanceof Error ? error.message : 'Unknown error'
+    });
   }
 }

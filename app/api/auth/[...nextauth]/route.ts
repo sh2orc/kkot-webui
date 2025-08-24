@@ -1,8 +1,6 @@
 import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
-import { getDb } from '@/lib/db/config';
-import { users } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { userRepository } from '@/lib/db/repository';
 import { hashPassword, verifyPassword, generateUserId } from '@/lib/auth';
 import { getServerTranslation, defaultLanguage, type Language } from '@/lib/i18n-server';
 
@@ -28,7 +26,6 @@ export const authOptions = {
             throw new Error(errorMessage);
           }
 
-          const db = getDb();
           const email = credentials.email as string;
           const password = credentials.password as string;
           const username = credentials.username as string;
@@ -37,48 +34,44 @@ export const authOptions = {
           if (action === 'register') {
             // Handle registration
             // Check for existing user
-            const existingUser = await db.select().from(users).where(eq(users.email, email)).limit(1);
+            const existingUser = await userRepository.findByEmail(email);
             
-            if (existingUser.length > 0) {
+            if (existingUser) {
               const errorMessage = await getServerTranslation(language, 'auth', 'errors.emailAlreadyExists');
               throw new Error(errorMessage);
             }
 
             // Check total user count (to determine if this is the first user)
-            const allUsers = await db.select().from(users);
+            const allUsers = await userRepository.findAll();
             const isFirstUser = allUsers.length === 0;
 
             // Create user
-            const userId = generateUserId();
             const hashedPassword = hashPassword(password);
             const userRole = isFirstUser ? 'admin' : 'user';
 
-            await db.insert(users).values({
-              id: userId,
+            const [newUser] = await userRepository.create({
               username: username || email.split('@')[0], // Username or extracted from email
               email,
               password: hashedPassword,
-              role: userRole,
-              createdAt: new Date(),
-              updatedAt: new Date()
+              role: userRole
             });
 
             return {
-              id: userId,
-              email,
-              name: username || email.split('@')[0],
-              role: userRole
+              id: newUser.id,
+              email: newUser.email,
+              name: newUser.username,
+              role: newUser.role
             };
           } else {
             // Handle login
-            const user = await db.select().from(users).where(eq(users.email, email)).limit(1);
+            const user = await userRepository.findByEmail(email);
             
-            if (user.length === 0) {
+            if (!user) {
               const errorMessage = await getServerTranslation(language, 'auth', 'errors.emailNotFound');
               throw new Error(errorMessage);
             }
 
-            const isValidPassword = verifyPassword(password, user[0].password);
+            const isValidPassword = verifyPassword(password, user.password);
             
             if (!isValidPassword) {
               const errorMessage = await getServerTranslation(language, 'auth', 'errors.passwordIncorrect');
@@ -86,10 +79,10 @@ export const authOptions = {
             }
 
             return {
-              id: user[0].id,
-              email: user[0].email,
-              name: user[0].username,
-              role: user[0].role
+              id: user.id,
+              email: user.email,
+              name: user.username,
+              role: user.role
             };
           }
         } catch (error) {

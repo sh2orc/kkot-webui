@@ -2,9 +2,11 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { getDb } from '@/lib/db/config';
-import { ragCollections, ragVectorStores, ragDocuments } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { 
+  ragCollectionRepository, 
+  ragVectorStoreRepository, 
+  ragDocumentRepository 
+} from '@/lib/db/repository';
 import { VectorStoreFactory, VectorStoreConfig } from '@/lib/rag';
 
 interface RouteParams {
@@ -21,53 +23,33 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const collection = await db
-      .select({
-        id: ragCollections.id,
-        vectorStoreId: ragCollections.vectorStoreId,
-        name: ragCollections.name,
-        description: ragCollections.description,
-        embeddingModel: ragCollections.embeddingModel,
-        embeddingDimensions: ragCollections.embeddingDimensions,
-        metadata: ragCollections.metadata,
-        isActive: ragCollections.isActive,
-        createdAt: ragCollections.createdAt,
-        updatedAt: ragCollections.updatedAt,
-        vectorStoreName: ragVectorStores.name,
-        vectorStoreType: ragVectorStores.type,
-      })
-      .from(ragCollections)
-      .innerJoin(ragVectorStores, eq(ragCollections.vectorStoreId, ragVectorStores.id))
-      .where(eq(ragCollections.id, parseInt(params.id)))
-      .limit(1);
+    const collection = await ragCollectionRepository.findByIdWithVectorStore(parseInt(params.id));
 
-    if (collection.length === 0) {
+    if (!collection) {
       return NextResponse.json({ error: 'Collection not found' }, { status: 404 });
     }
 
     // Get collection stats from vector store
-    const vectorStore = await db
-      .select()
-      .from(ragVectorStores)
-      .where(eq(ragVectorStores.id, collection[0].vectorStoreId))
-      .limit(1);
+    const vectorStore = await ragVectorStoreRepository.findById(collection.ragCollections.vectorStoreId);
 
-    if (vectorStore.length > 0 && vectorStore[0].enabled) {
+    if (vectorStore && vectorStore.enabled) {
       try {
         const config: VectorStoreConfig = {
-          type: vectorStore[0].type as any,
-          connectionString: vectorStore[0].connectionString,
-          apiKey: vectorStore[0].apiKey,
-          settings: vectorStore[0].settings ? JSON.parse(vectorStore[0].settings) : undefined,
+          type: vectorStore.type as any,
+          connectionString: vectorStore.connectionString,
+          apiKey: vectorStore.apiKey,
+          settings: vectorStore.settings ? JSON.parse(vectorStore.settings) : undefined,
         };
 
         const store = await VectorStoreFactory.create(config);
-        const stats = await store.getCollectionStats(collection[0].name);
+        const stats = await store.getCollectionStats(collection.ragCollections.name);
         await store.disconnect();
 
         return NextResponse.json({ 
           collection: {
-            ...collection[0],
+            ...collection.ragCollections,
+            vectorStoreName: collection.ragVectorStores.name,
+            vectorStoreType: collection.ragVectorStores.type,
             stats
           }
         });
@@ -76,7 +58,13 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
       }
     }
 
-    return NextResponse.json({ collection: collection[0] });
+    return NextResponse.json({ 
+      collection: {
+        ...collection.ragCollections,
+        vectorStoreName: collection.ragVectorStores.name,
+        vectorStoreType: collection.ragVectorStores.type
+      }
+    });
   } catch (error) {
     console.error('Failed to fetch collection:', error);
     return NextResponse.json(
@@ -98,30 +86,18 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     const { description, metadata, isActive } = body;
 
     // Check if collection exists
-    const existing = await db
-      .select()
-      .from(ragCollections)
-      .where(eq(ragCollections.id, parseInt(params.id)))
-      .limit(1);
+    const existing = await ragCollectionRepository.findById(parseInt(params.id));
 
-    if (existing.length === 0) {
+    if (!existing) {
       return NextResponse.json({ error: 'Collection not found' }, { status: 404 });
     }
 
     // Update the collection
-    const updateData: any = {
-      updatedAt: Date.now(),
-    };
-
-    if (description !== undefined) updateData.description = description;
-    if (metadata !== undefined) updateData.metadata = JSON.stringify(metadata);
-    if (isActive !== undefined) updateData.isActive = isActive;
-
-    const result = await db
-      .update(ragCollections)
-      .set(updateData)
-      .where(eq(ragCollections.id, parseInt(params.id)))
-      .returning();
+    const result = await ragCollectionRepository.update(parseInt(params.id), {
+      description,
+      metadata,
+      isActive,
+    });
 
     return NextResponse.json({ collection: result[0] });
   } catch (error) {
@@ -142,24 +118,16 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Get collection details
-    const collection = await db
-      .select()
-      .from(ragCollections)
-      .where(eq(ragCollections.id, parseInt(params.id)))
-      .limit(1);
+    const collection = await ragCollectionRepository.findById(parseInt(params.id));
 
-    if (collection.length === 0) {
+    if (!collection) {
       return NextResponse.json({ error: 'Collection not found' }, { status: 404 });
     }
 
     // Check if any documents exist in this collection
-    const db = getDb();
-    const documents = await db
-      .select({ count: db.count() })
-      .from(ragDocuments)
-      .where(eq(ragDocuments.collectionId, parseInt(params.id)));
+    const documents = await ragDocumentRepository.findByCollectionId(parseInt(params.id));
 
-    if (documents[0].count > 0) {
+    if (documents.length > 0) {
       return NextResponse.json(
         { error: 'Cannot delete collection with existing documents' },
         { status: 400 }
@@ -167,24 +135,20 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Get vector store config
-    const vectorStore = await db
-      .select()
-      .from(ragVectorStores)
-      .where(eq(ragVectorStores.id, collection[0].vectorStoreId))
-      .limit(1);
+    const vectorStore = await ragVectorStoreRepository.findById(collection.vectorStoreId);
 
-    if (vectorStore.length > 0 && vectorStore[0].enabled) {
+    if (vectorStore && vectorStore.enabled) {
       // Delete collection from vector store
       try {
         const config: VectorStoreConfig = {
-          type: vectorStore[0].type as any,
-          connectionString: vectorStore[0].connectionString,
-          apiKey: vectorStore[0].apiKey,
-          settings: vectorStore[0].settings ? JSON.parse(vectorStore[0].settings) : undefined,
+          type: vectorStore.type as any,
+          connectionString: vectorStore.connectionString,
+          apiKey: vectorStore.apiKey,
+          settings: vectorStore.settings ? JSON.parse(vectorStore.settings) : undefined,
         };
 
         const store = await VectorStoreFactory.create(config);
-        await store.deleteCollection(collection[0].name);
+        await store.deleteCollection(collection.name);
         await store.disconnect();
       } catch (error) {
         console.error('Failed to delete collection from vector store:', error);
@@ -193,9 +157,7 @@ export async function DELETE(request: NextRequest, { params }: RouteParams) {
     }
 
     // Delete from database
-    await db
-      .delete(ragCollections)
-      .where(eq(ragCollections.id, parseInt(params.id)));
+    await ragCollectionRepository.delete(parseInt(params.id));
 
     return NextResponse.json({ success: true });
   } catch (error) {

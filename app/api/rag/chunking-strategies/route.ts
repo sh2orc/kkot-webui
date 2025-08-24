@@ -2,9 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
-import { getDb } from '@/lib/db/config';
-import { ragChunkingStrategies } from '@/lib/db/schema';
-import { eq } from 'drizzle-orm';
+import { ragChunkingStrategyRepository } from '@/lib/db/repository';
 import { ChunkingStrategyFactory } from '@/lib/rag/document';
 
 // GET /api/rag/chunking-strategies - List all chunking strategies
@@ -15,8 +13,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const db = getDb();
-    const strategies = await db.select().from(ragChunkingStrategies);
+    const strategies = await ragChunkingStrategyRepository.findAll();
     
     // Add available types that can be used
     const availableTypes = ChunkingStrategyFactory.getAvailableStrategies();
@@ -62,28 +59,16 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const db = getDb();
-    
-    // If this is set as default, unset other defaults
-    if (isDefault) {
-      await db
-        .update(ragChunkingStrategies)
-        .set({ isDefault: false })
-        .where(eq(ragChunkingStrategies.isDefault, true));
-    }
-
     // Create the strategy
-    const result = await db.insert(ragChunkingStrategies).values({
+    const result = await ragChunkingStrategyRepository.create({
       name,
       type,
       chunkSize: chunkSize || 1000,
       chunkOverlap: chunkOverlap || 200,
       separator,
-      customRules: customRules ? JSON.stringify(customRules) : null,
+      customRules,
       isDefault: isDefault || false,
-      createdAt: Date.now(),
-      updatedAt: Date.now(),
-    }).returning();
+    });
 
     return NextResponse.json({ strategy: result[0] });
   } catch (error: any) {
@@ -120,31 +105,14 @@ export async function PUT(request: NextRequest) {
     const body = await request.json();
     const { name, chunkSize, chunkOverlap, separator, customRules, isDefault } = body;
 
-    // If this is set as default, unset other defaults
-    if (isDefault) {
-      await db
-        .update(ragChunkingStrategies)
-        .set({ isDefault: false })
-        .where(eq(ragChunkingStrategies.isDefault, true));
-    }
-
-    // Update the strategy
-    const updateData: any = {
-      updatedAt: Date.now(),
-    };
-
-    if (name !== undefined) updateData.name = name;
-    if (chunkSize !== undefined) updateData.chunkSize = chunkSize;
-    if (chunkOverlap !== undefined) updateData.chunkOverlap = chunkOverlap;
-    if (separator !== undefined) updateData.separator = separator;
-    if (customRules !== undefined) updateData.customRules = JSON.stringify(customRules);
-    if (isDefault !== undefined) updateData.isDefault = isDefault;
-
-    const result = await db
-      .update(ragChunkingStrategies)
-      .set(updateData)
-      .where(eq(ragChunkingStrategies.id, parseInt(id)))
-      .returning();
+    const result = await ragChunkingStrategyRepository.update(parseInt(id), {
+      name,
+      chunkSize,
+      chunkOverlap,
+      separator,
+      customRules,
+      isDefault,
+    });
 
     if (result.length === 0) {
       return NextResponse.json({ error: 'Strategy not found' }, { status: 404 });
@@ -175,9 +143,7 @@ export async function DELETE(request: NextRequest) {
       return NextResponse.json({ error: 'Strategy ID is required' }, { status: 400 });
     }
 
-    await db
-      .delete(ragChunkingStrategies)
-      .where(eq(ragChunkingStrategies.id, parseInt(id)));
+    await ragChunkingStrategyRepository.delete(parseInt(id));
 
     return NextResponse.json({ success: true });
   } catch (error) {

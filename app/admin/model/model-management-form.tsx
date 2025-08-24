@@ -28,6 +28,7 @@ interface LLMModel {
   enabled: boolean
   isPublic: boolean
   supportsMultimodal: boolean
+  isEmbeddingModel: boolean
   capabilities?: any
   contextLength?: number
   updatedAt: string
@@ -125,7 +126,7 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
   }
 
   // Update model settings
-  const updateModel = (modelId: string, field: 'enabled' | 'isPublic' | 'supportsMultimodal', value: boolean) => {
+  const updateModel = (modelId: string, field: 'enabled' | 'isPublic' | 'supportsMultimodal' | 'isEmbeddingModel', value: boolean) => {
     setServers(prev => prev.map(server => ({
       ...server,
       models: server.models.map(model => 
@@ -155,7 +156,8 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
             id: model.id,
             enabled: model.enabled,
             isPublic: model.isPublic,
-            supportsMultimodal: model.supportsMultimodal
+            supportsMultimodal: model.supportsMultimodal,
+            isEmbeddingModel: model.isEmbeddingModel
           })
         })
         

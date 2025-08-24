@@ -41,40 +41,46 @@ export async function GET(request: NextRequest) {
     };
 
     try {
-      const { getDb } = await import('@/lib/db/config');
       const { 
-        chatSessions, 
-        chatMessages, 
-        users, 
-        systemSettings,
-        agentManage,
-        apiKeys,
-        llmServers,
-        llmModels
-      } = await import('@/lib/db/schema');
-      
-      const db = getDb();
+        userRepository,
+        chatSessionRepository,
+        chatMessageRepository,
+        adminSettingsRepository,
+        agentManageRepository,
+        apiKeysRepository,
+        llmServerRepository,
+        llmModelRepository
+      } = await import('@/lib/db/repository');
       
       // Test connection with simple count queries (much faster than selecting all data)
       const [
-        sessionCount,
-        messageCount,
-        userCount,
-        settingsCount,
-        agentCount,
-        apiKeyCount,
-        serverCount,
-        modelCount
+        sessions,
+        messages,
+        users,
+        settings,
+        agents,
+        apiKeys,
+        servers,
+        models
       ] = await Promise.all([
-        db.select().from(chatSessions).then((rows: any[]) => rows.length).catch(() => 0),
-        db.select().from(chatMessages).then((rows: any[]) => rows.length).catch(() => 0),
-        db.select().from(users).then((rows: any[]) => rows.length).catch(() => 0),
-        db.select().from(systemSettings).then((rows: any[]) => rows.length).catch(() => 0),
-        db.select().from(agentManage).then((rows: any[]) => rows.length).catch(() => 0),
-        db.select().from(apiKeys).then((rows: any[]) => rows.length).catch(() => 0),
-        db.select().from(llmServers).then((rows: any[]) => rows.length).catch(() => 0),
-        db.select().from(llmModels).then((rows: any[]) => rows.length).catch(() => 0)
+        chatSessionRepository.findAll().catch(() => []),
+        chatMessageRepository.findAll().catch(() => []),
+        userRepository.findAll().catch(() => []),
+        adminSettingsRepository.findAll().catch(() => []),
+        agentManageRepository.findAll().catch(() => []),
+        apiKeysRepository.findAll().catch(() => []),
+        llmServerRepository.findAll().catch(() => []),
+        llmModelRepository.findAll().catch(() => [])
       ]);
+      
+      const sessionCount = sessions.length;
+      const messageCount = messages.length;
+      const userCount = users.length;
+      const settingsCount = settings.length;
+      const agentCount = agents.length;
+      const apiKeyCount = apiKeys.length;
+      const serverCount = servers.length;
+      const modelCount = models.length;
 
       dbStats = {
         connected: true,
