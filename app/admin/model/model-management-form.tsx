@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Switch } from "@/components/ui/switch"
+import { TextSwitch } from "@/components/ui/text-switch"
 import { useTranslation } from "@/lib/i18n"
 import { useToast } from "@/hooks/use-toast"
 import { RefreshCw, Search, Save } from "lucide-react"
@@ -245,6 +245,7 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
                     <TableHead className="text-center">{lang('tableHeaders.enabled')}</TableHead>
                     <TableHead className="text-center">{lang('tableHeaders.public')}</TableHead>
                     <TableHead className="text-center">{lang('tableHeaders.multimodal')}</TableHead>
+                    <TableHead className="text-center">{lang('tableHeaders.embedding')}</TableHead>
                     <TableHead>{lang('tableHeaders.updatedAt')}</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -256,21 +257,35 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
                         <span className="font-semibold">{model.modelId}</span>
                       </TableCell>
                       <TableCell className="text-center">
-                        <Switch
+                        <TextSwitch
                           checked={model.enabled}
                           onCheckedChange={(checked) => updateModel(model.id, 'enabled', checked)}
+                          onText={lang('switch.on')}
+                          offText={lang('switch.off')}
                         />
                       </TableCell>
                       <TableCell className="text-center">
-                        <Switch
+                        <TextSwitch
                           checked={model.isPublic}
                           onCheckedChange={(checked) => updateModel(model.id, 'isPublic', checked)}
+                          onText={lang('switch.on')}
+                          offText={lang('switch.off')}
                         />
                       </TableCell>
                       <TableCell className="text-center">
-                        <Switch
+                        <TextSwitch
                           checked={model.supportsMultimodal}
                           onCheckedChange={(checked) => updateModel(model.id, 'supportsMultimodal', checked)}
+                          onText={lang('switch.on')}
+                          offText={lang('switch.off')}
+                        />
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <TextSwitch
+                          checked={model.isEmbeddingModel}
+                          onCheckedChange={(checked) => updateModel(model.id, 'isEmbeddingModel', checked)}
+                          onText={lang('switch.on')}
+                          offText={lang('switch.off')}
                         />
                       </TableCell>
                       <TableCell className="text-sm text-gray-500">

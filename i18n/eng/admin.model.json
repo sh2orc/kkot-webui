@@ -29,10 +29,15 @@
     "enabled": "Enabled",
     "public": "Public",
     "multimodal": "Vision",
+    "embedding": "Embedding Model",
     "updatedAt": "Updated"
   },
   "noModelsMessage": "No models available. Click the sync button to fetch models.",
   "noSearchResults": "No search results found.",
   "noEnabledServers": "No enabled servers.",
-  "saveChanges": "Save Changes"
+  "saveChanges": "Save Changes",
+  "switch": {
+    "on": "ON",
+    "off": "OFF"
+  }
 } 

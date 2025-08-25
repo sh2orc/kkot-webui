@@ -251,7 +251,7 @@ export const llmModelRepository = {
   },
   
   /**
-   * Find public models
+   * Find public models (excluding embedding models)
    */
   findPublic: async () => {
     return await db
@@ -275,7 +275,8 @@ export const llmModelRepository = {
       .leftJoin(schema.llmServers, eq(schema.llmModels.serverId, schema.llmServers.id))
       .where(and(
         eq(schema.llmModels.enabled, 1 as any),
-        eq(schema.llmModels.isPublic, 1 as any)
+        eq(schema.llmModels.isPublic, 1 as any),
+        eq(schema.llmModels.isEmbeddingModel, 0 as any) // Exclude embedding models
       ));
   },
   

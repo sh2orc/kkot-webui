@@ -34,10 +34,8 @@ async function fetchOpenAIModels(server: any) {
           };
         });
       } else {
-        // 일반 OpenAI의 경우 기존 필터링 로직 사용
-        return data.data.filter((model: any) => 
-          model.id.includes('gpt') || model.id.includes('dall-e') || model.id.includes('whisper')
-        ).map((model: any) => {
+        // 일반 OpenAI의 경우 모든 모델을 가져옴 (connection 페이지와 동일한 로직)
+        return data.data.map((model: any) => {
           // GPT-4 계열 모델의 멀티모달 지원 자동 감지
           const supportsMultimodal = model.id.includes('gpt-4') && (
             model.id.includes('vision') || 
@@ -49,9 +47,10 @@ async function fetchOpenAIModels(server: any) {
             modelId: model.id,
             supportsMultimodal,
             capabilities: {
-              chat: model.id.includes('gpt'),
-              image: model.id.includes('dall-e'),
-              audio: model.id.includes('whisper')
+              // Infer capabilities from model name (connection 페이지와 동일한 로직)
+              chat: model.id.includes('gpt') || model.id.includes('llama') || model.id.includes('mistral') || model.id.includes('qwen') || !model.id.includes('dall-e') && !model.id.includes('whisper'),
+              image: model.id.includes('dall-e') || model.id.includes('vision') || model.id.includes('-VL'),
+              audio: model.id.includes('whisper') || model.id.includes('tts')
             }
           };
         });
