@@ -14,7 +14,7 @@ export default function ContentPage() {
   const [selectedCategory, setSelectedCategory] = useState("all")
   const [isLoaded, setIsLoaded] = useState(false)
 
-  // 번역 모듈 프리로드
+  // Preload translation module
   useEffect(() => {
     async function loadTranslations() {
       await preloadTranslationModule(language, 'book')

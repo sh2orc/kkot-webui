@@ -406,7 +406,7 @@ export const handleParallelDeepResearch = async (
             })),
             synthesis: synthesisResult.synthesis
           })
-        }, 60000); // 60초 타임아웃
+        }, 60000); // 60 second timeout
 
         if (!finalAnswerResponse.ok) {
           const errorText = await finalAnswerResponse.text();
@@ -520,14 +520,14 @@ export const handleParallelDeepResearch = async (
       console.error('Failed to save final answer to database:', error);
     }
 
-    // 스트리밍 상태 즉시 종료
+    // Immediately end streaming state
     if (setIsStreaming) setIsStreaming(false);
     if (setStreamingMessageId) setStreamingMessageId(null);
     if (setIsSubmitting) setIsSubmitting(false);
     if (isSubmittingRef) isSubmittingRef.current = false;
     if (streamingInProgress) streamingInProgress.current = false;
     
-    // 추가 안전 조치 - 여러 번 시도
+    // Additional safety measure - multiple attempts
     setTimeout(() => {
       if (setIsStreaming) setIsStreaming(false);
       if (setStreamingMessageId) setStreamingMessageId(null);
@@ -544,7 +544,7 @@ export const handleParallelDeepResearch = async (
       if (streamingInProgress) streamingInProgress.current = false;
     }, 1000);
 
-    // 딥 리서치 성공적으로 완료
+    // Deep research completed successfully
     
   } catch (error) {
     console.error('Parallel deep research error:', error);

@@ -304,10 +304,10 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
         description: lang('saveSuccessMessage')
       })
       
-      // 저장 완료 후 버튼 상태 즉시 업데이트
+      // Immediately update button state after saving completion
       setIsSaving(false)
       
-      // 저장 후 페이지 새로고침하여 서버 상태 동기화
+      // Refresh page after saving to synchronize server state
       setTimeout(() => {
         console.log(lang('pageRefreshExecuting'))
         router.refresh()
@@ -320,9 +320,9 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
         description: error instanceof Error ? error.message : lang('saveFailureMessage'),
         variant: "destructive"
       })
-      setIsSaving(false) // 에러 시에만 여기서 setIsSaving(false) 호출
+      setIsSaving(false) // Call setIsSaving(false) only on error
     }
-    // 성공 시에는 페이지가 새로고침되므로 setIsSaving(false) 불필요
+    // On success, page refreshes so setIsSaving(false) is unnecessary
   }
 
   const renderProviderSection = (provider: string, title: string, description: string) => {

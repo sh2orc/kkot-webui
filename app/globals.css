@@ -124,14 +124,14 @@ body.no-loading [data-nextjs-loading-state] {
     scroll-behavior: smooth;
     overflow-anchor: none;
     transition: all 0.2s ease-out;
-    /* 렌더링 최적화를 위한 containment 설정 */
+    /* Containment settings for rendering optimization */
     contain: layout style;
-    /* 최소 높이 설정으로 스크롤 중 빈 공간 방지 */
+    /* Prevent empty space during scrolling with minimum height setting */
     min-height: 100%;
-    /* 하드웨어 가속 활성화 */
+    /* Enable hardware acceleration */
     transform: translateZ(0);
     will-change: scroll-position;
-    /* 긴 콘텐츠 렌더링 최적화 - 스크롤 계산 정확성을 위해 조정 */
+    /* Long content rendering optimization - adjusted for scroll calculation accuracy */
     /* content-visibility: auto; */
     /* contain-intrinsic-size: 0 1000px; */
   }

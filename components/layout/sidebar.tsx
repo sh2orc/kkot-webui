@@ -232,7 +232,7 @@ export default function Sidebar({
         setChatGroups(groups)
       } else if (data.error) {
         console.error('Chat session load error:', data.error)
-        // "Invalid user" 에러 시 홈페이지로 리다이렉트
+        // Redirect to homepage on "Invalid user" error
         if (data.error === 'Invalid user') {
           router.push('/')
           return

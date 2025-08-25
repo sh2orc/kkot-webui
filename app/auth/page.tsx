@@ -69,7 +69,7 @@ export default function AuthPage() {
         email: loginForm.email,
         password: loginForm.password,
         action: 'login',
-        language: language, // 현재 사용자 언어 설정 사용
+        language: language, // Use current user language setting
         redirect: false,
       });
 
@@ -130,7 +130,7 @@ export default function AuthPage() {
         password: registerForm.password,
         username: registerForm.username,
         action: 'register',
-        language: language, // 현재 사용자 언어 설정 사용
+        language: language, // Use current user language setting
         redirect: false,
       });
 

@@ -17,9 +17,9 @@ interface LanguageProviderProps {
 }
 
 export default function LanguageProvider({ children }: LanguageProviderProps) {
-  // 초기값을 getStoredLanguage()로 설정하여 브라우저 언어 감지 적용
+  // Set initial value to getStoredLanguage() to apply browser language detection
   const [language, setCurrentLanguage] = useState<Language>(() => {
-    // 클라이언트 사이드에서만 실행
+    // Execute only on client side
     if (typeof window !== 'undefined') {
       return getStoredLanguage()
     }

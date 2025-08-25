@@ -9,6 +9,7 @@ export async function GET(request: NextRequest) {
     const serverId = url.searchParams.get('serverId');
     const provider = url.searchParams.get('provider');
     const publicOnly = url.searchParams.get('publicOnly') === 'true';
+    const embeddingOnly = url.searchParams.get('embeddingOnly') === 'true';
     
     let models;
     
@@ -16,6 +17,8 @@ export async function GET(request: NextRequest) {
       models = await llmModelRepository.findByServerIdWithServer(serverId);
     } else if (provider) {
       models = await llmModelRepository.findByProvider(provider);
+    } else if (publicOnly && embeddingOnly) {
+      models = await llmModelRepository.findPublicEmbeddingModels();
     } else if (publicOnly) {
       models = await llmModelRepository.findPublic();
     } else {
@@ -69,27 +72,27 @@ export async function POST(request: NextRequest) {
           if (response.ok) {
             const data = await response.json();
             
-            // vLLM 서버인지 확인 (baseUrl에 vllm이 포함되어 있거나 포트가 8000인 경우)
+            // Check if it's a vLLM server (baseUrl contains vllm or port is 8000)
             const isVLLM = server.baseUrl.toLowerCase().includes('vllm') || 
                           server.baseUrl.includes(':8000') ||
                           server.name.toLowerCase().includes('vllm');
             
             if (isVLLM) {
-              // vLLM의 경우 모든 모델을 가져옴
+              // For vLLM, retrieve all models
               models = data.data.map((model: any) => ({
                 modelId: model.id,
                 capabilities: {
-                  chat: true, // vLLM의 모든 모델은 채팅 가능
+                  chat: true, // All vLLM models support chat
                   image: false,
                   audio: false
                 }
               }));
             } else {
-              // 일반 OpenAI의 경우 모든 모델을 가져옴 (페이지와 동일한 로직)
+              // For standard OpenAI, retrieve all models (same logic as page)
               models = data.data.map((model: any) => ({
                 modelId: model.id,
                 capabilities: {
-                  // Infer capabilities from model name (connection 페이지와 동일한 로직)
+                  // Infer capabilities from model name (same logic as connection page)
                   chat: model.id.includes('gpt') || model.id.includes('llama') || model.id.includes('mistral') || model.id.includes('qwen') || !model.id.includes('dall-e') && !model.id.includes('whisper'),
                   image: model.id.includes('dall-e') || model.id.includes('vision') || model.id.includes('-VL'),
                   audio: model.id.includes('whisper') || model.id.includes('tts')
@@ -140,7 +143,7 @@ export async function POST(request: NextRequest) {
         results.push(result[0]);
       }
       
-      // 페이지 캐시 무효화
+      // Invalidate page cache
       revalidatePath('/admin/model');
       
       return NextResponse.json({
@@ -189,7 +192,7 @@ export async function PUT(request: NextRequest) {
       );
     }
     
-    // 페이지 캐시 무효화
+    // Invalidate page cache
     revalidatePath('/admin/model');
     
     return NextResponse.json({
@@ -205,7 +208,7 @@ export async function PUT(request: NextRequest) {
   }
 }
 
-// DELETE: 모델 삭제
+// DELETE: Delete model
 export async function DELETE(request: NextRequest) {
   try {
     const url = new URL(request.url);
@@ -213,7 +216,7 @@ export async function DELETE(request: NextRequest) {
     
     if (!id) {
       return NextResponse.json(
-        { error: 'id는 필수입니다.' },
+        { error: 'id is required.' },
         { status: 400 }
       );
     }
@@ -221,12 +224,12 @@ export async function DELETE(request: NextRequest) {
     await llmModelRepository.delete(id);
     
     return NextResponse.json({
-      message: '모델이 삭제되었습니다.'
+      message: 'Model has been deleted.'
     });
   } catch (error) {
     console.error('LLM model deletion error:', error);
     return NextResponse.json(
-      { error: 'LLM 모델을 삭제하는 중 오류가 발생했습니다.' },
+      { error: 'An error occurred while deleting LLM model.' },
       { status: 500 }
     );
   }

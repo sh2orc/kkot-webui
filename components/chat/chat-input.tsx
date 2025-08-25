@@ -58,7 +58,7 @@ export const ChatInput = memo(function ChatInput({
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  // 에이전트 기능 지원 여부 확인
+  // Check if agent features are supported
   const supportsDeepResearch = selectedAgent?.supportsDeepResearch ?? true
   const supportsWebSearch = selectedAgent?.supportsWebSearch ?? true
 

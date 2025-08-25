@@ -16,19 +16,19 @@ export default function GlobalLayout({ children }: GlobalLayoutProps) {
   const { data: session, status } = useSession()
   const pathname = usePathname()
 
-  // 인증이 필요한 페이지 경로 확인
+  // Check if authentication is required for page path
   const isAuthPage = pathname?.startsWith('/auth')
   const isPublicPage = isAuthPage || pathname === '/'
   const isAdminPage = pathname?.startsWith('/admin')
   
-  // 현재 페이지 타입 결정
+  // Determine current page type
   const getCurrentPageType = () => {
     if (pathname?.startsWith('/chat')) return 'chat'
     if (pathname?.startsWith('/book')) return 'content'
-    return 'chat' // 기본값
+    return 'chat' // Default value
   }
 
-  // 페이지 제목 결정
+  // Determine page title
   const getPageTitle = () => {
     if (isAdminPage) {
       return 'Admin'
@@ -37,7 +37,7 @@ export default function GlobalLayout({ children }: GlobalLayoutProps) {
     const pageType = getCurrentPageType()
     
     if (pageType === 'chat') {
-      // 채팅 페이지에서는 동적 제목 처리
+      // Handle dynamic title for chat pages
       if (pathname === '/chat') return 'New Chat'
       return 'Chat'
     }
@@ -49,17 +49,17 @@ export default function GlobalLayout({ children }: GlobalLayoutProps) {
     return 'KKOT WebUI'
   }
 
-  // 로딩 상태 처리
+  // Handle loading state
   if (status === "loading") {
     return <Loading />
   }
 
-  // 공개 페이지나 인증이 필요 없는 페이지는 사이드바 없이 렌더링
+  // Render public pages or pages that don't require authentication without sidebar
   if (isPublicPage || status === "unauthenticated") {
     return <>{children}</>
   }
 
-  // 관리자 페이지는 자체 사이드바를 사용하므로 네비게이션 바만 표시
+  // Admin pages use their own sidebar, so only show navigation bar
   if (isAdminPage) {
     return (
       <div className="flex h-screen bg-white">
@@ -76,7 +76,7 @@ export default function GlobalLayout({ children }: GlobalLayoutProps) {
     )
   }
 
-  // 일반 페이지는 메인 사이드바가 있는 레이아웃 제공
+  // Provide layout with main sidebar for regular pages
   return (
     <div className="flex h-screen bg-white">
       <Sidebar

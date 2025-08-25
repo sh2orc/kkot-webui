@@ -916,7 +916,7 @@ export function DeepResearchDisplay({
               <Badge className={`text-xs flex-shrink-0 ${getStepBadgeColor(step.stepType)}`}>
                 {step.stepType === 'step' ? lang("deepResearch.stepTypes.analysis") : step.stepType === 'synthesis' ? lang("deepResearch.stepTypes.synthesis") : lang("deepResearch.stepTypes.final")}
               </Badge>
-              {/* 각 단계별 카운팅 제거 */}
+              {/* Remove counting for each step */}
               {step.status === 'in_progress' && (
                 <div className="flex items-center gap-2 flex-shrink-0">
                   <div className="flex space-x-1">
@@ -1051,7 +1051,7 @@ export function DeepResearchDisplay({
               <Badge className={`text-xs flex-shrink-0 ${getStepBadgeColor('final')}`}>
                 {lang("deepResearch.stepTypes.final")}
               </Badge>
-              {/* 최종 단계 카운팅 제거 */}
+              {/* Remove counting for final step */}
               {(() => {
                 const finalStep = steps.find(s => s.stepType === 'final');
                 if (finalStep) {

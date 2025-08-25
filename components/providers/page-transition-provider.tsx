@@ -26,20 +26,20 @@ export function PageTransitionProvider({ children }: PageTransitionProviderProps
   const previousPathname = useRef(pathname)
   const scrollPositions = useRef<Map<string, number>>(new Map())
 
-  // 채팅 페이지 간 이동 감지
+  // Detect navigation between chat pages
   const isChatPageTransition = useCallback((currentPath: string, nextPath: string) => {
-    // 채팅 페이지 간 이동 여부 확인 (예: /chat/123 -> /chat/456)
+    // Check if navigating between chat pages (e.g.: /chat/123 -> /chat/456)
     const chatPathRegex = /^\/chat(\/.*)?$/
     return chatPathRegex.test(currentPath) && chatPathRegex.test(nextPath)
   }, [])
 
   const startTransition = useCallback((callback: () => void) => {
-    // 현재 스크롤 위치 저장
+    // Save current scroll position
     if (pathname) {
       scrollPositions.current.set(pathname, window.scrollY)
     }
     
-    // View Transitions API 지원 여부 확인
+    // Check View Transitions API support
     if ('startViewTransition' in document && typeof document.startViewTransition === 'function') {
       const transition = document.startViewTransition(() => {
         callback()
@@ -51,30 +51,30 @@ export function PageTransitionProvider({ children }: PageTransitionProviderProps
       
       transition.finished.then(() => {
         setIsTransitioning(false)
-        // 이전 스크롤 위치 복원
+        // Restore previous scroll position
         const savedPosition = scrollPositions.current.get(pathname)
         if (savedPosition !== undefined) {
           window.scrollTo(0, savedPosition)
         }
-        // 로딩 상태 클래스 제거 (일정 시간 후)
+        // Remove loading state class (after some time)
         setTimeout(() => {
           document.body.classList.remove('no-loading')
         }, 1000)
       })
     } else {
-      // View Transitions API를 지원하지 않는 경우 fallback
+      // Fallback for browsers that don't support View Transitions API
       setIsTransitioning(true)
       callback()
       
-      // 애니메이션 시간 후 상태 변경
+      // Change state after animation time
       setTimeout(() => {
         setIsTransitioning(false)
-        // 이전 스크롤 위치 복원
+        // Restore previous scroll position
         const savedPosition = scrollPositions.current.get(pathname)
         if (savedPosition !== undefined) {
           window.scrollTo(0, savedPosition)
         }
-        // 로딩 상태 클래스 제거
+        // Remove loading state class
         setTimeout(() => {
           document.body.classList.remove('no-loading')
         }, 1000)
@@ -82,13 +82,13 @@ export function PageTransitionProvider({ children }: PageTransitionProviderProps
     }
   }, [pathname])
 
-  // 경로 변경 감지
+  // Detect path changes
   useEffect(() => {
     if (pathname !== previousPathname.current) {
-      // 채팅 페이지 간 이동인 경우 로딩 화면 비활성화
+      // Disable loading screen for navigation between chat pages
       if (isChatPageTransition(previousPathname.current, pathname)) {
         document.body.classList.add('no-loading')
-        // 일정 시간 후 클래스 제거
+        // Remove class after some time
         setTimeout(() => {
           document.body.classList.remove('no-loading')
         }, 1000)
@@ -106,16 +106,16 @@ export function PageTransitionProvider({ children }: PageTransitionProviderProps
   )
 }
 
-// 커스텀 Link 컴포넌트 훅
+// Custom Link component hook
 export function useTransitionRouter() {
   const router = useNextRouter()
   const { startTransition } = usePageTransition()
 
   const push = useCallback((href: string) => {
-    // 채팅 페이지 간 이동 여부 확인
+    // Check if navigating between chat pages
     const isChatNavigation = /^\/chat(\/.*)?$/.test(href)
     
-    // 채팅 페이지 간 이동인 경우 로딩 화면 비활성화
+    // Disable loading screen for navigation between chat pages
     if (isChatNavigation) {
       document.body.classList.add('no-loading')
     }
@@ -126,10 +126,10 @@ export function useTransitionRouter() {
   }, [router, startTransition])
 
   const replace = useCallback((href: string) => {
-    // 채팅 페이지 간 이동 여부 확인
+    // Check if navigating between chat pages
     const isChatNavigation = /^\/chat(\/.*)?$/.test(href)
     
-    // 채팅 페이지 간 이동인 경우 로딩 화면 비활성화
+    // Disable loading screen for navigation between chat pages
     if (isChatNavigation) {
       document.body.classList.add('no-loading')
     }

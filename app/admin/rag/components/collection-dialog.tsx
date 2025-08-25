@@ -42,10 +42,19 @@ interface CollectionDialogProps {
   onSave: () => void;
 }
 
-const EMBEDDING_MODELS = [
-  { value: 'text-embedding-ada-002', label: 'text-embedding-ada-002 (1536)', dimensions: 1536 },
-  { value: 'text-embedding-3-small', label: 'text-embedding-3-small (1536)', dimensions: 1536 },
-  { value: 'text-embedding-3-large', label: 'text-embedding-3-large (3072)', dimensions: 3072 },
+interface EmbeddingModel {
+  id: string;
+  modelId: string;
+  provider: string;
+  serverName?: string;
+  capabilities?: any;
+}
+
+// Default embedding models (fallback)
+const DEFAULT_EMBEDDING_MODELS = [
+  { value: 'text-embedding-ada-002', label: 'text-embedding-ada-002', dimensions: 1536 },
+  { value: 'text-embedding-3-small', label: 'text-embedding-3-small', dimensions: 1536 },
+  { value: 'text-embedding-3-large', label: 'text-embedding-3-large', dimensions: 3072 },
 ];
 
 export function CollectionDialog({
@@ -57,6 +66,7 @@ export function CollectionDialog({
 }: CollectionDialogProps) {
   const { lang } = useTranslation('admin.rag');
   const [loading, setLoading] = useState(false);
+  const [embeddingModels, setEmbeddingModels] = useState(DEFAULT_EMBEDDING_MODELS);
   const [formData, setFormData] = useState<Collection>({
     vectorStoreId: 0,
     name: '',
@@ -66,6 +76,48 @@ export function CollectionDialog({
     isActive: true,
   });
 
+  // Fetch embedding models list
+  const fetchEmbeddingModels = async () => {
+    try {
+      const response = await fetch('/api/llm-models?publicOnly=true&embeddingOnly=true');
+      if (!response.ok) {
+        console.warn('Failed to fetch embedding models, using defaults');
+        return;
+      }
+      
+      const models: EmbeddingModel[] = await response.json();
+      
+      if (models.length > 0) {
+        const modelOptions = models.map(model => {
+          // Estimate default dimensions (based on model name)
+          let dimensions = 1536; // Default value
+          if (model.modelId.includes('3-large')) dimensions = 3072;
+          else if (model.modelId.includes('3-small')) dimensions = 1536;
+          else if (model.modelId.includes('ada-002')) dimensions = 1536;
+          
+          const label = model.serverName 
+            ? `${model.modelId} (${model.serverName}) (${dimensions})`
+            : `${model.modelId} (${dimensions})`;
+            
+          return {
+            value: model.modelId,
+            label,
+            dimensions
+          };
+        });
+        
+        setEmbeddingModels(modelOptions);
+      }
+    } catch (error) {
+      console.warn('Error fetching embedding models:', error);
+      // Use default models on error
+    }
+  };
+
+  useEffect(() => {
+    fetchEmbeddingModels();
+  }, []);
+
   useEffect(() => {
     if (collection) {
       setFormData(collection);
@@ -74,12 +126,12 @@ export function CollectionDialog({
         vectorStoreId: vectorStores[0]?.id || 0,
         name: '',
         description: '',
-        embeddingModel: 'text-embedding-ada-002',
-        embeddingDimensions: 1536,
+        embeddingModel: embeddingModels[0]?.value || 'text-embedding-ada-002',
+        embeddingDimensions: embeddingModels[0]?.dimensions || 1536,
         isActive: true,
       });
     }
-  }, [collection, vectorStores]);
+  }, [collection, vectorStores, embeddingModels]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,7 +172,7 @@ export function CollectionDialog({
   };
 
   const handleModelChange = (model: string) => {
-    const selectedModel = EMBEDDING_MODELS.find(m => m.value === model);
+    const selectedModel = embeddingModels.find(m => m.value === model);
     if (selectedModel) {
       setFormData({
         ...formData,
@@ -201,7 +253,7 @@ export function CollectionDialog({
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {EMBEDDING_MODELS.map((model) => (
+                  {embeddingModels.map((model) => (
                     <SelectItem key={model.value} value={model.value}>
                       {model.label}
                     </SelectItem>

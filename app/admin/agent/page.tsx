@@ -13,7 +13,7 @@ export default async function AgentSettingsPage() {
   
   // Transform agents data with image data conversion
   const agentsWithModel = agents.map((agent: any) => {
-    // 이미지 데이터 서버 사이드에서 변환
+    // Convert image data on server side
     let imageData: string | null = null
     let hasImage = false
     
@@ -30,7 +30,7 @@ export default async function AgentSettingsPage() {
       topK: agent.topK || 50,
       maxTokens: agent.maxTokens || 2048,
       hasImage,
-      imageData // SSR로 변환된 이미지 데이터 전달
+      imageData // Pass image data converted by SSR
     }
   })
   

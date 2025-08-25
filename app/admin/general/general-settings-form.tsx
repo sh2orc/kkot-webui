@@ -264,7 +264,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
             description: lang('saveSuccessMessage'),
           })
           
-          // 저장 후 서버 상태 동기화
+          // Synchronize server state after saving
           router.refresh()
         }
       } else {

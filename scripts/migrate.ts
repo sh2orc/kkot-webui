@@ -86,7 +86,7 @@ async function runMigrations() {
             sqlite.exec(statement);
           } catch (err) {
             const message = err instanceof Error ? err.message : String(err);
-            // 계속 진행이 안전한 케이스: 이미 존재/중복 등 멱등성 관련 에러들은 경고만 남기고 통과
+            // Safe to continue: existing/duplicate and other idempotent errors only log warning and pass
             const nonFatalPatterns = [
               'already exists',
               'UNIQUE constraint failed',

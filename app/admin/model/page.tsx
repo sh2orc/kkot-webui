@@ -15,28 +15,28 @@ async function fetchOpenAIModels(server: any) {
     if (response.ok) {
       const data = await response.json();
       
-      // vLLM 서버인지 확인 (baseUrl에 vllm이 포함되어 있거나 포트가 8000인 경우)
+      // Check if it's a vLLM server (baseUrl contains vllm or port is 8000)
       const isVLLM = server.baseUrl.toLowerCase().includes('vllm') || 
                     server.baseUrl.includes(':8000') ||
                     server.name.toLowerCase().includes('vllm');
       
       if (isVLLM) {
-        // vLLM의 경우 모든 모델을 가져옴
+        // For vLLM, retrieve all models
         return data.data.map((model: any) => {
           return {
             modelId: model.id,
-            supportsMultimodal: false, // vLLM의 경우 기본적으로 false, 필요시 수동 설정
+            supportsMultimodal: false, // For vLLM, default to false, manual setting if needed
             capabilities: {
-              chat: true, // vLLM의 모든 모델은 채팅 가능
+              chat: true, // All vLLM models support chat
               image: false,
               audio: false
             }
           };
         });
       } else {
-        // 일반 OpenAI의 경우 모든 모델을 가져옴 (connection 페이지와 동일한 로직)
+        // For standard OpenAI, retrieve all models (same logic as connection page)
         return data.data.map((model: any) => {
-          // GPT-4 계열 모델의 멀티모달 지원 자동 감지
+          // Automatically detect multimodal support for GPT-4 series models
           const supportsMultimodal = model.id.includes('gpt-4') && (
             model.id.includes('vision') || 
             model.id.includes('gpt-4o') ||
@@ -47,7 +47,7 @@ async function fetchOpenAIModels(server: any) {
             modelId: model.id,
             supportsMultimodal,
             capabilities: {
-              // Infer capabilities from model name (connection 페이지와 동일한 로직)
+              // Infer capabilities from model name (same logic as connection page)
               chat: model.id.includes('gpt') || model.id.includes('llama') || model.id.includes('mistral') || model.id.includes('qwen') || !model.id.includes('dall-e') && !model.id.includes('whisper'),
               image: model.id.includes('dall-e') || model.id.includes('vision') || model.id.includes('-VL'),
               audio: model.id.includes('whisper') || model.id.includes('tts')
@@ -71,7 +71,7 @@ async function fetchOllamaModels(server: any) {
       const data = await response.json();
       return data.models?.map((model: any) => ({
         modelId: model.name,
-        supportsMultimodal: false, // Ollama 모델들은 기본적으로 멀티모달 지원 안함
+        supportsMultimodal: false, // Ollama models don't support multimodal by default
         capabilities: {
           chat: true,
           image: false,

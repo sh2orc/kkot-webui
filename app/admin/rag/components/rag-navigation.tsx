@@ -10,13 +10,13 @@ export function RAGNavigation() {
   const pathname = usePathname();
   const router = useRouter();
 
-  // 현재 경로에서 활성 탭 결정
+  // Determine active tab from current path
   const getActiveTab = () => {
     if (pathname.includes('/vector-stores')) return 'vector-stores';
     if (pathname.includes('/collections')) return 'collections';
     if (pathname.includes('/documents')) return 'documents';
     if (pathname.includes('/settings')) return 'settings';
-    return 'vector-stores'; // 기본값
+    return 'vector-stores'; // Default value
   };
 
   const handleTabChange = (value: string) => {

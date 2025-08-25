@@ -18,12 +18,12 @@ const TransitionLink = forwardRef<HTMLAnchorElement, TransitionLinkProps>(
     const handleClick = (e: React.MouseEvent<HTMLAnchorElement>) => {
       e.preventDefault()
       
-      // 커스텀 onClick 핸들러 실행
+      // Execute custom onClick handler
       if (onClick) {
         onClick(e)
       }
       
-      // 페이지 전환
+      // Page transition
       push(href)
     }
 

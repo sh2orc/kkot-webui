@@ -291,7 +291,7 @@ export function VectorStoreDialog({
                 placeholder={getConnectionPlaceholder()}
               />
               <p className="text-sm text-muted-foreground">
-                {formData.type === 'chromadb' && '예: http://localhost:8000 또는 https://your-chroma-server.com'}
+                {formData.type === 'chromadb' && 'Example: http://localhost:8000 or https://your-chroma-server.com'}
                 {formData.type === 'pgvector' && '예: postgresql://username:password@localhost:5432/database'}
                 {formData.type === 'faiss' && '예: ./data/faiss_index 또는 /path/to/faiss/data'}
               </p>

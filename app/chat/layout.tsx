@@ -10,20 +10,20 @@ export default function ChatLayout({
 }) {
   const pathname = usePathname()
 
-  // 페이지 리로드 시 로딩 화면 방지
+  // Prevent loading screen on page reload
   useEffect(() => {
-    // 페이지 리로드 감지 및 처리
+    // Detect and handle page reload
     const handleBeforeUnload = () => {
-      // 현재 URL을 세션 스토리지에 저장
+      // Save current URL to session storage
       sessionStorage.setItem('lastChatPath', pathname)
     }
 
     window.addEventListener('beforeunload', handleBeforeUnload)
 
-    // 페이지 로드 시 이전 경로가 같으면 (리로드인 경우) 로딩 없이 처리
+    // If previous path is same on page load (reload case), handle without loading
     const lastPath = sessionStorage.getItem('lastChatPath')
     if (lastPath === pathname) {
-      // 리로드로 간주하여 로딩 상태 비활성화 처리
+      // Treat as reload and disable loading state
       document.body.classList.add('no-loading')
     }
 

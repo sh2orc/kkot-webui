@@ -493,7 +493,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
 
                 console.log('Sub-questions generated:', subQuestions);
 
-                // Sub-questions와 함께 병렬 처리 시작 신호 전송
+                // Send signal to start parallel processing with sub-questions
                 const subQuestionsContent = `[Analysis Start] Sub-questions Generated
 
 Generated Sub-questions:

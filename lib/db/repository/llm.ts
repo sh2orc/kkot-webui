@@ -279,6 +279,36 @@ export const llmModelRepository = {
         eq(schema.llmModels.isEmbeddingModel, 0 as any) // Exclude embedding models
       ));
   },
+
+  /**
+   * Find public embedding models only
+   */
+  findPublicEmbeddingModels: async () => {
+    return await db
+      .select({
+        id: schema.llmModels.id,
+        serverId: schema.llmModels.serverId,
+        modelId: schema.llmModels.modelId,
+        provider: schema.llmModels.provider,
+        enabled: schema.llmModels.enabled,
+        isPublic: schema.llmModels.isPublic,
+        capabilities: schema.llmModels.capabilities,
+        contextLength: schema.llmModels.contextLength,
+        supportsMultimodal: schema.llmModels.supportsMultimodal,
+        isEmbeddingModel: schema.llmModels.isEmbeddingModel,
+        createdAt: schema.llmModels.createdAt,
+        updatedAt: schema.llmModels.updatedAt,
+        serverName: schema.llmServers.name,
+        serverBaseUrl: schema.llmServers.baseUrl
+      })
+      .from(schema.llmModels)
+      .leftJoin(schema.llmServers, eq(schema.llmModels.serverId, schema.llmServers.id))
+      .where(and(
+        eq(schema.llmModels.enabled, 1 as any),
+        eq(schema.llmModels.isPublic, 1 as any),
+        eq(schema.llmModels.isEmbeddingModel, 1 as any) // Only embedding models
+      ));
+  },
   
   /**
    * Find model by server ID and model ID
