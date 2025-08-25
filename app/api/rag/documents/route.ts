@@ -6,7 +6,9 @@ import {
   ragDocumentRepository, 
   ragDocumentChunkRepository, 
   ragCollectionRepository,
-  ragVectorStoreRepository 
+  ragVectorStoreRepository,
+  llmModelRepository,
+  llmServerRepository 
 } from '@/lib/db/repository';
 
 // GET /api/rag/documents - List documents
@@ -108,6 +110,16 @@ export async function POST(request: NextRequest) {
           status: 'pending'
         });
 
+        // Log file details before processing
+        console.log('Processing document:', {
+          id: document.id,
+          filename: file.name,
+          type: file.type,
+          size: file.size,
+          bufferSize: buffer.length,
+          firstBytes: buffer.slice(0, 10).toString('hex')
+        });
+        
         // Queue document for processing
         // In a real implementation, this would queue a background job
         processDocumentAsync(document.id, buffer, file.type, {
@@ -177,9 +189,16 @@ async function processDocumentAsync(
 
     if (!document) return;
 
-    const collection = await ragCollectionRepository.findByIdWithVectorStore(document.collectionId);
+    const collection = await ragCollectionRepository.findById(document.collectionId);
 
     if (!collection) return;
+    
+    const vectorStore = await ragVectorStoreRepository.findById(collection.vectorStoreId);
+    
+    if (!vectorStore) {
+      console.error('Vector store not found for collection:', collection.id);
+      return;
+    }
 
     // Process document
     const processingService = new DocumentProcessingService();
@@ -218,25 +237,47 @@ async function processDocumentAsync(
       }));
     }
 
+    // Find the embedding model and its server
+    const allEmbeddingModels = await llmModelRepository.findPublicEmbeddingModels();
+    const embeddingModel = allEmbeddingModels.find(m => m.modelId === collection.embeddingModel);
+    
+    let embeddingApiKey = process.env.EMBEDDING_API_KEY || process.env.OPENAI_API_KEY;
+    let embeddingProvider = 'openai';
+    let embeddingBaseUrl: string | undefined;
+    
+    if (embeddingModel) {
+      const server = await llmServerRepository.findById(embeddingModel.serverId);
+      
+      if (server && server.length > 0) {
+        embeddingApiKey = server[0].apiKey || embeddingApiKey;
+        embeddingProvider = server[0].provider;
+        embeddingBaseUrl = server[0].baseUrl;
+        console.log(`Using embedding model ${collection.embeddingModel} from server ${server[0].name}`);
+      }
+    } else {
+      console.warn(`Embedding model ${collection.embeddingModel} not found in registered models, using default API key`);
+    }
+    
     // Generate embeddings
-    const embeddingProvider = EmbeddingProviderFactory.create({
-      provider: 'openai',
-      model: collection.ragCollections.embeddingModel,
-      apiKey: process.env.EMBEDDING_API_KEY || process.env.OPENAI_API_KEY,
+    const embeddingProviderInstance = EmbeddingProviderFactory.create({
+      provider: embeddingProvider,
+      model: collection.embeddingModel,
+      apiKey: embeddingApiKey,
+      baseUrl: embeddingBaseUrl,
     });
 
     const textsToEmbed = chunks.map(c => c.cleanedContent || c.content);
-    const embeddings = await embeddingProvider.generateEmbeddings(textsToEmbed);
+    const embeddings = await embeddingProviderInstance.generateEmbeddings(textsToEmbed);
 
     // Store in vector database
     const vectorStoreConfig = {
-      type: collection.ragVectorStores.type as any,
-      connectionString: collection.ragVectorStores.connectionString,
-      apiKey: collection.ragVectorStores.apiKey,
-      settings: collection.ragVectorStores.settings ? JSON.parse(collection.ragVectorStores.settings) : undefined,
+      type: vectorStore.type as any,
+      connectionString: vectorStore.connectionString,
+      apiKey: vectorStore.apiKey,
+      settings: vectorStore.settings ? JSON.parse(vectorStore.settings) : undefined,
     };
 
-    const vectorStore = await VectorStoreFactory.create(vectorStoreConfig);
+    const store = await VectorStoreFactory.create(vectorStoreConfig);
     
     const documentChunks = chunks.map((chunk, i) => ({
       id: `${documentId}_${i}`,
@@ -252,8 +293,8 @@ async function processDocumentAsync(
       },
     }));
 
-    await vectorStore.addDocuments(collection.ragCollections.name, documentChunks);
-    await vectorStore.disconnect();
+    await store.addDocuments(collection.name, documentChunks);
+    await store.disconnect();
 
     // Store chunks in database
     await ragDocumentChunkRepository.createMany(
@@ -275,6 +316,18 @@ async function processDocumentAsync(
 
   } catch (error) {
     console.error('Document processing failed:', error);
+    
+    // Log detailed error information
+    if (error instanceof Error) {
+      console.error('Error details:', {
+        message: error.message,
+        stack: error.stack,
+        documentId,
+        fileSize: buffer?.length,
+        mimeType,
+        options
+      });
+    }
     
     // Update document with error
     await ragDocumentRepository.update(documentId, {

@@ -11,7 +11,8 @@ import { Input } from "@/components/ui/input";
 import { Upload, Trash2, RefreshCw, FileText, Search, Download, Eye } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentUploadDialog } from "./document-upload-dialog";
-import { DocumentViewDialog } from "./document-view-dialog";
+import Link from "next/link";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Document {
   id: number;
@@ -42,7 +43,6 @@ export function DocumentManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
-  const [viewingDocument, setViewingDocument] = useState<Document | null>(null);
 
   useEffect(() => {
     fetchCollections();
@@ -153,7 +153,7 @@ export function DocumentManagement() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-end">
-            <Button onClick={() => setUploadDialogOpen(true)} disabled={collections.length === 0}>
+            <Button onClick={() => setUploadDialogOpen(true)} disabled={collections.length === 0 || loading}>
               <Upload className="h-4 w-4 mr-2" />
               {lang('documents.upload')}
             </Button>
@@ -161,7 +161,7 @@ export function DocumentManagement() {
         </CardHeader>
         <CardContent>
           <div className="flex items-center gap-4 mb-4">
-            <Select value={selectedCollection} onValueChange={setSelectedCollection}>
+            <Select value={selectedCollection} onValueChange={setSelectedCollection} disabled={loading}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue />
               </SelectTrigger>
@@ -181,6 +181,7 @@ export function DocumentManagement() {
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 className="pl-10"
+                disabled={loading}
               />
             </div>
           </div>
@@ -192,13 +193,52 @@ export function DocumentManagement() {
                 <TableHead>{lang('documents.collection')}</TableHead>
                 <TableHead>{lang('documents.type')}</TableHead>
                 <TableHead>{lang('documents.size')}</TableHead>
-                <TableHead>{lang('documents.status')}</TableHead>
+                <TableHead>{lang('documents.status.title')}</TableHead>
                 <TableHead>{lang('documents.uploadedAt')}</TableHead>
                 <TableHead className="text-right">{lang('actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredDocuments.map((document) => (
+              {loading && (
+                <>
+                  {[...Array(5)].map((_, index) => (
+                    <TableRow key={`skeleton-${index}`}>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Skeleton className="h-4 w-4 rounded" />
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-32" />
+                            <Skeleton className="h-3 w-24" />
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-6 w-20" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-16" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-20" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-6 w-24" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-28" />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-2">
+                          <Skeleton className="h-8 w-8" />
+                          <Skeleton className="h-8 w-8" />
+                          <Skeleton className="h-8 w-8" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </>
+              )}
+              {!loading && filteredDocuments.map((document) => (
                 <TableRow key={document.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -212,17 +252,20 @@ export function DocumentManagement() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">{document.collectionName}</Badge>
+                    <Badge variant="transparent">{document.collectionName}</Badge>
                   </TableCell>
                   <TableCell>{document.contentType.toUpperCase()}</TableCell>
                   <TableCell>{formatFileSize(document.fileSize)}</TableCell>
                   <TableCell>
-                    <div className="flex flex-col gap-1">
+                    <div className="flex flex-col gap-1 items-center justify-center">
                       {getStatusBadge(document.processingStatus)}
                       {document.errorMessage && (
-                        <span className="text-xs text-destructive">
-                          {document.errorMessage}
-                        </span>
+                        <div className="mt-1">
+                          <p className="text-xs text-destructive font-medium">Error:</p>
+                          <p className="text-xs text-destructive break-words max-w-xs">
+                            {document.errorMessage}
+                          </p>
+                        </div>
                       )}
                     </div>
                   </TableCell>
@@ -231,13 +274,14 @@ export function DocumentManagement() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setViewingDocument(document)}
-                      >
-                        <Eye className="h-4 w-4" />
-                      </Button>
+                      <Link href={`/admin/rag/documents/view/${document.id}`}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </Link>
                       {document.processingStatus === 'failed' && (
                         <Button
                           variant="ghost"
@@ -258,7 +302,7 @@ export function DocumentManagement() {
                   </TableCell>
                 </TableRow>
               ))}
-              {filteredDocuments.length === 0 && (
+              {!loading && filteredDocuments.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-muted-foreground">
                     {collections.length === 0
@@ -278,14 +322,6 @@ export function DocumentManagement() {
         collections={collections}
         onUploadComplete={handleUploadComplete}
       />
-
-      {viewingDocument && (
-        <DocumentViewDialog
-          open={!!viewingDocument}
-          onOpenChange={(open) => !open && setViewingDocument(null)}
-          document={viewingDocument}
-        />
-      )}
     </>
   );
 }

@@ -29,15 +29,21 @@ export const ragCollectionRepository = {
         description: schema.ragCollections.description,
         embeddingModel: schema.ragCollections.embeddingModel,
         embeddingDimensions: schema.ragCollections.embeddingDimensions,
+        defaultChunkingStrategyId: schema.ragCollections.defaultChunkingStrategyId,
+        defaultCleansingConfigId: schema.ragCollections.defaultCleansingConfigId,
         metadata: schema.ragCollections.metadata,
         isActive: schema.ragCollections.isActive,
         createdAt: schema.ragCollections.createdAt,
         updatedAt: schema.ragCollections.updatedAt,
         vectorStoreName: schema.ragVectorStores.name,
         vectorStoreType: schema.ragVectorStores.type,
+        chunkingStrategyName: schema.ragChunkingStrategies.name,
+        cleansingConfigName: schema.ragCleansingConfigs.name,
       })
       .from(schema.ragCollections)
-      .innerJoin(schema.ragVectorStores, eq(schema.ragCollections.vectorStoreId, schema.ragVectorStores.id));
+      .innerJoin(schema.ragVectorStores, eq(schema.ragCollections.vectorStoreId, schema.ragVectorStores.id))
+      .leftJoin(schema.ragChunkingStrategies, eq(schema.ragCollections.defaultChunkingStrategyId, schema.ragChunkingStrategies.id))
+      .leftJoin(schema.ragCleansingConfigs, eq(schema.ragCollections.defaultCleansingConfigId, schema.ragCleansingConfigs.id));
     
     if (vectorStoreId) {
       query = query.where(eq(schema.ragCollections.vectorStoreId, vectorStoreId));
@@ -90,6 +96,8 @@ export const ragCollectionRepository = {
     description?: string;
     embeddingModel?: string;
     embeddingDimensions?: number;
+    defaultChunkingStrategyId?: number | null;
+    defaultCleansingConfigId?: number | null;
     metadata?: any;
     isActive?: boolean;
   }) => {
@@ -101,6 +109,8 @@ export const ragCollectionRepository = {
       description: data.description,
       embeddingModel: data.embeddingModel || 'text-embedding-ada-002',
       embeddingDimensions: data.embeddingDimensions || 1536,
+      defaultChunkingStrategyId: data.defaultChunkingStrategyId,
+      defaultCleansingConfigId: data.defaultCleansingConfigId,
       metadata: data.metadata ? JSON.stringify(data.metadata) : null,
       isActive: data.isActive ?? true,
       createdAt: now,
@@ -116,6 +126,8 @@ export const ragCollectionRepository = {
     description: string;
     embeddingModel: string;
     embeddingDimensions: number;
+    defaultChunkingStrategyId: number | null;
+    defaultCleansingConfigId: number | null;
     metadata: any;
     isActive: boolean;
   }>) => {
@@ -125,6 +137,8 @@ export const ragCollectionRepository = {
     if (data.description !== undefined) updateData.description = data.description;
     if (data.embeddingModel !== undefined) updateData.embeddingModel = data.embeddingModel;
     if (data.embeddingDimensions !== undefined) updateData.embeddingDimensions = data.embeddingDimensions;
+    if (data.defaultChunkingStrategyId !== undefined) updateData.defaultChunkingStrategyId = data.defaultChunkingStrategyId;
+    if (data.defaultCleansingConfigId !== undefined) updateData.defaultCleansingConfigId = data.defaultCleansingConfigId;
     if (data.metadata !== undefined) updateData.metadata = JSON.stringify(data.metadata);
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
     

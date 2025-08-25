@@ -71,6 +71,12 @@
     "vectorStore": "벡터 스토어",
     "embeddingModel": "임베딩 모델",
     "dimensions": "차원",
+    "chunkingStrategy": "청킹 전략",
+    "cleansingConfig": "정제 설정",
+    "selectChunkingStrategy": "청킹 전략을 선택하세요",
+    "selectCleansingConfig": "정제 설정을 선택하세요",
+    "noChunkingStrategy": "기본값 사용",
+    "noCleansingConfig": "기본값 사용",
     "documents": "문서 수",
     "status": "상태",
     "active": "활성화",
@@ -103,6 +109,9 @@
     "selectedFiles": "선택된 파일",
     "noFilesSelected": "파일을 선택해주세요.",
     "reprocessQueued": "문서가 재처리 대기열에 추가되었습니다.",
+    "chunkingStrategyOverride": "청킹 전략 오버라이드",
+    "cleansingConfigOverride": "정제 설정 오버라이드",
+    "useCollectionDefault": "컬렉션 기본값 사용",
     "empty": "등록된 문서가 없습니다.",
     "noCollections": "먼저 컬렉션을 생성해주세요.",
     "chunks": "청크",
@@ -111,11 +120,13 @@
     "noChunks": "청크가 없습니다.",
     "manage": "문서 관리",
     "status": {
+      "title": "상태",
       "pending": "대기 중",
       "processing": "처리 중",
       "completed": "완료",
       "failed": "실패"
-    }
+    },
+    "notFound": "문서를 찾을 수 없습니다."
   },
   "chunking": {
     "title": "청킹 전략",

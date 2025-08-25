@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { VectorStoreDialog } from "./vector-store-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface VectorStore {
   id: number;
@@ -90,16 +91,14 @@ export function VectorStoreManagement() {
     }
   };
 
-  // if (loading) {
-  //   return <div>{lang('loading')}</div>;
-  // }
+
 
   return (
     <>
       <Card>
         <CardHeader>
           <div className="flex items-center justify-end">
-            <Button onClick={handleCreate}>
+            <Button onClick={handleCreate} disabled={loading}>
               <Plus className="h-4 w-4 mr-2" />
               {lang('vectorStores.add')}
             </Button>
@@ -118,7 +117,36 @@ export function VectorStoreManagement() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {vectorStores.map((store) => (
+              {loading && (
+                <>
+                  {[...Array(3)].map((_, index) => (
+                    <TableRow key={`skeleton-${index}`}>
+                      <TableCell>
+                        <Skeleton className="h-4 w-32" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-6 w-24" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-48" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-6 w-20" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-6 w-16" />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-2">
+                          <Skeleton className="h-8 w-8" />
+                          <Skeleton className="h-8 w-8" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </>
+              )}
+              {!loading && vectorStores.map((store) => (
                 <TableRow key={store.id}>
                   <TableCell className="font-medium">{store.name}</TableCell>
                   <TableCell>
@@ -167,7 +195,7 @@ export function VectorStoreManagement() {
                   </TableCell>
                 </TableRow>
               ))}
-              {vectorStores.length === 0 && (
+              {!loading && vectorStores.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={6} className="text-center text-muted-foreground">
                     {lang('vectorStores.empty')}

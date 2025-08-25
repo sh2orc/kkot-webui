@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, Star, Bot } from "lucide-react";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface CleansingConfig {
   id: number;
@@ -61,15 +62,13 @@ export function CleansingSettings() {
     }
   };
 
-  // if (loading) {
-  //   return <div>{lang('loading')}</div>;
-  // }
+
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-end">
-          <Button size="sm">
+          <Button size="sm" disabled={loading}>
             <Plus className="h-4 w-4 mr-2" />
             {lang('cleansing.add')}
           </Button>
@@ -86,7 +85,36 @@ export function CleansingSettings() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {configs.map((config) => (
+            {loading && (
+              <>
+                {[...Array(3)].map((_, index) => (
+                  <TableRow key={`skeleton-${index}`}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-4 w-32" />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-6 w-28" />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Skeleton className="h-5 w-20" />
+                        <Skeleton className="h-5 w-20" />
+                        <Skeleton className="h-5 w-20" />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-2">
+                        <Skeleton className="h-8 w-8" />
+                        <Skeleton className="h-8 w-8" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </>
+            )}
+            {!loading && configs.map((config) => (
               <TableRow key={config.id}>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -131,7 +159,7 @@ export function CleansingSettings() {
                 </TableCell>
               </TableRow>
             ))}
-            {configs.length === 0 && (
+            {!loading && configs.length === 0 && (
               <TableRow>
                 <TableCell colSpan={4} className="text-center text-muted-foreground">
                   {lang('cleansing.empty')}

@@ -82,11 +82,55 @@ export class BaseDocumentProcessor implements DocumentProcessor {
 
   private async extractPdfText(buffer: Buffer): Promise<string> {
     try {
-      // Dynamic import to avoid loading the library if not used
-      const pdfParse = await import('pdf-parse');
-      const data = await pdfParse.default(buffer);
+      console.log('Extracting PDF text, buffer size:', buffer.length);
+      
+      // Ensure buffer is valid
+      if (!buffer || buffer.length === 0) {
+        throw new Error('Empty or invalid buffer');
+      }
+
+      // Check if buffer is actually a PDF
+      const pdfHeader = buffer.slice(0, 5).toString();
+      if (!pdfHeader.startsWith('%PDF')) {
+        throw new Error('Buffer does not contain a valid PDF file');
+      }
+      
+      // Create a wrapper for pdf-parse to handle the test file issue
+      const pdfParseWrapper = async (dataBuffer: Buffer) => {
+        // Save the original fs module
+        const fs = require('fs');
+        const originalReadFileSync = fs.readFileSync;
+        
+        // Mock fs.readFileSync to prevent test file loading
+        fs.readFileSync = function(path: string, ...args: any[]) {
+          if (path.includes('test/data') || path.includes('05-versions-space.pdf')) {
+            // Return empty buffer for test files
+            return Buffer.from('');
+          }
+          return originalReadFileSync.apply(this, [path, ...args]);
+        };
+        
+        try {
+          const pdfParse = require('pdf-parse');
+          const result = await pdfParse(dataBuffer, {
+            // Disable some features that might cause issues
+            pagerender: null,
+            max: 0
+          });
+          return result;
+        } finally {
+          // Restore original fs.readFileSync
+          fs.readFileSync = originalReadFileSync;
+        }
+      };
+      
+      console.log('Calling pdf-parse with buffer...');
+      const data = await pdfParseWrapper(buffer);
+      
+      console.log('PDF parsed successfully, text length:', data.text.length);
       return data.text;
     } catch (error) {
+      console.error('PDF extraction error:', error);
       throw new DocumentProcessingError(
         `Failed to extract PDF text: ${error instanceof Error ? error.message : 'Unknown error'}`,
         'PDF_EXTRACTION_ERROR'

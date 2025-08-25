@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Edit, Trash2, FolderOpen, Database } from "lucide-react";
 import { toast } from "sonner";
 import { CollectionDialog } from "./collection-dialog";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface Collection {
   id: number;
@@ -18,11 +19,15 @@ interface Collection {
   description?: string;
   embeddingModel: string;
   embeddingDimensions: number;
+  defaultChunkingStrategyId?: number;
+  defaultCleansingConfigId?: number;
   isActive: boolean;
   createdAt: number;
   updatedAt: number;
   vectorStoreName?: string;
   vectorStoreType?: string;
+  chunkingStrategyName?: string;
+  cleansingConfigName?: string;
   stats?: {
     documentCount: number;
     dimensionality: number;
@@ -116,23 +121,16 @@ export function CollectionManagement() {
     setDialogOpen(false);
   };
 
-  const getModelBadgeColor = (model: string) => {
-    if (model.includes('ada')) return 'bg-green-100 text-green-800';
-    if (model.includes('3-small')) return 'bg-blue-100 text-blue-800';
-    if (model.includes('3-large')) return 'bg-purple-100 text-purple-800';
-    return 'bg-gray-100 text-gray-800';
-  };
 
-  // if (loading) {
-  //   return <div>{lang('loading')}</div>;
-  // }
+
+
 
   return (
     <>
       <Card>
         <CardHeader>
           <div className="flex items-center justify-end gap-2">
-            <Select value={selectedVectorStore} onValueChange={setSelectedVectorStore}>
+            <Select value={selectedVectorStore} onValueChange={setSelectedVectorStore} disabled={loading}>
               <SelectTrigger className="w-[200px]">
                 <SelectValue />
               </SelectTrigger>
@@ -148,7 +146,7 @@ export function CollectionManagement() {
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={handleCreate} disabled={vectorStores.length === 0}>
+            <Button onClick={handleCreate} disabled={vectorStores.length === 0 || loading}>
               <Plus className="h-4 w-4 mr-2" />
               {lang('collections.add')}
             </Button>
@@ -161,14 +159,53 @@ export function CollectionManagement() {
                 <TableHead>{lang('collections.name')}</TableHead>
                 <TableHead>{lang('collections.vectorStore')}</TableHead>
                 <TableHead>{lang('collections.embeddingModel')}</TableHead>
-                <TableHead>{lang('collections.dimensions')}</TableHead>
+                <TableHead>{lang('collections.chunkingStrategy')}</TableHead>
+                <TableHead>{lang('collections.cleansingConfig')}</TableHead>
                 <TableHead>{lang('collections.documents')}</TableHead>
                 <TableHead>{lang('collections.status')}</TableHead>
                 <TableHead className="text-right">{lang('actions')}</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {collections.map((collection) => (
+              {loading && (
+                <>
+                  {[...Array(4)].map((_, index) => (
+                    <TableRow key={`skeleton-${index}`}>
+                      <TableCell>
+                        <div className="space-y-2">
+                          <Skeleton className="h-4 w-32" />
+                          <Skeleton className="h-3 w-48" />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-6 w-28" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-6 w-36" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-6 w-28" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-6 w-28" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-4 w-12" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-6 w-20" />
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-end gap-2">
+                          <Skeleton className="h-8 w-8" />
+                          <Skeleton className="h-8 w-8" />
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </>
+              )}
+              {!loading && collections.map((collection) => (
                 <TableRow key={collection.id}>
                   <TableCell>
                     <div>
@@ -181,16 +218,25 @@ export function CollectionManagement() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline">
-                      {collection.vectorStoreName} ({collection.vectorStoreType})
+                    <Badge variant="transparent">
+                      {collection.vectorStoreName}
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <Badge className={getModelBadgeColor(collection.embeddingModel)}>
+                    <Badge variant="transparent">
                       {collection.embeddingModel}
                     </Badge>
                   </TableCell>
-                  <TableCell>{collection.embeddingDimensions}</TableCell>
+                  <TableCell>
+                    <Badge variant="transparent">
+                      {collection.chunkingStrategyName || lang('collections.noChunkingStrategy')}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="transparent">
+                      {collection.cleansingConfigName || lang('collections.noCleansingConfig')}
+                    </Badge>
+                  </TableCell>
                   <TableCell>
                     {collection.stats?.documentCount || 0}
                   </TableCell>
@@ -219,9 +265,9 @@ export function CollectionManagement() {
                   </TableCell>
                 </TableRow>
               ))}
-              {collections.length === 0 && (
+              {!loading && collections.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center text-muted-foreground">
+                  <TableCell colSpan={8} className="text-center text-muted-foreground">
                     {vectorStores.length === 0
                       ? lang('collections.noVectorStores')
                       : lang('collections.empty')}

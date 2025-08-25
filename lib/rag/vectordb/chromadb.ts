@@ -66,12 +66,15 @@ export class ChromaDBVectorStore extends BaseVectorStore {
     this.validateEmbeddingDimensions(embeddingDimensions);
 
     try {
+      // ChromaDB requires an embedding function, but we'll handle embeddings externally
+      // So we use 'null' to indicate no default embedding function
       const collection = await this.client!.createCollection({
         name,
         metadata: {
           ...metadata,
           dimensions: embeddingDimensions,
         },
+        embeddingFunction: null, // We'll provide embeddings directly
       });
 
       this.collections.set(name, collection);
@@ -155,7 +158,10 @@ export class ChromaDBVectorStore extends BaseVectorStore {
       return this.collections.get(name)!;
     }
 
-    const collection = await this.client!.getCollection({ name });
+    const collection = await this.client!.getCollection({ 
+      name,
+      embeddingFunction: null // We provide embeddings directly
+    });
     if (!collection) {
       throw new VectorStoreError(`Collection ${name} not found`, 'COLLECTION_NOT_FOUND');
     }
@@ -173,7 +179,15 @@ export class ChromaDBVectorStore extends BaseVectorStore {
       const collection = await this.getOrLoadCollection(collectionName);
 
       const ids = documents.map(doc => doc.id);
-      const embeddings = documents.map(doc => doc.embedding!).filter(e => e !== undefined);
+      const embeddings = documents.map(doc => {
+        if (!doc.embedding) {
+          throw new VectorStoreError(
+            `Document ${doc.id} is missing embedding`,
+            'MISSING_EMBEDDING'
+          );
+        }
+        return doc.embedding;
+      });
       const metadatas = documents.map(doc => ({
         ...doc.metadata,
         documentId: doc.documentId,
@@ -183,7 +197,7 @@ export class ChromaDBVectorStore extends BaseVectorStore {
 
       await collection.add({
         ids,
-        embeddings: embeddings.length > 0 ? embeddings : undefined,
+        embeddings,
         metadatas,
         documents: contents,
       });

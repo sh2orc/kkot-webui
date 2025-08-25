@@ -47,6 +47,8 @@ export async function POST(request: NextRequest) {
       description, 
       embeddingModel, 
       embeddingDimensions,
+      defaultChunkingStrategyId,
+      defaultCleansingConfigId,
       metadata 
     } = body;
 
@@ -87,16 +89,42 @@ export async function POST(request: NextRequest) {
     };
 
     try {
+      console.log('Creating vector store with config:', { type: config.type, connectionString: config.connectionString?.substring(0, 20) + '...' });
       const store = await VectorStoreFactory.create(config);
+      console.log('Vector store created successfully, creating collection...');
       await store.createCollection(
         name, 
         embeddingDimensions || 1536,
         metadata ? JSON.parse(metadata) : undefined
       );
+      console.log('Collection created in vector store successfully');
       await store.disconnect();
     } catch (error) {
+      console.error('Vector store operation failed:', error);
+      
+      let errorMessage = 'Failed to create collection in vector store';
+      let troubleshooting = '';
+      
+      if (error instanceof Error) {
+        errorMessage += `: ${error.message}`;
+        
+        // Add specific troubleshooting based on error type
+        if (error.message.includes('ECONNREFUSED') || error.message.includes('connect')) {
+          troubleshooting = 'Vector store connection failed. Please check if the vector store service is running.';
+        } else if (error.message.includes('authentication') || error.message.includes('unauthorized')) {
+          troubleshooting = 'Authentication failed. Please check your API key or credentials.';
+        } else if (error.message.includes('already exists')) {
+          troubleshooting = 'Collection already exists. Please use a different name.';
+        } else if (error.message.includes('invalid') || error.message.includes('validation')) {
+          troubleshooting = 'Invalid parameters. Please check your input values.';
+        }
+      }
+      
       return NextResponse.json(
-        { error: `Failed to create collection in vector store: ${error instanceof Error ? error.message : 'Unknown error'}` },
+        { 
+          error: errorMessage,
+          troubleshooting: troubleshooting || undefined
+        },
         { status: 400 }
       );
     }
@@ -108,6 +136,8 @@ export async function POST(request: NextRequest) {
       description,
       embeddingModel: embeddingModel || 'text-embedding-ada-002',
       embeddingDimensions: embeddingDimensions || 1536,
+      defaultChunkingStrategyId: defaultChunkingStrategyId || null,
+      defaultCleansingConfigId: defaultCleansingConfigId || null,
       metadata: metadata ? JSON.parse(metadata) : undefined,
       isActive: true,
     });
@@ -115,8 +145,17 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ collection: result[0] });
   } catch (error) {
     console.error('Failed to create collection:', error);
+    
+    let errorMessage = 'Failed to create collection';
+    if (error instanceof Error) {
+      errorMessage += `: ${error.message}`;
+    }
+    
     return NextResponse.json(
-      { error: 'Failed to create collection' },
+      { 
+        error: errorMessage,
+        troubleshooting: 'An unexpected error occurred. Please check the server logs for more details.'
+      },
       { status: 500 }
     );
   }

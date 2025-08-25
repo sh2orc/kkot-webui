@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslation } from "@/lib/i18n";
 import {
   Dialog,
@@ -20,6 +20,30 @@ import { toast } from "sonner";
 interface Collection {
   id: number;
   name: string;
+  defaultChunkingStrategyId?: number;
+  defaultCleansingConfigId?: number;
+}
+
+interface ChunkingStrategy {
+  id: number;
+  name: string;
+  type: string;
+  chunkSize: number;
+  chunkOverlap: number;
+  isDefault: boolean;
+}
+
+interface CleansingConfig {
+  id: number;
+  name: string;
+  llmModelId?: number;
+  llmModelName?: string;
+  removeHeaders: boolean;
+  removeFooters: boolean;
+  removePageNumbers: boolean;
+  normalizeWhitespace: boolean;
+  fixEncoding: boolean;
+  isDefault: boolean;
 }
 
 interface DocumentUploadDialogProps {
@@ -39,6 +63,55 @@ export function DocumentUploadDialog({
   const [loading, setLoading] = useState(false);
   const [selectedCollection, setSelectedCollection] = useState<string>('');
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
+  const [chunkingStrategies, setChunkingStrategies] = useState<ChunkingStrategy[]>([]);
+  const [cleansingConfigs, setCleansingConfigs] = useState<CleansingConfig[]>([]);
+  const [selectedChunkingStrategy, setSelectedChunkingStrategy] = useState<string>('');
+  const [selectedCleansingConfig, setSelectedCleansingConfig] = useState<string>('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Fetch chunking strategies
+  const fetchChunkingStrategies = async () => {
+    try {
+      const response = await fetch('/api/rag/chunking-strategies');
+      if (!response.ok) return;
+      const data = await response.json();
+      setChunkingStrategies(data.strategies || []);
+    } catch (error) {
+      console.warn('Error fetching chunking strategies:', error);
+    }
+  };
+
+  // Fetch cleansing configs
+  const fetchCleansingConfigs = async () => {
+    try {
+      const response = await fetch('/api/rag/cleansing-configs');
+      if (!response.ok) return;
+      const data = await response.json();
+      setCleansingConfigs(data.configs || []);
+    } catch (error) {
+      console.warn('Error fetching cleansing configs:', error);
+    }
+  };
+
+  useEffect(() => {
+    fetchChunkingStrategies();
+    fetchCleansingConfigs();
+  }, []);
+
+  // Reset form when dialog opens/closes
+  useEffect(() => {
+    if (open) {
+      // Reset file selection when dialog opens
+      setSelectedFiles(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      // Reset collection selection if needed
+      if (!selectedCollection && collections.length > 0) {
+        setSelectedCollection(collections[0].id.toString());
+      }
+    }
+  }, [open, collections]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -52,6 +125,14 @@ export function DocumentUploadDialog({
     try {
       const formData = new FormData();
       formData.append('collectionId', selectedCollection);
+      
+      // Add override options if selected
+      if (selectedChunkingStrategy) {
+        formData.append('chunkingStrategyId', selectedChunkingStrategy);
+      }
+      if (selectedCleansingConfig) {
+        formData.append('cleansingConfigId', selectedCleansingConfig);
+      }
       
       Array.from(selectedFiles).forEach((file) => {
         formData.append('files', file);
@@ -70,7 +151,15 @@ export function DocumentUploadDialog({
       const successCount = result.results.filter((r: any) => r.status !== 'failed').length;
       
       toast.success(lang('documents.uploadSuccess', { count: successCount }));
+      
+      // Reset form after successful upload
+      setSelectedFiles(null);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+      
       onUploadComplete();
+      onOpenChange(false); // Close dialog after successful upload
     } catch (error) {
       toast.error(lang('documents.uploadFailed'));
     } finally {
@@ -114,6 +203,7 @@ export function DocumentUploadDialog({
               <Label htmlFor="files">{lang('documents.files')}</Label>
               <Input
                 id="files"
+                ref={fileInputRef}
                 type="file"
                 multiple
                 accept=".pdf,.doc,.docx,.ppt,.pptx,.txt,.html,.md,.csv,.json"
@@ -141,6 +231,53 @@ export function DocumentUploadDialog({
                 </div>
               </div>
             )}
+
+            <div className="grid gap-2">
+              <Label htmlFor="chunkingStrategy">
+                {lang('documents.chunkingStrategyOverride')}
+              </Label>
+              <Select
+                value={selectedChunkingStrategy}
+                onValueChange={setSelectedChunkingStrategy}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={lang('documents.useCollectionDefault')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">{lang('documents.useCollectionDefault')}</SelectItem>
+                  {chunkingStrategies.map((strategy) => (
+                    <SelectItem key={strategy.id} value={strategy.id.toString()}>
+                      {strategy.name} ({strategy.type}, {strategy.chunkSize} chars)
+                      {strategy.isDefault && ` (${lang('default')})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="cleansingConfig">
+                {lang('documents.cleansingConfigOverride')}
+              </Label>
+              <Select
+                value={selectedCleansingConfig}
+                onValueChange={setSelectedCleansingConfig}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={lang('documents.useCollectionDefault')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">{lang('documents.useCollectionDefault')}</SelectItem>
+                  {cleansingConfigs.map((config) => (
+                    <SelectItem key={config.id} value={config.id.toString()}>
+                      {config.name}
+                      {config.llmModelName && ` (${config.llmModelName})`}
+                      {config.isDefault && ` (${lang('default')})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
 
           <DialogFooter>

@@ -25,6 +25,8 @@ interface Collection {
   description?: string;
   embeddingModel: string;
   embeddingDimensions: number;
+  defaultChunkingStrategyId?: number;
+  defaultCleansingConfigId?: number;
   isActive: boolean;
 }
 
@@ -50,6 +52,28 @@ interface EmbeddingModel {
   capabilities?: any;
 }
 
+interface ChunkingStrategy {
+  id: number;
+  name: string;
+  type: string;
+  chunkSize: number;
+  chunkOverlap: number;
+  isDefault: boolean;
+}
+
+interface CleansingConfig {
+  id: number;
+  name: string;
+  llmModelId?: number;
+  llmModelName?: string;
+  removeHeaders: boolean;
+  removeFooters: boolean;
+  removePageNumbers: boolean;
+  normalizeWhitespace: boolean;
+  fixEncoding: boolean;
+  isDefault: boolean;
+}
+
 // Default embedding models (fallback)
 const DEFAULT_EMBEDDING_MODELS = [
   { value: 'text-embedding-ada-002', label: 'text-embedding-ada-002', dimensions: 1536 },
@@ -67,12 +91,16 @@ export function CollectionDialog({
   const { lang } = useTranslation('admin.rag');
   const [loading, setLoading] = useState(false);
   const [embeddingModels, setEmbeddingModels] = useState(DEFAULT_EMBEDDING_MODELS);
+  const [chunkingStrategies, setChunkingStrategies] = useState<ChunkingStrategy[]>([]);
+  const [cleansingConfigs, setCleansingConfigs] = useState<CleansingConfig[]>([]);
   const [formData, setFormData] = useState<Collection>({
     vectorStoreId: 0,
     name: '',
     description: '',
     embeddingModel: 'text-embedding-ada-002',
     embeddingDimensions: 1536,
+    defaultChunkingStrategyId: undefined,
+    defaultCleansingConfigId: undefined,
     isActive: true,
   });
 
@@ -96,7 +124,7 @@ export function CollectionDialog({
           else if (model.modelId.includes('ada-002')) dimensions = 1536;
           
           const label = model.serverName 
-            ? `${model.modelId} (${model.serverName}) (${dimensions})`
+            ? `${model.modelId} (${model.serverName})`
             : `${model.modelId} (${dimensions})`;
             
           return {
@@ -114,8 +142,40 @@ export function CollectionDialog({
     }
   };
 
+  // Fetch chunking strategies
+  const fetchChunkingStrategies = async () => {
+    try {
+      const response = await fetch('/api/rag/chunking-strategies');
+      if (!response.ok) {
+        console.warn('Failed to fetch chunking strategies');
+        return;
+      }
+      const data = await response.json();
+      setChunkingStrategies(data.strategies || []);
+    } catch (error) {
+      console.warn('Error fetching chunking strategies:', error);
+    }
+  };
+
+  // Fetch cleansing configs
+  const fetchCleansingConfigs = async () => {
+    try {
+      const response = await fetch('/api/rag/cleansing-configs');
+      if (!response.ok) {
+        console.warn('Failed to fetch cleansing configs');
+        return;
+      }
+      const data = await response.json();
+      setCleansingConfigs(data.configs || []);
+    } catch (error) {
+      console.warn('Error fetching cleansing configs:', error);
+    }
+  };
+
   useEffect(() => {
     fetchEmbeddingModels();
+    fetchChunkingStrategies();
+    fetchCleansingConfigs();
   }, []);
 
   useEffect(() => {
@@ -128,10 +188,12 @@ export function CollectionDialog({
         description: '',
         embeddingModel: embeddingModels[0]?.value || 'text-embedding-ada-002',
         embeddingDimensions: embeddingModels[0]?.dimensions || 1536,
+        defaultChunkingStrategyId: chunkingStrategies.find(s => s.isDefault)?.id,
+        defaultCleansingConfigId: cleansingConfigs.find(c => c.isDefault)?.id,
         isActive: true,
       });
     }
-  }, [collection, vectorStores, embeddingModels]);
+  }, [collection, vectorStores, embeddingModels, chunkingStrategies, cleansingConfigs]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,8 +215,19 @@ export function CollectionDialog({
       });
 
       if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || 'Failed to save collection');
+        const errorData = await response.json();
+        console.error('Collection save failed:', errorData);
+        
+        // Display specific error message from server
+        let errorMessage = errorData.error || 'Failed to save collection';
+        
+        // Add troubleshooting info if available
+        if (errorData.troubleshooting) {
+          errorMessage += ` (${errorData.troubleshooting})`;
+        }
+        
+        toast.error(errorMessage);
+        return; // Early return to prevent onSave() call
       }
 
       toast.success(
@@ -164,8 +237,11 @@ export function CollectionDialog({
       );
       
       onSave();
+      onOpenChange(false); // Close dialog on success
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : lang('errors.saveFailed'));
+      console.error('Collection save error:', error);
+      const errorMessage = error instanceof Error ? error.message : lang('errors.saveFailed');
+      toast.error(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -274,6 +350,59 @@ export function CollectionDialog({
                 disabled={!!collection}
                 required
               />
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="chunkingStrategy">
+                {lang('collections.chunkingStrategy')}
+              </Label>
+              <Select
+                value={formData.defaultChunkingStrategyId?.toString() || 'none'}
+                onValueChange={(value) => setFormData({ 
+                  ...formData, 
+                  defaultChunkingStrategyId: value === 'none' ? undefined : parseInt(value) 
+                })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={lang('collections.selectChunkingStrategy')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{lang('collections.noChunkingStrategy')}</SelectItem>
+                  {chunkingStrategies.map((strategy) => (
+                    <SelectItem key={strategy.id} value={strategy.id.toString()}>
+                      {strategy.name} ({strategy.type}, {strategy.chunkSize} chars)
+                      {strategy.isDefault && ` (${lang('default')})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="cleansingConfig">
+                {lang('collections.cleansingConfig')}
+              </Label>
+              <Select
+                value={formData.defaultCleansingConfigId?.toString() || 'none'}
+                onValueChange={(value) => setFormData({ 
+                  ...formData, 
+                  defaultCleansingConfigId: value === 'none' ? undefined : parseInt(value) 
+                })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={lang('collections.selectCleansingConfig')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{lang('collections.noCleansingConfig')}</SelectItem>
+                  {cleansingConfigs.map((config) => (
+                    <SelectItem key={config.id} value={config.id.toString()}>
+                      {config.name}
+                      {config.llmModelName && ` (${config.llmModelName})`}
+                      {config.isDefault && ` (${lang('default')})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {collection && (

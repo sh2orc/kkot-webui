@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, Star } from "lucide-react";
 import { toast } from "sonner";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface ChunkingStrategy {
   id: number;
@@ -57,15 +58,13 @@ export function ChunkingSettings() {
     }
   };
 
-  // if (loading) {
-  //   return <div>{lang('loading')}</div>;
-  // }
+
 
   return (
     <Card>
       <CardHeader>
         <div className="flex items-center justify-end">
-          <Button size="sm">
+          <Button size="sm" disabled={loading}>
             <Plus className="h-4 w-4 mr-2" />
             {lang('chunking.add')}
           </Button>
@@ -83,7 +82,35 @@ export function ChunkingSettings() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {strategies.map((strategy) => (
+            {loading && (
+              <>
+                {[...Array(3)].map((_, index) => (
+                  <TableRow key={`skeleton-${index}`}>
+                    <TableCell>
+                      <div className="flex items-center gap-2">
+                        <Skeleton className="h-4 w-32" />
+                      </div>
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-6 w-24" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-16" />
+                    </TableCell>
+                    <TableCell>
+                      <Skeleton className="h-4 w-16" />
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-end gap-2">
+                        <Skeleton className="h-8 w-8" />
+                        <Skeleton className="h-8 w-8" />
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </>
+            )}
+            {!loading && strategies.map((strategy) => (
               <TableRow key={strategy.id}>
                 <TableCell>
                   <div className="flex items-center gap-2">
@@ -114,7 +141,7 @@ export function ChunkingSettings() {
                 </TableCell>
               </TableRow>
             ))}
-            {strategies.length === 0 && (
+            {!loading && strategies.length === 0 && (
               <TableRow>
                 <TableCell colSpan={5} className="text-center text-muted-foreground">
                   {lang('chunking.empty')}

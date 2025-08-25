@@ -71,6 +71,12 @@
     "vectorStore": "Vector Store",
     "embeddingModel": "Embedding Model",
     "dimensions": "Dimensions",
+    "chunkingStrategy": "Chunking Strategy",
+    "cleansingConfig": "Cleansing Config",
+    "selectChunkingStrategy": "Select chunking strategy",
+    "selectCleansingConfig": "Select cleansing config",
+    "noChunkingStrategy": "Use default",
+    "noCleansingConfig": "Use default",
     "documents": "Documents",
     "status": "Status",
     "active": "Active",
@@ -103,6 +109,9 @@
     "selectedFiles": "Selected Files",
     "noFilesSelected": "Please select files.",
     "reprocessQueued": "Document queued for reprocessing.",
+    "chunkingStrategyOverride": "Chunking Strategy Override",
+    "cleansingConfigOverride": "Cleansing Config Override",
+    "useCollectionDefault": "Use collection default",
     "empty": "No documents found.",
     "noCollections": "Please create a collection first.",
     "chunks": "Chunks",
@@ -111,11 +120,13 @@
     "noChunks": "No chunks available.",
     "manage": "Manage Documents",
     "status": {
+      "title": "Status",      
       "pending": "Pending",
       "processing": "Processing",
       "completed": "Completed",
       "failed": "Failed"
-    }
+    },
+    "notFound": "Document not found."
   },
   "chunking": {
     "title": "Chunking Strategies",

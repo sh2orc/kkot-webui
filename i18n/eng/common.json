@@ -89,5 +89,6 @@
   "roles": {
     "admin": "Administrator",
     "user": "User"
-  }
+  },
+  "back": "Back"
 } 

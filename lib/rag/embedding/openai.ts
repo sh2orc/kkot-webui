@@ -42,21 +42,50 @@ export class OpenAIEmbeddingProvider implements EmbeddingProvider {
     }
 
     try {
-      const response = await fetch(`${this.config.baseUrl || 'https://api.openai.com'}/v1/embeddings`, {
+      // Handle baseUrl that may or may not include /v1
+      let baseUrl = this.config.baseUrl || 'https://api.openai.com';
+      if (!baseUrl.endsWith('/v1') && !baseUrl.endsWith('/v1/')) {
+        baseUrl = baseUrl.endsWith('/') ? `${baseUrl}v1` : `${baseUrl}/v1`;
+      }
+      // Remove trailing slash if exists
+      baseUrl = baseUrl.replace(/\/$/, '');
+      
+      const url = `${baseUrl}/embeddings`;
+      const requestBody: any = {
+        model: this.config.model,
+        input: texts,
+      };
+      
+      // Only add dimensions for text-embedding-3-* models
+      if (this.config.model.includes('text-embedding-3-') && this.dimensions) {
+        requestBody.dimensions = this.dimensions;
+      }
+      
+      console.log('Embedding API request:', {
+        url,
+        model: this.config.model,
+        inputCount: texts.length,
+        dimensions: requestBody.dimensions,
+        baseUrl: this.config.baseUrl
+      });
+
+      const response = await fetch(url, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${apiKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          model: this.config.model,
-          input: texts,
-          dimensions: this.dimensions !== 1536 ? this.dimensions : undefined,
-        }),
+        body: JSON.stringify(requestBody),
       });
 
       if (!response.ok) {
         const error = await response.text();
+        console.error('Embedding API error:', {
+          status: response.status,
+          error,
+          url,
+          model: this.config.model
+        });
         throw new EmbeddingError(
           `OpenAI API error: ${response.status} - ${error}`,
           'API_ERROR'
