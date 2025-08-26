@@ -28,7 +28,9 @@
   },
   "success": {
     "deleted": "Deleted successfully.",
-    "saved": "Saved successfully."
+    "saved": "Saved successfully.",
+    "created": "Created successfully.",
+    "updated": "Updated successfully."
   },
   "vectorStores": {
     "title": "Vector Store Management",
@@ -132,7 +134,11 @@
     "title": "Chunking Strategies",
     "description": "Configure how documents are split into chunks.",
     "add": "Add Strategy",
+    "edit": "Edit Strategy",
+    "addDescription": "Add a new chunking strategy.",
+    "editDescription": "Edit existing chunking strategy.",
     "name": "Name",
+    "namePlaceholder": "e.g., Default Chunking Strategy",
     "type": "Type",
     "chunkSize": "Chunk Size",
     "overlap": "Overlap",
@@ -142,10 +148,20 @@
     "title": "Data Cleansing",
     "description": "Configure rules for cleaning document text.",
     "add": "Add Configuration",
+    "edit": "Edit Configuration",
+    "addDescription": "Add a new cleansing configuration.",
+    "editDescription": "Edit existing cleansing configuration.",
     "name": "Name",
+    "namePlaceholder": "e.g., Default Cleansing Configuration",
     "llmModel": "LLM Model",
+    "selectLLMModel": "Select LLM Model",
     "rules": "Rules",
     "basicOnly": "Basic rules only",
+    "removeHeaders": "Remove Headers",
+    "removeFooters": "Remove Footers",
+    "removePageNumbers": "Remove Page Numbers",
+    "normalizeWhitespace": "Normalize Whitespace",
+    "fixEncoding": "Fix Encoding",
     "empty": "No cleansing configurations found."
   },
   "settings": {

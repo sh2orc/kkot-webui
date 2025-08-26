@@ -28,7 +28,9 @@
   },
   "success": {
     "deleted": "삭제되었습니다.",
-    "saved": "저장되었습니다."
+    "saved": "저장되었습니다.",
+    "created": "생성되었습니다.",
+    "updated": "수정되었습니다."
   },
   "vectorStores": {
     "title": "벡터 스토어 관리",
@@ -132,7 +134,11 @@
     "title": "청킹 전략",
     "description": "문서를 분할하는 방법을 설정합니다.",
     "add": "전략 추가",
+    "edit": "전략 수정",
+    "addDescription": "새로운 청킹 전략을 추가합니다.",
+    "editDescription": "기존 청킹 전략을 수정합니다.",
     "name": "이름",
+    "namePlaceholder": "예: 기본 청킹 전략",
     "type": "유형",
     "chunkSize": "청크 크기",
     "overlap": "중첩",
@@ -142,10 +148,20 @@
     "title": "데이터 클린징",
     "description": "문서 텍스트를 정제하는 규칙을 설정합니다.",
     "add": "설정 추가",
+    "edit": "설정 수정",
+    "addDescription": "새로운 클린징 설정을 추가합니다.",
+    "editDescription": "기존 클린징 설정을 수정합니다.",
     "name": "이름",
+    "namePlaceholder": "예: 기본 클린징 설정",
     "llmModel": "LLM 모델",
+    "selectLLMModel": "LLM 모델 선택",
     "rules": "규칙",
     "basicOnly": "기본 규칙만",
+    "removeHeaders": "헤더 제거",
+    "removeFooters": "푸터 제거",
+    "removePageNumbers": "페이지 번호 제거",
+    "normalizeWhitespace": "공백 정규화",
+    "fixEncoding": "인코딩 수정",
     "empty": "등록된 클린징 설정이 없습니다."
   },
   "settings": {
