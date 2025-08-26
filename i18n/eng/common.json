@@ -90,5 +90,8 @@
     "admin": "Administrator",
     "user": "User"
   },
-  "back": "Back"
+  "back": "Back",
+  "loading": "Loading...",
+  "saving": "Saving...",
+  "delete": "Delete"
 } 

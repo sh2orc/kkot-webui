@@ -189,17 +189,143 @@ export class BaseDocumentProcessor implements DocumentProcessor {
         name.startsWith('ppt/slides/slide') && name.endsWith('.xml')
       );
 
+      console.log(`Found ${slideFiles.length} slides in PPTX`);
+
       for (const slideFile of slideFiles) {
         const slideXml = await zip.files[slideFile].async('string');
-        // Extract text from XML (simplified - real implementation would parse XML properly)
-        const textMatches = slideXml.match(/<a:t[^>]*>([^<]+)<\/a:t>/g) || [];
-        const slideText = textMatches
-          .map(match => match.replace(/<[^>]+>/g, ''))
-          .join(' ');
-        slideTexts.push(slideText);
+        
+        // Debug: Log XML structure info only if no text is found
+        const xmlPreview = slideXml.substring(0, 500);
+        
+        // Improved text extraction - handle different PowerPoint XML text patterns
+        const textPatterns = [
+          /<a:t[^>]*>([^<]+)<\/a:t>/g,  // Standard text
+          /<a:t>([^<]+)<\/a:t>/g,        // Simple text without attributes
+          /<t[^>]*>([^<]+)<\/t>/g,       // Alternative text tags
+          /<p:txBody[^>]*>[\s\S]*?<\/p:txBody>/g, // Text body blocks
+        ];
+        
+        // First, try to find any text nodes in the XML
+        const allTextNodes = slideXml.match(/>([^<]+)</g) || [];
+        const meaningfulTexts = allTextNodes
+          .map(match => match.replace(/[><]/g, '').trim())
+          .filter(text => text.length > 2 && !text.match(/^[\s\d]+$/));
+        
+        // Log debug info only when no text found
+        const hasNoText = meaningfulTexts.length === 0;
+        
+        const extractedTexts: string[] = [];
+        for (const pattern of textPatterns) {
+          const matches = slideXml.match(pattern) || [];
+          const texts = matches.map(match => match.replace(/<[^>]+>/g, '').trim());
+          extractedTexts.push(...texts.filter(text => text.length > 0));
+        }
+        
+        // If standard patterns fail, try to extract from text body sections
+        if (extractedTexts.length === 0) {
+          const textBodyMatches = slideXml.match(/<p:txBody[^>]*>([\s\S]*?)<\/p:txBody>/g) || [];
+          for (const bodyMatch of textBodyMatches) {
+            const bodyTexts = bodyMatch.match(/>([^<]+)</g) || [];
+            const cleanTexts = bodyTexts
+              .map(t => t.replace(/[><]/g, '').trim())
+              .filter(t => t.length > 0 && !t.match(/^[\s\d]+$/));
+            extractedTexts.push(...cleanTexts);
+          }
+        }
+        
+        if (extractedTexts.length > 0) {
+          const slideText = extractedTexts.join(' ');
+          slideTexts.push(slideText);
+          console.log(`Slide ${slideFile}: extracted ${extractedTexts.length} text elements`);
+        } else if (meaningfulTexts.length > 0) {
+          // Fallback: use the meaningful texts found in raw XML
+          const slideText = meaningfulTexts.join(' ');
+          slideTexts.push(slideText);
+          console.log(`Slide ${slideFile}: used ${meaningfulTexts.length} fallback text elements`);
+        } else if (hasNoText) {
+          // Log XML preview only when no text found
+          console.log(`Slide ${slideFile}: No text found. XML preview:`, xmlPreview.substring(0, 300) + '...');
+        }
       }
 
-      return slideTexts.join('\n\n');
+      // Also check for notes
+      const notesFiles = Object.keys(zip.files).filter(name => 
+        name.startsWith('ppt/notesSlides/') && name.endsWith('.xml')
+      );
+      
+      for (const notesFile of notesFiles) {
+        try {
+          const notesXml = await zip.files[notesFile].async('string');
+          const notesMatches = notesXml.match(/<a:t[^>]*>([^<]+)<\/a:t>/g) || [];
+          const notesText = notesMatches
+            .map(match => match.replace(/<[^>]+>/g, '').trim())
+            .filter(text => text.length > 0)
+            .join(' ');
+          if (notesText) {
+            slideTexts.push(`Notes: ${notesText}`);
+          }
+        } catch (e) {
+          // Ignore notes extraction errors
+        }
+      }
+
+      let result = slideTexts.join('\n\n').trim();
+      console.log(`Total extracted text length: ${result.length} characters`);
+      
+      if (result.length === 0) {
+        // Check if there are any slides at all
+        if (slideFiles.length === 0) {
+          throw new Error('No slides found in PowerPoint file');
+        }
+        
+        // Extract image information for better context
+        const imageInfo: string[] = [];
+        
+        for (const slideFile of slideFiles) {
+          const slideXml = await zip.files[slideFile].async('string');
+          const slideNumber = slideFile.match(/slide(\d+)\.xml/)?.[1] || 'unknown';
+          
+          // Count images in the slide
+          const imageCount = (slideXml.match(/<p:pic>/g) || []).length;
+          const videoCount = (slideXml.match(/<p:video>/g) || []).length;
+          const chartCount = (slideXml.match(/<c:chart>/g) || []).length;
+          
+          if (imageCount > 0 || videoCount > 0 || chartCount > 0) {
+            const mediaTypes = [];
+            if (imageCount > 0) mediaTypes.push(`${imageCount} image${imageCount > 1 ? 's' : ''}`);
+            if (videoCount > 0) mediaTypes.push(`${videoCount} video${videoCount > 1 ? 's' : ''}`);
+            if (chartCount > 0) mediaTypes.push(`${chartCount} chart${chartCount > 1 ? 's' : ''}`);
+            
+            imageInfo.push(`Slide ${slideNumber}: Contains ${mediaTypes.join(', ')}`);
+          }
+        }
+        
+        // Create a more detailed placeholder text
+        const placeholderParts = [
+          `PowerPoint Presentation Analysis`,
+          `Total slides: ${slideFiles.length}`,
+          `Content type: Visual presentation (no text content found)`,
+          '',
+          `Slide details:`
+        ];
+        
+        if (imageInfo.length > 0) {
+          placeholderParts.push(...imageInfo);
+        } else {
+          placeholderParts.push('No identifiable content in slides');
+        }
+        
+        placeholderParts.push(
+          '',
+          'Note: This presentation appears to contain only visual elements without extractable text content.',
+          'Consider adding speaker notes or text descriptions to improve searchability.'
+        );
+        
+        result = placeholderParts.join('\n');
+        console.warn('No text content found in PowerPoint file - generated placeholder with visual content information');
+      }
+      
+      return result;
     } catch (error) {
       throw new DocumentProcessingError(
         `Failed to extract PowerPoint text: ${error instanceof Error ? error.message : 'Unknown error'}`,

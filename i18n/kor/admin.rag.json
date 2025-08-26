@@ -27,7 +27,14 @@
     "reprocessFailed": "재처리에 실패했습니다.",
     "unauthorized": "인증이 필요합니다.",
     "notFound": "요청한 리소스를 찾을 수 없습니다.",
-    "methodNotAllowed": "요청 방법이 올바르지 않습니다."
+    "methodNotAllowed": "요청 방법이 올바르지 않습니다.",
+    "fetchEmbeddingModelsFailed": "임베딩 모델을 가져오는데 실패했습니다.",
+    "selectEmbeddingModel": "임베딩 모델을 선택해주세요.",
+    "refreshAndRetry": "요청 방법이 올바르지 않습니다. 새로고침 후 다시 시도해주세요."
+  },
+  "warnings": {
+    "noEmbeddingModels": "사용 가능한 임베딩 모델이 없습니다.",
+    "configureEmbeddingModels": "모델 관리 페이지에서 임베딩 모델을 \"공개\" 및 \"임베딩 모델\"로 설정해주세요."
   },
   "success": {
     "deleted": "삭제되었습니다.",
@@ -59,7 +66,35 @@
     "manage": "벡터 스토어 관리",
     "success": {
       "created": "벡터 스토어가 생성되었습니다.",
-      "updated": "벡터 스토어가 수정되었습니다."
+      "updated": "벡터 스토어가 수정되었습니다.",
+      "testConnection": "연결 테스트가 성공했습니다!"
+    },
+    "notFound": "벡터 스토어를 찾을 수 없습니다",
+    "errors": {
+      "connectionStringRequired": "연결 문자열을 입력해주세요.",
+      "connectionTestFailed": "연결 테스트에 실패했습니다."
+    },
+    "connectionTest": "연결 테스트",
+    "connectionTesting": "연결 테스트 중...",
+    "connectionSuccess": "연결 성공",
+    "connectionFailed": "연결 실패",
+    "troubleshootingTitle": "문제 해결 방법 보기",
+    "types": {
+      "chromadb": {
+        "name": "ChromaDB",
+        "description": "ChromaDB는 오픈소스 벡터 데이터베이스입니다. HTTP/HTTPS URL을 입력하세요.",
+        "example": "예: http://localhost:8000 또는 https://your-chroma-server.com"
+      },
+      "pgvector": {
+        "name": "pgvector (PostgreSQL)",
+        "description": "PostgreSQL의 pgvector 확장을 사용합니다. PostgreSQL 연결 문자열을 입력하세요.",
+        "example": "예: postgresql://username:password@localhost:5432/database"
+      },
+      "faiss": {
+        "name": "Faiss (로컬)",
+        "description": "Facebook AI Similarity Search (Faiss)를 사용합니다. 로컬 파일 경로를 입력하세요.",
+        "example": "예: ./data/faiss_index 또는 /path/to/faiss/data"
+      }
     }
   },
   "collections": {
@@ -75,6 +110,7 @@
     "descriptionPlaceholder": "이 컬렉션에 대한 설명을 입력하세요.",
     "vectorStore": "벡터 스토어",
     "embeddingModel": "임베딩 모델",
+    "selectEmbeddingModel": "임베딩 모델 선택",
     "dimensions": "차원",
     "chunkingStrategy": "청킹 전략",
     "cleansingConfig": "정제 설정",
@@ -98,7 +134,21 @@
     "newName": "새 컬렉션 이름",
     "copyOptions": "복사 옵션",
     "copyDocuments": "문서 복사",
-    "copyVectors": "벡터 데이터 복사"
+    "copyVectors": "벡터 데이터 복사",
+    "notFound": "컬렉션을 찾을 수 없습니다",
+    "copyDialog": {
+      "title": "컬렉션 복사",
+      "description": "기존 컬렉션을 복사하여 새로운 컬렉션을 생성합니다.",
+      "requiredFieldsError": "모든 필수 필드를 입력해주세요.",
+      "sourceCollectionPlaceholder": "복사할 컬렉션을 선택하세요",
+      "newNamePlaceholder": "예: 복사된 컬렉션",
+      "copyResult": {
+        "both": "문서와 벡터 데이터가 모두 복사됩니다.",
+        "documentsOnly": "문서만 복사되며, 벡터는 재생성해야 합니다.",
+        "vectorsOnly": "벡터 데이터만 복사됩니다.",
+        "empty": "빈 컬렉션이 생성됩니다."
+      }
+    }
   },
   "documents": {
     "title": "문서 관리",
@@ -108,7 +158,6 @@
     "uploadDescription": "컬렉션에 문서를 업로드합니다. 여러 파일을 동시에 선택할 수 있습니다.",
     "uploadSuccess": "{{count}}개의 문서가 업로드되었습니다.",
     "uploadFailed": "문서 업로드에 실패했습니다.",
-    "allCollections": "모든 컬렉션",
     "searchPlaceholder": "문서 검색...",
     "filename": "파일명",
     "collection": "컬렉션",
@@ -155,10 +204,32 @@
     "reprocess": "재처리",
     "regenerateSuccess": "문서 재생성이 시작되었습니다.",
     "targetCollection": "대상 컬렉션",
-    "chunkingStrategy": "Chunking 전략",
-    "cleansingConfig": "Cleansing 설정",
+    "cleansingConfig": "클린징 설정",
     "useDefault": "기본값 사용",
-    "deleteOriginal": "원본 문서 삭제"
+    "deleteOriginal": "원본 문서 삭제",
+    "regenerateTitle": "문서 재생성",
+    "regenerateDescription": "\"{{title}}\" 문서를 다른 설정으로 재생성합니다.",
+    "regenerateMultipleDescription": "선택한 문서를 다른 설정으로 재생성합니다.",
+    "chunkingStrategyLabel": "Chunking 전략",
+    "cleansingConfigLabel": "Cleansing 설정",
+    "defaultLabel": "(기본값)",
+    "allCollections": "모든 컬렉션",
+    "selectedCollection": "선택된 컬렉션",
+    "searchResultsFound": "{{count}}개의 검색 결과를 찾았습니다.",
+    "searchFailed": "검색에 실패했습니다.",
+    "refresh": "새로고침",
+    "embeddingSearchPlaceholder": "임베딩 검색...",
+    "searching": "검색 중...",
+    "search": "검색",
+    "clearSearch": "검색 해제",
+    "searchResults": {
+      "document": "문서",
+      "collection": "컬렉션",
+      "chunkContent": "청크 내용",
+      "similarity": "유사도",
+      "actions": "작업"
+    },
+    "noSearchResults": "검색 결과가 없습니다."
   },
   "chunking": {
     "title": "청킹 전략",

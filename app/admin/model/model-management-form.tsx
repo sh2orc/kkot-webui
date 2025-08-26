@@ -9,7 +9,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Button } from "@/components/ui/button"
 import { TextSwitch } from "@/components/ui/text-switch"
 import { useTranslation } from "@/lib/i18n"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { RefreshCw, Search, Save } from "lucide-react"
 import {
   Table,
@@ -53,7 +53,6 @@ interface ModelManagementFormProps {
 export default function ModelManagementForm({ initialServers }: ModelManagementFormProps) {
   const router = useRouter()
   const { lang } = useTranslation('admin.model')
-  const { toast } = useToast()
   const [servers, setServers] = useState<LLMServer[]>(initialServers)
   const [searchTerm, setSearchTerm] = useState("")
   const [isSaving, setIsSaving] = useState(false)
@@ -109,17 +108,10 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
         models: modelsByServer[server.id] || []
       })))
       
-      toast({
-        title: lang('syncModelsSuccess'),
-        description: `${result.count}${lang('syncModelsSuccessMessage')}`
-      })
+      toast.success(`${lang('syncModelsSuccess')}: ${result.count}${lang('syncModelsSuccessMessage')}`)
     } catch (error) {
       console.error('Model sync error:', error)
-      toast({
-        title: lang('syncModelsFailure'),
-        description: lang('syncModelsFailureMessage'),
-        variant: "destructive"
-      })
+      toast.error(`${lang('syncModelsFailure')}: ${lang('syncModelsFailureMessage')}`)
     } finally {
       setIsSyncing(prev => ({ ...prev, [serverId]: false }))
     }
@@ -146,48 +138,64 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
         .flatMap(server => server.models)
         .filter(model => modifiedModels.has(model.id))
       
+      if (modelsToUpdate.length === 0) {
+        toast.warning(lang('noChangesToSave') || '저장할 변경 사항이 없습니다.')
+        setIsSaving(false)
+        return
+      }
+      
+      let successCount = 0
+      const errors: string[] = []
+      
       for (const model of modelsToUpdate) {
-        const response = await fetch('/api/llm-models', {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            id: model.id,
-            enabled: model.enabled,
-            isPublic: model.isPublic,
-            supportsMultimodal: model.supportsMultimodal,
-            isEmbeddingModel: model.isEmbeddingModel
+        try {
+          const response = await fetch('/api/llm-models', {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              id: model.id,
+              enabled: model.enabled,
+              isPublic: model.isPublic,
+              supportsMultimodal: model.supportsMultimodal,
+              isEmbeddingModel: model.isEmbeddingModel
+            })
           })
-        })
-        
-        if (!response.ok) {
-          throw new Error(`${lang('updateModelError')} ${model.modelId}`)
+          
+          if (!response.ok) {
+            const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+            const errorMessage = errorData.error || `${lang('updateModelError')} ${model.modelId}`
+            errors.push(`${model.modelId}: ${errorMessage}`)
+          } else {
+            successCount++
+          }
+        } catch (error) {
+          errors.push(`${model.modelId}: ${error instanceof Error ? error.message : 'Network error'}`)
         }
       }
       
-      setModifiedModels(new Set())
-      
-      toast({
-        title: lang('saveSuccess'),
-        description: `${modelsToUpdate.length}${lang('saveSuccessMessage')}`
-      })
-      
-      // Update button state immediately after saving
-      setIsSaving(false)
-      
-      // Refresh page after saving to sync server state
-      setTimeout(() => {
-        console.log('Model settings saved successfully, refreshing page')
-        router.refresh()
-      }, 1000)
+      // Show results
+      if (errors.length === 0) {
+        // All successful
+        setModifiedModels(new Set())
+        toast.success(`${lang('saveSuccess')}: ${successCount}${lang('saveSuccessMessage')}`)
+        
+        // Refresh page after saving to sync server state
+        setTimeout(() => {
+          console.log('Model settings saved successfully, refreshing page')
+          router.refresh()
+        }, 1000)
+      } else if (successCount > 0) {
+        // Partial success
+        toast.warning(`${successCount}개 모델이 저장되었지만 ${errors.length}개 실패: ${errors.join(', ')}`)
+      } else {
+        // All failed
+        toast.error(`${lang('saveFailure')}: ${errors.join(', ')}`)
+      }
     } catch (error) {
       console.error('Settings save error:', error)
-      toast({
-        title: lang('saveFailure'),
-        description: error instanceof Error ? error.message : lang('saveFailureMessage'),
-        variant: "destructive"
-      })
+      toast.error(`${lang('saveFailure')}: ${error instanceof Error ? error.message : lang('saveFailureMessage')}`)
     } finally {
       setIsSaving(false)
     }

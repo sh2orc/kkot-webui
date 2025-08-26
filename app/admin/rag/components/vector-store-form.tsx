@@ -1,24 +1,19 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent } from "@/components/ui/card";
 import { Alert, AlertDescription } from "@/components/ui/alert";
-import { AlertCircle, CheckCircle, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle, XCircle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import Link from "next/link";
 
 interface VectorStore {
   id?: number;
@@ -31,20 +26,14 @@ interface VectorStore {
   isDefault: boolean;
 }
 
-interface VectorStoreDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface VectorStoreFormProps {
   vectorStore?: VectorStore | null;
-  onSave: () => void;
 }
 
-export function VectorStoreDialog({
-  open,
-  onOpenChange,
-  vectorStore,
-  onSave,
-}: VectorStoreDialogProps) {
+export function VectorStoreForm({ vectorStore }: VectorStoreFormProps) {
   const { lang } = useTranslation('admin.rag');
+  const { lang: commonLang } = useTranslation('common');
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [testingConnection, setTestingConnection] = useState(false);
   const [connectionTestResult, setConnectionTestResult] = useState<'success' | 'failed' | null>(null);
@@ -77,10 +66,10 @@ export function VectorStoreDialog({
         isDefault: false,
       });
     }
-    setError(null); // Clear error when dialog opens/changes
+    setError(null);
     setTroubleshooting(null);
     setConnectionTestResult(null);
-  }, [vectorStore, open]);
+  }, [vectorStore]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -117,8 +106,8 @@ export function VectorStoreDialog({
           : lang('vectorStores.success.created')
       );
       
-      onSave();
-      onOpenChange(false);
+      // Redirect to vector stores list
+      router.push('/admin/rag/vector-stores');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : lang('errors.saveFailed');
       setError(errorMessage);
@@ -206,21 +195,29 @@ export function VectorStoreDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>
-              {vectorStore
-                ? lang('vectorStores.edit')
-                : lang('vectorStores.create')}
-            </DialogTitle>
-            <DialogDescription>
-              {lang('vectorStores.dialogDescription')}
-            </DialogDescription>
-          </DialogHeader>
+    <form onSubmit={handleSubmit}>
+      <div className="flex items-center gap-4 mb-6">
+        <Link href="/admin/rag/vector-stores">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            {commonLang('back')}
+          </Button>
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold">
+            {vectorStore
+              ? lang('vectorStores.edit')
+              : lang('vectorStores.create')}
+          </h1>
+          <p className="text-muted-foreground">
+            {lang('vectorStores.dialogDescription')}
+          </p>
+        </div>
+      </div>
 
-          <div className="grid gap-4 py-4">
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid gap-6">
             {error && (
               <Alert variant="destructive">
                 <AlertCircle className="h-4 w-4" />
@@ -369,21 +366,22 @@ export function VectorStoreDialog({
             </div>
           </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
-              {lang('cancel')}
-            </Button>
+          <div className="flex justify-end gap-4 mt-6">
+            <Link href="/admin/rag/vector-stores">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loading}
+              >
+                {commonLang('cancel')}
+              </Button>
+            </Link>
             <Button type="submit" disabled={loading}>
-              {loading ? lang('saving') : lang('save')}
+              {loading ? commonLang('saving') : commonLang('save')}
             </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </div>
+        </CardContent>
+      </Card>
+    </form>
   );
 }

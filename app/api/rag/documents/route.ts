@@ -245,6 +245,17 @@ async function processDocumentAsync(
       }));
     }
 
+    // Check if chunks is empty
+    if (!chunks || chunks.length === 0) {
+      console.error('No chunks generated for document:', {
+        documentId,
+        filename: document.filename,
+        contentLength: processed.content?.length || 0,
+        mimeType
+      });
+      throw new Error('Document processing resulted in no chunks. The document may be empty or unsupported.');
+    }
+
     // Find the embedding model and its server
     const allEmbeddingModels = await llmModelRepository.findPublicEmbeddingModels();
     const embeddingModel = allEmbeddingModels.find((m: any) => m.modelId === collection.embeddingModel);

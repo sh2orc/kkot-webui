@@ -24,6 +24,7 @@
   "saveSuccessMessage": " model settings have been saved.",
   "saveFailure": "Failed to Save Settings",
   "saveFailureMessage": "Failed to save settings.",
+  "noChangesToSave": "No changes to save.",
   "tableHeaders": {
     "serverModel": "Server / Model ID",
     "enabled": "Enabled",

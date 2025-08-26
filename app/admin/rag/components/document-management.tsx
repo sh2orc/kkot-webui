@@ -187,10 +187,10 @@ export function DocumentManagement() {
       setSearchResults(data.results);
       setSearchMode(true);
       
-      const collectionText = selectedCollection === 'all' ? '모든 컬렉션' : '선택된 컬렉션';
-      toast.success(`${collectionText}에서 ${data.results.length}개의 검색 결과를 찾았습니다.`);
+      const collectionText = selectedCollection === 'all' ? lang('documents.allCollections') : lang('documents.selectedCollection');
+      toast.success(lang('documents.searchResultsFound').replace('{{count}}', data.results.length.toString()));
     } catch (error) {
-      toast.error('검색에 실패했습니다.');
+      toast.error(lang('documents.searchFailed'));
       console.error('Search error:', error);
     } finally {
       setIsSearching(false);
@@ -242,7 +242,7 @@ export function DocumentManagement() {
               disabled={collections.length === 0 || loading}
             >
               <Copy className="h-4 w-4 mr-2" />
-              {lang('collections.copy') || '컬렉션 복사'}
+              {lang('collections.copy')}
             </Button>
             <Button 
               variant="outline" 
@@ -253,7 +253,7 @@ export function DocumentManagement() {
               disabled={loading}
             >
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-              {lang('refresh') || '새로고침'}
+              {lang('documents.refresh')}
             </Button>
             <Button onClick={() => setUploadDialogOpen(true)} disabled={collections.length === 0 || loading}>
               <Upload className="h-4 w-4 mr-2" />
@@ -279,7 +279,7 @@ export function DocumentManagement() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder={searchMode ? "임베딩 검색..." : lang('documents.searchPlaceholder')}
+                placeholder={searchMode ? lang('documents.embeddingSearchPlaceholder') : lang('documents.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
                 onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
@@ -298,12 +298,12 @@ export function DocumentManagement() {
               ) : (
                 <Search className="h-4 w-4" />
               )}
-              {isSearching ? '검색 중...' : '검색'}
+              {isSearching ? lang('documents.searching') : lang('documents.search')}
             </Button>
             
             {searchMode && (
               <Button onClick={clearSearch} variant="ghost">
-                검색 해제
+                {lang('documents.clearSearch')}
               </Button>
             )}
           </div>
@@ -313,11 +313,11 @@ export function DocumentManagement() {
               <TableRow>
                 {searchMode ? (
                   <>
-                    <TableHead>문서</TableHead>
-                    <TableHead>컬렉션</TableHead>
-                    <TableHead>청크 내용</TableHead>
-                    <TableHead>유사도</TableHead>
-                    <TableHead className="text-right">작업</TableHead>
+                    <TableHead>{lang('documents.searchResults.document')}</TableHead>
+                    <TableHead>{lang('documents.searchResults.collection')}</TableHead>
+                    <TableHead>{lang('documents.searchResults.chunkContent')}</TableHead>
+                    <TableHead>{lang('documents.searchResults.similarity')}</TableHead>
+                    <TableHead className="text-right">{lang('documents.searchResults.actions')}</TableHead>
                   </>
                 ) : (
                   <>
@@ -451,7 +451,7 @@ export function DocumentManagement() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          title={lang('documents.view') || '보기'}
+                          title={lang('documents.view')}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
@@ -460,7 +460,7 @@ export function DocumentManagement() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleRegenerateClick(document)}
-                        title={lang('documents.regenerate') || '재생성'}
+                        title={lang('documents.regenerate')}
                       >
                         <Wand2 className="h-4 w-4" />
                       </Button>
@@ -469,7 +469,7 @@ export function DocumentManagement() {
                           variant="ghost"
                           size="sm"
                           onClick={() => handleReprocess(document.id)}
-                          title={lang('documents.reprocess') || '재처리'}
+                          title={lang('documents.reprocess')}
                         >
                           <RefreshCw className="h-4 w-4" />
                         </Button>
@@ -478,7 +478,7 @@ export function DocumentManagement() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDelete(document.id)}
-                        title={lang('delete') || '삭제'}
+                        title={lang('delete')}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -489,7 +489,7 @@ export function DocumentManagement() {
               {!loading && searchMode && searchResults.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
-                    검색 결과가 없습니다.
+                    {lang('documents.noSearchResults')}
                   </TableCell>
                 </TableRow>
               )}

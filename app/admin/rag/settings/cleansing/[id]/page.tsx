@@ -19,7 +19,7 @@ async function getCleansingConfig(id: string) {
   if (id === 'new') return null;
   
   try {
-    // API 호출 대신 직접 repository 사용
+    // Use repository directly instead of API call
     const configId = parseInt(id);
     if (isNaN(configId)) {
       console.error('Invalid config ID:', id);
@@ -45,7 +45,7 @@ export default async function CleansingDetailPage({ params }: PageProps) {
   const { id } = await params;
   const config = await getCleansingConfig(id);
   
-  // 디버깅
+  // Debugging
   console.log('Page - id from params:', id);
   console.log('Page - fetched config:', config);
   console.log('Page - isEdit:', id !== 'new');

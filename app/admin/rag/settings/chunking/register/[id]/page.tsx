@@ -19,7 +19,7 @@ async function getChunkingStrategy(id: string) {
   if (id === 'new') return null;
   
   try {
-    // API 호출 대신 직접 repository 사용
+    // Use repository directly instead of API call
     const strategyId = parseInt(id);
     if (isNaN(strategyId)) {
       console.error('Invalid strategy ID:', id);

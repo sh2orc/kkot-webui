@@ -48,7 +48,7 @@ export function CollectionCopyDialog({
 
   const handleSubmit = async () => {
     if (!formData.sourceCollectionId || !formData.newCollectionName.trim()) {
-      toast.error('모든 필수 필드를 입력해주세요.');
+      toast.error(lang('collections.copyDialog.requiredFieldsError'));
       return;
     }
     
@@ -70,7 +70,7 @@ export function CollectionCopyDialog({
         throw new Error(error.error || 'Failed to copy collection');
       }
 
-      toast.success(lang('collections.copySuccess') || '컬렉션이 복사되었습니다.');
+      toast.success(lang('collections.copySuccess'));
       onCopyComplete();
       onOpenChange(false);
       
@@ -94,22 +94,22 @@ export function CollectionCopyDialog({
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Copy className="h-5 w-5" />
-            {lang('collections.copy') || '컬렉션 복사'}
+            {lang('collections.copyDialog.title')}
           </DialogTitle>
           <DialogDescription>
-            기존 컬렉션을 복사하여 새로운 컬렉션을 생성합니다.
+            {lang('collections.copyDialog.description')}
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="source">{lang('collections.sourceCollection') || '원본 컬렉션'}</Label>
+            <Label htmlFor="source">{lang('collections.sourceCollection')}</Label>
             <Select
               value={formData.sourceCollectionId}
               onValueChange={(value) => setFormData({ ...formData, sourceCollectionId: value })}
             >
               <SelectTrigger id="source">
-                <SelectValue placeholder="복사할 컬렉션을 선택하세요" />
+                <SelectValue placeholder={lang('collections.copyDialog.sourceCollectionPlaceholder')} />
               </SelectTrigger>
               <SelectContent>
                 {collections.map((collection) => (
@@ -122,17 +122,17 @@ export function CollectionCopyDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="name">{lang('collections.newName') || '새 컬렉션 이름'}</Label>
+            <Label htmlFor="name">{lang('collections.newName')}</Label>
             <Input
               id="name"
               value={formData.newCollectionName}
               onChange={(e) => setFormData({ ...formData, newCollectionName: e.target.value })}
-              placeholder="예: 복사된 컬렉션"
+              placeholder={lang('collections.copyDialog.newNamePlaceholder')}
             />
           </div>
 
           <div className="space-y-2">
-            <Label>{lang('collections.copyOptions') || '복사 옵션'}</Label>
+            <Label>{lang('collections.copyOptions')}</Label>
             
             <div className="flex items-center space-x-2">
               <Checkbox
@@ -144,7 +144,7 @@ export function CollectionCopyDialog({
                 htmlFor="copyDocuments"
                 className="text-sm font-normal cursor-pointer"
               >
-                {lang('collections.copyDocuments') || '문서 복사'}
+                {lang('collections.copyDocuments')}
               </Label>
             </div>
 
@@ -158,7 +158,7 @@ export function CollectionCopyDialog({
                 htmlFor="copyVectors"
                 className="text-sm font-normal cursor-pointer"
               >
-                {lang('collections.copyVectors') || '벡터 데이터 복사'}
+                {lang('collections.copyVectors')}
               </Label>
             </div>
           </div>
@@ -167,13 +167,13 @@ export function CollectionCopyDialog({
             <div className="rounded-lg border p-3 bg-muted/50">
               <p className="text-sm text-muted-foreground">
                 {formData.copyDocuments && formData.copyVectors ? (
-                  '문서와 벡터 데이터가 모두 복사됩니다.'
+                  lang('collections.copyDialog.copyResult.both')
                 ) : formData.copyDocuments ? (
-                  '문서만 복사되며, 벡터는 재생성해야 합니다.'
+                  lang('collections.copyDialog.copyResult.documentsOnly')
                 ) : formData.copyVectors ? (
-                  '벡터 데이터만 복사됩니다.'
+                  lang('collections.copyDialog.copyResult.vectorsOnly')
                 ) : (
-                  '빈 컬렉션이 생성됩니다.'
+                  lang('collections.copyDialog.copyResult.empty')
                 )}
               </p>
             </div>
@@ -189,7 +189,7 @@ export function CollectionCopyDialog({
             disabled={loading || !formData.sourceCollectionId || !formData.newCollectionName.trim()}
           >
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {lang('collections.copy') || '복사'}
+            {lang('collections.copy')}
           </Button>
         </DialogFooter>
       </DialogContent>

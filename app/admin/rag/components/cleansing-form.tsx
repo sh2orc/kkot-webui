@@ -99,13 +99,13 @@ export function CleansingForm({ initialData, isEdit = false }: CleansingFormProp
         const errorMessage = errorData?.error || `${response.status} ${response.statusText}`;
         
         if (response.status === 401) {
-          toast.error(lang('errors.unauthorized') || '인증이 필요합니다.');
+          toast.error(lang('errors.unauthorized'));
           router.push('/auth');
           return;
         } else if (response.status === 404) {
-          toast.error(lang('errors.notFound') || '설정을 찾을 수 없습니다.');
+          toast.error(lang('errors.notFound'));
         } else if (response.status === 405) {
-          toast.error('요청 방법이 올바르지 않습니다. 새로고침 후 다시 시도해주세요.');
+          toast.error(lang('errors.refreshAndRetry'));
         } else {
           toast.error(errorMessage || lang('errors.saveFailed'));
         }

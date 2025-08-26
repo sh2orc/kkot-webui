@@ -9,8 +9,8 @@ import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Plus, Edit, Trash2, FolderOpen, Database } from "lucide-react";
 import { toast } from "sonner";
-import { CollectionDialog } from "./collection-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
 
 interface Collection {
   id: number;
@@ -48,8 +48,6 @@ export function CollectionManagement() {
   const [vectorStores, setVectorStores] = useState<VectorStore[]>([]);
   const [selectedVectorStore, setSelectedVectorStore] = useState<string>('all');
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingCollection, setEditingCollection] = useState<Collection | null>(null);
 
   useEffect(() => {
     fetchVectorStores();
@@ -89,16 +87,6 @@ export function CollectionManagement() {
     }
   };
 
-  const handleCreate = () => {
-    setEditingCollection(null);
-    setDialogOpen(true);
-  };
-
-  const handleEdit = (collection: Collection) => {
-    setEditingCollection(collection);
-    setDialogOpen(true);
-  };
-
   const handleDelete = async (id: number) => {
     if (!confirm(lang('confirmDelete'))) return;
 
@@ -114,11 +102,6 @@ export function CollectionManagement() {
     } catch (error) {
       toast.error(lang('errors.deleteFailed'));
     }
-  };
-
-  const handleSave = async () => {
-    await fetchCollections();
-    setDialogOpen(false);
   };
 
 
@@ -146,10 +129,12 @@ export function CollectionManagement() {
                 ))}
               </SelectContent>
             </Select>
-            <Button onClick={handleCreate} disabled={vectorStores.length === 0 || loading}>
-              <Plus className="h-4 w-4 mr-2" />
-              {lang('collections.add')}
-            </Button>
+            <Link href="/admin/rag/collections/register">
+              <Button disabled={vectorStores.length === 0 || loading}>
+                <Plus className="h-4 w-4 mr-2" />
+                {lang('collections.add')}
+              </Button>
+            </Link>
           </div>
         </CardHeader>
         <CardContent>
@@ -247,13 +232,14 @@ export function CollectionManagement() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(collection)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      <Link href={`/admin/rag/collections/edit/${collection.id}`}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </Link>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -279,13 +265,7 @@ export function CollectionManagement() {
         </CardContent>
       </Card>
 
-      <CollectionDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        collection={editingCollection}
-        vectorStores={vectorStores}
-        onSave={handleSave}
-      />
+
     </>
   );
 }

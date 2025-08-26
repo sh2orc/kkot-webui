@@ -27,7 +27,14 @@
     "reprocessFailed": "Failed to reprocess.",
     "unauthorized": "Authentication required.",
     "notFound": "Requested resource not found.",
-    "methodNotAllowed": "Request method not allowed."
+    "methodNotAllowed": "Request method not allowed.",
+    "fetchEmbeddingModelsFailed": "Failed to fetch embedding models.",
+    "selectEmbeddingModel": "Please select an embedding model.",
+    "refreshAndRetry": "Invalid request method. Please refresh and try again."
+  },
+  "warnings": {
+    "noEmbeddingModels": "No embedding models available.",
+    "configureEmbeddingModels": "Please configure embedding models as \"Public\" and \"Embedding Model\" in the Model Management page."
   },
   "success": {
     "deleted": "Deleted successfully.",
@@ -59,7 +66,35 @@
     "manage": "Manage Vector Stores",
     "success": {
       "created": "Vector store created successfully.",
-      "updated": "Vector store updated successfully."
+      "updated": "Vector store updated successfully.",
+      "testConnection": "Connection test succeeded!"
+    },
+    "notFound": "Vector store not found",
+    "errors": {
+      "connectionStringRequired": "Please enter connection string.",
+      "connectionTestFailed": "Connection test failed."
+    },
+    "connectionTest": "Test Connection",
+    "connectionTesting": "Testing Connection...",
+    "connectionSuccess": "Connection Success",
+    "connectionFailed": "Connection Failed",
+    "troubleshootingTitle": "View Troubleshooting",
+    "types": {
+      "chromadb": {
+        "name": "ChromaDB",
+        "description": "ChromaDB is an open-source vector database. Enter HTTP/HTTPS URL.",
+        "example": "Example: http://localhost:8000 or https://your-chroma-server.com"
+      },
+      "pgvector": {
+        "name": "pgvector (PostgreSQL)",
+        "description": "Uses PostgreSQL's pgvector extension. Enter PostgreSQL connection string.",
+        "example": "Example: postgresql://username:password@localhost:5432/database"
+      },
+      "faiss": {
+        "name": "Faiss (Local)",
+        "description": "Uses Facebook AI Similarity Search (Faiss). Enter local file path.",
+        "example": "Example: ./data/faiss_index or /path/to/faiss/data"
+      }
     }
   },
   "collections": {
@@ -75,6 +110,7 @@
     "descriptionPlaceholder": "Enter a description for this collection.",
     "vectorStore": "Vector Store",
     "embeddingModel": "Embedding Model",
+    "selectEmbeddingModel": "Select embedding model",
     "dimensions": "Dimensions",
     "chunkingStrategy": "Chunking Strategy",
     "cleansingConfig": "Cleansing Config",
@@ -98,7 +134,21 @@
     "newName": "New Collection Name",
     "copyOptions": "Copy Options",
     "copyDocuments": "Copy Documents",
-    "copyVectors": "Copy Vector Data"
+    "copyVectors": "Copy Vector Data",
+    "notFound": "Collection not found",
+    "copyDialog": {
+      "title": "Copy Collection",
+      "description": "Create a new collection by copying an existing one.",
+      "requiredFieldsError": "Please fill in all required fields.",
+      "sourceCollectionPlaceholder": "Select a collection to copy",
+      "newNamePlaceholder": "e.g., Copied Collection",
+      "copyResult": {
+        "both": "Both documents and vector data will be copied.",
+        "documentsOnly": "Only documents will be copied, vectors must be regenerated.",
+        "vectorsOnly": "Only vector data will be copied.",
+        "empty": "An empty collection will be created."
+      }
+    }
   },
   "documents": {
     "title": "Document Management",
@@ -108,7 +158,6 @@
     "uploadDescription": "Upload documents to a collection. You can select multiple files at once.",
     "uploadSuccess": "{{count}} documents uploaded successfully.",
     "uploadFailed": "Failed to upload documents.",
-    "allCollections": "All Collections",
     "searchPlaceholder": "Search documents...",
     "filename": "Filename",
     "collection": "Collection",
@@ -155,10 +204,32 @@
     "reprocess": "Reprocess",
     "regenerateSuccess": "Document regeneration started.",
     "targetCollection": "Target Collection",
-    "chunkingStrategy": "Chunking Strategy",
     "cleansingConfig": "Cleansing Config",
     "useDefault": "Use Default",
-    "deleteOriginal": "Delete Original Document"
+    "deleteOriginal": "Delete Original Document",
+    "regenerateTitle": "Regenerate Document",
+    "regenerateDescription": "Regenerate \"{{title}}\" document with different settings.",
+    "regenerateMultipleDescription": "Regenerate selected documents with different settings.",
+    "chunkingStrategyLabel": "Chunking Strategy",
+    "cleansingConfigLabel": "Cleansing Config",
+    "defaultLabel": "(Default)",
+    "allCollections": "All Collections",
+    "selectedCollection": "Selected Collection",
+    "searchResultsFound": "Found {{count}} search results.",
+    "searchFailed": "Search failed.",
+    "refresh": "Refresh",
+    "embeddingSearchPlaceholder": "Embedding search...",
+    "searching": "Searching...",
+    "search": "Search",
+    "clearSearch": "Clear Search",
+    "searchResults": {
+      "document": "Document",
+      "collection": "Collection",
+      "chunkContent": "Chunk Content",
+      "similarity": "Similarity",
+      "actions": "Actions"
+    },
+    "noSearchResults": "No search results found."
   },
   "chunking": {
     "title": "Chunking Strategies",

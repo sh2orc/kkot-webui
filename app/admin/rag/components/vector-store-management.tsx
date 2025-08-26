@@ -8,8 +8,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
-import { VectorStoreDialog } from "./vector-store-dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import Link from "next/link";
 
 interface VectorStore {
   id: number;
@@ -26,8 +26,6 @@ export function VectorStoreManagement() {
   const { lang } = useTranslation('admin.rag');
   const [vectorStores, setVectorStores] = useState<VectorStore[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingStore, setEditingStore] = useState<VectorStore | null>(null);
 
   useEffect(() => {
     fetchVectorStores();
@@ -46,16 +44,6 @@ export function VectorStoreManagement() {
     }
   };
 
-  const handleCreate = () => {
-    setEditingStore(null);
-    setDialogOpen(true);
-  };
-
-  const handleEdit = (store: VectorStore) => {
-    setEditingStore(store);
-    setDialogOpen(true);
-  };
-
   const handleDelete = async (id: number) => {
     if (!confirm(lang('confirmDelete'))) return;
 
@@ -71,11 +59,6 @@ export function VectorStoreManagement() {
     } catch (error) {
       toast.error(lang('errors.deleteFailed'));
     }
-  };
-
-  const handleSave = async () => {
-    await fetchVectorStores();
-    setDialogOpen(false);
   };
 
   const getTypeColor = (type: string) => {
@@ -98,10 +81,12 @@ export function VectorStoreManagement() {
       <Card>
         <CardHeader>
           <div className="flex items-center justify-end">
-            <Button onClick={handleCreate} disabled={loading}>
-              <Plus className="h-4 w-4 mr-2" />
-              {lang('vectorStores.add')}
-            </Button>
+            <Link href="/admin/rag/vector-stores/register">
+              <Button disabled={loading}>
+                <Plus className="h-4 w-4 mr-2" />
+                {lang('vectorStores.add')}
+              </Button>
+            </Link>
           </div>
         </CardHeader>
         <CardContent>
@@ -177,13 +162,14 @@ export function VectorStoreManagement() {
                   </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => handleEdit(store)}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
+                      <Link href={`/admin/rag/vector-stores/edit/${store.id}`}>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                        >
+                          <Edit className="h-4 w-4" />
+                        </Button>
+                      </Link>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -207,12 +193,7 @@ export function VectorStoreManagement() {
         </CardContent>
       </Card>
 
-      <VectorStoreDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        vectorStore={editingStore}
-        onSave={handleSave}
-      />
+
     </>
   );
 }

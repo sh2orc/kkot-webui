@@ -1,22 +1,18 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 import { useTranslation } from "@/lib/i18n";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
+import { ArrowLeft } from "lucide-react";
+import Link from "next/link";
 
 interface Collection {
   id?: number;
@@ -36,12 +32,9 @@ interface VectorStore {
   type: string;
 }
 
-interface CollectionDialogProps {
-  open: boolean;
-  onOpenChange: (open: boolean) => void;
+interface CollectionFormProps {
   collection?: Collection | null;
-  vectorStores: VectorStore[];
-  onSave: () => void;
+  vectorStores?: VectorStore[];
 }
 
 interface EmbeddingModel {
@@ -74,18 +67,13 @@ interface CleansingConfig {
   isDefault: boolean;
 }
 
-// Removed default embedding models - now using only DB models
-
-export function CollectionDialog({
-  open,
-  onOpenChange,
-  collection,
-  vectorStores,
-  onSave,
-}: CollectionDialogProps) {
+export function CollectionForm({ collection, vectorStores: initialVectorStores }: CollectionFormProps) {
   const { lang } = useTranslation('admin.rag');
+  const { lang: commonLang } = useTranslation('common');
+  const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [loadingModels, setLoadingModels] = useState(true);
+  const [vectorStores, setVectorStores] = useState<VectorStore[]>(initialVectorStores || []);
   const [embeddingModels, setEmbeddingModels] = useState<{ value: string; label: string; dimensions: number }[]>([]);
   const [chunkingStrategies, setChunkingStrategies] = useState<ChunkingStrategy[]>([]);
   const [cleansingConfigs, setCleansingConfigs] = useState<CleansingConfig[]>([]);
@@ -99,6 +87,20 @@ export function CollectionDialog({
     defaultCleansingConfigId: undefined,
     isActive: true,
   });
+
+  // Fetch vector stores if not provided
+  const fetchVectorStores = async () => {
+    if (initialVectorStores) return;
+    
+    try {
+      const response = await fetch('/api/rag/vector-stores');
+      if (!response.ok) throw new Error('Failed to fetch vector stores');
+      const data = await response.json();
+      setVectorStores(data.stores.filter((store: VectorStore) => store.enabled));
+    } catch (error) {
+      toast.error(lang('errors.fetchFailed'));
+    }
+  };
 
   // Fetch embedding models list
   const fetchEmbeddingModels = async () => {
@@ -134,7 +136,6 @@ export function CollectionDialog({
         
         setEmbeddingModels(modelOptions);
       } else {
-        // No embedding models found
         console.warn('No public embedding models found in database');
         toast.warning(lang('warnings.noEmbeddingModels'));
       }
@@ -177,6 +178,7 @@ export function CollectionDialog({
   };
 
   useEffect(() => {
+    fetchVectorStores();
     fetchEmbeddingModels();
     fetchChunkingStrategies();
     fetchCleansingConfigs();
@@ -185,7 +187,7 @@ export function CollectionDialog({
   useEffect(() => {
     if (collection) {
       setFormData(collection);
-    } else {
+    } else if (vectorStores.length > 0 && embeddingModels.length > 0) {
       setFormData({
         vectorStoreId: vectorStores[0]?.id || 0,
         name: '',
@@ -238,7 +240,7 @@ export function CollectionDialog({
         }
         
         toast.error(errorMessage);
-        return; // Early return to prevent onSave() call
+        return;
       }
 
       toast.success(
@@ -247,8 +249,8 @@ export function CollectionDialog({
           : lang('collections.success.created')
       );
       
-      onSave();
-      onOpenChange(false); // Close dialog on success
+      // Redirect to collections list
+      router.push('/admin/rag/collections');
     } catch (error) {
       console.error('Collection save error:', error);
       const errorMessage = error instanceof Error ? error.message : lang('errors.saveFailed');
@@ -270,21 +272,29 @@ export function CollectionDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[600px]">
-        <form onSubmit={handleSubmit}>
-          <DialogHeader>
-            <DialogTitle>
-              {collection
-                ? lang('collections.edit')
-                : lang('collections.create')}
-            </DialogTitle>
-            <DialogDescription>
-              {lang('collections.dialogDescription')}
-            </DialogDescription>
-          </DialogHeader>
+    <form onSubmit={handleSubmit}>
+      <div className="flex items-center gap-4 mb-6">
+        <Link href="/admin/rag/collections">
+          <Button variant="ghost" size="sm">
+            <ArrowLeft className="h-4 w-4 mr-2" />
+            {commonLang('back')}
+          </Button>
+        </Link>
+        <div>
+          <h1 className="text-2xl font-bold">
+            {collection
+              ? lang('collections.edit')
+              : lang('collections.create')}
+          </h1>
+          <p className="text-muted-foreground">
+            {lang('collections.dialogDescription')}
+          </p>
+        </div>
+      </div>
 
-          <div className="grid gap-4 py-4">
+      <Card>
+        <CardContent className="pt-6">
+          <div className="grid gap-6">
             <div className="grid gap-2">
               <Label htmlFor="vectorStore">{lang('collections.vectorStore')}</Label>
               <Select
@@ -445,24 +455,25 @@ export function CollectionDialog({
             )}
           </div>
 
-          <DialogFooter>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              disabled={loading}
-            >
-              {lang('cancel')}
-            </Button>
+          <div className="flex justify-end gap-4 mt-6">
+            <Link href="/admin/rag/collections">
+              <Button
+                type="button"
+                variant="outline"
+                disabled={loading}
+              >
+                {commonLang('cancel')}
+              </Button>
+            </Link>
             <Button 
               type="submit" 
               disabled={loading || loadingModels || embeddingModels.length === 0 || !formData.embeddingModel}
             >
-              {loading ? lang('saving') : lang('save')}
+              {loading ? commonLang('saving') : commonLang('save')}
             </Button>
-          </DialogFooter>
-        </form>
-      </DialogContent>
-    </Dialog>
+          </div>
+        </CardContent>
+      </Card>
+    </form>
   );
 }

@@ -153,7 +153,7 @@ export function DocumentRegenerateDialog({
         throw new Error(error.error || 'Failed to regenerate document');
       }
 
-      toast.success(lang('documents.regenerateSuccess') || '문서 재생성이 시작되었습니다.');
+      toast.success(lang('documents.regenerateSuccess'));
       onRegenerateComplete();
       onOpenChange(false);
     } catch (error) {
@@ -167,19 +167,19 @@ export function DocumentRegenerateDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-[500px]">
         <DialogHeader>
-          <DialogTitle>{lang('documents.regenerate') || '문서 재생성'}</DialogTitle>
+          <DialogTitle>{lang('documents.regenerateTitle')}</DialogTitle>
           <DialogDescription>
             {document?.title ? (
-              <>"{document.title}" 문서를 다른 설정으로 재생성합니다.</>
+              <>{lang('documents.regenerateDescription').replace('{{title}}', document.title)}</>
             ) : (
-              '선택한 문서를 다른 설정으로 재생성합니다.'
+              lang('documents.regenerateMultipleDescription')
             )}
           </DialogDescription>
         </DialogHeader>
         
         <div className="space-y-4 py-4">
           <div className="grid gap-2">
-            <Label htmlFor="collection">{lang('documents.targetCollection') || '대상 컬렉션'}</Label>
+            <Label htmlFor="collection">{lang('documents.targetCollection')}</Label>
             <Select
               value={formData.collectionId}
               onValueChange={(value) => setFormData({ ...formData, collectionId: value })}
@@ -198,18 +198,18 @@ export function DocumentRegenerateDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="chunking">{lang('documents.chunkingStrategy') || 'Chunking 전략'}</Label>
+            <Label htmlFor="chunking">{lang('documents.chunkingStrategyLabel')}</Label>
             <Select
               value={formData.chunkingStrategyId}
               onValueChange={(value) => setFormData({ ...formData, chunkingStrategyId: value })}
             >
               <SelectTrigger id="chunking">
-                <SelectValue placeholder={lang('documents.useDefault') || '기본값 사용'} />
+                <SelectValue placeholder={lang('documents.useDefault')} />
               </SelectTrigger>
               <SelectContent>
                 {chunkingStrategies.map((strategy) => (
                   <SelectItem key={strategy.id} value={strategy.id.toString()}>
-                    {strategy.name} {strategy.isDefault && '(기본값)'}
+                    {strategy.name} {strategy.isDefault && lang('documents.defaultLabel')}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -217,18 +217,18 @@ export function DocumentRegenerateDialog({
           </div>
 
           <div className="grid gap-2">
-            <Label htmlFor="cleansing">{lang('documents.cleansingConfig') || 'Cleansing 설정'}</Label>
+            <Label htmlFor="cleansing">{lang('documents.cleansingConfigLabel')}</Label>
             <Select
               value={formData.cleansingConfigId}
               onValueChange={(value) => setFormData({ ...formData, cleansingConfigId: value })}
             >
               <SelectTrigger id="cleansing">
-                <SelectValue placeholder={lang('documents.useDefault') || '기본값 사용'} />
+                <SelectValue placeholder={lang('documents.useDefault')} />
               </SelectTrigger>
               <SelectContent>
                 {cleansingConfigs.map((config) => (
                   <SelectItem key={config.id} value={config.id.toString()}>
-                    {config.name} {config.isDefault && '(기본값)'}
+                    {config.name} {config.isDefault && lang('documents.defaultLabel')}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -245,7 +245,7 @@ export function DocumentRegenerateDialog({
               htmlFor="deleteOriginal"
               className="text-sm font-normal cursor-pointer"
             >
-              {lang('documents.deleteOriginal') || '원본 문서 삭제'}
+              {lang('documents.deleteOriginal')}
             </Label>
           </div>
         </div>
@@ -256,7 +256,7 @@ export function DocumentRegenerateDialog({
           </Button>
           <Button onClick={handleSubmit} disabled={loading || !formData.collectionId}>
             {loading && <Loader2 className="mr-2 h-4 w-4 animate-spin" />}
-            {lang('documents.regenerate') || '재생성'}
+            {lang('documents.regenerate')}
           </Button>
         </DialogFooter>
       </DialogContent>
