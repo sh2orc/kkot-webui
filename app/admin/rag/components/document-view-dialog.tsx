@@ -12,6 +12,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
+import { FileText, Info } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 
 interface Document {
   id: number;
@@ -24,6 +27,8 @@ interface Document {
   errorMessage?: string;
   createdAt: number;
   collectionName?: string;
+  metadata?: string;
+  rawContent?: string;
 }
 
 interface DocumentChunk {
@@ -32,6 +37,7 @@ interface DocumentChunk {
   content: string;
   cleanedContent?: string;
   tokenCount?: number;
+  metadata?: any;
 }
 
 interface DocumentViewDialogProps {
@@ -113,14 +119,63 @@ export function DocumentViewDialog({
             </div>
           </div>
 
+          {/* Chunking Information Subgroup */}
+          {documentData?.metadata && (() => {
+            try {
+              const metadata = typeof documentData.metadata === 'string' 
+                ? JSON.parse(documentData.metadata) 
+                : documentData.metadata;
+              const processingConfig = metadata.processingConfig || {};
+              
+              return (
+                <>
+                  <Separator />
+                  
+                  <div className="flex items-center gap-2">
+                    <Info className="h-4 w-4 text-muted-foreground" />
+                    <h4 className="text-sm font-medium">{lang('documents.chunkingInfo')}</h4>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <span className="text-muted-foreground">{lang('documents.chunkingStrategy')}:</span>{' '}
+                      {processingConfig.chunkingStrategy || 'N/A'}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">{lang('documents.chunkSize')}:</span>{' '}
+                      {processingConfig.chunkSize || 'N/A'}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">{lang('documents.chunkOverlap')}:</span>{' '}
+                      {processingConfig.chunkOverlap || 'N/A'}
+                    </div>
+                    <div>
+                      <span className="text-muted-foreground">{lang('documents.cleansingConfigUsed')}:</span>{' '}
+                      {processingConfig.cleansingConfigId ? `Config #${processingConfig.cleansingConfigId}` : 'None'}
+                    </div>
+                    <div className="col-span-2">
+                      <span className="text-muted-foreground">{lang('documents.totalChunks')}:</span>{' '}
+                      <span className="font-medium">{chunks.length}</span>
+                    </div>
+                  </div>
+                </>
+              );
+            } catch (error) {
+              return null;
+            }
+          })()}
+
           <Separator />
 
           {/* Content Tabs */}
           {
             <Tabs defaultValue="chunks" className="flex-1">
-              <TabsList>
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="chunks">
                   {lang('documents.chunks')} ({chunks.length})
+                </TabsTrigger>
+                <TabsTrigger value="original">
+                  {lang('documents.rawContent')}
                 </TabsTrigger>
                 <TabsTrigger value="metadata">
                   {lang('documents.metadata')}
@@ -134,23 +189,46 @@ export function DocumentViewDialog({
                   ) : (
                     <div className="space-y-4">
                       {chunks.map((chunk) => (
-                        <div key={chunk.id} className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <Badge variant="outline">
-                              {lang('documents.chunk')} #{chunk.chunkIndex + 1}
-                            </Badge>
-                            {chunk.tokenCount && (
-                              <span className="text-sm text-muted-foreground">
-                                {chunk.tokenCount} tokens
-                              </span>
-                            )}
+                                                  <div key={chunk.id} className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline">
+                                  {lang('documents.chunk')} #{chunk.chunkIndex + 1}
+                                </Badge>
+                                {chunk.metadata?.startIndex !== undefined && chunk.metadata?.endIndex !== undefined && (
+                                  <span className="text-xs text-muted-foreground">
+                                    ({chunk.metadata.startIndex} - {chunk.metadata.endIndex})
+                                  </span>
+                                )}
+                              </div>
+                              {chunk.tokenCount && (
+                                <span className="text-sm text-muted-foreground">
+                                  {chunk.tokenCount} tokens
+                                </span>
+                              )}
+                            </div>
+                            <div className="bg-muted p-3 rounded text-sm">
+                              {chunk.cleanedContent || chunk.content}
+                            </div>
                           </div>
-                          <div className="bg-muted p-3 rounded text-sm">
-                            {chunk.cleanedContent || chunk.content}
-                          </div>
-                        </div>
                       ))}
                     </div>
+                  )}
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="original">
+                <ScrollArea className="h-[400px] rounded-md border p-4">
+                  {documentData?.rawContent ? (
+                    <div className="bg-muted p-4 rounded-md">
+                      <pre className="text-sm whitespace-pre-wrap">
+                        {documentData.rawContent}
+                      </pre>
+                    </div>
+                  ) : (
+                    <p className="text-center text-muted-foreground">
+                      {lang('documents.noRawContent')}
+                    </p>
                   )}
                 </ScrollArea>
               </TabsContent>

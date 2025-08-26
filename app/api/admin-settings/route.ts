@@ -16,6 +16,21 @@ export async function GET(request: NextRequest) {
         if (setting && setting.length > 0) {
           return NextResponse.json(setting[0]);
         }
+        
+        // Return default values for specific keys instead of 404
+        const defaultValues: Record<string, string> = {
+          'app.name': 'kkot-webui',
+          'system.gmtOffsetMinutes': '0',
+        };
+        
+        if (defaultValues[key]) {
+          return NextResponse.json({ 
+            key, 
+            value: defaultValues[key],
+            message: 'Default value used as setting not found.'
+          });
+        }
+        
         return NextResponse.json({ message: 'Setting not found.', key }, { status: 404 });
       } catch (dbError) {
         console.error(`Error retrieving key ${key}:`, dbError);

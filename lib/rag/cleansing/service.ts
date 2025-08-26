@@ -4,7 +4,7 @@ import { BaseDataCleanser } from './base';
 import { LLMDataCleanser } from './llm';
 import { CleansingOptions, LLMCleansingConfig, CleansingError } from './types';
 import { getDb } from '@/lib/db/config';
-import { ragCleansingConfigs, llmModels } from '@/lib/db/schema';
+import { ragCleansingConfigs, llmModels, llmServers } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
 
 export interface CleansingServiceConfig {
@@ -87,9 +87,18 @@ export class CleansingService {
           .limit(1);
 
         if (model.length > 0) {
+          // Get server info for the model
+          const server = await db
+            .select()
+            .from(llmServers)
+            .where(eq(llmServers.id, model[0].serverId))
+            .limit(1);
           const llmConfig: LLMCleansingConfig = {
             modelId: model[0].modelId,
             basePrompt: config.cleansingPrompt || undefined,
+            apiKey: server.length > 0 ? server[0].apiKey : undefined,
+            baseUrl: server.length > 0 ? server[0].baseUrl : undefined,
+            provider: server.length > 0 ? server[0].provider : undefined,
           };
 
           const options: CleansingOptions = {

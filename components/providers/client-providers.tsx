@@ -6,7 +6,7 @@ import { BrandingProvider } from './branding-provider'
 import LanguageProvider from './language-provider'
 import { ModelProvider } from './model-provider'
 import { PageTransitionProvider } from './page-transition-provider'
-import { Toaster } from '@/components/ui/toaster'
+import { Toaster } from 'sonner'
 import Loading from '@/components/ui/loading'
 import { TimezoneProvider } from './timezone-provider'
 
@@ -27,7 +27,7 @@ export default function ClientProviders({ children }: { children: ReactNode }) {
                 <TimezoneProvider>
                   <PageTransitionProvider>
                     {children}
-                    <Toaster />
+                    <Toaster position="top-right" richColors />
                   </PageTransitionProvider>
                 </TimezoneProvider>
               </ModelProvider>

@@ -24,7 +24,10 @@
     "fetchFailed": "Failed to fetch data.",
     "saveFailed": "Failed to save.",
     "deleteFailed": "Failed to delete.",
-    "reprocessFailed": "Failed to reprocess."
+    "reprocessFailed": "Failed to reprocess.",
+    "unauthorized": "Authentication required.",
+    "notFound": "Requested resource not found.",
+    "methodNotAllowed": "Request method not allowed."
   },
   "success": {
     "deleted": "Deleted successfully.",
@@ -88,7 +91,14 @@
     "success": {
       "created": "Collection created successfully.",
       "updated": "Collection updated successfully."
-    }
+    },
+    "copy": "Copy Collection",
+    "copySuccess": "Collection copied successfully.",
+    "sourceCollection": "Source Collection",
+    "newName": "New Collection Name",
+    "copyOptions": "Copy Options",
+    "copyDocuments": "Copy Documents",
+    "copyVectors": "Copy Vector Data"
   },
   "documents": {
     "title": "Document Management",
@@ -120,6 +130,17 @@
     "chunk": "Chunk",
     "metadata": "Metadata",
     "noChunks": "No chunks available.",
+    "viewOriginal": "View Original",
+    "rawContent": "Raw Content",
+    "chunkingInfo": "Chunking Information",
+    "chunkingStrategy": "Chunking Strategy",
+    "chunkSize": "Chunk Size",
+    "chunkOverlap": "Overlap",
+    "cleansingConfigUsed": "Cleansing Config Used",
+    "noRawContent": "No raw content available.",
+    "totalChunks": "Total Chunks",
+    "chunkingInfoLoadError": "Failed to load chunking information.",
+    "chunkPosition": "Position",
     "manage": "Manage Documents",
     "status": {
       "title": "Status",      
@@ -128,7 +149,16 @@
       "completed": "Completed",
       "failed": "Failed"
     },
-    "notFound": "Document not found."
+    "notFound": "Document not found.",
+    "view": "View",
+    "regenerate": "Regenerate",
+    "reprocess": "Reprocess",
+    "regenerateSuccess": "Document regeneration started.",
+    "targetCollection": "Target Collection",
+    "chunkingStrategy": "Chunking Strategy",
+    "cleansingConfig": "Cleansing Config",
+    "useDefault": "Use Default",
+    "deleteOriginal": "Delete Original Document"
   },
   "chunking": {
     "title": "Chunking Strategies",
@@ -155,6 +185,8 @@
     "namePlaceholder": "e.g., Default Cleansing Configuration",
     "llmModel": "LLM Model",
     "selectLLMModel": "Select LLM Model",
+    "searchModel": "Search model...",
+    "noModelFound": "No model found.",
     "rules": "Rules",
     "basicOnly": "Basic rules only",
     "removeHeaders": "Remove Headers",

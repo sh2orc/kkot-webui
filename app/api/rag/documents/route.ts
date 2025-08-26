@@ -216,10 +216,18 @@ async function processDocumentAsync(
       }
     );
 
-    // Update document with content
+    // Update document with content and metadata
     await ragDocumentRepository.update(documentId, {
       rawContent: processed.content,
-      metadata: processed.metadata
+      metadata: JSON.stringify({
+        ...(processed.metadata ? (typeof processed.metadata === 'string' ? JSON.parse(processed.metadata) : processed.metadata) : {}),
+        processingConfig: {
+          chunkingStrategy: options.chunkingStrategy,
+          chunkSize: options.chunkSize,
+          chunkOverlap: options.chunkOverlap,
+          cleansingConfigId: options.cleansingConfigId
+        }
+      })
     });
 
     // Apply cleansing if configured
@@ -239,7 +247,7 @@ async function processDocumentAsync(
 
     // Find the embedding model and its server
     const allEmbeddingModels = await llmModelRepository.findPublicEmbeddingModels();
-    const embeddingModel = allEmbeddingModels.find(m => m.modelId === collection.embeddingModel);
+    const embeddingModel = allEmbeddingModels.find((m: any) => m.modelId === collection.embeddingModel);
     
     let embeddingApiKey = process.env.EMBEDDING_API_KEY || process.env.OPENAI_API_KEY;
     let embeddingProvider = 'openai';
@@ -260,26 +268,17 @@ async function processDocumentAsync(
     
     // Generate embeddings
     const embeddingProviderInstance = EmbeddingProviderFactory.create({
-      provider: embeddingProvider,
+      provider: embeddingProvider as 'openai' | 'gemini' | 'ollama' | 'custom',
       model: collection.embeddingModel,
       apiKey: embeddingApiKey,
       baseUrl: embeddingBaseUrl,
     });
 
-    const textsToEmbed = chunks.map(c => c.cleanedContent || c.content);
+    const textsToEmbed = chunks.map((c: any) => c.cleanedContent || c.content);
     const embeddings = await embeddingProviderInstance.generateEmbeddings(textsToEmbed);
 
-    // Store in vector database
-    const vectorStoreConfig = {
-      type: vectorStore.type as any,
-      connectionString: vectorStore.connectionString,
-      apiKey: vectorStore.apiKey,
-      settings: vectorStore.settings ? JSON.parse(vectorStore.settings) : undefined,
-    };
-
-    const store = await VectorStoreFactory.create(vectorStoreConfig);
-    
-    const documentChunks = chunks.map((chunk, i) => ({
+    // Prepare document chunks for storage
+    const documentChunks = chunks.map((chunk: any, i) => ({
       id: `${documentId}_${i}`,
       documentId: documentId.toString(),
       chunkIndex: i,
@@ -293,10 +292,7 @@ async function processDocumentAsync(
       },
     }));
 
-    await store.addDocuments(collection.name, documentChunks);
-    await store.disconnect();
-
-    // Store chunks in database
+    // Store chunks in database first (this is more reliable)
     await ragDocumentChunkRepository.createMany(
       documentChunks.map(chunk => ({
         documentId,
@@ -309,10 +305,49 @@ async function processDocumentAsync(
       }))
     );
 
-    // Update document status
-    await ragDocumentRepository.update(documentId, {
-      processingStatus: 'completed'
+    // Try to store in vector database (with error handling)
+    let vectorStoreSuccess = false;
+    try {
+      const vectorStoreConfig = {
+        type: vectorStore.type as any,
+        connectionString: vectorStore.connectionString,
+        apiKey: vectorStore.apiKey,
+        settings: vectorStore.settings ? JSON.parse(vectorStore.settings) : undefined,
+      };
+
+      const store = await VectorStoreFactory.create(vectorStoreConfig);
+      await store.addDocuments(collection.name, documentChunks);
+      await store.disconnect();
+      vectorStoreSuccess = true;
+      console.log(`Document ${documentId} successfully stored in vector database`);
+    } catch (vectorError) {
+      console.error(`Failed to store document ${documentId} in vector database:`, vectorError);
+      // Continue processing - chunks are stored in database even if vector store fails
+    }
+
+    // Update document status (always execute this)
+    console.log(`Updating document ${documentId} status to completed...`);
+    const updateResult = await ragDocumentRepository.update(documentId, {
+      processingStatus: 'completed',
+      metadata: JSON.stringify({
+        ...(document.metadata ? (typeof document.metadata === 'string' ? JSON.parse(document.metadata) : document.metadata) : {}),
+        processingConfig: {
+          chunkingStrategy: options.chunkingStrategy,
+          chunkSize: options.chunkSize,
+          chunkOverlap: options.chunkOverlap,
+          cleansingConfigId: options.cleansingConfigId
+        },
+        vectorStoreSuccess
+      })
     });
+    
+    console.log(`Document ${documentId} status update result:`, updateResult);
+    
+    // Verify the update by fetching the document again
+    const updatedDocument = await ragDocumentRepository.findById(documentId);
+    console.log(`Document ${documentId} current status in DB:`, updatedDocument?.processingStatus);
+
+    console.log(`Document ${documentId} processing completed successfully`);
 
   } catch (error) {
     console.error('Document processing failed:', error);

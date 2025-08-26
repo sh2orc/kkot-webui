@@ -9,10 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Plus, Edit, Trash2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { Label } from "@/components/ui/label";
-import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useRouter } from "next/navigation";
 
 interface ChunkingStrategy {
   id: number;
@@ -25,16 +22,9 @@ interface ChunkingStrategy {
 
 export function ChunkingSettings() {
   const { lang } = useTranslation('admin.rag');
+  const router = useRouter();
   const [strategies, setStrategies] = useState<ChunkingStrategy[]>([]);
   const [loading, setLoading] = useState(true);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingStrategy, setEditingStrategy] = useState<ChunkingStrategy | null>(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    type: 'fixed-size',
-    chunkSize: 1000,
-    chunkOverlap: 200,
-  });
 
   useEffect(() => {
     fetchStrategies();
@@ -71,47 +61,11 @@ export function ChunkingSettings() {
   };
 
   const handleAdd = () => {
-    setEditingStrategy(null);
-    setFormData({
-      name: '',
-      type: 'fixed-size',
-      chunkSize: 1000,
-      chunkOverlap: 200,
-    });
-    setDialogOpen(true);
+    router.push('/admin/rag/settings/chunking/register/new');
   };
 
   const handleEdit = (strategy: ChunkingStrategy) => {
-    setEditingStrategy(strategy);
-    setFormData({
-      name: strategy.name,
-      type: strategy.type,
-      chunkSize: strategy.chunkSize,
-      chunkOverlap: strategy.chunkOverlap,
-    });
-    setDialogOpen(true);
-  };
-
-  const handleSave = async () => {
-    try {
-      const url = editingStrategy 
-        ? `/api/rag/chunking-strategies/${editingStrategy.id}`
-        : '/api/rag/chunking-strategies';
-      
-      const response = await fetch(url, {
-        method: editingStrategy ? 'PUT' : 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData),
-      });
-
-      if (!response.ok) throw new Error('Failed to save strategy');
-
-      toast.success(lang(editingStrategy ? 'success.updated' : 'success.created'));
-      setDialogOpen(false);
-      fetchStrategies();
-    } catch (error) {
-      toast.error(lang('errors.saveFailed'));
-    }
+    router.push(`/admin/rag/settings/chunking/register/${strategy.id}`);
   };
 
 
@@ -211,78 +165,6 @@ export function ChunkingSettings() {
           </TableBody>
         </Table>
       </CardContent>
-
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {editingStrategy ? lang('chunking.edit') : lang('chunking.add')}
-            </DialogTitle>
-            <DialogDescription>
-              {editingStrategy ? lang('chunking.editDescription') : lang('chunking.addDescription')}
-            </DialogDescription>
-          </DialogHeader>
-          
-          <div className="grid gap-4 py-4">
-            <div className="grid gap-2">
-              <Label htmlFor="name">{lang('chunking.name')}</Label>
-              <Input
-                id="name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                placeholder={lang('chunking.namePlaceholder')}
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="type">{lang('chunking.type')}</Label>
-              <Select
-                value={formData.type}
-                onValueChange={(value) => setFormData({ ...formData, type: value })}
-              >
-                <SelectTrigger id="type">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="fixed-size">Fixed Size</SelectItem>
-                  <SelectItem value="sentence">Sentence</SelectItem>
-                  <SelectItem value="paragraph">Paragraph</SelectItem>
-                  <SelectItem value="sliding-window">Sliding Window</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="chunkSize">{lang('chunking.chunkSize')}</Label>
-              <Input
-                id="chunkSize"
-                type="number"
-                value={formData.chunkSize}
-                onChange={(e) => setFormData({ ...formData, chunkSize: parseInt(e.target.value) || 0 })}
-              />
-            </div>
-            
-            <div className="grid gap-2">
-              <Label htmlFor="chunkOverlap">{lang('chunking.overlap')}</Label>
-              <Input
-                id="chunkOverlap"
-                type="number"
-                value={formData.chunkOverlap}
-                onChange={(e) => setFormData({ ...formData, chunkOverlap: parseInt(e.target.value) || 0 })}
-              />
-            </div>
-          </div>
-          
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setDialogOpen(false)}>
-              {lang('cancel')}
-            </Button>
-            <Button onClick={handleSave}>
-              {lang('save')}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </Card>
   );
 }

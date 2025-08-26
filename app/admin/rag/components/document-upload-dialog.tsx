@@ -65,8 +65,8 @@ export function DocumentUploadDialog({
   const [selectedFiles, setSelectedFiles] = useState<FileList | null>(null);
   const [chunkingStrategies, setChunkingStrategies] = useState<ChunkingStrategy[]>([]);
   const [cleansingConfigs, setCleansingConfigs] = useState<CleansingConfig[]>([]);
-  const [selectedChunkingStrategy, setSelectedChunkingStrategy] = useState<string>('');
-  const [selectedCleansingConfig, setSelectedCleansingConfig] = useState<string>('');
+  const [selectedChunkingStrategy, setSelectedChunkingStrategy] = useState<string>('use-default');
+  const [selectedCleansingConfig, setSelectedCleansingConfig] = useState<string>('use-default');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch chunking strategies
@@ -126,11 +126,11 @@ export function DocumentUploadDialog({
       const formData = new FormData();
       formData.append('collectionId', selectedCollection);
       
-      // Add override options if selected
-      if (selectedChunkingStrategy) {
+      // Add override options if selected (and not using default)
+      if (selectedChunkingStrategy && selectedChunkingStrategy !== 'use-default') {
         formData.append('chunkingStrategyId', selectedChunkingStrategy);
       }
-      if (selectedCleansingConfig) {
+      if (selectedCleansingConfig && selectedCleansingConfig !== 'use-default') {
         formData.append('cleansingConfigId', selectedCleansingConfig);
       }
       
@@ -150,7 +150,9 @@ export function DocumentUploadDialog({
       const result = await response.json();
       const successCount = result.results.filter((r: any) => r.status !== 'failed').length;
       
-      toast.success(lang('documents.uploadSuccess', { count: successCount }));
+      // Replace {{count}} with actual count value
+      const successMessage = lang('documents.uploadSuccess').replace('{{count}}', successCount.toString());
+      toast.success(successMessage);
       
       // Reset form after successful upload
       setSelectedFiles(null);
@@ -244,7 +246,7 @@ export function DocumentUploadDialog({
                   <SelectValue placeholder={lang('documents.useCollectionDefault')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">{lang('documents.useCollectionDefault')}</SelectItem>
+                  <SelectItem value="use-default">{lang('documents.useCollectionDefault')}</SelectItem>
                   {chunkingStrategies.map((strategy) => (
                     <SelectItem key={strategy.id} value={strategy.id.toString()}>
                       {strategy.name} ({strategy.type}, {strategy.chunkSize} chars)
@@ -267,7 +269,7 @@ export function DocumentUploadDialog({
                   <SelectValue placeholder={lang('documents.useCollectionDefault')} />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">{lang('documents.useCollectionDefault')}</SelectItem>
+                  <SelectItem value="use-default">{lang('documents.useCollectionDefault')}</SelectItem>
                   {cleansingConfigs.map((config) => (
                     <SelectItem key={config.id} value={config.id.toString()}>
                       {config.name}

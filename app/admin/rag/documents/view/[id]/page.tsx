@@ -6,12 +6,13 @@ import DocumentViewPage from './document-view-page'
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
-export default async function DocumentViewRoute({ params }: { params: { id: string } }) {
+export default async function DocumentViewRoute({ params }: { params: Promise<{ id: string }> }) {
   const session = await getServerSession(authOptions)
   
   if (!session || session.user.role !== 'admin') {
     redirect('/auth')
   }
 
-  return <DocumentViewPage documentId={params.id} />
+  const { id } = await params
+  return <DocumentViewPage documentId={id} />
 }

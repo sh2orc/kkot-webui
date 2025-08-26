@@ -66,16 +66,32 @@ export class ChromaDBVectorStore extends BaseVectorStore {
     this.validateEmbeddingDimensions(embeddingDimensions);
 
     try {
-      // ChromaDB requires an embedding function, but we'll handle embeddings externally
-      // So we use 'null' to indicate no default embedding function
-      const collection = await this.client!.createCollection({
+      // ChromaDB setup - we'll provide embeddings directly
+      const collectionParams: any = {
         name,
         metadata: {
           ...metadata,
           dimensions: embeddingDimensions,
         },
-        embeddingFunction: null, // We'll provide embeddings directly
-      });
+      };
+
+      // Try to create collection without embedding function first
+      // If that fails, we'll handle it gracefully
+      let collection;
+      try {
+        collection = await this.client!.createCollection(collectionParams);
+      } catch (error: any) {
+        // If embedding function is required, try with an explicit setting
+        if (error.message?.includes('embedding') || error.message?.includes('undefined')) {
+          console.log('ChromaDB requires embedding function, creating with manual embedding handling...');
+          // Create collection and handle embeddings manually
+          const { DefaultEmbeddingFunction } = await import('chromadb');
+          collectionParams.embeddingFunction = new DefaultEmbeddingFunction();
+          collection = await this.client!.createCollection(collectionParams);
+        } else {
+          throw error;
+        }
+      }
 
       this.collections.set(name, collection);
 
@@ -158,10 +174,28 @@ export class ChromaDBVectorStore extends BaseVectorStore {
       return this.collections.get(name)!;
     }
 
-    const collection = await this.client!.getCollection({ 
-      name,
-      embeddingFunction: null // We provide embeddings directly
-    });
+    // Try to get collection without embedding function first
+    let collection;
+    try {
+      collection = await this.client!.getCollection({ name });
+    } catch (error: any) {
+      // If embedding function is required, try with default
+      if (error.message?.includes('embedding') || error.message?.includes('undefined')) {
+        try {
+          const { DefaultEmbeddingFunction } = await import('chromadb');
+          collection = await this.client!.getCollection({ 
+            name,
+            embeddingFunction: new DefaultEmbeddingFunction()
+          });
+        } catch (importError) {
+          // Fallback: get collection without specifying embedding function
+          collection = await this.client!.getCollection({ name });
+        }
+      } else {
+        throw error;
+      }
+    }
+
     if (!collection) {
       throw new VectorStoreError(`Collection ${name} not found`, 'COLLECTION_NOT_FOUND');
     }

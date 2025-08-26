@@ -65,7 +65,33 @@ export const ragCollectionRepository = {
    */
   findByIdWithVectorStore: async (id: number) => {
     const result = await db
-      .select()
+      .select({
+        ragCollections: {
+          id: schema.ragCollections.id,
+          vectorStoreId: schema.ragCollections.vectorStoreId,
+          name: schema.ragCollections.name,
+          description: schema.ragCollections.description,
+          embeddingModel: schema.ragCollections.embeddingModel,
+          embeddingDimensions: schema.ragCollections.embeddingDimensions,
+          defaultChunkingStrategyId: schema.ragCollections.defaultChunkingStrategyId,
+          defaultCleansingConfigId: schema.ragCollections.defaultCleansingConfigId,
+          metadata: schema.ragCollections.metadata,
+          isActive: schema.ragCollections.isActive,
+          createdAt: schema.ragCollections.createdAt,
+          updatedAt: schema.ragCollections.updatedAt,
+        },
+        ragVectorStores: {
+          id: schema.ragVectorStores.id,
+          name: schema.ragVectorStores.name,
+          type: schema.ragVectorStores.type,
+          connectionString: schema.ragVectorStores.connectionString,
+          apiKey: schema.ragVectorStores.apiKey,
+          settings: schema.ragVectorStores.settings,
+          enabled: schema.ragVectorStores.enabled,
+          createdAt: schema.ragVectorStores.createdAt,
+          updatedAt: schema.ragVectorStores.updatedAt,
+        }
+      })
       .from(schema.ragCollections)
       .innerJoin(schema.ragVectorStores, eq(schema.ragCollections.vectorStoreId, schema.ragVectorStores.id))
       .where(eq(schema.ragCollections.id, id))

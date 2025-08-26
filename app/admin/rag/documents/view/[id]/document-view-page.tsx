@@ -11,7 +11,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { ArrowLeft, FileText } from "lucide-react";
+import { ArrowLeft, FileText, Info } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
 import { toast } from "sonner";
 
 interface Document {
@@ -26,6 +27,7 @@ interface Document {
   createdAt: number;
   collectionName?: string;
   metadata?: any;
+  rawContent?: string;
 }
 
 interface DocumentChunk {
@@ -34,6 +36,7 @@ interface DocumentChunk {
   content: string;
   cleanedContent?: string;
   tokenCount?: number;
+  metadata?: any;
 }
 
 interface DocumentViewPageProps {
@@ -165,6 +168,59 @@ export default function DocumentViewPage({ documentId }: DocumentViewPageProps) 
                 <p className="text-sm text-destructive">{document.errorMessage}</p>
               </div>
             )}
+
+            {/* Chunking Information Subgroup */}
+            <Separator className="my-4" />
+            
+            <div className="flex items-center gap-2 mb-3">
+              <Info className="h-4 w-4 text-muted-foreground" />
+              <h4 className="text-sm font-medium">{lang('documents.chunkingInfo')}</h4>
+            </div>
+            
+            {document.metadata && (() => {
+              try {
+                const metadata = typeof document.metadata === 'string' 
+                  ? JSON.parse(document.metadata) 
+                  : document.metadata;
+                const processingConfig = metadata.processingConfig || {};
+                
+                return (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">{lang('documents.chunkingStrategy')}:</span>
+                        <span className="text-sm">{processingConfig.chunkingStrategy || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">{lang('documents.chunkSize')}:</span>
+                        <span className="text-sm">{processingConfig.chunkSize || 'N/A'}</span>
+                      </div>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">{lang('documents.chunkOverlap')}:</span>
+                        <span className="text-sm">{processingConfig.chunkOverlap || 'N/A'}</span>
+                      </div>
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-muted-foreground">{lang('documents.cleansingConfigUsed')}:</span>
+                        <span className="text-sm">{processingConfig.cleansingConfigId ? `Config #${processingConfig.cleansingConfigId}` : 'None'}</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              } catch (error) {
+                return (
+                  <p className="text-sm text-muted-foreground">{lang('documents.chunkingInfoLoadError')}</p>
+                );
+              }
+            })()}
+            
+            <div className="mt-3">
+              <div className="flex items-center justify-between">
+                <span className="text-sm text-muted-foreground">{lang('documents.totalChunks')}:</span>
+                <span className="text-sm font-medium">{chunks.length}</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
 
@@ -172,9 +228,12 @@ export default function DocumentViewPage({ documentId }: DocumentViewPageProps) 
         <Card>
           <CardContent className="pt-6">
             <Tabs defaultValue="chunks" className="w-full">
-              <TabsList className="grid w-full grid-cols-2">
+              <TabsList className="grid w-full grid-cols-3">
                 <TabsTrigger value="chunks">
                   {lang('documents.chunks')} ({chunks.length})
+                </TabsTrigger>
+                <TabsTrigger value="original">
+                  {lang('documents.rawContent')}
                 </TabsTrigger>
                 <TabsTrigger value="metadata">
                   {lang('documents.metadata')}
@@ -191,9 +250,16 @@ export default function DocumentViewPage({ documentId }: DocumentViewPageProps) 
                         <Card key={chunk.id}>
                           <CardHeader className="pb-3">
                             <div className="flex items-center justify-between">
-                              <Badge variant="outline">
-                                {lang('documents.chunk')} #{chunk.chunkIndex + 1}
-                              </Badge>
+                              <div className="flex items-center gap-2">
+                                <Badge variant="outline">
+                                  {lang('documents.chunk')} #{chunk.chunkIndex + 1}
+                                </Badge>
+                                {chunk.metadata?.startIndex !== undefined && chunk.metadata?.endIndex !== undefined && (
+                                  <span className="text-xs text-muted-foreground">
+                                    {lang('documents.chunkPosition')}: {chunk.metadata.startIndex} - {chunk.metadata.endIndex}
+                                  </span>
+                                )}
+                              </div>
                               {chunk.tokenCount && (
                                 <span className="text-sm text-muted-foreground">
                                   {chunk.tokenCount} tokens
@@ -211,6 +277,22 @@ export default function DocumentViewPage({ documentId }: DocumentViewPageProps) 
                         </Card>
                       ))}
                     </div>
+                  )}
+                </ScrollArea>
+              </TabsContent>
+
+              <TabsContent value="original" className="mt-4">
+                <ScrollArea className="h-[600px] rounded-md border p-4">
+                  {document.rawContent ? (
+                    <div className="bg-muted p-4 rounded-md">
+                      <pre className="text-sm whitespace-pre-wrap">
+                        {document.rawContent}
+                      </pre>
+                    </div>
+                  ) : (
+                    <p className="text-center text-muted-foreground">
+                      {lang('documents.noRawContent')}
+                    </p>
                   )}
                 </ScrollArea>
               </TabsContent>

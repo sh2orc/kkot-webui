@@ -8,9 +8,11 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Input } from "@/components/ui/input";
-import { Upload, Trash2, RefreshCw, FileText, Search, Download, Eye } from "lucide-react";
+import { Upload, Trash2, RefreshCw, FileText, Search, Download, Eye, Copy, Wand2 } from "lucide-react";
 import { toast } from "sonner";
 import { DocumentUploadDialog } from "./document-upload-dialog";
+import { DocumentRegenerateDialog } from "./document-regenerate-dialog";
+import { CollectionCopyDialog } from "./collection-copy-dialog";
 import Link from "next/link";
 import { Skeleton } from "@/components/ui/skeleton";
 
@@ -25,6 +27,7 @@ interface Document {
   processingStatus: 'pending' | 'processing' | 'completed' | 'failed';
   errorMessage?: string;
   createdAt: number;
+  metadata?: string;
   updatedAt: number;
   collectionName?: string;
 }
@@ -43,6 +46,12 @@ export function DocumentManagement() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
   const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
+  const [regenerateDialogOpen, setRegenerateDialogOpen] = useState(false);
+  const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
+  const [collectionCopyDialogOpen, setCollectionCopyDialogOpen] = useState(false);
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [searchMode, setSearchMode] = useState(false);
 
   useEffect(() => {
     fetchCollections();
@@ -51,6 +60,22 @@ export function DocumentManagement() {
   useEffect(() => {
     fetchDocuments();
   }, [selectedCollection]);
+
+  // Auto-refresh documents if any are processing
+  useEffect(() => {
+    const processingDocuments = documents.filter(doc => 
+      doc.processingStatus === 'processing' || doc.processingStatus === 'pending'
+    );
+    
+    if (processingDocuments.length > 0) {
+      const interval = setInterval(() => {
+        console.log('Auto-refreshing documents due to processing status...');
+        fetchDocuments();
+      }, 3000); // Check every 3 seconds
+      
+      return () => clearInterval(interval);
+    }
+  }, [documents]);
 
   const fetchCollections = async () => {
     try {
@@ -122,6 +147,62 @@ export function DocumentManagement() {
     setUploadDialogOpen(false);
   };
 
+  const handleRegenerateClick = (document: Document) => {
+    setSelectedDocument(document);
+    setRegenerateDialogOpen(true);
+  };
+
+  const handleRegenerateComplete = () => {
+    fetchDocuments();
+    setRegenerateDialogOpen(false);
+    setSelectedDocument(null);
+  };
+
+  const handleCollectionCopyComplete = () => {
+    fetchCollections();
+    setCollectionCopyDialogOpen(false);
+  };
+
+  const handleSearch = async () => {
+    if (!searchQuery.trim()) {
+      setSearchMode(false);
+      return;
+    }
+
+    setIsSearching(true);
+    try {
+      const response = await fetch('/api/rag/search', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          collectionId: selectedCollection === 'all' ? null : parseInt(selectedCollection),
+          query: searchQuery,
+          topK: 20
+        })
+      });
+
+      if (!response.ok) throw new Error('Search failed');
+      
+      const data = await response.json();
+      setSearchResults(data.results);
+      setSearchMode(true);
+      
+      const collectionText = selectedCollection === 'all' ? '모든 컬렉션' : '선택된 컬렉션';
+      toast.success(`${collectionText}에서 ${data.results.length}개의 검색 결과를 찾았습니다.`);
+    } catch (error) {
+      toast.error('검색에 실패했습니다.');
+      console.error('Search error:', error);
+    } finally {
+      setIsSearching(false);
+    }
+  };
+
+  const clearSearch = () => {
+    setSearchQuery('');
+    setSearchResults([]);
+    setSearchMode(false);
+  };
+
   const getStatusBadge = (status: string) => {
     switch (status) {
       case 'completed':
@@ -143,16 +224,37 @@ export function DocumentManagement() {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const filteredDocuments = documents.filter(doc =>
-    doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    doc.filename.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredDocuments = searchMode 
+    ? [] 
+    : documents.filter(doc =>
+        doc.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
+        doc.filename.toLowerCase().includes(searchQuery.toLowerCase())
+      );
 
   return (
     <>
       <Card>
         <CardHeader>
-          <div className="flex items-center justify-end">
+          <div className="flex items-center justify-end gap-2">
+            <Button
+              variant="outline"
+              onClick={() => setCollectionCopyDialogOpen(true)}
+              disabled={collections.length === 0 || loading}
+            >
+              <Copy className="h-4 w-4 mr-2" />
+              {lang('collections.copy') || '컬렉션 복사'}
+            </Button>
+            <Button 
+              variant="outline" 
+              onClick={() => {
+                setLoading(true);
+                fetchDocuments();
+              }}
+              disabled={loading}
+            >
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              {lang('refresh') || '새로고침'}
+            </Button>
             <Button onClick={() => setUploadDialogOpen(true)} disabled={collections.length === 0 || loading}>
               <Upload className="h-4 w-4 mr-2" />
               {lang('documents.upload')}
@@ -177,25 +279,57 @@ export function DocumentManagement() {
             <div className="flex-1 relative">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
               <Input
-                placeholder={lang('documents.searchPlaceholder')}
+                placeholder={searchMode ? "임베딩 검색..." : lang('documents.searchPlaceholder')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleSearch()}
                 className="pl-10"
                 disabled={loading}
               />
             </div>
+            
+            <Button 
+              onClick={handleSearch}
+              disabled={isSearching || !searchQuery.trim()}
+              variant="outline"
+            >
+              {isSearching ? (
+                <RefreshCw className="h-4 w-4 animate-spin" />
+              ) : (
+                <Search className="h-4 w-4" />
+              )}
+              {isSearching ? '검색 중...' : '검색'}
+            </Button>
+            
+            {searchMode && (
+              <Button onClick={clearSearch} variant="ghost">
+                검색 해제
+              </Button>
+            )}
           </div>
 
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>{lang('documents.filename')}</TableHead>
-                <TableHead>{lang('documents.collection')}</TableHead>
-                <TableHead>{lang('documents.type')}</TableHead>
-                <TableHead>{lang('documents.size')}</TableHead>
-                <TableHead>{lang('documents.status.title')}</TableHead>
-                <TableHead>{lang('documents.uploadedAt')}</TableHead>
-                <TableHead className="text-right">{lang('actions')}</TableHead>
+                {searchMode ? (
+                  <>
+                    <TableHead>문서</TableHead>
+                    <TableHead>컬렉션</TableHead>
+                    <TableHead>청크 내용</TableHead>
+                    <TableHead>유사도</TableHead>
+                    <TableHead className="text-right">작업</TableHead>
+                  </>
+                ) : (
+                  <>
+                    <TableHead>{lang('documents.filename')}</TableHead>
+                    <TableHead>{lang('documents.collection')}</TableHead>
+                    <TableHead>{lang('documents.type')}</TableHead>
+                    <TableHead>{lang('documents.size')}</TableHead>
+                    <TableHead>{lang('documents.status.title')}</TableHead>
+                    <TableHead>{lang('documents.uploadedAt')}</TableHead>
+                    <TableHead className="text-right">{lang('actions')}</TableHead>
+                  </>
+                )}
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -238,7 +372,46 @@ export function DocumentManagement() {
                   ))}
                 </>
               )}
-              {!loading && filteredDocuments.map((document) => (
+              {!loading && searchMode && searchResults.map((result, index) => (
+                <TableRow key={`search-${index}`}>
+                  <TableCell>
+                    <div className="flex items-center gap-2">
+                      <FileText className="h-4 w-4 text-muted-foreground" />
+                      <div>
+                        <div className="font-medium">{result.document?.title || 'Unknown Document'}</div>
+                        <div className="text-sm text-muted-foreground">
+                          {result.document?.filename}
+                        </div>
+                      </div>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    {result.collectionName && (
+                      <Badge variant="transparent">{result.collectionName}</Badge>
+                    )}
+                  </TableCell>
+                  <TableCell className="max-w-md">
+                    <div className="text-sm truncate">
+                      {result.content?.substring(0, 150) + (result.content?.length > 150 ? '...' : '')}
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="outline">
+                      {(result.score * 100).toFixed(1)}%
+                    </Badge>
+                  </TableCell>
+                  <TableCell className="text-right">
+                    {result.document && (
+                      <Link href={`/admin/rag/documents/view/${result.document.id}`}>
+                        <Button variant="ghost" size="sm">
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </Link>
+                    )}
+                  </TableCell>
+                </TableRow>
+              ))}
+              {!loading && !searchMode && filteredDocuments.map((document) => (
                 <TableRow key={document.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -278,15 +451,25 @@ export function DocumentManagement() {
                         <Button
                           variant="ghost"
                           size="sm"
+                          title={lang('documents.view') || '보기'}
                         >
                           <Eye className="h-4 w-4" />
                         </Button>
                       </Link>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => handleRegenerateClick(document)}
+                        title={lang('documents.regenerate') || '재생성'}
+                      >
+                        <Wand2 className="h-4 w-4" />
+                      </Button>
                       {document.processingStatus === 'failed' && (
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleReprocess(document.id)}
+                          title={lang('documents.reprocess') || '재처리'}
                         >
                           <RefreshCw className="h-4 w-4" />
                         </Button>
@@ -295,6 +478,7 @@ export function DocumentManagement() {
                         variant="ghost"
                         size="sm"
                         onClick={() => handleDelete(document.id)}
+                        title={lang('delete') || '삭제'}
                       >
                         <Trash2 className="h-4 w-4" />
                       </Button>
@@ -302,7 +486,14 @@ export function DocumentManagement() {
                   </TableCell>
                 </TableRow>
               ))}
-              {!loading && filteredDocuments.length === 0 && (
+              {!loading && searchMode && searchResults.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center text-muted-foreground py-8">
+                    검색 결과가 없습니다.
+                  </TableCell>
+                </TableRow>
+              )}
+              {!loading && !searchMode && filteredDocuments.length === 0 && (
                 <TableRow>
                   <TableCell colSpan={7} className="text-center text-muted-foreground">
                     {collections.length === 0
@@ -321,6 +512,21 @@ export function DocumentManagement() {
         onOpenChange={setUploadDialogOpen}
         collections={collections}
         onUploadComplete={handleUploadComplete}
+      />
+      
+      <DocumentRegenerateDialog
+        open={regenerateDialogOpen}
+        onOpenChange={setRegenerateDialogOpen}
+        document={selectedDocument}
+        collections={collections}
+        onRegenerateComplete={handleRegenerateComplete}
+      />
+      
+      <CollectionCopyDialog
+        open={collectionCopyDialogOpen}
+        onOpenChange={setCollectionCopyDialogOpen}
+        collections={collections}
+        onCopyComplete={handleCollectionCopyComplete}
       />
     </>
   );

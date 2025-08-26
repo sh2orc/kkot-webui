@@ -32,6 +32,7 @@ export const ragDocumentRepository = {
         contentType: schema.ragDocuments.contentType,
         processingStatus: schema.ragDocuments.processingStatus,
         errorMessage: schema.ragDocuments.errorMessage,
+        metadata: schema.ragDocuments.metadata,
         createdAt: schema.ragDocuments.createdAt,
         updatedAt: schema.ragDocuments.updatedAt,
         collectionName: schema.ragCollections.name,
@@ -114,7 +115,10 @@ export const ragDocumentRepository = {
     
     if (data.title !== undefined) updateData.title = data.title;
     if (data.rawContent !== undefined) updateData.rawContent = data.rawContent;
-    if (data.metadata !== undefined) updateData.metadata = JSON.stringify(data.metadata);
+    if (data.metadata !== undefined) {
+      // If metadata is already a string, don't stringify again
+      updateData.metadata = typeof data.metadata === 'string' ? data.metadata : JSON.stringify(data.metadata);
+    }
     if (data.processingStatus !== undefined) updateData.processingStatus = data.processingStatus;
     if (data.errorMessage !== undefined) updateData.errorMessage = data.errorMessage;
     

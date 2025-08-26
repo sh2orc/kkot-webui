@@ -2,6 +2,7 @@
 
 import { BaseDataCleanser } from './base';
 import { CleansingOptions, LLMCleansingConfig, CleansingError } from './types';
+import { LLMFactory, LLMMessage } from '@/lib/llm';
 
 export class LLMDataCleanser extends BaseDataCleanser {
   private config: LLMCleansingConfig;
@@ -62,9 +63,39 @@ Text to clean:
     const prompt = this.buildPrompt(text, options);
 
     try {
-      // This would integrate with your existing LLM infrastructure
-      const response = await this.callLLM(prompt);
-      return response.trim();
+      // Check if API key is available
+      const apiKey = this.config.apiKey || process.env.LLM_API_KEY || process.env.OPENAI_API_KEY;
+      if (!apiKey) {
+        throw new CleansingError('LLM API key not configured', 'MISSING_API_KEY');
+      }
+      
+      // Create LLM instance using existing infrastructure
+      const llmConfig = {
+        provider: (this.config.provider || 'openai') as any,
+        modelName: this.config.modelId,
+        apiKey: apiKey,
+        baseUrl: this.config.baseUrl,
+        temperature: this.config.temperature || 0.3,
+        maxTokens: this.config.maxTokens || 2000
+      };
+      
+      console.log('LLM Cleansing config:', {
+        provider: llmConfig.provider,
+        modelName: llmConfig.modelName,
+        baseUrl: llmConfig.baseUrl,
+        hasApiKey: !!llmConfig.apiKey
+      });
+      
+      const llm = LLMFactory.create(llmConfig);
+      
+      // Prepare messages for chat
+      const messages: LLMMessage[] = [
+        { role: 'user', content: prompt }
+      ];
+      
+      // Call LLM using chat method
+      const response = await llm.chat(messages);
+      return response.content.trim();
     } catch (error) {
       throw new CleansingError(
         `LLM cleansing failed: ${error instanceof Error ? error.message : 'Unknown error'}`,
@@ -97,44 +128,5 @@ Text to clean:
     return prompt.replace('{text}', text);
   }
 
-  private async callLLM(prompt: string): Promise<string> {
-    // This is a placeholder for actual LLM integration
-    // In real implementation, this would call your LLM service
-    
-    // For now, we'll simulate an API call
-    const apiUrl = process.env.LLM_API_URL || 'http://localhost:8000/v1/completions';
-    const apiKey = process.env.LLM_API_KEY;
 
-    if (!apiKey) {
-      throw new CleansingError('LLM API key not configured', 'MISSING_API_KEY');
-    }
-
-    try {
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${apiKey}`,
-        },
-        body: JSON.stringify({
-          model: this.config.modelId,
-          prompt: prompt,
-          temperature: this.config.temperature || 0.3,
-          max_tokens: this.config.maxTokens || 2000,
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error(`LLM API error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return data.choices[0].text || data.choices[0].message.content;
-    } catch (error) {
-      throw new CleansingError(
-        `Failed to call LLM: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        'LLM_API_ERROR'
-      );
-    }
-  }
 }

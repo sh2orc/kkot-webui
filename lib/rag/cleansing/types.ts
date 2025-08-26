@@ -29,6 +29,9 @@ export interface LLMCleansingConfig {
   basePrompt?: string;
   temperature?: number;
   maxTokens?: number;
+  apiKey?: string;
+  baseUrl?: string;
+  provider?: string;
 }
 
 export class CleansingError extends Error {
