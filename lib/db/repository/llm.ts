@@ -187,6 +187,7 @@ export const llmModelRepository = {
         contextLength: schema.llmModels.contextLength,
         supportsMultimodal: schema.llmModels.supportsMultimodal,
         isEmbeddingModel: schema.llmModels.isEmbeddingModel,
+        isRerankingModel: schema.llmModels.isRerankingModel,
         createdAt: schema.llmModels.createdAt,
         updatedAt: schema.llmModels.updatedAt,
         serverName: schema.llmServers.name,
@@ -386,6 +387,7 @@ export const llmModelRepository = {
     contextLength: number;
     supportsMultimodal: boolean;
     isEmbeddingModel: boolean;
+    isRerankingModel: boolean;
   }>) => {
     const data: any = { updatedAt: new Date() };
     
@@ -395,6 +397,7 @@ export const llmModelRepository = {
     if (modelData.contextLength !== undefined) data.contextLength = modelData.contextLength;
     if (typeof modelData.supportsMultimodal === 'boolean') data.supportsMultimodal = modelData.supportsMultimodal ? 1 : 0;
     if (typeof modelData.isEmbeddingModel === 'boolean') data.isEmbeddingModel = modelData.isEmbeddingModel ? 1 : 0;
+    if (typeof modelData.isRerankingModel === 'boolean') data.isRerankingModel = modelData.isRerankingModel ? 1 : 0;
     
     return await db.update(schema.llmModels)
       .set(data)

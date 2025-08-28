@@ -63,6 +63,10 @@
       "rag": {
         "label": "RAG Knowledge Base",
         "description": "Build knowledge-based search systems by managing vector databases and documents"
+      },
+      "users": {
+        "label": "User Management",
+        "description": "Manage users, permissions, and access control"
       }
     },
     "systemStatus": {
@@ -88,6 +92,7 @@
     "pipeline": "Pipeline",
     "database": "Database",
     "api": "API",
-    "rag": "RAG"
+    "rag": "RAG",
+    "users": "Users"
   }
 } 

@@ -1,0 +1,43 @@
+{
+  "title": "사용자 관리",
+  "userList": "사용자 목록",
+  "addUser": "사용자 추가",
+  "createUser": "사용자 생성",
+  "editUser": "사용자 편집",
+  "searchPlaceholder": "이름 또는 이메일로 검색",
+  "loading": "로딩 중...",
+  "actions": "작업",
+  "cancel": "취소",
+  "save": "저장",
+  "create": "생성",
+  "confirmDelete": "정말로 이 사용자를 삭제하시겠습니까?",
+  "deleteSuccess": "사용자가 성공적으로 삭제되었습니다",
+  "createSuccess": "사용자가 성공적으로 생성되었습니다",
+  "updateSuccess": "사용자가 성공적으로 업데이트되었습니다",
+  "passwordPlaceholder": "현재 비밀번호를 유지하려면 비워두세요",
+  "passwordHint": "비밀번호를 변경하지 않으려면 비워두세요",
+  "fields": {
+    "name": "이름",
+    "email": "이메일",
+    "password": "비밀번호",
+    "newPassword": "새 비밀번호",
+    "role": "역할",
+    "status": "상태",
+    "lastLogin": "마지막 로그인"
+  },
+  "roles": {
+    "user": "사용자",
+    "admin": "관리자"
+  },
+  "status": {
+    "active": "활성",
+    "inactive": "비활성",
+    "neverLoggedIn": "없음"
+  },
+  "errors": {
+    "fetchFailed": "사용자 목록을 가져오는데 실패했습니다",
+    "deleteFailed": "사용자 삭제에 실패했습니다",
+    "saveFailed": "사용자 저장에 실패했습니다",
+    "passwordRequired": "새 사용자에는 비밀번호가 필요합니다"
+  }
+}

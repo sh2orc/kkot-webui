@@ -238,6 +238,7 @@ export const llmModels = getDbType() === 'sqlite'
       contextLength: integer('context_length'),
       supportsMultimodal: integer('supports_multimodal', { mode: 'boolean' }).default(false), // Multimodal support
       isEmbeddingModel: integer('is_embedding_model', { mode: 'boolean' }).default(false), // Embedding model flag
+      isRerankingModel: integer('is_reranking_model', { mode: 'boolean' }).default(false), // Reranking model flag
       createdAt: integer('created_at', { mode: 'timestamp' }),
       updatedAt: integer('updated_at', { mode: 'timestamp' }),
     })
@@ -252,6 +253,7 @@ export const llmModels = getDbType() === 'sqlite'
       contextLength: integer('context_length'),
       supportsMultimodal: boolean('supports_multimodal').default(false), // Multimodal support
       isEmbeddingModel: boolean('is_embedding_model').default(false), // Embedding model flag
+      isRerankingModel: boolean('is_reranking_model').default(false), // Reranking model flag
       createdAt: timestamp('created_at').defaultNow(),
       updatedAt: timestamp('updated_at').defaultNow(),
     });
@@ -436,6 +438,7 @@ export const ragCollections = getDbType() === 'sqlite'
       embeddingDimensions: integer('embedding_dimensions').default(1536),
       defaultChunkingStrategyId: integer('default_chunking_strategy_id').references(() => ragChunkingStrategies.id, { onDelete: 'set null' }),
       defaultCleansingConfigId: integer('default_cleansing_config_id').references(() => ragCleansingConfigs.id, { onDelete: 'set null' }),
+      defaultRerankingStrategyId: integer('default_reranking_strategy_id').references(() => ragRerankingStrategies.id, { onDelete: 'set null' }),
       metadata: text('metadata'), // JSON string
       isActive: integer('is_active', { mode: 'boolean' }).default(true),
       createdAt: integer('created_at', { mode: 'timestamp' }),
@@ -450,6 +453,7 @@ export const ragCollections = getDbType() === 'sqlite'
       embeddingDimensions: integer('embedding_dimensions').default(1536),
       defaultChunkingStrategyId: serial('default_chunking_strategy_id').references(() => ragChunkingStrategies.id, { onDelete: 'set null' }),
       defaultCleansingConfigId: serial('default_cleansing_config_id').references(() => ragCleansingConfigs.id, { onDelete: 'set null' }),
+      defaultRerankingStrategyId: serial('default_reranking_strategy_id').references(() => ragRerankingStrategies.id, { onDelete: 'set null' }),
       metadata: pgText('metadata'),
       isActive: boolean('is_active').default(true),
       createdAt: timestamp('created_at').defaultNow(),
@@ -575,6 +579,33 @@ export const ragCleansingConfigs = getDbType() === 'sqlite'
       normalizeWhitespace: boolean('normalize_whitespace').default(true),
       fixEncoding: boolean('fix_encoding').default(true),
       customRules: pgText('custom_rules'),
+      isDefault: boolean('is_default').default(false),
+      createdAt: timestamp('created_at').defaultNow(),
+      updatedAt: timestamp('updated_at').defaultNow(),
+    });
+
+// Reranking Strategies table
+export const ragRerankingStrategies = getDbType() === 'sqlite'
+  ? sqliteTable('rag_reranking_strategies', {
+      id: integer('id').primaryKey(),
+      name: text('name').notNull().unique(),
+      type: text('type', { enum: ['model_based', 'rule_based', 'hybrid', 'none'] }).notNull(),
+      rerankingModelId: integer('reranking_model_id').references(() => llmModels.id, { onDelete: 'set null' }),
+      topK: integer('top_k').default(10),
+      minScore: text('min_score'), // Store as text for decimal precision
+      settings: text('settings'), // JSON string
+      isDefault: integer('is_default', { mode: 'boolean' }).default(false),
+      createdAt: integer('created_at', { mode: 'timestamp' }),
+      updatedAt: integer('updated_at', { mode: 'timestamp' }),
+    })
+  : pgTable('rag_reranking_strategies', {
+      id: serial('id').primaryKey(),
+      name: varchar('name', { length: 255 }).notNull().unique(),
+      type: varchar('type', { length: 50 }).notNull(),
+      rerankingModelId: serial('reranking_model_id').references(() => llmModels.id, { onDelete: 'set null' }),
+      topK: integer('top_k').default(10),
+      minScore: numeric('min_score', { precision: 10, scale: 4 }),
+      settings: pgText('settings'),
       isDefault: boolean('is_default').default(false),
       createdAt: timestamp('created_at').defaultNow(),
       updatedAt: timestamp('updated_at').defaultNow(),

@@ -28,6 +28,7 @@ interface Collection {
   vectorStoreType?: string;
   chunkingStrategyName?: string;
   cleansingConfigName?: string;
+  rerankingStrategyName?: string;
   stats?: {
     documentCount: number;
     dimensionality: number;
@@ -146,6 +147,7 @@ export function CollectionManagement() {
                 <TableHead>{lang('collections.embeddingModel')}</TableHead>
                 <TableHead>{lang('collections.chunkingStrategy')}</TableHead>
                 <TableHead>{lang('collections.cleansingConfig')}</TableHead>
+                <TableHead>{lang('collections.rerankingStrategy')}</TableHead>
                 <TableHead>{lang('collections.documents')}</TableHead>
                 <TableHead>{lang('collections.status')}</TableHead>
                 <TableHead className="text-right">{lang('actions')}</TableHead>
@@ -167,6 +169,9 @@ export function CollectionManagement() {
                       </TableCell>
                       <TableCell>
                         <Skeleton className="h-6 w-36" />
+                      </TableCell>
+                      <TableCell>
+                        <Skeleton className="h-6 w-28" />
                       </TableCell>
                       <TableCell>
                         <Skeleton className="h-6 w-28" />
@@ -220,6 +225,11 @@ export function CollectionManagement() {
                   <TableCell>
                     <Badge variant="transparent">
                       {collection.cleansingConfigName || lang('collections.noCleansingConfig')}
+                    </Badge>
+                  </TableCell>
+                  <TableCell>
+                    <Badge variant="transparent">
+                      {collection.rerankingStrategyName || lang('collections.noRerankingStrategy')}
                     </Badge>
                   </TableCell>
                   <TableCell>

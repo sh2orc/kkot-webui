@@ -23,6 +23,7 @@ interface Collection {
   embeddingDimensions: number;
   defaultChunkingStrategyId?: number;
   defaultCleansingConfigId?: number;
+  defaultRerankingStrategyId?: number;
   isActive: boolean;
 }
 
@@ -30,6 +31,7 @@ interface VectorStore {
   id: number;
   name: string;
   type: string;
+  enabled: boolean;
 }
 
 interface CollectionFormProps {
@@ -67,6 +69,13 @@ interface CleansingConfig {
   isDefault: boolean;
 }
 
+interface RerankingStrategy {
+  id: number;
+  name: string;
+  type: string;
+  isDefault: boolean;
+}
+
 export function CollectionForm({ collection, vectorStores: initialVectorStores }: CollectionFormProps) {
   const { lang } = useTranslation('admin.rag');
   const { lang: commonLang } = useTranslation('common');
@@ -77,6 +86,7 @@ export function CollectionForm({ collection, vectorStores: initialVectorStores }
   const [embeddingModels, setEmbeddingModels] = useState<{ value: string; label: string; dimensions: number }[]>([]);
   const [chunkingStrategies, setChunkingStrategies] = useState<ChunkingStrategy[]>([]);
   const [cleansingConfigs, setCleansingConfigs] = useState<CleansingConfig[]>([]);
+  const [rerankingStrategies, setRerankingStrategies] = useState<RerankingStrategy[]>([]);
   const [formData, setFormData] = useState<Collection>({
     vectorStoreId: 0,
     name: '',
@@ -85,6 +95,7 @@ export function CollectionForm({ collection, vectorStores: initialVectorStores }
     embeddingDimensions: 1536,
     defaultChunkingStrategyId: undefined,
     defaultCleansingConfigId: undefined,
+    defaultRerankingStrategyId: undefined,
     isActive: true,
   });
 
@@ -177,11 +188,27 @@ export function CollectionForm({ collection, vectorStores: initialVectorStores }
     }
   };
 
+  // Fetch reranking strategies
+  const fetchRerankingStrategies = async () => {
+    try {
+      const response = await fetch('/api/rag/reranking-strategies');
+      if (!response.ok) {
+        console.warn('Failed to fetch reranking strategies');
+        return;
+      }
+      const data = await response.json();
+      setRerankingStrategies(data.strategies || []);
+    } catch (error) {
+      console.warn('Error fetching reranking strategies:', error);
+    }
+  };
+
   useEffect(() => {
     fetchVectorStores();
     fetchEmbeddingModels();
     fetchChunkingStrategies();
     fetchCleansingConfigs();
+    fetchRerankingStrategies();
   }, []);
 
   useEffect(() => {
@@ -196,10 +223,11 @@ export function CollectionForm({ collection, vectorStores: initialVectorStores }
         embeddingDimensions: embeddingModels[0]?.dimensions || 1536,
         defaultChunkingStrategyId: chunkingStrategies.find(s => s.isDefault)?.id,
         defaultCleansingConfigId: cleansingConfigs.find(c => c.isDefault)?.id,
+        defaultRerankingStrategyId: rerankingStrategies.find(r => r.isDefault)?.id,
         isActive: true,
       });
     }
-  }, [collection, vectorStores, embeddingModels, chunkingStrategies, cleansingConfigs]);
+  }, [collection, vectorStores, embeddingModels, chunkingStrategies, cleansingConfigs, rerankingStrategies]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -313,6 +341,9 @@ export function CollectionForm({ collection, vectorStores: initialVectorStores }
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-sm text-muted-foreground">
+                {lang('collections.vectorStoreDescription')}
+              </p>
             </div>
 
             <div className="grid gap-2">
@@ -324,6 +355,9 @@ export function CollectionForm({ collection, vectorStores: initialVectorStores }
                 placeholder={lang('collections.namePlaceholder')}
                 required
               />
+              <p className="text-sm text-muted-foreground">
+                {lang('collections.nameDescription')}
+              </p>
             </div>
 
             <div className="grid gap-2">
@@ -335,6 +369,9 @@ export function CollectionForm({ collection, vectorStores: initialVectorStores }
                 placeholder={lang('collections.descriptionPlaceholder')}
                 rows={3}
               />
+              <p className="text-sm text-muted-foreground">
+                {lang('collections.descriptionDescription')}
+              </p>
             </div>
 
             <div className="grid gap-2">
@@ -371,9 +408,12 @@ export function CollectionForm({ collection, vectorStores: initialVectorStores }
                         {model.label}
                       </SelectItem>
                     ))}
-                  </SelectContent>
-                </Select>
+                                  </SelectContent>
+              </Select>
               )}
+              <p className="text-sm text-muted-foreground">
+                {lang('collections.embeddingModelDescription')}
+              </p>
             </div>
 
             <div className="grid gap-2">
@@ -388,6 +428,9 @@ export function CollectionForm({ collection, vectorStores: initialVectorStores }
                 disabled={!!collection}
                 required
               />
+              <p className="text-sm text-muted-foreground">
+                {lang('collections.dimensionsDescription')}
+              </p>
             </div>
 
             <div className="grid gap-2">
@@ -414,6 +457,9 @@ export function CollectionForm({ collection, vectorStores: initialVectorStores }
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-sm text-muted-foreground">
+                {lang('collections.chunkingStrategyDescription')}
+              </p>
             </div>
 
             <div className="grid gap-2">
@@ -441,6 +487,38 @@ export function CollectionForm({ collection, vectorStores: initialVectorStores }
                   ))}
                 </SelectContent>
               </Select>
+              <p className="text-sm text-muted-foreground">
+                {lang('collections.cleansingConfigDescription')}
+              </p>
+            </div>
+
+            <div className="grid gap-2">
+              <Label htmlFor="rerankingStrategy">
+                {lang('collections.rerankingStrategy')}
+              </Label>
+              <Select
+                value={formData.defaultRerankingStrategyId?.toString() || 'none'}
+                onValueChange={(value) => setFormData({ 
+                  ...formData, 
+                  defaultRerankingStrategyId: value === 'none' ? undefined : parseInt(value) 
+                })}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder={lang('collections.selectRerankingStrategy')} />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">{lang('collections.noRerankingStrategy')}</SelectItem>
+                  {rerankingStrategies.map((strategy) => (
+                    <SelectItem key={strategy.id} value={strategy.id.toString()}>
+                      {strategy.name} ({strategy.type})
+                      {strategy.isDefault && ` (${lang('default')})`}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-sm text-muted-foreground">
+                {lang('collections.rerankingStrategyDescription')}
+              </p>
             </div>
 
             {collection && (

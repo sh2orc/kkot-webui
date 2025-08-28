@@ -31,6 +31,7 @@ export const ragCollectionRepository = {
         embeddingDimensions: schema.ragCollections.embeddingDimensions,
         defaultChunkingStrategyId: schema.ragCollections.defaultChunkingStrategyId,
         defaultCleansingConfigId: schema.ragCollections.defaultCleansingConfigId,
+        defaultRerankingStrategyId: schema.ragCollections.defaultRerankingStrategyId,
         metadata: schema.ragCollections.metadata,
         isActive: schema.ragCollections.isActive,
         createdAt: schema.ragCollections.createdAt,
@@ -39,11 +40,13 @@ export const ragCollectionRepository = {
         vectorStoreType: schema.ragVectorStores.type,
         chunkingStrategyName: schema.ragChunkingStrategies.name,
         cleansingConfigName: schema.ragCleansingConfigs.name,
+        rerankingStrategyName: schema.ragRerankingStrategies.name,
       })
       .from(schema.ragCollections)
       .innerJoin(schema.ragVectorStores, eq(schema.ragCollections.vectorStoreId, schema.ragVectorStores.id))
       .leftJoin(schema.ragChunkingStrategies, eq(schema.ragCollections.defaultChunkingStrategyId, schema.ragChunkingStrategies.id))
-      .leftJoin(schema.ragCleansingConfigs, eq(schema.ragCollections.defaultCleansingConfigId, schema.ragCleansingConfigs.id));
+      .leftJoin(schema.ragCleansingConfigs, eq(schema.ragCollections.defaultCleansingConfigId, schema.ragCleansingConfigs.id))
+      .leftJoin(schema.ragRerankingStrategies, eq(schema.ragCollections.defaultRerankingStrategyId, schema.ragRerankingStrategies.id));
     
     if (vectorStoreId) {
       query = query.where(eq(schema.ragCollections.vectorStoreId, vectorStoreId));
@@ -75,6 +78,7 @@ export const ragCollectionRepository = {
           embeddingDimensions: schema.ragCollections.embeddingDimensions,
           defaultChunkingStrategyId: schema.ragCollections.defaultChunkingStrategyId,
           defaultCleansingConfigId: schema.ragCollections.defaultCleansingConfigId,
+          defaultRerankingStrategyId: schema.ragCollections.defaultRerankingStrategyId,
           metadata: schema.ragCollections.metadata,
           isActive: schema.ragCollections.isActive,
           createdAt: schema.ragCollections.createdAt,
@@ -124,6 +128,7 @@ export const ragCollectionRepository = {
     embeddingDimensions?: number;
     defaultChunkingStrategyId?: number | null;
     defaultCleansingConfigId?: number | null;
+    defaultRerankingStrategyId?: number | null;
     metadata?: any;
     isActive?: boolean;
   }) => {
@@ -137,6 +142,7 @@ export const ragCollectionRepository = {
       embeddingDimensions: data.embeddingDimensions || 1536,
       defaultChunkingStrategyId: data.defaultChunkingStrategyId,
       defaultCleansingConfigId: data.defaultCleansingConfigId,
+      defaultRerankingStrategyId: data.defaultRerankingStrategyId,
       metadata: data.metadata ? JSON.stringify(data.metadata) : null,
       isActive: data.isActive ?? true,
       createdAt: now,
@@ -154,6 +160,7 @@ export const ragCollectionRepository = {
     embeddingDimensions: number;
     defaultChunkingStrategyId: number | null;
     defaultCleansingConfigId: number | null;
+    defaultRerankingStrategyId: number | null;
     metadata: any;
     isActive: boolean;
   }>) => {
@@ -165,6 +172,7 @@ export const ragCollectionRepository = {
     if (data.embeddingDimensions !== undefined) updateData.embeddingDimensions = data.embeddingDimensions;
     if (data.defaultChunkingStrategyId !== undefined) updateData.defaultChunkingStrategyId = data.defaultChunkingStrategyId;
     if (data.defaultCleansingConfigId !== undefined) updateData.defaultCleansingConfigId = data.defaultCleansingConfigId;
+    if (data.defaultRerankingStrategyId !== undefined) updateData.defaultRerankingStrategyId = data.defaultRerankingStrategyId;
     if (data.metadata !== undefined) updateData.metadata = JSON.stringify(data.metadata);
     if (data.isActive !== undefined) updateData.isActive = data.isActive;
     

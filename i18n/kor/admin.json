@@ -63,6 +63,10 @@
       "rag": {
         "label": "RAG 지식베이스",
         "description": "벡터 데이터베이스와 문서를 관리하여 지식 기반 검색 시스템 구축"
+      },
+      "users": {
+        "label": "사용자 관리",
+        "description": "사용자, 권한 및 접근 제어 관리"
       }
     },
     "systemStatus": {
@@ -88,6 +92,7 @@
     "pipeline": "파이프라인",
     "database": "데이터베이스",
     "api": "API",
-    "rag": "RAG"
+    "rag": "RAG",
+    "users": "사용자"
   }
 } 

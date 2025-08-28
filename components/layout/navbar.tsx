@@ -2,7 +2,7 @@
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { Settings, Menu } from "lucide-react"
+import { Settings, Menu, MessageSquare } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { useState, useRef, useEffect } from "react"
 import { useRouter, usePathname } from "next/navigation"
@@ -60,7 +60,7 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
           {isAdminPage && (
             <div 
               className="flex items-center gap-2 flex-shrink-0 cursor-pointer hover:opacity-80 transition-opacity"
-              onClick={() => router.push("/")}
+              onClick={() => router.push("/admin")}
             >
               <Image 
                 src="/images/logo.svg" 
@@ -82,6 +82,17 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
           <div className="hidden sm:block">
             <LanguageSwitcher />
           </div>
+          {isAdminPage && (
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-8 w-8 flex-shrink-0" 
+              onClick={() => router.push("/chat")}
+              title="Go to Chat"
+            >
+              <MessageSquare className="h-4 w-4" />
+            </Button>
+          )}
           <div className="flex items-center gap-1 sm:gap-2">
             <Button 
               variant="ghost" 

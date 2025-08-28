@@ -29,6 +29,7 @@ interface LLMModel {
   isPublic: boolean
   supportsMultimodal: boolean
   isEmbeddingModel: boolean
+  isRerankingModel: boolean
   capabilities?: any
   contextLength?: number
   updatedAt: string
@@ -118,7 +119,7 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
   }
 
   // Update model settings
-  const updateModel = (modelId: string, field: 'enabled' | 'isPublic' | 'supportsMultimodal' | 'isEmbeddingModel', value: boolean) => {
+  const updateModel = (modelId: string, field: 'enabled' | 'isPublic' | 'supportsMultimodal' | 'isEmbeddingModel' | 'isRerankingModel', value: boolean) => {
     setServers(prev => prev.map(server => ({
       ...server,
       models: server.models.map(model => 
@@ -159,7 +160,8 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
               enabled: model.enabled,
               isPublic: model.isPublic,
               supportsMultimodal: model.supportsMultimodal,
-              isEmbeddingModel: model.isEmbeddingModel
+              isEmbeddingModel: model.isEmbeddingModel,
+              isRerankingModel: model.isRerankingModel
             })
           })
           
@@ -250,11 +252,12 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
                 <TableHeader>
                   <TableRow>
                     <TableHead>{lang('tableHeaders.serverModel')}</TableHead>
-                    <TableHead className="text-center">{lang('tableHeaders.enabled')}</TableHead>
-                    <TableHead className="text-center">{lang('tableHeaders.public')}</TableHead>
-                    <TableHead className="text-center">{lang('tableHeaders.multimodal')}</TableHead>
-                    <TableHead className="text-center">{lang('tableHeaders.embedding')}</TableHead>
-                    <TableHead>{lang('tableHeaders.updatedAt')}</TableHead>
+                    <TableHead className="text-center w-[100px]">{lang('tableHeaders.enabled')}</TableHead>
+                    <TableHead className="text-center w-[100px]">{lang('tableHeaders.public')}</TableHead>
+                    <TableHead className="text-center w-[100px]">{lang('tableHeaders.multimodal')}</TableHead>
+                    <TableHead className="text-center w-[100px]">{lang('tableHeaders.embedding')}</TableHead>
+                    <TableHead className="text-center w-[100px]">{lang('tableHeaders.reranking')}</TableHead>
+                    <TableHead className="w-[120px]">{lang('tableHeaders.updatedAt')}</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -264,7 +267,7 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
                         <span className="text-gray-500">{model.serverName || server.name} / </span>
                         <span className="font-semibold">{model.modelId}</span>
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center w-[100px]">
                         <TextSwitch
                           checked={model.enabled}
                           onCheckedChange={(checked) => updateModel(model.id, 'enabled', checked)}
@@ -272,7 +275,7 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
                           offText={lang('switch.off')}
                         />
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center w-[100px]">
                         <TextSwitch
                           checked={model.isPublic}
                           onCheckedChange={(checked) => updateModel(model.id, 'isPublic', checked)}
@@ -280,7 +283,7 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
                           offText={lang('switch.off')}
                         />
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center w-[100px]">
                         <TextSwitch
                           checked={model.supportsMultimodal}
                           onCheckedChange={(checked) => updateModel(model.id, 'supportsMultimodal', checked)}
@@ -288,7 +291,7 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
                           offText={lang('switch.off')}
                         />
                       </TableCell>
-                      <TableCell className="text-center">
+                      <TableCell className="text-center w-[100px]">
                         <TextSwitch
                           checked={model.isEmbeddingModel}
                           onCheckedChange={(checked) => updateModel(model.id, 'isEmbeddingModel', checked)}
@@ -296,14 +299,22 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
                           offText={lang('switch.off')}
                         />
                       </TableCell>
-                      <TableCell className="text-sm text-gray-500">
+                      <TableCell className="text-center w-[100px]">
+                        <TextSwitch
+                          checked={model.isRerankingModel}
+                          onCheckedChange={(checked) => updateModel(model.id, 'isRerankingModel', checked)}
+                          onText={lang('switch.on')}
+                          offText={lang('switch.off')}
+                        />
+                      </TableCell>
+                      <TableCell className="text-sm text-gray-500 w-[120px]">
                         {new Date(model.updatedAt).toLocaleDateString()}
                       </TableCell>
                     </TableRow>
                   ))}
                   {server.models.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={5} className="text-center text-gray-500 py-8">
+                      <TableCell colSpan={7} className="text-center text-gray-500 py-8">
                         {lang('noModelsMessage')}
                       </TableCell>
                     </TableRow>

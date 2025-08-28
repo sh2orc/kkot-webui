@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import AdminLayout from "@/components/admin/admin-layout";
-import { RAGNavigation } from "../../../components/rag-navigation";
 import { VectorStoreForm } from "../../../components/vector-store-form";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n";
@@ -47,9 +45,7 @@ export default function VectorStoreEditPage() {
   };
 
   return (
-    <AdminLayout>
-      <RAGNavigation />
-      <div className="p-6">
+    <div>
         {loading ? (
           <div className="space-y-6">
             <div className="flex items-center gap-4 mb-6">
@@ -75,7 +71,6 @@ export default function VectorStoreEditPage() {
             <p className="text-muted-foreground">{lang('vectorStores.notFound')}</p>
           </div>
         )}
-      </div>
-    </AdminLayout>
+    </div>
   );
 }

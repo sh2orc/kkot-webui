@@ -10,10 +10,10 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Input } from "@/components/ui/input";
 import { Upload, Trash2, RefreshCw, FileText, Search, Download, Eye, Copy, Wand2 } from "lucide-react";
 import { toast } from "sonner";
-import { DocumentUploadDialog } from "./document-upload-dialog";
 import { DocumentRegenerateDialog } from "./document-regenerate-dialog";
 import { CollectionCopyDialog } from "./collection-copy-dialog";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
 
 interface Document {
@@ -40,12 +40,12 @@ interface Collection {
 
 export function DocumentManagement() {
   const { lang } = useTranslation('admin.rag');
+  const router = useRouter();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [collections, setCollections] = useState<Collection[]>([]);
   const [selectedCollection, setSelectedCollection] = useState<string>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(true);
-  const [uploadDialogOpen, setUploadDialogOpen] = useState(false);
   const [regenerateDialogOpen, setRegenerateDialogOpen] = useState(false);
   const [selectedDocument, setSelectedDocument] = useState<Document | null>(null);
   const [collectionCopyDialogOpen, setCollectionCopyDialogOpen] = useState(false);
@@ -142,10 +142,7 @@ export function DocumentManagement() {
     }
   };
 
-  const handleUploadComplete = () => {
-    fetchDocuments();
-    setUploadDialogOpen(false);
-  };
+
 
   const handleRegenerateClick = (document: Document) => {
     setSelectedDocument(document);
@@ -255,7 +252,10 @@ export function DocumentManagement() {
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               {lang('documents.refresh')}
             </Button>
-            <Button onClick={() => setUploadDialogOpen(true)} disabled={collections.length === 0 || loading}>
+            <Button 
+              onClick={() => router.push('/admin/rag/documents/upload')} 
+              disabled={collections.length === 0 || loading}
+            >
               <Upload className="h-4 w-4 mr-2" />
               {lang('documents.upload')}
             </Button>
@@ -507,13 +507,6 @@ export function DocumentManagement() {
         </CardContent>
       </Card>
 
-      <DocumentUploadDialog
-        open={uploadDialogOpen}
-        onOpenChange={setUploadDialogOpen}
-        collections={collections}
-        onUploadComplete={handleUploadComplete}
-      />
-      
       <DocumentRegenerateDialog
         open={regenerateDialogOpen}
         onOpenChange={setRegenerateDialogOpen}

@@ -1,8 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import AdminLayout from '@/components/admin/admin-layout';
-import { RAGNavigation } from '@/app/admin/rag/components/rag-navigation';
 import { ChunkingForm } from '@/app/admin/rag/components/chunking-form';
 import { ragChunkingStrategyRepository } from '@/lib/db/repository';
 
@@ -46,14 +44,11 @@ export default async function ChunkingDetailPage({ params }: PageProps) {
   const strategy = await getChunkingStrategy(id);
 
   return (
-    <AdminLayout>
-      <RAGNavigation />
-      <div className="p-6 max-w-2xl">
-        <ChunkingForm
-          initialData={strategy}
-          isEdit={id !== 'new'}
-        />
-      </div>
-    </AdminLayout>
+    <div className="max-w-2xl">
+      <ChunkingForm
+        initialData={strategy}
+        isEdit={id !== 'new'}
+      />
+    </div>
   );
 }

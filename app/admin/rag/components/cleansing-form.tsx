@@ -164,7 +164,7 @@ export function CleansingForm({ initialData, isEdit = false }: CleansingFormProp
                   <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                 </Button>
               </PopoverTrigger>
-              <PopoverContent className="w-[--radix-popover-trigger-width] p-0">
+              <PopoverContent className="w-[var(--radix-popper-anchor-width)] min-w-[var(--radix-popper-anchor-width)] p-0" align="start">
                 <Command>
                   <CommandInput placeholder={lang('cleansing.searchModel') || "Search model..."} />
                   <CommandEmpty>{lang('cleansing.noModelFound') || "No model found."}</CommandEmpty>

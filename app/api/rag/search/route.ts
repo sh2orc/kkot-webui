@@ -8,6 +8,7 @@ import {
 } from '@/lib/db/repository';
 import { llmModelRepository, llmServerRepository } from '@/lib/db/repository/llm';
 import { VectorStoreFactory, VectorStoreConfig, EmbeddingProviderFactory } from '@/lib/rag';
+import { RerankingService } from '@/lib/rag/reranking';
 
 // POST /api/rag/search - Search in a collection
 export async function POST(request: NextRequest) {
@@ -245,7 +246,43 @@ export async function POST(request: NextRequest) {
     );
     
     // Filter out null results (orphaned chunks)
-    const validResults = enrichedResults.filter(result => result !== null);
+    let validResults = enrichedResults.filter(result => result !== null);
+
+    // Apply reranking if searching in a single collection
+    if (collectionId && collectionId !== 'all' && collections.length === 1) {
+      const collection = collections[0];
+      if (collection.ragCollections.defaultRerankingStrategyId) {
+        try {
+          console.log(`Applying reranking strategy ${collection.ragCollections.defaultRerankingStrategyId}`);
+          
+          const rerankingConfig = await RerankingService.getRerankingConfig(
+            collection.ragCollections.defaultRerankingStrategyId
+          );
+          
+          if (rerankingConfig) {
+            // Prepare results for reranking
+            const resultsForReranking = validResults.map(r => ({
+              ...r,
+              id: r.id || `${r.document?.id}_${r.metadata?.chunkIndex || 0}`,
+              text: r.text || r.content || ''
+            }));
+            
+            // Apply reranking
+            const rerankedResults = await RerankingService.rerank(
+              query,
+              resultsForReranking,
+              rerankingConfig
+            );
+            
+            validResults = rerankedResults;
+            console.log(`Reranking complete. Results reordered.`);
+          }
+        } catch (error) {
+          console.error('Reranking failed:', error);
+          // Continue with original results if reranking fails
+        }
+      }
+    }
 
     return NextResponse.json({ 
       results: validResults,

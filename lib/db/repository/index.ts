@@ -13,4 +13,12 @@ export { llmServerRepository, llmModelRepository } from './llm';
 export { agentManageRepository } from './agent';
 
 // Export RAG repositories
-export * from './rag';
+export { 
+  ragVectorStoreRepository, 
+  ragCollectionRepository, 
+  ragDocumentRepository, 
+  ragDocumentChunkRepository,
+  ragChunkingStrategyRepository,
+  ragCleansingConfigRepository,
+  ragRerankingStrategyRepository
+} from './rag';

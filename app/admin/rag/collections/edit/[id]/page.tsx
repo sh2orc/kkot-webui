@@ -2,8 +2,6 @@
 
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
-import AdminLayout from "@/components/admin/admin-layout";
-import { RAGNavigation } from "../../../components/rag-navigation";
 import { CollectionForm } from "../../../components/collection-form";
 import { toast } from "sonner";
 import { useTranslation } from "@/lib/i18n";
@@ -48,9 +46,7 @@ export default function CollectionEditPage() {
   };
 
   return (
-    <AdminLayout>
-      <RAGNavigation />
-      <div className="p-6">
+    <div>
         {loading ? (
           <div className="space-y-6">
             <div className="flex items-center gap-4 mb-6">
@@ -76,7 +72,6 @@ export default function CollectionEditPage() {
             <p className="text-muted-foreground">{lang('collections.notFound')}</p>
           </div>
         )}
-      </div>
-    </AdminLayout>
+    </div>
   );
 }

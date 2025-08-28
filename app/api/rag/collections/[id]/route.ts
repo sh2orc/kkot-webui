@@ -83,7 +83,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
     }
 
     const body = await request.json();
-    const { description, metadata, isActive, defaultChunkingStrategyId, defaultCleansingConfigId } = body;
+    const { description, metadata, isActive, defaultChunkingStrategyId, defaultCleansingConfigId, defaultRerankingStrategyId } = body;
 
     // Check if collection exists
     const existing = await ragCollectionRepository.findById(parseInt(params.id));
@@ -99,6 +99,7 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
       isActive,
       defaultChunkingStrategyId,
       defaultCleansingConfigId,
+      defaultRerankingStrategyId,
     });
 
     return NextResponse.json({ collection: result[0] });

@@ -49,6 +49,7 @@ export async function POST(request: NextRequest) {
       embeddingDimensions,
       defaultChunkingStrategyId,
       defaultCleansingConfigId,
+      defaultRerankingStrategyId,
       metadata 
     } = body;
 
@@ -138,6 +139,7 @@ export async function POST(request: NextRequest) {
       embeddingDimensions: embeddingDimensions || 1536,
       defaultChunkingStrategyId: defaultChunkingStrategyId || null,
       defaultCleansingConfigId: defaultCleansingConfigId || null,
+      defaultRerankingStrategyId: defaultRerankingStrategyId || null,
       metadata: metadata ? JSON.parse(metadata) : undefined,
       isActive: true,
     });

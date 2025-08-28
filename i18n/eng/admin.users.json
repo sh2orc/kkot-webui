@@ -1,0 +1,43 @@
+{
+  "title": "User Management",
+  "userList": "User List",
+  "addUser": "Add User",
+  "createUser": "Create User",
+  "editUser": "Edit User",
+  "searchPlaceholder": "Search by name or email",
+  "loading": "Loading...",
+  "actions": "Actions",
+  "cancel": "Cancel",
+  "save": "Save",
+  "create": "Create",
+  "confirmDelete": "Are you sure you want to delete this user?",
+  "deleteSuccess": "User deleted successfully",
+  "createSuccess": "User created successfully",
+  "updateSuccess": "User updated successfully",
+  "passwordPlaceholder": "Leave empty to keep current password",
+  "passwordHint": "Leave empty if you don't want to change the password",
+  "fields": {
+    "name": "Name",
+    "email": "Email",
+    "password": "Password",
+    "newPassword": "New Password",
+    "role": "Role",
+    "status": "Status",
+    "lastLogin": "Last Login"
+  },
+  "roles": {
+    "user": "User",
+    "admin": "Administrator"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "neverLoggedIn": "Never"
+  },
+  "errors": {
+    "fetchFailed": "Failed to fetch users",
+    "deleteFailed": "Failed to delete user",
+    "saveFailed": "Failed to save user",
+    "passwordRequired": "Password is required for new users"
+  }
+}

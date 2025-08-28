@@ -1,8 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
-import AdminLayout from '@/components/admin/admin-layout';
-import { RAGNavigation } from '@/app/admin/rag/components/rag-navigation';
 import { CleansingForm } from '@/app/admin/rag/components/cleansing-form';
 import { ragCleansingConfigRepository } from '@/lib/db/repository';
 
@@ -51,14 +49,11 @@ export default async function CleansingDetailPage({ params }: PageProps) {
   console.log('Page - isEdit:', id !== 'new');
 
   return (
-    <AdminLayout>
-      <RAGNavigation />
-      <div className="p-6 max-w-2xl">
-        <CleansingForm
-          initialData={config}
-          isEdit={id !== 'new'}
-        />
-      </div>
-    </AdminLayout>
+    <div className="max-w-2xl">
+      <CleansingForm
+        initialData={config}
+        isEdit={id !== 'new'}
+      />
+    </div>
   );
 }

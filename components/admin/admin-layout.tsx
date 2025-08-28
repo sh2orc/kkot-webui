@@ -17,6 +17,7 @@ import {
   Server,
   Terminal,
   Library,
+  Users,
 } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import { useTranslation } from "@/lib/i18n"
@@ -39,6 +40,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { id: "api", label: lang('menu.api'), icon: Terminal, path: "/admin/api" },
     { id: "rag", label: lang('menu.rag'), icon: Library, path: "/admin/rag" },
     { id: "database", label: lang('menu.database'), icon: Database, path: "/admin/database" },
+    { id: "users", label: lang('menu.users'), icon: Users, path: "/admin/users" },
     { id: "mcp", label: lang('menu.mcp'), icon: Server, path: "/admin/mcp", disabled: true },
     { id: "evaluation", label: lang('menu.evaluation'), icon: BarChart3, path: "/admin/evaluation", disabled: true },
     { id: "tools", label: lang('menu.tools'), icon: Wrench, path: "/admin/tools", disabled: true },

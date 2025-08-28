@@ -31,6 +31,7 @@
     "public": "Public",
     "multimodal": "Vision",
     "embedding": "Embedding Model",
+    "reranking": "Reranking Model",
     "updatedAt": "Updated"
   },
   "noModelsMessage": "No models available. Click the sync button to fetch models.",
