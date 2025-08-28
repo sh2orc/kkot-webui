@@ -4,40 +4,127 @@
   "addUser": "Add User",
   "createUser": "Create User",
   "editUser": "Edit User",
-  "searchPlaceholder": "Search by name or email",
+  "userDetail": "User Details",
+  "searchPlaceholder": "Search by name, email or department",
   "loading": "Loading...",
   "actions": "Actions",
   "cancel": "Cancel",
   "save": "Save",
   "create": "Create",
+  "edit": "Edit",
+  "delete": "Delete",
+  "viewDetails": "View Details",
   "confirmDelete": "Are you sure you want to delete this user?",
   "deleteSuccess": "User deleted successfully",
   "createSuccess": "User created successfully",
   "updateSuccess": "User updated successfully",
   "passwordPlaceholder": "Leave empty to keep current password",
   "passwordHint": "Leave empty if you don't want to change the password",
+  "filters": "Filters",
+  "filterByStatus": "Filter by Status",
+  "filterByRole": "Filter by Role",
+  "allStatuses": "All Statuses",
+  "allRoles": "All Roles",
+  "bulkActionsTitle": "Bulk Actions",
+  "never": "Never",
+  "verified": "Verified",
+  "unverified": "Unverified",
+  "profile": "Profile",
+  "resetPassword": "Reset Password",
+  "confirmPasswordReset": "Are you sure you want to reset this user's password?",
+  "passwordResetSuccess": "Password reset successfully",
+  "accountLocked": "Account is locked",
+  "unlockAccount": "Unlock Account",
+  "accountUnlocked": "Account unlocked successfully",
+  "effectivePermissions": "Effective Permissions",
   "fields": {
     "name": "Name",
     "email": "Email",
     "password": "Password",
     "newPassword": "New Password",
     "role": "Role",
+    "roles": "Roles",
     "status": "Status",
-    "lastLogin": "Last Login"
+    "lastLogin": "Last Login",
+    "department": "Department",
+    "phoneNumber": "Phone Number",
+    "emailVerified": "Email Verified",
+    "createdAt": "Created At",
+    "updatedAt": "Updated At",
+    "description": "Description",
+    "type": "Type"
+  },
+  "placeholders": {
+    "department": "e.g. Development Team",
+    "phoneNumber": "e.g. +1 234 567 8900"
   },
   "roles": {
     "user": "User",
-    "admin": "Administrator"
+    "admin": "Administrator",
+    "manager": "Manager",
+    "guest": "Guest"
   },
   "status": {
     "active": "Active",
     "inactive": "Inactive",
-    "neverLoggedIn": "Never"
+    "suspended": "Suspended"
+  },
+  "tabs": {
+    "info": "Basic Info",
+    "permissions": "Permissions",
+    "activity": "Activity Log",
+    "basicInfo": "Basic Info"
+  },
+  "activity": {
+    "action": "Action",
+    "resource": "Resource",
+    "ipAddress": "IP Address",
+    "timestamp": "Timestamp"
+  },
+  "bulkActions": {
+    "activate": "Activate",
+    "deactivate": "Deactivate",
+    "suspend": "Suspend",
+    "delete": "Delete"
+  },
+  "confirmBulk": {
+    "activate": "Are you sure you want to activate selected users?",
+    "deactivate": "Are you sure you want to deactivate selected users?",
+    "suspend": "Are you sure you want to suspend selected users?",
+    "delete": "Are you sure you want to delete selected users?"
+  },
+  "bulkSuccess": {
+    "activate": "Users activated successfully",
+    "deactivate": "Users deactivated successfully",
+    "suspend": "Users suspended successfully",
+    "delete": "Users deleted successfully"
   },
   "errors": {
     "fetchFailed": "Failed to fetch users",
     "deleteFailed": "Failed to delete user",
     "saveFailed": "Failed to save user",
-    "passwordRequired": "Password is required for new users"
+    "updateFailed": "Failed to update user",
+    "passwordRequired": "Password is required for new users",
+    "noUsersSelected": "No users selected",
+    "bulkActionFailed": "Failed to perform bulk action",
+    "passwordResetFailed": "Failed to reset password",
+    "unlockFailed": "Failed to unlock account"
+  },
+  "permissionManagement": "Permission Management",
+  "confirmDeleteRole": "Are you sure you want to delete this role?",
+  "system": "System",
+  "custom": "Custom",
+  "rolesManagement": {
+    "title": "Roles",
+    "list": "Role List",
+    "create": "Create Role",
+    "edit": "Edit Role"
+  },
+  "permissions": {
+    "title": "Permissions",
+    "list": "Permission List",
+    "select": "Select Permissions",
+    "count": "Permission Count",
+    "permissions": "permissions"
   }
 }

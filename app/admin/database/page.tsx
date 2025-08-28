@@ -1,7 +1,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import AdminLayout from "@/components/admin/admin-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -49,17 +48,14 @@ export default function DatabaseSettingsPage() {
   // Show loading if translations are not loaded
   if (!isTranslationsLoaded) {
     return (
-      <AdminLayout>
-        <div className="flex justify-center py-8">
-          <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
-        </div>
-      </AdminLayout>
+      <div className="flex justify-center py-8">
+        <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+      </div>
     )
   }
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">{lang('title')}</h1>
           <p className="text-gray-600 mt-1">{lang('description')}</p>
@@ -178,6 +174,5 @@ export default function DatabaseSettingsPage() {
           </CardContent>
         </Card>
       </div>
-    </AdminLayout>
   )
 } 

@@ -34,13 +34,13 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
 
   const menuItems = [
     { id: "general", label: lang('menu.general'), icon: Settings, path: "/admin/general" },
+    { id: "users", label: lang('menu.users'), icon: Users, path: "/admin/users" },
     { id: "connection", label: lang('menu.connection'), icon: Link, path: "/admin/connection" },
     { id: "model", label: lang('menu.model'), icon: Brain, path: "/admin/model" },
     { id: "agent", label: lang('menu.agent'), icon: Bot, path: "/admin/agent" },    
-    { id: "api", label: lang('menu.api'), icon: Terminal, path: "/admin/api" },
     { id: "rag", label: lang('menu.rag'), icon: Library, path: "/admin/rag" },
+    { id: "api", label: lang('menu.api'), icon: Terminal, path: "/admin/api" },
     { id: "database", label: lang('menu.database'), icon: Database, path: "/admin/database" },
-    { id: "users", label: lang('menu.users'), icon: Users, path: "/admin/users" },
     { id: "mcp", label: lang('menu.mcp'), icon: Server, path: "/admin/mcp", disabled: true },
     { id: "evaluation", label: lang('menu.evaluation'), icon: BarChart3, path: "/admin/evaluation", disabled: true },
     { id: "tools", label: lang('menu.tools'), icon: Wrench, path: "/admin/tools", disabled: true },

@@ -30,12 +30,24 @@ export async function GET(req: NextRequest, { params }: Params) {
       )
     }
 
+    // Get user roles
+    const roles = await userRepository.getUserRoles(user.id)
+
     // Remove sensitive information
     const sanitizedUser = {
       id: user.id,
       email: user.email,
       name: user.username,
       role: user.role,
+      department: user.department,
+      phone_number: user.phone_number,
+      status: user.status || 'active',
+      email_verified: user.email_verified || false,
+      last_login_at: user.last_login_at,
+      failed_login_attempts: user.failed_login_attempts || 0,
+      locked_until: user.locked_until,
+      profile_image: user.profile_image,
+      roles: roles,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     }
@@ -62,7 +74,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     }
 
     const data = await req.json()
-    const { name, email, role, password } = data
+    const { name, email, role, password, department, phone_number, status, roles } = data
 
     const users = await userRepository.findById(params.id)
     const user = users[0]
@@ -80,15 +92,25 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (email !== undefined) updateData.email = email
     if (role !== undefined) updateData.role = role
     if (password !== undefined) updateData.password = password
+    if (department !== undefined) updateData.department = department
+    if (phone_number !== undefined) updateData.phone_number = phone_number
+    if (status !== undefined) updateData.status = status
 
     const updatedUsers = await userRepository.update(params.id, updateData)
     const updatedUser = updatedUsers[0]
+
+    // Update roles if provided
+    if (roles && Array.isArray(roles)) {
+      await userRepository.updateUserRoles(params.id, roles)
+    }
 
     return NextResponse.json({
       id: updatedUser.id,
       email: updatedUser.email,
       name: updatedUser.username,
-      role: updatedUser.role
+      role: updatedUser.role,
+      department: updatedUser.department,
+      status: updatedUser.status
     })
   } catch (error) {
     console.error("Error updating user:", error)

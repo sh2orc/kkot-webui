@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import AdminLayout from "@/components/admin/admin-layout"
+
 import { useTranslation } from "@/lib/i18n"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -459,8 +459,7 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
   }
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">{lang('title')}</h1>
           <p className="text-gray-600 mt-1">{lang('description')}</p>
@@ -488,7 +487,6 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
             {isSaving ? lang('savingButton') : lang('saveButton')}
           </Button>
         </div>
-      </div>
-    </AdminLayout>
+    </div>
   )
 } 

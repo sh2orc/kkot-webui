@@ -2,7 +2,7 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
-import AdminLayout from "@/components/admin/admin-layout"
+
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -204,8 +204,7 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
   }
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">{lang('title')}</h1>
           <p className="text-gray-600 mt-1">{lang('description')}</p>
@@ -345,7 +344,6 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
             {isSaving ? lang('savingButton') : `${lang('saveChanges')} (${modifiedModels.size})`}
           </Button>
         </div>
-      </div>
-    </AdminLayout>
+    </div>
   )
 } 

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { z } from "zod"
-import AdminLayout from "@/components/admin/admin-layout"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -288,9 +288,8 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
 
 
   return (
-    <AdminLayout>
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+    <Form {...form}>
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
           <div>
             <h1 className="text-2xl font-bold">{lang('title')}</h1>
             <p className="text-gray-600 mt-1">{lang('description')}</p>
@@ -959,8 +958,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
               {isSaving ? `${lang('savingButton')}...` : lang('saveButton')}
             </Button>
           </div>
-        </form>
-      </Form>
-    </AdminLayout>
+      </form>
+    </Form>
   )
 } 

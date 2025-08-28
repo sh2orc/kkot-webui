@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from "react"
 import { useRouter } from "next/navigation"
-import AdminLayout from "@/components/admin/admin-layout"
+
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -471,8 +471,7 @@ export default function AgentRegisterForm({
   const [isParametersOpen, setIsParametersOpen] = useState(false);
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div className="flex items-center gap-4">
           <Button 
             variant="ghost" 
@@ -984,7 +983,6 @@ export default function AgentRegisterForm({
             {isLoading ? lang('saving') : lang('save')}
           </Button>
         </div>
-      </div>
-    </AdminLayout>
+    </div>
   )
 } 

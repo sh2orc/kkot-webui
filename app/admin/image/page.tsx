@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import AdminLayout from "@/components/admin/admin-layout"
+
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -18,8 +18,7 @@ export default function ImageSettingsPage() {
   const [showAppPassword, setShowAppPassword] = useState(false)
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">{lang('title')}</h1>
           <p className="text-gray-600 mt-1">{lang('description')}</p>
@@ -162,7 +161,6 @@ export default function ImageSettingsPage() {
         <div className="flex justify-end">
           <Button>저장</Button>
         </div>
-      </div>
-    </AdminLayout>
+    </div>
   )
 } 

@@ -1,7 +1,7 @@
 "use client"
 
 import { useState } from "react"
-import AdminLayout from "@/components/admin/admin-layout"
+
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
@@ -17,8 +17,7 @@ export default function WebSearchSettingsPage() {
   const [searchXNGUrl, setSearchXNGUrl] = useState("")
 
   return (
-    <AdminLayout>
-      <div className="space-y-6">
+    <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">{lang('title')}</h1>
           <p className="text-gray-600 mt-1">{lang('description')}</p>
@@ -96,6 +95,5 @@ export default function WebSearchSettingsPage() {
               <Button>{lang('saveButton')}</Button>
         </div>
       </div>
-    </AdminLayout>
   )
 } 

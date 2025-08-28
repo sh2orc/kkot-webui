@@ -22,6 +22,10 @@ export async function GET(req: NextRequest) {
       email: user.email,
       name: user.username,
       role: user.role,
+      department: user.department,
+      status: user.status || 'active',
+      email_verified: user.email_verified || false,
+      last_login_at: user.last_login_at,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     }))
@@ -48,7 +52,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await req.json()
-    const { email, name, password, role = 'user' } = data
+    const { email, name, password, role = 'user', department, phone_number, status = 'active', roles = [] } = data
 
     if (!email || !name || !password) {
       return NextResponse.json(
@@ -71,14 +75,25 @@ export async function POST(req: NextRequest) {
       username: name,
       email,
       password, // This should be hashed in the repository
-      role
+      role,
+      department,
+      phone_number,
+      status,
+      email_verified: 0
     })
+
+    // Assign roles if provided
+    if (roles.length > 0) {
+      await userRepository.assignRoles(newUser[0].id, roles)
+    }
 
     return NextResponse.json({
       id: newUser[0].id,
       email: newUser[0].email,
       name: newUser[0].username,
-      role: newUser[0].role
+      role: newUser[0].role,
+      department: newUser[0].department,
+      status: newUser[0].status
     })
   } catch (error) {
     console.error("Error creating user:", error)

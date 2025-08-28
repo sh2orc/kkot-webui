@@ -1,6 +1,5 @@
 "use client"
 
-import AdminLayout from "@/components/admin/admin-layout"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import {
   Settings,
@@ -40,7 +39,6 @@ export default function AdminPage() {
   ]
 
   return (
-    <AdminLayout>
       <div className="space-y-6">
         <div>
           <h1 className="text-3xl font-bold">{lang('dashboard.title')}</h1>
@@ -93,6 +91,5 @@ export default function AdminPage() {
           </CardContent>
         </Card>
       </div>
-    </AdminLayout>
   )
 }
