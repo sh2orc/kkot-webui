@@ -1,0 +1,104 @@
+{
+  "title": "Group Permissions",
+  "addGroup": "Add Group",
+  "groupList": "Group List",
+  "searchPlaceholder": "Search groups...",
+  "loading": "Loading...",
+  "fields": {
+    "name": "Group Name",
+    "description": "Description",
+    "userCount": "User Count",
+    "status": "Status",
+    "type": "Type",
+    "isActive": "Active",
+    "isActiveDescription": "Set the group's active status",
+    "namePlaceholder": "Enter group name",
+    "descriptionPlaceholder": "Enter group description",
+    "username": "Username",
+    "email": "Email",
+    "role": "Role",
+    "assignedAt": "Assigned Date"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "type": {
+    "system": "System",
+    "custom": "Custom"
+  },
+  "actions": "Actions",
+  "edit": "Edit",
+  "delete": "Delete",
+  "manageUsers": "Manage Users",
+  "managePermissions": "Manage Permissions",
+  "confirmDelete": "Are you sure you want to delete this group?",
+  "deleteSuccess": "Group deleted successfully",
+  "createSuccess": "Group created successfully",
+  "updateSuccess": "Group updated successfully",
+  "saveSuccess": "Permissions saved successfully",
+  "addUserSuccess": "User added successfully",
+  "removeUserSuccess": "User removed successfully",
+  "confirmRemoveUser": "Are you sure you want to remove this user from the group?",
+  "selectUser": "Select a user",
+  "addUser": "Add",
+  "removeUser": "Remove",
+  "noUsers": "No users in this group",
+  "dialog": {
+    "createTitle": "Create New Group",
+    "editTitle": "Edit Group",
+    "createDescription": "Create a new group",
+    "editDescription": "Edit group information",
+    "cancel": "Cancel",
+    "create": "Create",
+    "save": "Save",
+    "close": "Close"
+  },
+  "permissionsDialog": {
+    "title": "Manage Group Permissions",
+    "description": "Set resource access permissions for this group"
+  },
+  "usersDialog": {
+    "title": "Manage Group Users",
+    "description": "Manage users in this group"
+  },
+  "tabs": {
+    "agents": "Agents",
+    "models": "Models",
+    "collections": "Collections",
+    "vectorStores": "Vector DBs",
+    "basicInfo": "Basic Info",
+    "permissions": "Permissions",
+    "groups": "Groups",
+    "groupsDescription": "Select groups the user will belong to",
+    "groupsHint": "Resource access permissions are determined by groups"
+  },
+  "permissions": {
+    "read": "Read",
+    "write": "Write",
+    "delete": "Delete"
+  },
+  "resourceTypes": {
+    "agent": "Agents",
+    "model": "Models",
+    "rag_collection": "RAG Collections",
+    "vector_store": "Vector Stores"
+  },
+  "resourceDescriptions": {
+    "agent": "Set agent access permissions",
+    "model": "Set LLM model access permissions",
+    "rag_collection": "Set RAG collection access permissions",
+    "vector_store": "Set vector database access permissions"
+  },
+  "errors": {
+    "fetchFailed": "Failed to load groups",
+    "deleteFailed": "Failed to delete group",
+    "saveFailed": "Failed to save group",
+    "nameRequired": "Group name is required",
+    "fetchResourcesFailed": "Failed to load resources",
+    "fetchPermissionsFailed": "Failed to load permissions",
+    "fetchUsersFailed": "Failed to load users",
+    "addUserFailed": "Failed to add user",
+    "removeUserFailed": "Failed to remove user"
+  }
+}

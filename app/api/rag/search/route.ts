@@ -2,6 +2,7 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { 
   ragCollectionRepository,
   ragDocumentRepository 
@@ -9,11 +10,12 @@ import {
 import { llmModelRepository, llmServerRepository } from '@/lib/db/repository/llm';
 import { VectorStoreFactory, VectorStoreConfig, EmbeddingProviderFactory } from '@/lib/rag';
 import { RerankingService } from '@/lib/rag/reranking';
+import { requireResourcePermission, getUserAccessibleResources } from '@/lib/auth/permissions';
 
 // POST /api/rag/search - Search in a collection
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -45,12 +47,21 @@ export async function POST(request: NextRequest) {
     if (!collectionId || collectionId === 'all') {
       console.log('Searching in all active collections');
       
+      // Get accessible collection IDs for the user
+      const accessibleCollectionIds = await getUserAccessibleResources('rag_collection', 'read');
+      const isAdmin = accessibleCollectionIds.includes('*');
+      
       // First get all active collections
       const activeCollections = await ragCollectionRepository.findActive();
       console.log(`Found ${activeCollections.length} active collections`);
       
       // Then fetch each collection with vector store info
       for (const collection of activeCollections) {
+        // Check if user has access to this collection
+        if (!isAdmin && !accessibleCollectionIds.includes(String(collection.id))) {
+          continue;
+        }
+        
         const colWithVectorStore = await ragCollectionRepository.findByIdWithVectorStore(collection.id);
         if (colWithVectorStore && colWithVectorStore.ragVectorStores.enabled) {
           collections.push(colWithVectorStore);
@@ -66,6 +77,15 @@ export async function POST(request: NextRequest) {
         );
       }
     } else {
+      // Check if user has read permission for this collection
+      const permissionCheck = await requireResourcePermission('rag_collection', collectionId, 'read');
+      if (!permissionCheck.authorized) {
+        return NextResponse.json(
+          { error: permissionCheck.error },
+          { status: 403 }
+        );
+      }
+      
       // Get specific collection
       const col = await ragCollectionRepository.findByIdWithVectorStore(collectionId);
       console.log('Collection data:', col);

@@ -43,6 +43,41 @@
       "when": 1709715500000,
       "tag": "0005_rag_system",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "5",
+      "when": 1709715600000,
+      "tag": "0006_chunking_strategy_integration",
+      "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "5",
+      "when": 1709715700000,
+      "tag": "0007_reranking_strategies",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "5",
+      "when": 1709715800000,
+      "tag": "0008_add_reranking_model_flag",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "5",
+      "when": 1709715900000,
+      "tag": "0009_user_permissions_extension",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "5",
+      "when": 1709716000000,
+      "tag": "0011_group_permissions",
+      "breakpoints": true
     }
   ]
 } 

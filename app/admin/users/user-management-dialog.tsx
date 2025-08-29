@@ -20,12 +20,19 @@ interface User {
   phone_number?: string
   status?: 'active' | 'inactive' | 'suspended'
   roles?: Role[]
+  groups?: Group[]
 }
 
 interface Role {
   id: string
   name: string
   description: string
+}
+
+interface Group {
+  id: string
+  name: string
+  description?: string
 }
 
 interface UserManagementDialogProps {
@@ -52,9 +59,11 @@ export function UserManagementDialog({
     department: "",
     phone_number: "",
     status: "active" as "active" | "inactive" | "suspended",
-    roles: [] as string[]
+    roles: [] as string[],
+    groups: [] as string[]
   })
   const [allRoles, setAllRoles] = useState<Role[]>([])
+  const [allGroups, setAllGroups] = useState<Group[]>([])
   const [activeTab, setActiveTab] = useState("basic")
 
   // Preload translation module
@@ -64,6 +73,7 @@ export function UserManagementDialog({
 
   useEffect(() => {
     fetchRoles()
+    fetchGroups()
   }, [])
 
   useEffect(() => {
@@ -76,8 +86,13 @@ export function UserManagementDialog({
         department: user.department || "",
         phone_number: user.phone_number || "",
         status: user.status || "active",
-        roles: user.roles?.map(r => r.id) || [user.role]
+        roles: user.roles?.map(r => r.id) || [user.role],
+        groups: user.groups?.map(g => g.id) || []
       })
+      // Fetch user's groups
+      if (user.id) {
+        fetchUserGroups(user.id)
+      }
     } else {
       setFormData({
         email: "",
@@ -87,7 +102,8 @@ export function UserManagementDialog({
         department: "",
         phone_number: "",
         status: "active",
-        roles: ["user"]
+        roles: ["user"],
+        groups: ["default"]
       })
     }
   }, [user])
@@ -104,6 +120,33 @@ export function UserManagementDialog({
     }
   }
 
+  const fetchGroups = async () => {
+    try {
+      const response = await fetch("/api/groups")
+      if (response.ok) {
+        const data = await response.json()
+        setAllGroups(data)
+      }
+    } catch (error) {
+      console.error("Failed to fetch groups:", error)
+    }
+  }
+
+  const fetchUserGroups = async (userId: string) => {
+    try {
+      const response = await fetch(`/api/users/${userId}/groups`)
+      if (response.ok) {
+        const data = await response.json()
+        setFormData(prev => ({
+          ...prev,
+          groups: data.map((g: Group) => g.id)
+        }))
+      }
+    } catch (error) {
+      console.error("Failed to fetch user groups:", error)
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
     
@@ -114,7 +157,8 @@ export function UserManagementDialog({
       department: formData.department,
       phone_number: formData.phone_number,
       status: formData.status,
-      roles: formData.roles
+      roles: formData.roles,
+      groups: formData.groups
     }
 
     // Only include password if it's set (for creation or password change)
@@ -140,9 +184,10 @@ export function UserManagementDialog({
         
         <form onSubmit={handleSubmit}>
           <Tabs value={activeTab} onValueChange={setActiveTab}>
-            <TabsList className="grid w-full grid-cols-2">
+            <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="basic">{lang('tabs.basicInfo')}</TabsTrigger>
               <TabsTrigger value="permissions">{lang('tabs.permissions')}</TabsTrigger>
+              <TabsTrigger value="groups">{lang('tabs.groups') || "그룹"}</TabsTrigger>
             </TabsList>
             
             <TabsContent value="basic" className="space-y-4">
@@ -246,6 +291,40 @@ export function UserManagementDialog({
                       <Label htmlFor={`role-${role.id}`} className="font-normal">
                         <span className="font-medium">{role.name}</span>
                         <span className="text-sm text-gray-500 ml-2">{role.description}</span>
+                      </Label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="groups" className="space-y-4">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-sm font-medium mb-2">{lang('tabs.groupsDescription') || "사용자가 속할 그룹을 선택하세요"}</h3>
+                  <p className="text-sm text-gray-500 mb-4">
+                    {lang('tabs.groupsHint') || "그룹에 따라 리소스 접근 권한이 결정됩니다"}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  {allGroups.map((group) => (
+                    <div key={group.id} className="flex items-start space-x-2">
+                      <Checkbox
+                        id={`group-${group.id}`}
+                        checked={formData.groups.includes(group.id)}
+                        onCheckedChange={(checked) => {
+                          if (checked) {
+                            setFormData({ ...formData, groups: [...formData.groups, group.id] })
+                          } else {
+                            setFormData({ ...formData, groups: formData.groups.filter(g => g !== group.id) })
+                          }
+                        }}
+                      />
+                      <Label htmlFor={`group-${group.id}`} className="font-normal">
+                        <span className="font-medium">{group.name}</span>
+                        {group.description && (
+                          <span className="text-sm text-gray-500 ml-2">{group.description}</span>
+                        )}
                       </Label>
                     </div>
                   ))}

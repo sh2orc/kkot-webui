@@ -67,6 +67,10 @@
       "users": {
         "label": "사용자 관리",
         "description": "사용자, 권한 및 접근 제어 관리"
+      },
+      "groups": {
+        "label": "그룹 권한 관리",
+        "description": "그룹 기반 리소스 접근 권한 관리"
       }
     },
     "systemStatus": {
@@ -93,6 +97,7 @@
     "database": "데이터베이스",
     "api": "API",
     "rag": "RAG",
-    "users": "사용자"
+    "users": "사용자",
+    "groups": "그룹 권한 관리"
   }
 } 

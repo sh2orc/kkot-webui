@@ -1,14 +1,33 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { agentManageRepository, llmModelRepository } from '@/lib/db/server'
+import { getServerSession } from 'next-auth'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { filterResourcesByPermission, checkResourcePermission, requireResourcePermission } from '@/lib/auth/permissions'
 
 // GET - Fetch all agents and public models
 export async function GET() {
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     // 1. Fetch all agents (high priority)
     const agents = await agentManageRepository.findAllWithModelAndServer()
     
+    // Filter agents based on user permissions
+    const accessibleAgents = await filterResourcesByPermission(
+      agents,
+      'agent',
+      'read'
+    )
+    
     // Convert image data to base64 and return
-    const processedAgents = agents.map((agent: any) => {
+    const processedAgents = accessibleAgents.map((agent: any) => {
       console.log(`Agent ${agent.name} image data processing:`, {
         hasImageData: !!agent.imageData,
         imageDataType: typeof agent.imageData,
@@ -76,9 +95,16 @@ export async function GET() {
       supportsMultimodal: model.supportsMultimodal // Include multimodal support info
     }))
     
+    // Filter accessible agents
+    const filteredAgents = await filterResourcesByPermission(
+      processedAgents,
+      'agent',
+      'read'
+    );
+
     // Return agents and public models combined (agents have priority)
     return NextResponse.json({
-      agents: processedAgents,
+      agents: filteredAgents,
       publicModels: parsedPublicModels
     })
   } catch (error) {
@@ -93,6 +119,23 @@ export async function GET() {
 // POST - Create new agent
 export async function POST(request: NextRequest) {
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
+    // Only admin can create agents
+    if (session.user.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Forbidden: Only administrators can create agents' },
+        { status: 403 }
+      );
+    }
+
     const body = await request.json()
     
     // Validate required fields
@@ -202,6 +245,15 @@ export async function POST(request: NextRequest) {
 // PUT - Update agent
 export async function PUT(request: NextRequest) {
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json()
     
     if (!body.id) {
@@ -209,6 +261,15 @@ export async function PUT(request: NextRequest) {
         { error: 'Agent ID is required' },
         { status: 400 }
       )
+    }
+
+    // Check if user has write permission for this agent
+    const permissionCheck = await requireResourcePermission('agent', body.id, 'write');
+    if (!permissionCheck.authorized) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: 403 }
+      );
     }
     
     // Build update data
@@ -313,6 +374,15 @@ export async function PUT(request: NextRequest) {
 // DELETE - Delete agent
 export async function DELETE(request: NextRequest) {
   try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session) {
+      return NextResponse.json(
+        { error: 'Unauthorized' },
+        { status: 401 }
+      );
+    }
+
     const body = await request.json()
     
     if (!body.id) {
@@ -320,6 +390,15 @@ export async function DELETE(request: NextRequest) {
         { error: 'Agent ID is required' },
         { status: 400 }
       )
+    }
+
+    // Check if user has delete permission for this agent
+    const permissionCheck = await requireResourcePermission('agent', body.id, 'delete');
+    if (!permissionCheck.authorized) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: 403 }
+      );
     }
     
     await agentManageRepository.delete(body.id)

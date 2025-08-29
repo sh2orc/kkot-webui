@@ -1,0 +1,104 @@
+{
+  "title": "그룹 권한 관리",
+  "addGroup": "그룹 추가",
+  "groupList": "그룹 목록",
+  "searchPlaceholder": "그룹 검색...",
+  "loading": "로딩 중...",
+  "fields": {
+    "name": "그룹명",
+    "description": "설명",
+    "userCount": "사용자 수",
+    "status": "상태",
+    "type": "유형",
+    "isActive": "활성화",
+    "isActiveDescription": "그룹의 활성화 상태를 설정합니다",
+    "namePlaceholder": "그룹명을 입력하세요",
+    "descriptionPlaceholder": "그룹 설명을 입력하세요",
+    "username": "사용자명",
+    "email": "이메일",
+    "role": "역할",
+    "assignedAt": "할당 날짜"
+  },
+  "status": {
+    "active": "활성",
+    "inactive": "비활성"
+  },
+  "type": {
+    "system": "시스템",
+    "custom": "사용자 정의"
+  },
+  "actions": "작업",
+  "edit": "편집",
+  "delete": "삭제",
+  "manageUsers": "사용자 관리",
+  "managePermissions": "권한 관리",
+  "confirmDelete": "이 그룹을 삭제하시겠습니까?",
+  "deleteSuccess": "그룹이 삭제되었습니다",
+  "createSuccess": "그룹이 생성되었습니다",
+  "updateSuccess": "그룹이 수정되었습니다",
+  "saveSuccess": "권한이 저장되었습니다",
+  "addUserSuccess": "사용자가 추가되었습니다",
+  "removeUserSuccess": "사용자가 제거되었습니다",
+  "confirmRemoveUser": "이 사용자를 그룹에서 제거하시겠습니까?",
+  "selectUser": "사용자를 선택하세요",
+  "addUser": "추가",
+  "removeUser": "제거",
+  "noUsers": "그룹에 사용자가 없습니다",
+  "dialog": {
+    "createTitle": "새 그룹 만들기",
+    "editTitle": "그룹 수정",
+    "createDescription": "새로운 그룹을 생성합니다",
+    "editDescription": "그룹 정보를 수정합니다",
+    "cancel": "취소",
+    "create": "생성",
+    "save": "저장",
+    "close": "닫기"
+  },
+  "permissionsDialog": {
+    "title": "그룹 권한 관리",
+    "description": "이 그룹의 리소스 접근 권한을 설정합니다"
+  },
+  "usersDialog": {
+    "title": "그룹 사용자 관리",
+    "description": "이 그룹의 사용자를 관리합니다"
+  },
+  "tabs": {
+    "agents": "에이전트",
+    "models": "모델",
+    "collections": "컬렉션",
+    "vectorStores": "벡터 DB",
+    "basicInfo": "기본 정보",
+    "permissions": "권한",
+    "groups": "그룹",
+    "groupsDescription": "사용자가 속할 그룹을 선택하세요",
+    "groupsHint": "그룹에 따라 리소스 접근 권한이 결정됩니다"
+  },
+  "permissions": {
+    "read": "읽기",
+    "write": "쓰기",
+    "delete": "삭제"
+  },
+  "resourceTypes": {
+    "agent": "에이전트",
+    "model": "모델",
+    "rag_collection": "RAG 컬렉션",
+    "vector_store": "벡터 스토어"
+  },
+  "resourceDescriptions": {
+    "agent": "에이전트 접근 권한 설정",
+    "model": "LLM 모델 접근 권한 설정",
+    "rag_collection": "RAG 컬렉션 접근 권한 설정",
+    "vector_store": "벡터 데이터베이스 접근 권한 설정"
+  },
+  "errors": {
+    "fetchFailed": "그룹 목록을 불러오는데 실패했습니다",
+    "deleteFailed": "그룹 삭제에 실패했습니다",
+    "saveFailed": "그룹 저장에 실패했습니다",
+    "nameRequired": "그룹명은 필수입니다",
+    "fetchResourcesFailed": "리소스를 불러오는데 실패했습니다",
+    "fetchPermissionsFailed": "권한을 불러오는데 실패했습니다",
+    "fetchUsersFailed": "사용자 목록을 불러오는데 실패했습니다",
+    "addUserFailed": "사용자 추가에 실패했습니다",
+    "removeUserFailed": "사용자 제거에 실패했습니다"
+  }
+}

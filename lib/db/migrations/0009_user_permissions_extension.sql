@@ -68,38 +68,38 @@ CREATE TABLE IF NOT EXISTS user_activity_logs (
 
 -- Insert default roles
 INSERT OR IGNORE INTO roles (id, name, description, is_system, created_at, updated_at) VALUES
-  ('admin', '관리자', '모든 권한을 가진 시스템 관리자', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('manager', '매니저', '사용자 및 컨텐츠 관리 권한', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('user', '일반 사용자', '기본 사용 권한', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('guest', '게스트', '제한된 읽기 권한', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+  ('admin', 'Administrator', 'System administrator with all permissions', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('manager', 'Manager', 'User and content management permissions', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('user', 'Regular User', 'Basic usage permissions', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('guest', 'Guest', 'Limited read permissions', 1, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Insert default permissions
 INSERT OR IGNORE INTO permissions (id, name, description, category, created_at, updated_at) VALUES
   -- System permissions
-  ('system.admin', '시스템 관리', '시스템 전체 관리 권한', 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('system.settings', '설정 관리', '시스템 설정 변경 권한', 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('system.admin', 'System Administration', 'Full system administration permissions', 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('system.settings', 'Settings Management', 'System settings modification permissions', 'system', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   
   -- User management permissions
-  ('users.create', '사용자 생성', '새 사용자 계정 생성', 'admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('users.read', '사용자 조회', '사용자 정보 조회', 'admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('users.update', '사용자 수정', '사용자 정보 수정', 'admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('users.delete', '사용자 삭제', '사용자 계정 삭제', 'admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('users.manage_roles', '권한 관리', '사용자 권한 할당 및 변경', 'admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('users.create', 'Create User', 'Create new user accounts', 'admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('users.read', 'View Users', 'View user information', 'admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('users.update', 'Update User', 'Modify user information', 'admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('users.delete', 'Delete User', 'Delete user accounts', 'admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('users.manage_roles', 'Manage Permissions', 'Assign and modify user permissions', 'admin', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   
   -- Chat permissions
-  ('chat.create', '채팅 생성', '새 채팅 세션 생성', 'chat', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('chat.read', '채팅 조회', '채팅 내역 조회', 'chat', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('chat.delete', '채팅 삭제', '채팅 세션 삭제', 'chat', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('chat.create', 'Create Chat', 'Create new chat sessions', 'chat', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('chat.read', 'View Chat', 'View chat history', 'chat', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('chat.delete', 'Delete Chat', 'Delete chat sessions', 'chat', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   
   -- RAG permissions
-  ('rag.create', 'RAG 생성', 'RAG 시스템 설정 생성', 'rag', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('rag.read', 'RAG 조회', 'RAG 설정 조회', 'rag', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('rag.update', 'RAG 수정', 'RAG 설정 수정', 'rag', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('rag.delete', 'RAG 삭제', 'RAG 설정 삭제', 'rag', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('rag.create', 'Create RAG', 'Create RAG system configuration', 'rag', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('rag.read', 'View RAG', 'View RAG configuration', 'rag', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('rag.update', 'Update RAG', 'Modify RAG configuration', 'rag', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('rag.delete', 'Delete RAG', 'Delete RAG configuration', 'rag', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
   
   -- API permissions
-  ('api.create', 'API 키 생성', 'API 접근 키 생성', 'api', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
-  ('api.manage', 'API 관리', 'API 설정 관리', 'api', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
+  ('api.create', 'Create API Key', 'Create API access keys', 'api', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP),
+  ('api.manage', 'Manage API', 'Manage API configuration', 'api', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP);
 
 -- Assign permissions to roles
 -- Admin gets all permissions

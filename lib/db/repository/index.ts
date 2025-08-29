@@ -1,6 +1,7 @@
 // Export all repositories
 export { generateId, convertImageDataToDataUrl } from './utils';
 export { userRepository } from './user';
+export { groupRepository } from './group';
 export { chatSessionRepository, chatMessageRepository } from './chat';
 export { adminSettingsRepository } from './admin';
 export { 

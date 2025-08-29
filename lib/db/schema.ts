@@ -642,4 +642,65 @@ export const ragBatchJobs = getDbType() === 'sqlite'
       createdAt: timestamp('created_at').defaultNow(),
     });
 
+// Groups table for group-based access control
+export const groups = getDbType() === 'sqlite'
+  ? sqliteTable('groups', {
+      id: text('id').primaryKey(),
+      name: text('name').notNull().unique(),
+      description: text('description'),
+      isSystem: integer('is_system', { mode: 'boolean' }).default(false),
+      isActive: integer('is_active', { mode: 'boolean' }).default(true),
+      createdAt: integer('created_at', { mode: 'timestamp' }),
+      updatedAt: integer('updated_at', { mode: 'timestamp' }),
+    })
+  : pgTable('groups', {
+      id: varchar('id', { length: 255 }).primaryKey(),
+      name: varchar('name', { length: 255 }).notNull().unique(),
+      description: pgText('description'),
+      isSystem: boolean('is_system').default(false),
+      isActive: boolean('is_active').default(true),
+      createdAt: timestamp('created_at').defaultNow(),
+      updatedAt: timestamp('updated_at').defaultNow(),
+    });
+
+// User Groups junction table
+export const userGroups = getDbType() === 'sqlite'
+  ? sqliteTable('user_groups', {
+      userId: text('user_id').references(() => users.id, { onDelete: 'cascade' }),
+      groupId: text('group_id').references(() => groups.id, { onDelete: 'cascade' }),
+      assignedAt: integer('assigned_at', { mode: 'timestamp' }),
+      assignedBy: text('assigned_by').references(() => users.id),
+    }, (table) => ({
+      pk: primaryKey({ columns: [table.userId, table.groupId] }),
+    }))
+  : pgTable('user_groups', {
+      userId: varchar('user_id', { length: 255 }).references(() => users.id, { onDelete: 'cascade' }),
+      groupId: varchar('group_id', { length: 255 }).references(() => groups.id, { onDelete: 'cascade' }),
+      assignedAt: timestamp('assigned_at').defaultNow(),
+      assignedBy: varchar('assigned_by', { length: 255 }).references(() => users.id),
+    }, (table) => ({
+      pk: primaryKey({ columns: [table.userId, table.groupId] }),
+    }));
+
+// Group Resource Permissions table
+export const groupResourcePermissions = getDbType() === 'sqlite'
+  ? sqliteTable('group_resource_permissions', {
+      id: text('id').primaryKey(),
+      groupId: text('group_id').references(() => groups.id, { onDelete: 'cascade' }),
+      resourceType: text('resource_type', { enum: ['agent', 'model', 'rag_collection', 'vector_store'] }).notNull(),
+      resourceId: text('resource_id').notNull(), // ID of the specific resource
+      permissions: text('permissions').notNull(), // JSON array of permissions: ['read', 'write', 'delete']
+      createdAt: integer('created_at', { mode: 'timestamp' }),
+      updatedAt: integer('updated_at', { mode: 'timestamp' }),
+    })
+  : pgTable('group_resource_permissions', {
+      id: varchar('id', { length: 255 }).primaryKey(),
+      groupId: varchar('group_id', { length: 255 }).references(() => groups.id, { onDelete: 'cascade' }),
+      resourceType: varchar('resource_type', { length: 50 }).notNull(),
+      resourceId: varchar('resource_id', { length: 255 }).notNull(),
+      permissions: pgText('permissions').notNull(),
+      createdAt: timestamp('created_at').defaultNow(),
+      updatedAt: timestamp('updated_at').defaultNow(),
+    });
+
  

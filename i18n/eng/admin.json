@@ -67,6 +67,10 @@
       "users": {
         "label": "User Management",
         "description": "Manage users, permissions, and access control"
+      },
+      "groups": {
+        "label": "Group Permissions",
+        "description": "Manage group-based resource access permissions"
       }
     },
     "systemStatus": {
@@ -93,6 +97,7 @@
     "database": "Database",
     "api": "API",
     "rag": "RAG",
-    "users": "Users"
+    "users": "Users",
+    "groups": "Group Permissions"
   }
 } 

@@ -2,13 +2,15 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { ragCollectionRepository, ragVectorStoreRepository } from '@/lib/db/repository';
 import { VectorStoreFactory, VectorStoreConfig } from '@/lib/rag';
+import { filterResourcesByPermission, requireResourcePermission } from '@/lib/auth/permissions';
 
 // GET /api/rag/collections - List all collections
 export async function GET(request: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
@@ -20,7 +22,14 @@ export async function GET(request: NextRequest) {
       vectorStoreId ? parseInt(vectorStoreId) : undefined
     );
     
-    return NextResponse.json({ collections });
+    // Filter collections based on user permissions
+    const accessibleCollections = await filterResourcesByPermission(
+      collections,
+      'rag_collection',
+      'read'
+    );
+    
+    return NextResponse.json({ collections: accessibleCollections });
   } catch (error) {
     console.error('Failed to fetch collections:', error);
     return NextResponse.json(
@@ -33,9 +42,17 @@ export async function GET(request: NextRequest) {
 // POST /api/rag/collections - Create a new collection
 export async function POST(request: NextRequest) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Only admin can create collections
+    if (session.user.role !== 'admin') {
+      return NextResponse.json(
+        { error: 'Forbidden: Only administrators can create collections' },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();

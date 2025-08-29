@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { userRepository } from "@/lib/db/repository"
+import { userRepository, groupRepository } from "@/lib/db/repository"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 
@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await req.json()
-    const { email, name, password, role = 'user', department, phone_number, status = 'active', roles = [] } = data
+    const { email, name, password, role = 'user', department, phone_number, status = 'active', roles = [], groups = [] } = data
 
     if (!email || !name || !password) {
       return NextResponse.json(
@@ -85,6 +85,11 @@ export async function POST(req: NextRequest) {
     // Assign roles if provided
     if (roles.length > 0) {
       await userRepository.assignRoles(newUser[0].id, roles)
+    }
+    
+    // Assign groups if provided
+    if (groups.length > 0) {
+      await groupRepository.setUserGroups(newUser[0].id, groups, session.user.id)
     }
 
     return NextResponse.json({

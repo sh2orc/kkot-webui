@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
-import { userRepository } from "@/lib/db/repository"
+import { userRepository, groupRepository } from "@/lib/db/repository"
 import { getServerSession } from "next-auth"
 import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 
@@ -32,6 +32,9 @@ export async function GET(req: NextRequest, { params }: Params) {
 
     // Get user roles
     const roles = await userRepository.getUserRoles(user.id)
+    
+    // Get user groups
+    const groups = await groupRepository.getUserGroups(user.id)
 
     // Remove sensitive information
     const sanitizedUser = {
@@ -48,6 +51,7 @@ export async function GET(req: NextRequest, { params }: Params) {
       locked_until: user.locked_until,
       profile_image: user.profile_image,
       roles: roles,
+      groups: groups,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     }
@@ -74,7 +78,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     }
 
     const data = await req.json()
-    const { name, email, role, password, department, phone_number, status, roles } = data
+    const { name, email, role, password, department, phone_number, status, roles, groups } = data
 
     const users = await userRepository.findById(params.id)
     const user = users[0]
@@ -102,6 +106,11 @@ export async function PUT(req: NextRequest, { params }: Params) {
     // Update roles if provided
     if (roles && Array.isArray(roles)) {
       await userRepository.updateUserRoles(params.id, roles)
+    }
+    
+    // Update groups if provided
+    if (groups && Array.isArray(groups)) {
+      await groupRepository.setUserGroups(params.id, groups, session.user.id)
     }
 
     return NextResponse.json({

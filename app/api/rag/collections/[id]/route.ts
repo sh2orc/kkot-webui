@@ -2,12 +2,14 @@
 
 import { NextRequest, NextResponse } from 'next/server';
 import { getServerSession } from 'next-auth';
+import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 import { 
   ragCollectionRepository, 
   ragVectorStoreRepository, 
   ragDocumentRepository 
 } from '@/lib/db/repository';
 import { VectorStoreFactory, VectorStoreConfig } from '@/lib/rag';
+import { requireResourcePermission } from '@/lib/auth/permissions';
 
 interface RouteParams {
   params: {
@@ -18,9 +20,18 @@ interface RouteParams {
 // GET /api/rag/collections/[id] - Get a specific collection
 export async function GET(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user has read permission for this collection
+    const permissionCheck = await requireResourcePermission('rag_collection', params.id, 'read');
+    if (!permissionCheck.authorized) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: 403 }
+      );
     }
 
     const collection = await ragCollectionRepository.findByIdWithVectorStore(parseInt(params.id));
@@ -77,9 +88,18 @@ export async function GET(request: NextRequest, { params }: RouteParams) {
 // PUT /api/rag/collections/[id] - Update a collection
 export async function PUT(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user has write permission for this collection
+    const permissionCheck = await requireResourcePermission('rag_collection', params.id, 'write');
+    if (!permissionCheck.authorized) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: 403 }
+      );
     }
 
     const body = await request.json();
@@ -115,9 +135,18 @@ export async function PUT(request: NextRequest, { params }: RouteParams) {
 // DELETE /api/rag/collections/[id] - Delete a collection
 export async function DELETE(request: NextRequest, { params }: RouteParams) {
   try {
-    const session = await getServerSession();
+    const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user has delete permission for this collection
+    const permissionCheck = await requireResourcePermission('rag_collection', params.id, 'delete');
+    if (!permissionCheck.authorized) {
+      return NextResponse.json(
+        { error: permissionCheck.error },
+        { status: 403 }
+      );
     }
 
     // Get collection details
