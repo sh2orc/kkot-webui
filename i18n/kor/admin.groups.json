@@ -100,5 +100,17 @@
     "fetchUsersFailed": "사용자 목록을 불러오는데 실패했습니다",
     "addUserFailed": "사용자 추가에 실패했습니다",
     "removeUserFailed": "사용자 제거에 실패했습니다"
-  }
+  },
+  "saving": "저장 중...",
+  "groupUsers": "그룹 사용자",
+  "manageGroupUsers": "그룹 구성원 관리",
+  "groupUserManagementDesc": "그룹의 구성원을 관리합니다",
+  "addNewMember": "새 구성원 추가",
+  "selectUserToAdd": "추가할 사용자를 선택하세요",
+  "noAvailableUsers": "추가 가능한 사용자가 없습니다",
+  "add": "추가",
+  "currentMembers": "현재 구성원",
+  "members": "명",
+  "permissionManagementDesc": "그룹의 권한을 설정합니다",
+  "adminGroupPermissionNotice": "관리자 그룹은 모든 리소스에 대한 전체 권한을 자동으로 가집니다."
 }

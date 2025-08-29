@@ -145,7 +145,7 @@ export function UserRequest({
     <div className={`flex items-start leading-relaxed gap-3 ${editingMessageId === id ? "w-full" : "max-w-[80%]"}`}>
       <div className="w-full">
         {editingMessageId === id ? (
-          <div className="bg-gray-100 rounded-lg p-3 w-full">
+          <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 w-full">
             <textarea
               ref={textareaRef}
               value={editingContent}
@@ -159,10 +159,10 @@ export function UserRequest({
             <div className="flex mt-2 sm:gap-1">
               <button
                 onClick={() => onSave(id)}
-                className="p-1 rounded-full hover:bg-gray-200 transition-colors"
+                className="p-1 rounded-full hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                 title={lang("actions.saveShortcut")}
               >
-                <Check className="h-4 w-4 text-gray-700" />
+                <Check className="h-4 w-4 text-gray-700 dark:text-gray-300" />
               </button>
               <button 
                 onClick={onCancel} 
@@ -172,13 +172,13 @@ export function UserRequest({
                 <X className="h-4 w-4 text-red-600" />
               </button>
             </div>
-            <div className="text-xs text-gray-500 mt-1">
+            <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
               {lang("actions.editHint")}
             </div>
           </div>
         ) : (
           <div className="flex flex-col">
-            <div className="bg-gray-100 rounded-lg p-3">
+            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3">
               {/* Display images if present */}
               {parsedContent.hasImages && parsedContent.images.length > 0 && (
                 <div className="flex flex-wrap gap-2 mb-3">
@@ -187,7 +187,7 @@ export function UserRequest({
                       {image.data ? (
                         /* Image thumbnail */
                         <div 
-                          className="relative cursor-pointer rounded-lg overflow-hidden border border-gray-300 hover:border-gray-400 transition-colors w-full sm:w-[400px]"
+                          className="relative cursor-pointer rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 transition-colors w-full sm:w-[400px]"
                           style={{ width: 'min(40vw, 400px)' }}
                           onClick={() => setSelectedImage({src: image.data, name: image.name || `Image ${index + 1}`})}
                         >
@@ -203,12 +203,12 @@ export function UserRequest({
                         </div>
                       ) : (
                         /* Fallback for images without data */
-                        <div className="flex items-center gap-2 bg-gray-200 rounded-lg px-2 py-1">
-                          <Image className="h-4 w-4 text-gray-600" />
-                          <span className="text-sm text-gray-600">
+                        <div className="flex items-center gap-2 bg-gray-200 dark:bg-gray-700 rounded-lg px-2 py-1">
+                          <Image className="h-4 w-4 text-gray-600 dark:text-gray-400" />
+                          <span className="text-sm text-gray-600 dark:text-gray-400">
                             {image.name || `Image ${index + 1}`}
                           </span>
-                          <span className="text-xs text-gray-500">
+                          <span className="text-xs text-gray-500 dark:text-gray-400">
                             ({Math.round(image.size / 1024)}KB)
                           </span>
                         </div>
@@ -225,7 +225,7 @@ export function UserRequest({
               )}
             </div>
             <div className="flex items-center justify-between mt-2 sm:gap-2">
-              <div className="text-xs text-gray-400">
+              <div className="text-xs text-gray-400 dark:text-gray-500">
               {(() => {
                   let displayTime: Date;
                   if (timestamp instanceof Date && !isNaN(timestamp.getTime())) {
@@ -246,7 +246,7 @@ export function UserRequest({
                 <button
                   onClick={handleCopy}
                   className={`sm:p-1 rounded-full transition-all duration-200 ${
-                    copiedMessageId === id ? "bg-green-100 text-green-600 scale-110" : "hover:bg-gray-100 text-gray-500"
+                    copiedMessageId === id ? "bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 scale-110" : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
                   }`}
                   title={copiedMessageId === id ? lang("actions.copied") : lang("actions.copy")}
                 >
@@ -254,10 +254,10 @@ export function UserRequest({
                 </button>
                 <button
                   onClick={handleEdit}
-                  className="sm:p-1 rounded-full hover:bg-gray-100 transition-colors"
+                  className="sm:p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
                   title={lang("actions.edit")}
                 >
-                  <Edit className="h-4 w-4 text-gray-500" />
+                  <Edit className="h-4 w-4 text-gray-500 dark:text-gray-400" />
                 </button>
                 <button
                   data-message-id={id}
@@ -291,8 +291,8 @@ export function UserRequest({
                 >
                   <RefreshCw className={`h-4 w-4 transition-all duration-600 ${
                     regeneratingMessageId === id 
-                      ? 'text-gray-500 animate-slow-spin' 
-                      : 'text-gray-500 group-hover:text-blue-600 group-hover:rotate-180'
+                      ? 'text-gray-500 dark:text-gray-400 animate-slow-spin' 
+                      : 'text-gray-500 dark:text-gray-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 group-hover:rotate-180'
                   }`} />
                 </button>
               </div>

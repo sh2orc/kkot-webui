@@ -514,12 +514,12 @@ export default function Sidebar({
     <>
       {/* Desktop Sidebar */}
       <div
-        className={`${sidebarCollapsed ? "w-16" : "w-60"} bg-[#f5f5f5] border-r border-gray-200 flex-col transition-all duration-300 hidden md:flex overflow-hidden`}
+        className={`${sidebarCollapsed ? "w-16" : "w-60"} bg-[#f5f5f5] dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex-col transition-all duration-300 hidden md:flex overflow-hidden`}
       >
         {sidebarCollapsed ? (
           /* Collapsed Sidebar - Icon Only */
           <div className="flex flex-col h-full">
-            <div className="p-0 border-b border-gray-200 h-[3rem] flex items-center justify-center">
+            <div className="p-0 border-b border-gray-200 dark:border-gray-800 h-[3rem] flex items-center justify-center">
               <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => setSidebarCollapsed(false)}>
                 <Menu className="h-4 w-4" />
               </Button>
@@ -541,14 +541,14 @@ export default function Sidebar({
 
             <div className="flex-1"></div>
 
-            <div className="p-4 border-t border-gray-200">
+            <div className="p-4 border-t border-gray-200 dark:border-gray-800">
               <AccountMenu align="start" side="top">
                 <Button variant="ghost" className="w-full justify-start h-10 px-2 transition-all duration-500 focus:outline-none focus:ring-0">
                   <Avatar className={`h-8 w-8 transition-transform duration-300 -translate-x-2`}>
                     <AvatarFallback className="bg-orange-500 text-white text-xs">A</AvatarFallback>
                   </Avatar>
                   {!sidebarCollapsed && (
-                    <span className="text-sm font-medium ml-2 transition-opacity duration-300">{lang('sidebar.admin')}</span>
+                    <span className="text-sm font-medium ml-2 transition-opacity duration-300 dark:text-gray-200">{lang('sidebar.admin')}</span>
                   )}
                 </Button>
               </AccountMenu>
@@ -576,7 +576,7 @@ export default function Sidebar({
                   />
 
                   <div className={`overflow-hidden ml-1 transition-all duration-300 ${sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
-                    <span className="whitespace-nowrap text-gray-500 text-sm">{branding.appName}</span>
+                    <span className="whitespace-nowrap text-gray-500 dark:text-gray-400 text-sm">{branding.appName}</span>
                     {/* <span className="ml-2 text-[11px] text-gray-400">{formatGmtWithCity(gmtOffsetMinutes, getPrimaryCityForOffset(gmtOffsetMinutes) || undefined)}</span> */}
                   </div>
 
@@ -593,10 +593,10 @@ export default function Sidebar({
               className={`p-1 px-2 my-2 transition-opacity duration-200 ${sidebarCollapsed ? "opacity-0" : "opacity-100"}`}
             >
               <div className="relative">
-                <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
                 <Input 
                   placeholder={lang('sidebar.searchPlaceholder')} 
-                  className="pl-10 pr-8 bg-white border-gray-200 focus:outline-none focus:ring-0 focus:border-gray-300" 
+                  className="pl-10 pr-8 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setIsSearchFocused(true)}
@@ -606,7 +606,7 @@ export default function Sidebar({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 hover:bg-gray-100"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 hover:bg-gray-100 dark:hover:bg-gray-700"
                     onClick={clearSearch}
                   >
                     <X className="h-3 w-3" />
@@ -618,7 +618,7 @@ export default function Sidebar({
             {/* New Chat Button */}
             <div className="px-4 mb-2">
               <TransitionLink href="/chat" className="block" onClick={() => setSelectedChatId(null)}>
-                <div className="w-full flex px-2 py-2 justify-start items-center text-sm leading-relaxed rounded-lg hover:bg-gray-200">
+                <div className="w-full flex px-2 py-2 justify-start items-center text-sm leading-relaxed rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 dark:text-gray-200">
                   <Plus className="h-4 w-4 mr-2" />
                   {lang('sidebar.newChat')}
                 </div>
@@ -633,7 +633,7 @@ export default function Sidebar({
                 ) : filteredChatGroups.length > 0 ? (
                   <>
                     {searchQuery && (
-                      <div className="text-xs text-gray-500 mb-3 px-2">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-3 px-2">
                         {lang('sidebar.searchResults').replace('{{count}}', filteredChatGroups.reduce((total, group) => total + group.items.length, 0).toString())}
                       </div>
                     )}
@@ -649,11 +649,11 @@ export default function Sidebar({
                     ))}
                   </>
                 ) : searchQuery ? (
-                  <div className="text-center text-gray-500 text-sm mt-8">
+                  <div className="text-center text-gray-500 dark:text-gray-400 text-sm mt-8">
                     {lang('sidebar.noSearchResults')}
                   </div>
                 ) : (
-                  <div className="text-center text-gray-500 text-sm mt-8">
+                  <div className="text-center text-gray-500 dark:text-gray-400 text-sm mt-8">
                     {lang('sidebar.noChatHistory')}
                   </div>
                 )}
@@ -673,7 +673,7 @@ export default function Sidebar({
                     </AvatarFallback>
                   </Avatar>
                   {!sidebarCollapsed && (
-                    <span className="text-sm font-medium ml-2 transition-opacity duration-300">
+                    <span className="text-sm font-medium ml-2 transition-opacity duration-300 dark:text-gray-200">
                       {session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}
                     </span>
                   )}
@@ -691,7 +691,7 @@ export default function Sidebar({
             className="absolute inset-0 bg-gray-600 bg-opacity-75 mobile-overlay" 
             onClick={() => setMobileSidebarOpen(false)}
           ></div>
-          <div className="relative flex flex-col w-64 sm:w-72 h-full bg-[#f5f5f5] border-r border-gray-200 touch-scroll">
+          <div className="relative flex flex-col w-64 sm:w-72 h-full bg-[#f5f5f5] dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 touch-scroll">
             {/* Header */}
             <div className="p-0 h-[3rem] flex items-center px-4 touch-target">
               <div className="flex items-center justify-between w-full">
@@ -709,7 +709,7 @@ export default function Sidebar({
                     priority
                     className="h-8 w-auto"
                   />
-                  <span className="whitespace-nowrap font-semibold text-gray-500">{branding.appName}</span>
+                  <span className="whitespace-nowrap font-semibold text-gray-500 dark:text-gray-400">{branding.appName}</span>
                 </TransitionLink>
                 <Button 
                   variant="ghost" 
@@ -725,10 +725,10 @@ export default function Sidebar({
             {/* Search */}
             <div className="p-1 px-2 my-2">
               <div className="relative">
-                <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
                 <Input 
                   placeholder={lang('sidebar.searchPlaceholder')} 
-                  className="pl-10 pr-8 bg-white border-gray-200 focus:outline-none focus:ring-0 focus:border-gray-300 mobile-input h-10" 
+                  className="pl-10 pr-8 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500 mobile-input h-10" 
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
                   onFocus={() => setIsSearchFocused(true)}
@@ -738,7 +738,7 @@ export default function Sidebar({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 hover:bg-gray-100 touch-target"
+                    className="absolute right-1 top-1/2 transform -translate-y-1/2 h-8 w-8 hover:bg-gray-100 dark:hover:bg-gray-700 touch-target"
                     onClick={clearSearch}
                   >
                     <X className="h-4 w-4" />
@@ -753,7 +753,7 @@ export default function Sidebar({
                 setSelectedChatId(null)
                 setMobileSidebarOpen(false)
               }}>
-                <div className="w-full flex px-3 py-3 justify-start items-center text-sm leading-relaxed rounded-lg hover:bg-gray-200 touch-target">
+                <div className="w-full flex px-3 py-3 justify-start items-center text-sm leading-relaxed rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 dark:text-gray-200 touch-target">
                   <Plus className="h-4 w-4 mr-2" />
                   {lang('sidebar.newChat')}
                 </div>
@@ -768,7 +768,7 @@ export default function Sidebar({
                 ) : filteredChatGroups.length > 0 ? (
                   <>
                     {searchQuery && (
-                      <div className="text-xs text-gray-500 mb-3 px-2">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-3 px-2">
                         {lang('sidebar.searchResults').replace('{{count}}', filteredChatGroups.reduce((total, group) => total + group.items.length, 0).toString())}
                       </div>
                     )}
@@ -786,11 +786,11 @@ export default function Sidebar({
                     ))}
                   </>
                 ) : searchQuery ? (
-                  <div className="text-center text-gray-500 text-sm mt-8">
+                  <div className="text-center text-gray-500 dark:text-gray-400 text-sm mt-8">
                     {lang('sidebar.noSearchResults')}
                   </div>
                 ) : (
-                  <div className="text-center text-gray-500 text-sm mt-8">
+                  <div className="text-center text-gray-500 dark:text-gray-400 text-sm mt-8">
                     {lang('sidebar.noChatHistory')}
                   </div>
                 )}
@@ -807,7 +807,7 @@ export default function Sidebar({
                        session?.user?.email ? session.user.email.charAt(0).toUpperCase() : 'U'}
                     </AvatarFallback>
                   </Avatar>
-                  <span className="text-sm font-medium ml-3">
+                  <span className="text-sm font-medium ml-3 dark:text-gray-200">
                     {session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}
                   </span>
                 </Button>

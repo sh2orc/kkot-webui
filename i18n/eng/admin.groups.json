@@ -100,5 +100,19 @@
     "fetchUsersFailed": "Failed to load users",
     "addUserFailed": "Failed to add user",
     "removeUserFailed": "Failed to remove user"
-  }
+  },
+  "loading": "Loading...",
+  "saving": "Saving...",
+  "groupUsers": "Group Users",
+  "manageGroupUsers": "Manage Group Members",
+  "groupUserManagementDesc": "group member management",
+  "addNewMember": "Add New Member",
+  "selectUserToAdd": "Select a user to add",
+  "noAvailableUsers": "No users available to add",
+  "add": "Add",
+  "currentMembers": "Current Members",
+  "members": "members",
+  "managePermissions": "Manage Group Permissions",
+  "permissionManagementDesc": "group permission settings",
+  "adminGroupPermissionNotice": "Administrator group automatically has full permissions for all resources."
 }

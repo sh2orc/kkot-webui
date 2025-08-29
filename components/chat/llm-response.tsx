@@ -127,7 +127,7 @@ export function LlmResponse({
    
     // Prefer ReactMarkdown pipeline with remark-math/rehype-katex for robust math rendering
     return (
-      <div className="prose max-w-none dark:prose-invert prose-headings:font-semibold prose-p:my-5 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-strong:font-bold prose-code:bg-gray-100 prose-code:px-1 prose-code:py-0.5 prose-code:rounded dark:prose-code:bg-gray-800" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+      <div className="prose max-w-none dark:prose-invert prose-headings:font-semibold prose-p:my-5 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-strong:font-bold prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
         <ReactMarkdown
           remarkPlugins={[remarkMath, remarkGfm]}
           rehypePlugins={[rehypeKatex]}
@@ -508,7 +508,7 @@ export function LlmResponse({
           </div>
         )}
 
-        <div className="text-xs text-gray-400 mt-1">
+        <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
           {(() => {
             let displayTime: Date;
             if (timestamp instanceof Date && !isNaN(timestamp.getTime())) {
@@ -586,7 +586,7 @@ export function LlmResponse({
               }
             }}
             className={`p-1 rounded-full transition-all duration-200 ${
-              copiedRendered ? "bg-green-100 text-green-600 scale-110" : "hover:bg-gray-100 text-gray-500"
+              copiedRendered ? "bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 scale-110" : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
             }`}
             title={copiedRendered ? lang('actions.copied') : lang('actions.copyFormatted')}
           >
@@ -595,7 +595,7 @@ export function LlmResponse({
           <button
             onClick={() => onCopy(content, id)}
             className={`ml-1 p-1 rounded-full transition-all duration-200 ${
-              copiedMessageId === id ? "bg-green-100 text-green-600 scale-110" : "hover:bg-gray-100 text-gray-500"
+              copiedMessageId === id ? "bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400 scale-110" : "hover:bg-gray-100 dark:hover:bg-gray-800 text-gray-500 dark:text-gray-400"
             }`}
             title={copiedMessageId === id ? lang('actions.copied') : lang('actions.copy')}
           >
@@ -606,13 +606,13 @@ export function LlmResponse({
             onMouseEnter={() => setThumbsUpHover(true)}
             onMouseLeave={() => setThumbsUpHover(false)}
             className={`p-1 rounded-full transition-all duration-200 ${
-              likedMessages.has(id) ? "scale-110" : "hover:bg-gray-100"
+              likedMessages.has(id) ? "scale-110" : "hover:bg-gray-100 dark:hover:bg-gray-800"
             }`}
             title={lang('actions.like')}
           >
             <ThumbsUp
               className={`h-4 w-4 transition-transform duration-200 ${
-                likedMessages.has(id) ? "fill-current text-blue-500" : "text-gray-500"
+                likedMessages.has(id) ? "fill-current text-blue-500 dark:text-blue-400" : "text-gray-500 dark:text-gray-400"
               } ${
                 thumbsUpClick ? "thumbs-up-click" : thumbsUpHover ? "thumbs-up-hover" : ""
               }`}
@@ -623,13 +623,13 @@ export function LlmResponse({
             onMouseEnter={() => setThumbsDownHover(true)}
             onMouseLeave={() => setThumbsDownHover(false)}
             className={`p-1 rounded-full transition-all duration-200 ${
-              dislikedMessages.has(id) ? "scale-110" : "hover:bg-gray-100"
+              dislikedMessages.has(id) ? "scale-110" : "hover:bg-gray-100 dark:hover:bg-gray-800"
             }`}
             title={lang('actions.dislike')}
           >
             <ThumbsDown
               className={`h-4 w-4 transition-transform duration-200 ${
-                dislikedMessages.has(id) ? "fill-current text-red-500" : "text-gray-500"
+                dislikedMessages.has(id) ? "fill-current text-red-500 dark:text-red-400" : "text-gray-500 dark:text-gray-400"
               } ${
                 thumbsDownHover ? "thumbs-down-hover" : ""
               }`}

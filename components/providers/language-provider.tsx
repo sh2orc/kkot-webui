@@ -57,6 +57,11 @@ export default function LanguageProvider({ children }: LanguageProviderProps) {
   const setLanguage = (lang: Language) => {
     setCurrentLanguage(lang)
     setStoredLanguage(lang)
+    
+    // Also save to cookie for server-side access
+    if (typeof window !== 'undefined') {
+      document.cookie = `language=${lang}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`
+    }
   }
 
   // Preload all translation modules for all languages during component initialization
@@ -64,6 +69,11 @@ export default function LanguageProvider({ children }: LanguageProviderProps) {
     async function initializeAllTranslations() {
       const storedLang = getStoredLanguage()
       setCurrentLanguage(storedLang)
+      
+      // Save initial language to cookie for server-side access
+      if (typeof window !== 'undefined') {
+        document.cookie = `language=${storedLang}; path=/; max-age=${365 * 24 * 60 * 60}; SameSite=Lax`
+      }
       
       // Load all translation modules for all supported languages simultaneously
       const loadPromises = supportedLanguages.map(language => 

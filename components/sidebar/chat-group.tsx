@@ -202,7 +202,7 @@ export function ChatGroupComponent({
   return (
     <div key={groupIndex} className="mb-4">
       <div
-        className={`text-xs font-medium text-gray-500 mb-1 transition-opacity duration-200 ${
+        className={`text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 transition-opacity duration-200 ${
           sidebarCollapsed ? "opacity-0" : "opacity-100"
         }`}
       >
@@ -213,7 +213,7 @@ export function ChatGroupComponent({
           <div key={item.id} className="relative">
             {editingId === item.id ? (
               // Edit mode
-              <div className="flex items-center p-2 bg-gray-50 rounded">
+              <div className="flex items-center p-2 bg-gray-50 dark:bg-gray-800 rounded">
                 <Input
                   value={editingTitle}
                   onChange={(e) => setEditingTitle(e.target.value)}
@@ -254,11 +254,11 @@ export function ChatGroupComponent({
                 }}
               >
                 <div
-                  className={`group flex items-center justify-between p-1 hover:bg-gray-100 rounded cursor-pointer transition-opacity duration-200 px-2 ${
+                  className={`group flex items-center justify-between p-1 hover:bg-gray-100 dark:hover:bg-gray-800 rounded cursor-pointer transition-opacity duration-200 px-2 ${
                     sidebarCollapsed ? "opacity-0" : "opacity-100"
-                  } ${selectedChatId === item.id ? "bg-gray-200" : ""}`}
+                  } ${selectedChatId === item.id ? "bg-gray-200 dark:bg-gray-800" : ""}`}
                 >
-                  <span className="text-sm text-gray-700 truncate flex-1 min-w-0">{item.title}</span>
+                  <span className="text-sm text-gray-700 dark:text-gray-300 truncate flex-1 min-w-0">{item.title}</span>
                   <div className="relative flex-shrink-0">
                     <DropdownMenu open={openMenuId === item.id} onOpenChange={(open) => !open && setOpenMenuId(null)}>
                       <DropdownMenuTrigger asChild>

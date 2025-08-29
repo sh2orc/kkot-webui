@@ -1,5 +1,5 @@
 'use client'
-import { createContext, useContext } from 'react'
+import { createContext, useContext, useEffect } from 'react'
 
 // Supported languages list
 export const supportedLanguages = ['kor', 'eng'] as const
@@ -121,14 +121,28 @@ export function getTranslationKey(translations: any, key: string): string {
   return typeof result === 'string' ? result : key
 }
 
+// Translation hook options
+interface UseTranslationOptions {
+  initialTranslations?: Record<string, any>
+}
+
 // Translation hook (page-specific usage)
-export function useTranslation(module: string) {
+export function useTranslation(module: string, options?: UseTranslationOptions) {
   const context = useContext(LanguageContext)
   if (!context) {
     throw new Error('useTranslation must be used within a LanguageProvider')
   }
 
   const { language } = context
+  const { initialTranslations } = options || {}
+  
+  // If initialTranslations provided, cache them immediately
+  useEffect(() => {
+    if (initialTranslations) {
+      const cacheKey = `${language}.${module}`
+      translationCache.set(cacheKey, initialTranslations)
+    }
+  }, [language, module, initialTranslations])
   
   // Translation function
   const t = async (key: string): Promise<string> => {
@@ -136,10 +150,10 @@ export function useTranslation(module: string) {
     return getTranslationKey(translations, key)
   }
 
-  // Synchronous translation function (only when cached)
+  // Synchronous translation function (only when cached or initial provided)
   const lang = (key: string): string => {
     const cacheKey = `${language}.${module}`
-    const translations = translationCache.get(cacheKey)
+    const translations = translationCache.get(cacheKey) || initialTranslations
     
     if (translations) {
       return getTranslationKey(translations, key)

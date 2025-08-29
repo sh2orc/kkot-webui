@@ -19,6 +19,36 @@ body.no-loading [data-nextjs-loading-state] {
   }
 }
 
+/* Font size preferences */
+.font-small {
+  font-size: 14px;
+}
+
+.font-medium {
+  font-size: 16px;
+}
+
+.font-large {
+  font-size: 18px;
+}
+
+/* Apply font size to specific elements */
+.font-small .text-sm {
+  font-size: 0.75rem;
+}
+
+.font-small .text-base {
+  font-size: 0.875rem;
+}
+
+.font-large .text-sm {
+  font-size: 0.875rem;
+}
+
+.font-large .text-base {
+  font-size: 1.125rem;
+}
+
 @layer base {
   :root {
     --background: 0 0% 100%;

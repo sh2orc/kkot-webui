@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import https from 'https';
 
 // POST: LLM server connection test
 export async function POST(request: NextRequest) {
@@ -78,18 +79,60 @@ export async function POST(request: NextRequest) {
       }
       
       try {
-        const response = await fetch(`${baseUrl}/models?key=${apiKey}`);
+        // Google Generative AI API의 올바른 엔드포인트 사용
+        const geminiBaseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+        const modelsUrl = `${geminiBaseUrl}/models?key=${apiKey}`;
+        
+        console.log('Gemini test - Request URL:', modelsUrl.replace(apiKey, 'API_KEY_HIDDEN'));
+        
+        // SSL 인증서 문제 해결을 위한 Agent 설정
+        // 주의: rejectUnauthorized: false는 보안상 위험할 수 있습니다.
+        // 프로덕션 환경에서는 올바른 인증서를 사용하거나 프록시 설정을 확인하세요.
+        const shouldVerifySSL = process.env.SSL_VERIFY !== 'false' && process.env.NODE_ENV !== 'development';
+        const httpsAgent = new https.Agent({
+          rejectUnauthorized: shouldVerifySSL
+        });
+        
+        if (!shouldVerifySSL) {
+          console.warn('⚠️  WARNING: SSL certificate verification is disabled. This should only be used in development.');
+          console.warn('⚠️  To enable SSL verification, unset SSL_VERIFY environment variable or set it to "true".');
+        }
+        
+        const response = await fetch(modelsUrl, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          // @ts-ignore - fetch의 agent 옵션은 Node.js 환경에서만 사용 가능
+          agent: httpsAgent
+        });
+        
+        const responseText = await response.text();
+        console.log('Gemini test - Response status:', response.status);
+        console.log('Gemini test - Response headers:', Object.fromEntries(response.headers.entries()));
         
         if (response.ok) {
-          const data = await response.json();
-          modelCount = data.models?.length || 0;
-          isConnected = true;
-          message = `successful`;
+          try {
+            const data = JSON.parse(responseText);
+            modelCount = data.models?.length || 0;
+            isConnected = true;
+            message = `successful`;
+            console.log('Gemini test - Success, model count:', modelCount);
+          } catch (parseError) {
+            console.error('Gemini test - JSON parse error:', parseError);
+            message = `Failed to parse response: ${parseError instanceof Error ? parseError.message : 'Invalid JSON'}`;
+          }
         } else {
-          const errorData = await response.json().catch(() => ({}));
-          message = errorData.error?.message || `Connection failed: ${response.status} ${response.statusText}`;
+          console.error('Gemini test - Error response:', responseText);
+          try {
+            const errorData = JSON.parse(responseText);
+            message = errorData.error?.message || `Connection failed: ${response.status} ${response.statusText}`;
+          } catch {
+            message = `Connection failed: ${response.status} ${response.statusText}`;
+          }
         }
       } catch (error) {
+        console.error('Gemini test - Fetch error:', error);
         message = `Connection failed: ${error instanceof Error ? error.message : 'Network error'}`;
       }
     }

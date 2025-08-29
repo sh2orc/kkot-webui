@@ -86,6 +86,38 @@ async function fetchOllamaModels(server: any) {
   return [];
 }
 
+// Gemini model lookup function
+async function fetchGeminiModels(server: any) {
+  if (!server.apiKey) return [];
+  
+  try {
+    const response = await fetch(`${server.baseUrl}/models?key=${server.apiKey}`);
+    
+    if (response.ok) {
+      const data = await response.json();
+      return data.models?.map((model: any) => {
+        // Check if model supports vision/multimodal
+        const supportsMultimodal = model.supportedGenerationMethods?.includes('generateContent') && 
+                                   (model.inputTokenLimit > 100000 || model.name.includes('vision'));
+        
+        return {
+          modelId: model.name.replace('models/', ''), // Remove 'models/' prefix
+          supportsMultimodal,
+          capabilities: {
+            chat: true, // Most Gemini models support chat
+            image: supportsMultimodal,
+            audio: false // Currently no audio support in standard Gemini models
+          },
+          contextLength: model.inputTokenLimit
+        };
+      }) || [];
+    }
+  } catch (err) {
+    console.error('Failed to fetch Gemini models:', err);
+  }
+  return [];
+}
+
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
@@ -107,6 +139,8 @@ export default async function ModelSettingsPage() {
       models = await fetchOpenAIModels(server);
     } else if (server.provider === 'ollama') {
       models = await fetchOllamaModels(server);
+    } else if (server.provider === 'gemini') {
+      models = await fetchGeminiModels(server);
     }
     
     console.log(`서버 ${server.name}에서 ${models.length}개 모델 발견`);

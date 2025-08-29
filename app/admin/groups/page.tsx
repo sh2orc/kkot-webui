@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
@@ -9,9 +10,7 @@ import { Edit, Trash2, UserPlus, Search, Shield, Users, Settings } from "lucide-
 import { Input } from "@/components/ui/input"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 import { toast } from "sonner"
-import { GroupManagementDialog } from "./group-management-dialog"
-import { GroupPermissionsDialog } from "./group-permissions-dialog"
-import { GroupUsersDialog } from "./group-users-dialog"
+// Removed dialog imports - now using separate pages
 
 interface Group {
   id: string
@@ -25,15 +24,11 @@ interface Group {
 }
 
 export default function GroupsPage() {
+  const router = useRouter()
   const { lang, language } = useTranslation('admin.groups')
   const [groups, setGroups] = useState<Group[]>([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedGroup, setSelectedGroup] = useState<Group | null>(null)
-  const [isManageDialogOpen, setIsManageDialogOpen] = useState(false)
-  const [isPermissionsDialogOpen, setIsPermissionsDialogOpen] = useState(false)
-  const [isUsersDialogOpen, setIsUsersDialogOpen] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
 
   // Preload translation module
   useEffect(() => {
@@ -74,51 +69,19 @@ export default function GroupsPage() {
   }
 
   const handleEditGroup = (group: Group) => {
-    setSelectedGroup(group)
-    setIsCreating(false)
-    setIsManageDialogOpen(true)
+    router.push(`/admin/groups/manage?id=${group.id}`)
   }
 
   const handleCreateGroup = () => {
-    setSelectedGroup(null)
-    setIsCreating(true)
-    setIsManageDialogOpen(true)
-  }
-
-  const handleSaveGroup = async (groupData: any) => {
-    try {
-      const url = isCreating ? "/api/groups" : `/api/groups/${selectedGroup?.id}`
-      const method = isCreating ? "POST" : "PUT"
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(groupData)
-      })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to save group")
-      }
-      
-      toast.success(isCreating ? lang('createSuccess') : lang('updateSuccess'))
-      setIsManageDialogOpen(false)
-      fetchGroups()
-    } catch (error: any) {
-      toast.error(error.message || lang('errors.saveFailed'))
-    }
+    router.push('/admin/groups/manage')
   }
 
   const handleManagePermissions = (group: Group) => {
-    setSelectedGroup(group)
-    setIsPermissionsDialogOpen(true)
+    router.push(`/admin/groups/permissions?id=${group.id}`)
   }
 
   const handleManageUsers = (group: Group) => {
-    setSelectedGroup(group)
-    setIsUsersDialogOpen(true)
+    router.push(`/admin/groups/users?id=${group.id}`)
   }
 
   const filteredGroups = groups.filter(group =>
@@ -228,33 +191,7 @@ export default function GroupsPage() {
         </CardContent>
       </Card>
 
-      {isManageDialogOpen && (
-        <GroupManagementDialog
-          isOpen={isManageDialogOpen}
-          onClose={() => setIsManageDialogOpen(false)}
-          onSave={handleSaveGroup}
-          group={selectedGroup}
-          isCreating={isCreating}
-        />
-      )}
-
-      {isPermissionsDialogOpen && selectedGroup && (
-        <GroupPermissionsDialog
-          isOpen={isPermissionsDialogOpen}
-          onClose={() => setIsPermissionsDialogOpen(false)}
-          group={selectedGroup}
-          onUpdate={fetchGroups}
-        />
-      )}
-
-      {isUsersDialogOpen && selectedGroup && (
-        <GroupUsersDialog
-          isOpen={isUsersDialogOpen}
-          onClose={() => setIsUsersDialogOpen(false)}
-          group={selectedGroup}
-          onUpdate={fetchGroups}
-        />
-      )}
+      {/* Dialogs removed - now using separate pages */}
     </div>
   )
 }

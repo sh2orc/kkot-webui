@@ -66,6 +66,14 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    // Prevent modifying admin group permissions
+    if (params.id === 'admin') {
+      return NextResponse.json(
+        { error: "Cannot modify admin group permissions" },
+        { status: 403 }
+      );
+    }
+
     const data = await req.json();
     const { resourceType, resourceId, permissions } = data;
 
@@ -120,6 +128,14 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
+      );
+    }
+
+    // Prevent modifying admin group permissions
+    if (params.id === 'admin') {
+      return NextResponse.json(
+        { error: "Cannot modify admin group permissions" },
+        { status: 403 }
       );
     }
 
@@ -181,6 +197,14 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
+      );
+    }
+
+    // Prevent modifying admin group permissions
+    if (params.id === 'admin') {
+      return NextResponse.json(
+        { error: "Cannot modify admin group permissions" },
+        { status: 403 }
       );
     }
 

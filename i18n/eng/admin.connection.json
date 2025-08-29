@@ -66,5 +66,6 @@
   "serverSaveSuccess": "Save success",
   "allServersSaveComplete": "All servers saved, refreshing page...",
   "pageRefreshExecuting": "Page refresh executing",
-  "settingsSaveError": "Settings save error"
+  "settingsSaveError": "Settings save error",
+  "savingInProgress": "Saving servers..."
 } 

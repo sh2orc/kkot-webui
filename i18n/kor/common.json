@@ -93,5 +93,7 @@
   "back": "뒤로 가기",
   "loading": "로딩 중...",
   "saving": "저장 중...",
-  "delete": "삭제"
+  "delete": "삭제",
+  "chat": "채팅",
+  "goToChat": "채팅하기"
 } 

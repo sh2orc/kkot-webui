@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Eye, EyeOff, Plus, Trash2, AlertCircle, CheckCircle, RefreshCw } from "lucide-react"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 
 interface LLMServer {
@@ -33,7 +33,6 @@ interface ConnectionSettingsFormProps {
 export default function ConnectionSettingsForm({ initialServers }: ConnectionSettingsFormProps) {
   const router = useRouter()
   const { lang } = useTranslation('admin.connection')
-  const { toast } = useToast()
   const [isSaving, setIsSaving] = useState(false)
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({})
   const [testingConnections, setTestingConnections] = useState<Record<string, boolean>>({})
@@ -85,15 +84,12 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
       }))
       
       if (result.success) {
-        toast({
-          title: lang('testConnectionSuccess'),
+        toast.success(lang('testConnectionSuccess'), {
           description: result.message
         })
       } else {
-        toast({
-          title: lang('testConnectionFailure'),
-          description: result.message,
-          variant: "destructive"
+        toast.error(lang('testConnectionFailure'), {
+          description: result.message
         })
       }
     } catch (error) {
@@ -105,10 +101,8 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
         }
       }))
       
-      toast({
-        title: lang('testConnectionError'),
-        description: lang('testConnectionErrorMessage'),
-        variant: "destructive"
+      toast.error(lang('testConnectionError'), {
+        description: lang('testConnectionErrorMessage')
       })
     } finally {
       setTestingConnections(prev => ({ ...prev, [serverId]: false }))
@@ -168,15 +162,12 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
         [provider]: prev[provider].filter(s => s.id !== serverId)
       }))
       
-      toast({
-        title: lang('deleteServerSuccess'),
+      toast.success(lang('deleteServerSuccess'), {
         description: lang('deleteServerSuccessMessage')
       })
     } catch (error) {
-      toast({
-        title: lang('deleteServerFailure'),
-        description: lang('deleteServerFailureMessage'),
-        variant: "destructive"
+      toast.error(lang('deleteServerFailure'), {
+        description: lang('deleteServerFailureMessage')
       })
     }
   }
@@ -228,10 +219,8 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
           .flatMap(([, arr]) => arr.map(x => x.name))
           .slice(0, 5)
           .join(', ')
-        toast({
-          title: lang('saveFailure'),
-          description: `${lang('saveServerError')} ${dupNames}: ${lang('duplicateServerError')}`,
-          variant: 'destructive'
+        toast.error(lang('saveFailure'), {
+          description: `${lang('saveServerError')} ${dupNames}: ${lang('duplicateServerError')}`
         })
         setIsSaving(false)
         return
@@ -242,6 +231,12 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
       const updatedServers: Record<string, LLMServer[]> = {}
       
       console.log(`${lang('savingStarted')}:`, allServers.length, lang('serversUpdating'))
+      console.log('All servers to save:', allServers)
+      
+      // Show progress toast
+      toast.loading(lang('savingInProgress'), {
+        id: 'saving-servers'
+      })
       
       for (const server of allServers) {
         const isNew = server.id.startsWith('new-')
@@ -250,29 +245,34 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
         
         console.log(`${lang('serverUpdateStatus')} ${server.name} (${server.provider}): enabled=${server.enabled}`)
         
+        const requestBody = {
+          ...server,
+          baseUrl: normalizeBaseUrl(server.baseUrl),
+          apiKey: normalizeApiKey(server.apiKey),
+          id: isNew ? undefined : server.id,
+          // Convert models and settings to JSON string if they are array/object
+          models: Array.isArray(server.models) ? JSON.stringify(server.models) : server.models,
+          settings: typeof server.settings === 'object' ? JSON.stringify(server.settings) : server.settings
+        }
+        
+        console.log(`Sending ${method} request to ${endpoint}:`, requestBody)
+        
         const response = await fetch(endpoint, {
           method,
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify({
-            ...server,
-            baseUrl: normalizeBaseUrl(server.baseUrl),
-            apiKey: normalizeApiKey(server.apiKey),
-            id: isNew ? undefined : server.id
-          })
+          body: JSON.stringify(requestBody)
         })
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({} as any))
           console.error(`${server.name} ${lang('serverSaveFailure')}:`, response.status, errorData)
 
-          // duplication error
+          // Handle duplication error
           if (response.status === 409) {
-            toast({
-              title: lang('saveFailure'),
-              description: `${lang('saveServerError')} ${server.name}: ${lang('conflictServerError')}`,
-              variant: 'destructive'
+            toast.error(lang('saveFailure'), {
+              description: `${lang('saveServerError')} ${server.name}: ${lang('conflictServerError')}`
             })
           }
           throw new Error(`${lang('saveServerError')} ${server.name}: ${errorData.error || (response.status === 409 ? 'Conflict' : response.statusText)}`)
@@ -280,6 +280,11 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
         
         const result = await response.json()
         console.log(`${lang('serverSaveSuccess')} ${server.name}:`, result)
+        console.log('Server save response:', {
+          status: response.status,
+          statusText: response.statusText,
+          result: result
+        })
         
         // Update with ID from response for newly created servers
         if (isNew) {
@@ -299,30 +304,38 @@ export default function ConnectionSettingsForm({ initialServers }: ConnectionSet
       
       console.log(lang('allServersSaveComplete'))
       
-      toast({
-        title: lang('saveSuccess'),
-        description: lang('saveSuccessMessage')
+      // Dismiss loading toast
+      toast.dismiss('saving-servers')
+      
+      toast.success(lang('saveSuccess'), {
+        description: lang('saveSuccessMessage') || `Successfully saved ${allServers.length} server(s)`,
+        duration: 5000,
       })
+      
+      // Update local state with the saved servers
+      setServers(updatedServers)
       
       // Immediately update button state after saving completion
       setIsSaving(false)
       
-      // Refresh page after saving to synchronize server state
-      setTimeout(() => {
-        console.log(lang('pageRefreshExecuting'))
-        router.refresh()
-      }, 1000)
-      
     } catch (error) {
       console.error(`${lang('settingsSaveError')}:`, error)
-      toast({
-        title: lang('saveFailure'),
+      console.error('Save error details:', {
+        error: error,
+        errorMessage: error instanceof Error ? error.message : 'Unknown error',
+        errorStack: error instanceof Error ? error.stack : undefined
+      })
+      
+      // Dismiss loading toast
+      toast.dismiss('saving-servers')
+      
+      toast.error(lang('saveFailure'), {
         description: error instanceof Error ? error.message : lang('saveFailureMessage'),
-        variant: "destructive"
+        duration: 7000,
       })
       setIsSaving(false) // Call setIsSaving(false) only on error
     }
-    // On success, page refreshes so setIsSaving(false) is unnecessary
+    // State is updated immediately, no page refresh needed
   }
 
   const renderProviderSection = (provider: string, title: string, description: string) => {

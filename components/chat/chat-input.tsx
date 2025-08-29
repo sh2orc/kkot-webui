@@ -229,8 +229,8 @@ export const ChatInput = memo(function ChatInput({
 
   return (
     <div className="absolute bottom-0 left-0 right-0 p-0 chat-input-container mobile-keyboard-adjust">
-      <div className="max-w-full mx-3 sm:max-w-2xl lg:max-w-4xl sm:mx-auto bg-white">
-        <div className="flex-1 flex flex-col relative w-full shadow-lg rounded-xl border border-gray-200 hover:border-gray-300 focus-within:border-gray-300 transition bg-white">
+      <div className="max-w-full mx-3 sm:max-w-2xl lg:max-w-4xl sm:mx-auto bg-white dark:bg-gray-900">
+        <div className="flex-1 flex flex-col relative w-full shadow-lg rounded-xl border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 focus-within:border-gray-300 dark:focus-within:border-gray-600 transition bg-white dark:bg-gray-800">
           {/* Image previews */}
           {imagePreviews.length > 0 && (
             <div className="flex flex-wrap gap-2 p-3">
@@ -239,7 +239,7 @@ export const ChatInput = memo(function ChatInput({
                   <img
                     src={preview}
                     alt={`Uploaded image ${index + 1}`}
-                    className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                    className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
                   />
                   <button
                     onClick={() => removeImage(index)}
@@ -279,7 +279,7 @@ export const ChatInput = memo(function ChatInput({
               <Button
                 variant="default"
                 size="icon"
-                className={`absolute right-0 bottom-2 sm:bottom-3 h-6 w-6 sm:h-9 sm:w-9 rounded-full text-white bg-black hover:bg-gray-800 hover:text-white touch-manipulation`}
+                className={`absolute right-0 bottom-2 sm:bottom-3 h-6 w-6 sm:h-9 sm:w-9 rounded-full text-white bg-black dark:bg-gray-200 dark:text-black hover:bg-gray-800 dark:hover:bg-gray-300 hover:text-white dark:hover:text-black touch-manipulation`}
                 onClick={isStreaming ? handleAbort : handleSubmitClick}
                 disabled={isStreaming ? false : ((!inputValue.trim() && uploadedImages.length === 0) || isSubmitting)}
               >
@@ -293,7 +293,7 @@ export const ChatInput = memo(function ChatInput({
 
             {/* Text length indicator */}
             {(inputValue.length > 500 || uploadedImages.length > 0) && (
-              <div className="text-xs text-gray-500 mt-1 px-1">
+              <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 px-1">
                 {inputValue.length}/{uploadedImages.length > 0 ? 1000 : 4000} characters
                 {uploadedImages.length > 0 && (
                   <span className="ml-2 text-orange-600">
@@ -322,7 +322,7 @@ export const ChatInput = memo(function ChatInput({
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation"
+                      className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation"
                       onClick={() => fileInputRef.current?.click()}
                     >
                       <ImageIcon className="h-4 w-4" />
@@ -340,7 +340,7 @@ export const ChatInput = memo(function ChatInput({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation ${isDeepResearchActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white" : ""}`}
+                    className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation ${isDeepResearchActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white dark:bg-cyan-600 dark:hover:bg-cyan-700" : ""}`}
                     onClick={() => setIsDeepResearchActive(!isDeepResearchActive)}
                   >
                     <Brain className="h-4 w-4" />
@@ -350,7 +350,7 @@ export const ChatInput = memo(function ChatInput({
                   <Button
                     variant="ghost"
                     size="icon"
-                    className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation ${isGlobeActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white" : ""}`}
+                    className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation ${isGlobeActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white dark:bg-cyan-600 dark:hover:bg-cyan-700" : ""}`}
                     onClick={() => setIsGlobeActive(!isGlobeActive)}
                   >
                     <Globe className="h-4 w-4" />
@@ -360,7 +360,7 @@ export const ChatInput = memo(function ChatInput({
             </div>
           </div>
         </div>
-        <div className="text-xs text-center text-gray-400 pb-2 mt-3 ">
+        <div className="text-xs text-center text-gray-400 dark:text-gray-500 pb-2 mt-3 ">
           {lang("disclaimer")}
         </div>
       </div>

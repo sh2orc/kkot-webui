@@ -12,10 +12,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Switch } from "@/components/ui/switch"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Separator } from "@/components/ui/separator"
-import { User, Bell, Shield, Globe, Upload } from "lucide-react"
+import { User, Bell, Shield, Settings, Upload, Moon, Sun, Monitor, Type, Zap, MessageSquare } from "lucide-react"
 import { toast } from "sonner"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 import Loading from "@/components/ui/loading"
+import { useTheme } from "next-themes"
 
 interface UserProfile {
   id: string
@@ -31,6 +32,7 @@ interface SettingsPageProps {
 
 export default function SettingsPage({ initialUserProfile }: SettingsPageProps) {
   const { lang, language } = useTranslation('settings')
+  const { theme, setTheme, systemTheme } = useTheme()
   const [isLoaded, setIsLoaded] = useState(false)
   const [profileImage, setProfileImage] = useState<string | null>(null)
   const [userProfile, setUserProfile] = useState<UserProfile | null>(initialUserProfile || null)
@@ -43,6 +45,58 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
     newPassword: '',
     confirmPassword: ''
   })
+
+  // Preferences state - initialize with current theme
+  const [preferences, setPreferences] = useState({
+    theme: theme || 'system',
+    fontSize: 'medium',
+    enterToSend: true,
+    streamingResponse: true,
+    showTypingIndicator: true,
+    responseStyle: 'balanced',
+    codeTheme: 'github'
+  })
+
+  // Load preferences from localStorage
+  useEffect(() => {
+    const savedPreferences = localStorage.getItem('userPreferences')
+    if (savedPreferences) {
+      try {
+        const parsed = JSON.parse(savedPreferences)
+        setPreferences(prev => ({ ...prev, ...parsed, theme: theme || 'system' }))
+        
+        // Apply saved font size
+        if (parsed.fontSize) {
+          document.documentElement.classList.remove('font-small', 'font-medium', 'font-large')
+          document.documentElement.classList.add(`font-${parsed.fontSize}`)
+        }
+      } catch (error) {
+        console.error('Failed to parse preferences:', error)
+      }
+    } else {
+      // If no saved preferences, sync with current theme
+      setPreferences(prev => ({ ...prev, theme: theme || 'system' }))
+    }
+  }, [theme])
+
+  // Save preferences to localStorage and apply theme
+  const savePreferences = (newPreferences: typeof preferences) => {
+    setPreferences(newPreferences)
+    localStorage.setItem('userPreferences', JSON.stringify(newPreferences))
+    
+    // Apply theme change immediately
+    if (newPreferences.theme !== preferences.theme) {
+      setTheme(newPreferences.theme)
+    }
+    
+    // Apply font size change
+    if (newPreferences.fontSize !== preferences.fontSize) {
+      document.documentElement.classList.remove('font-small', 'font-medium', 'font-large')
+      document.documentElement.classList.add(`font-${newPreferences.fontSize}`)
+    }
+    
+    toast.success(lang('success.preferencesUpdated') || 'Preferences updated successfully.')
+  }
 
   // Preload translation modules
   useEffect(() => {
@@ -87,7 +141,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
 
     // Validation
     if (!formData.username.trim()) {
-      toast.error('Please enter username.')
+      toast.error(lang('errors.enterUsername'))
       return
     }
 
@@ -101,25 +155,25 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
       // If password change is requested
       if (formData.currentPassword || formData.newPassword) {
         if (!formData.currentPassword) {
-          toast.error('Please enter current password.')
+          toast.error(lang('errors.enterCurrentPassword'))
           setIsLoading(false)
           return
         }
 
         if (!formData.newPassword) {
-          toast.error('Please enter new password.')
+          toast.error(lang('errors.enterNewPassword'))
           setIsLoading(false)
           return
         }
 
         if (formData.newPassword !== formData.confirmPassword) {
-          toast.error('New password and confirmation password do not match.')
+          toast.error(lang('errors.passwordMismatch'))
           setIsLoading(false)
           return
         }
 
         if (formData.newPassword.length < 6) {
-          toast.error('New password must be at least 6 characters.')
+          toast.error(lang('errors.passwordTooShort'))
           setIsLoading(false)
           return
         }
@@ -139,7 +193,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
       const result = await response.json()
 
       if (response.ok) {
-        toast.success('Profile updated successfully.')
+        toast.success(lang('success.profileUpdated'))
         setUserProfile(result.user)
         // Reset password fields
         setFormData(prev => ({
@@ -149,11 +203,11 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
           confirmPassword: ''
         }))
       } else {
-        toast.error(result.error || 'Failed to update profile.')
+        toast.error(result.error || lang('errors.updateFailed'))
       }
     } catch (error) {
       console.error('Profile update error:', error)
-      toast.error('An error occurred while updating profile.')
+      toast.error(lang('errors.genericError'))
     } finally {
       setIsLoading(false)
     }
@@ -166,7 +220,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
   if (!userProfile) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-gray-500">Unable to load user information.</p>
+        <p className="text-gray-500">{lang('errors.loadFailed')}</p>
       </div>
     )
   }
@@ -190,9 +244,9 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
               <Bell className="h-4 w-4" />
               <span className="hidden sm:inline">{lang('tabs.notifications') || '알림'}</span>
             </TabsTrigger>
-            <TabsTrigger value="language" className="flex items-center gap-2">
-              <Globe className="h-4 w-4" />
-              <span className="hidden sm:inline">{lang('tabs.language') || '언어'}</span>
+            <TabsTrigger value="preferences" className="flex items-center gap-2">
+              <Settings className="h-4 w-4" />
+              <span className="hidden sm:inline">{lang('tabs.preferences') || '환경설정'}</span>
             </TabsTrigger>
           </TabsList>
 
@@ -365,25 +419,143 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
             </Card>
           </TabsContent>
 
-          {/* Language Tab */}
-          <TabsContent value="language" className="space-y-6">
+          {/* Preferences Tab */}
+          <TabsContent value="preferences" className="space-y-6">
+            {/* Theme Settings */}
             <Card>
               <CardHeader>
-                <CardTitle>{lang('language.title') || '언어 설정'}</CardTitle>
+                <CardTitle>{lang('preferences.theme.title') || '테마 설정'}</CardTitle>
                 <CardDescription>
-                  {lang('language.description') || '인터페이스에서 사용할 언어를 선택하세요.'}
+                  {lang('preferences.theme.description') || '앱의 외관을 사용자 정의하세요.'}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <Label>{lang('preferences.theme.mode') || '테마 모드'}</Label>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div 
+                      className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-gray-50 ${preferences.theme === 'light' ? 'border-primary bg-primary/5' : ''}`}
+                      onClick={() => savePreferences({ ...preferences, theme: 'light' })}
+                    >
+                      <Sun className="h-5 w-5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{lang('preferences.theme.light') || '라이트'}</p>
+                        <p className="text-xs text-gray-500">{lang('preferences.theme.lightDesc') || '밝은 테마'}</p>
+                      </div>
+                    </div>
+                    <div 
+                      className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-gray-50 ${preferences.theme === 'dark' ? 'border-primary bg-primary/5' : ''}`}
+                      onClick={() => savePreferences({ ...preferences, theme: 'dark' })}
+                    >
+                      <Moon className="h-5 w-5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{lang('preferences.theme.dark') || '다크'}</p>
+                        <p className="text-xs text-gray-500">{lang('preferences.theme.darkDesc') || '어두운 테마'}</p>
+                      </div>
+                    </div>
+                    <div 
+                      className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-gray-50 ${preferences.theme === 'system' ? 'border-primary bg-primary/5' : ''}`}
+                      onClick={() => savePreferences({ ...preferences, theme: 'system' })}
+                    >
+                      <Monitor className="h-5 w-5" />
+                      <div className="flex-1">
+                        <p className="text-sm font-medium">{lang('preferences.theme.system') || '시스템'}</p>
+                        <p className="text-xs text-gray-500">{lang('preferences.theme.systemDesc') || '시스템 설정 따르기'}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                <Separator />
                 <div className="space-y-2">
-                  <Label htmlFor="language-select">{lang('language.interface') || '인터페이스 언어'}</Label>
-                  <Select defaultValue="ko">
-                    <SelectTrigger id="language-select">
-                      <SelectValue placeholder={lang('language.selectLanguage') || '언어를 선택하세요'} />
+                  <Label htmlFor="font-size">{lang('preferences.theme.fontSize') || '글꼴 크기'}</Label>
+                  <Select value={preferences.fontSize} onValueChange={(value) => savePreferences({ ...preferences, fontSize: value })}>
+                    <SelectTrigger id="font-size">
+                      <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="ko">한국어</SelectItem>
-                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="small">{lang('preferences.theme.fontSmall') || '작게'}</SelectItem>
+                      <SelectItem value="medium">{lang('preferences.theme.fontMedium') || '보통'}</SelectItem>
+                      <SelectItem value="large">{lang('preferences.theme.fontLarge') || '크게'}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Chat Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle>{lang('preferences.chat.title') || '채팅 설정'}</CardTitle>
+                <CardDescription>
+                  {lang('preferences.chat.description') || '채팅 인터페이스를 사용자 정의하세요.'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>{lang('preferences.chat.enterToSend') || 'Enter로 전송'}</Label>
+                    <p className="text-sm text-gray-500">
+                      {lang('preferences.chat.enterToSendDesc') || 'Enter 키를 눌러 메시지를 전송합니다.'}
+                    </p>
+                  </div>
+                  <Switch checked={preferences.enterToSend} onCheckedChange={(checked) => savePreferences({ ...preferences, enterToSend: checked })} />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>{lang('preferences.chat.streamingResponse') || '실시간 응답'}</Label>
+                    <p className="text-sm text-gray-500">
+                      {lang('preferences.chat.streamingResponseDesc') || 'AI 응답을 실시간으로 표시합니다.'}
+                    </p>
+                  </div>
+                  <Switch checked={preferences.streamingResponse} onCheckedChange={(checked) => savePreferences({ ...preferences, streamingResponse: checked })} />
+                </div>
+                <Separator />
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>{lang('preferences.chat.showTypingIndicator') || '타이핑 표시'}</Label>
+                    <p className="text-sm text-gray-500">
+                      {lang('preferences.chat.showTypingIndicatorDesc') || 'AI가 응답 중일 때 애니메이션을 표시합니다.'}
+                    </p>
+                  </div>
+                  <Switch checked={preferences.showTypingIndicator} onCheckedChange={(checked) => savePreferences({ ...preferences, showTypingIndicator: checked })} />
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* AI Settings */}
+            <Card>
+              <CardHeader>
+                <CardTitle>{lang('preferences.ai.title') || 'AI 응답 설정'}</CardTitle>
+                <CardDescription>
+                  {lang('preferences.ai.description') || 'AI 응답 방식을 설정하세요.'}
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="space-y-2">
+                  <Label htmlFor="response-style">{lang('preferences.ai.responseStyle') || '응답 스타일'}</Label>
+                  <Select value={preferences.responseStyle} onValueChange={(value) => savePreferences({ ...preferences, responseStyle: value })}>
+                    <SelectTrigger id="response-style">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="concise">{lang('preferences.ai.concise') || '간결함'}</SelectItem>
+                      <SelectItem value="balanced">{lang('preferences.ai.balanced') || '균형'}</SelectItem>
+                      <SelectItem value="detailed">{lang('preferences.ai.detailed') || '상세함'}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="code-style">{lang('preferences.ai.codeTheme') || '코드 블록 테마'}</Label>
+                  <Select value={preferences.codeTheme} onValueChange={(value) => savePreferences({ ...preferences, codeTheme: value })}>
+                    <SelectTrigger id="code-style">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="github">GitHub</SelectItem>
+                      <SelectItem value="monokai">Monokai</SelectItem>
+                      <SelectItem value="dracula">Dracula</SelectItem>
+                      <SelectItem value="vscode">VS Code</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>

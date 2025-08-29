@@ -93,5 +93,7 @@
   "back": "Back",
   "loading": "Loading...",
   "saving": "Saving...",
-  "delete": "Delete"
+  "delete": "Delete",
+  "chat": "Chat",
+  "goToChat": "Go to Chat"
 } 

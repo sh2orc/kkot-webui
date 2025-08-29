@@ -23,6 +23,7 @@
     "uploadImage": "이미지 업로드",
     "name": "이름",
     "username": "사용자 이름",
+    "usernamePlaceholder": "사용자명을 입력하세요",
     "email": "이메일",
     "bio": "자기소개",
     "bioPlaceholder": "간단한 자기소개를 입력하세요",
@@ -37,8 +38,11 @@
     "description": "계정 보안 및 접근 설정을 관리하세요.",
     "passwordChange": "비밀번호 변경",
     "currentPassword": "현재 비밀번호",
+    "currentPasswordPlaceholder": "현재 비밀번호를 입력하세요",
     "newPassword": "새 비밀번호",
+    "newPasswordPlaceholder": "새 비밀번호를 입력하세요",
     "confirmPassword": "비밀번호 확인",
+    "confirmPasswordPlaceholder": "새 비밀번호를 다시 입력하세요",
     "accountSecurity": "계정 보안",
     "twoFactor": {
       "title": "2단계 인증",
@@ -58,7 +62,13 @@
       "title": "시스템 업데이트",
       "description": "시스템 업데이트 및 변경사항을 알립니다."
     },
-    "marketing": {
+    "marketing": "마케팅 알림",
+    "marketingDescription": "새로운 기능과 업데이트에 대한 알림을 받습니다.",
+    "security": "보안 알림",
+    "securityDescription": "계정 보안에 관련된 중요한 알림을 받습니다.",
+    "chat": "채팅 알림",
+    "chatDescription": "새로운 메시지와 응답에 대한 알림을 받습니다.",
+    "marketingOld": {
       "title": "마케팅 정보",
       "description": "새로운 기능 및 프로모션 정보를 받습니다."
     },
@@ -70,26 +80,57 @@
     "saveButton": "저장하기"
   },
   "preferences": {
-    "title": "사용자 환경설정",
-    "description": "앱 사용 환경을 사용자 정의하세요.",
-    "appearance": "외관",
     "theme": {
-      "title": "테마",
+      "title": "테마 설정",
+      "description": "앱의 외관을 사용자 정의하세요.",
+      "mode": "테마 모드",
       "light": "라이트",
+      "lightDesc": "밝은 테마",
       "dark": "다크",
-      "system": "시스템"
+      "darkDesc": "어두운 테마",
+      "system": "시스템",
+      "systemDesc": "시스템 설정 따르기",
+      "fontSize": "글꼴 크기",
+      "fontSmall": "작게",
+      "fontMedium": "보통",
+      "fontLarge": "크게"
     },
-    "language": {
-      "title": "언어",
-      "description": "원하는 언어를 선택하세요."
+    "chat": {
+      "title": "채팅 설정",
+      "description": "채팅 인터페이스를 사용자 정의하세요.",
+      "enterToSend": "Enter로 전송",
+      "enterToSendDesc": "Enter 키를 눌러 메시지를 전송합니다.",
+      "streamingResponse": "실시간 응답",
+      "streamingResponseDesc": "AI 응답을 실시간으로 표시합니다.",
+      "showTypingIndicator": "타이핑 표시",
+      "showTypingIndicatorDesc": "AI가 응답 중일 때 애니메이션을 표시합니다."
     },
-    "accessibility": "접근성",
-    "fontSize": {
-      "title": "글꼴 크기",
-      "small": "작게",
-      "medium": "보통",
-      "large": "크게"
-    },
-    "saveButton": "저장하기"
+    "ai": {
+      "title": "AI 응답 설정",
+      "description": "AI 응답 방식을 설정하세요.",
+      "responseStyle": "응답 스타일",
+      "concise": "간결함",
+      "balanced": "균형",
+      "detailed": "상세함",
+      "codeTheme": "코드 블록 테마"
+    }
+  },
+  "common": {
+    "save": "저장",
+    "saving": "저장 중..."
+  },
+  "errors": {
+    "enterUsername": "사용자명을 입력해주세요.",
+    "enterCurrentPassword": "현재 비밀번호를 입력해주세요.",
+    "enterNewPassword": "새 비밀번호를 입력해주세요.",
+    "passwordMismatch": "새 비밀번호와 확인 비밀번호가 일치하지 않습니다.",
+    "passwordTooShort": "새 비밀번호는 최소 6자 이상이어야 합니다.",
+    "updateFailed": "프로필 업데이트에 실패했습니다.",
+    "genericError": "프로필 업데이트 중 오류가 발생했습니다.",
+    "loadFailed": "사용자 정보를 불러올 수 없습니다."
+  },
+  "success": {
+    "profileUpdated": "프로필이 성공적으로 업데이트되었습니다.",
+    "preferencesUpdated": "환경설정이 성공적으로 업데이트되었습니다."
   }
 } 

@@ -74,5 +74,6 @@
   "serverSaveSuccess": "저장 성공",
   "allServersSaveComplete": "모든 서버 저장 완료, 페이지 새로고침 중...",
   "pageRefreshExecuting": "페이지 새로고침 실행",
-  "settingsSaveError": "설정 저장 오류"
+  "settingsSaveError": "설정 저장 오류",
+  "savingInProgress": "서버 저장 중..."
 } 

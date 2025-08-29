@@ -163,6 +163,29 @@ export async function POST(request: NextRequest) {
         }
       }
       
+      // Get Gemini models
+      else if (server.provider === 'gemini' && server.apiKey) {
+        try {
+          const response = await fetch(`${server.baseUrl}/models?key=${server.apiKey}`);
+          
+          if (response.ok) {
+            const data = await response.json();
+            models = data.models?.map((model: any) => ({
+              modelId: model.name.replace('models/', ''), // Remove 'models/' prefix
+              capabilities: {
+                chat: true, // Most Gemini models support chat
+                image: model.supportedGenerationMethods?.includes('generateContent') && 
+                       (model.inputTokenLimit > 100000 || model.name.includes('vision')), // Vision models typically have large context
+                audio: false // Currently no audio support in standard Gemini models
+              },
+              contextLength: model.inputTokenLimit
+            })) || [];
+          }
+        } catch (err) {
+          console.error('Failed to retrieve Gemini models:', err);
+        }
+      }
+      
       // Upsert models
       const results = [];
       for (const model of models) {

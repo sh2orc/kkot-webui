@@ -23,6 +23,7 @@
     "uploadImage": "Upload Image",
     "name": "Name",
     "username": "Username",
+    "usernamePlaceholder": "Enter username",
     "email": "Email",
     "bio": "Bio",
     "bioPlaceholder": "Enter a brief self-introduction",
@@ -37,8 +38,11 @@
     "description": "Manage your account security and access settings.",
     "passwordChange": "Change Password",
     "currentPassword": "Current Password",
+    "currentPasswordPlaceholder": "Enter current password",
     "newPassword": "New Password",
+    "newPasswordPlaceholder": "Enter new password",
     "confirmPassword": "Confirm Password",
+    "confirmPasswordPlaceholder": "Re-enter new password",
     "accountSecurity": "Account Security",
     "twoFactor": {
       "title": "Two-Factor Authentication",
@@ -58,7 +62,13 @@
       "title": "System Updates",
       "description": "Notify about system updates and changes."
     },
-    "marketing": {
+    "marketing": "Marketing Notifications",
+    "marketingDescription": "Receive notifications about new features and updates.",
+    "security": "Security Notifications",
+    "securityDescription": "Receive important notifications related to account security.",
+    "chat": "Chat Notifications",
+    "chatDescription": "Receive notifications for new messages and responses.",
+    "marketingOld": {
       "title": "Marketing Information",
       "description": "Receive information about new features and promotions."
     },
@@ -70,26 +80,57 @@
     "saveButton": "Save"
   },
   "preferences": {
-    "title": "User Preferences",
-    "description": "Customize your app experience.",
-    "appearance": "Appearance",
     "theme": {
-      "title": "Theme",
+      "title": "Theme Settings",
+      "description": "Customize the appearance of the app.",
+      "mode": "Theme Mode",
       "light": "Light",
+      "lightDesc": "Bright theme",
       "dark": "Dark",
-      "system": "System"
+      "darkDesc": "Dark theme",
+      "system": "System",
+      "systemDesc": "Follow system settings",
+      "fontSize": "Font Size",
+      "fontSmall": "Small",
+      "fontMedium": "Medium",
+      "fontLarge": "Large"
     },
-    "language": {
-      "title": "Language",
-      "description": "Select your preferred language."
+    "chat": {
+      "title": "Chat Settings",
+      "description": "Customize the chat interface.",
+      "enterToSend": "Send with Enter",
+      "enterToSendDesc": "Press Enter key to send messages.",
+      "streamingResponse": "Streaming Response",
+      "streamingResponseDesc": "Show AI responses in real-time.",
+      "showTypingIndicator": "Typing Indicator",
+      "showTypingIndicatorDesc": "Show animation when AI is responding."
     },
-    "accessibility": "Accessibility",
-    "fontSize": {
-      "title": "Font Size",
-      "small": "Small",
-      "medium": "Medium",
-      "large": "Large"
-    },
-    "saveButton": "Save"
+    "ai": {
+      "title": "AI Response Settings",
+      "description": "Configure AI response behavior.",
+      "responseStyle": "Response Style",
+      "concise": "Concise",
+      "balanced": "Balanced",
+      "detailed": "Detailed",
+      "codeTheme": "Code Block Theme"
+    }
+  },
+  "common": {
+    "save": "Save",
+    "saving": "Saving..."
+  },
+  "errors": {
+    "enterUsername": "Please enter username.",
+    "enterCurrentPassword": "Please enter current password.",
+    "enterNewPassword": "Please enter new password.",
+    "passwordMismatch": "New password and confirmation password do not match.",
+    "passwordTooShort": "New password must be at least 6 characters.",
+    "updateFailed": "Failed to update profile.",
+    "genericError": "An error occurred while updating profile.",
+    "loadFailed": "Unable to load user information."
+  },
+  "success": {
+    "profileUpdated": "Profile updated successfully.",
+    "preferencesUpdated": "Preferences updated successfully."
   }
 } 

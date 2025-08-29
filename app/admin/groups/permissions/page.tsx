@@ -1,16 +1,17 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
+import { ArrowLeft, Save, Shield, Bot, Brain, Database, HardDrive, Loader2 } from "lucide-react"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 import { toast } from "sonner"
-import { Shield, Bot, Brain, Database, HardDrive, Loader2 } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface Group {
   id: string
@@ -28,17 +29,16 @@ interface Permission {
   permissions: string[]
 }
 
-interface GroupPermissionsDialogProps {
-  isOpen: boolean
-  onClose: () => void
-  group: Group
-  onUpdate: () => void
-}
-
 const PERMISSION_TYPES = ['read', 'write', 'delete'] as const
 
-export function GroupPermissionsDialog({ isOpen, onClose, group, onUpdate }: GroupPermissionsDialogProps) {
+export default function GroupPermissionsPage() {
+  const router = useRouter()
+  const searchParams = useSearchParams()
   const { lang, language } = useTranslation('admin.groups')
+  
+  const groupId = searchParams.get('id')
+  
+  const [group, setGroup] = useState<Group | null>(null)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [agents, setAgents] = useState<Resource[]>([])
@@ -63,11 +63,26 @@ export function GroupPermissionsDialog({ isOpen, onClose, group, onUpdate }: Gro
   }, [language])
 
   useEffect(() => {
-    if (isOpen) {
+    if (groupId) {
+      fetchGroup()
       fetchResources()
       fetchPermissions()
+    } else {
+      router.push('/admin/groups')
     }
-  }, [isOpen, group.id])
+  }, [groupId])
+
+  const fetchGroup = async () => {
+    try {
+      const response = await fetch(`/api/groups/${groupId}`)
+      if (!response.ok) throw new Error("Failed to fetch group")
+      const data = await response.json()
+      setGroup(data)
+    } catch (error) {
+      toast.error(lang('errors.fetchFailed'))
+      router.push('/admin/groups')
+    }
+  }
 
   const fetchResources = async () => {
     try {
@@ -108,7 +123,7 @@ export function GroupPermissionsDialog({ isOpen, onClose, group, onUpdate }: Gro
       const vectorStoresRes = await fetch('/api/rag/vector-stores')
       if (vectorStoresRes.ok) {
         const data = await vectorStoresRes.json()
-        setVectorStores(data.vectorStores.map((v: any) => ({
+        setVectorStores(data.stores.map((v: any) => ({
           id: v.id,
           name: v.name,
           description: v.type
@@ -123,7 +138,7 @@ export function GroupPermissionsDialog({ isOpen, onClose, group, onUpdate }: Gro
   const fetchPermissions = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/groups/${group.id}/permissions`)
+      const response = await fetch(`/api/groups/${groupId}/permissions`)
       if (response.ok) {
         const data = await response.json()
         setPermissions({
@@ -192,7 +207,7 @@ export function GroupPermissionsDialog({ isOpen, onClose, group, onUpdate }: Gro
         }
       }
 
-      const response = await fetch(`/api/groups/${group.id}/permissions`, {
+      const response = await fetch(`/api/groups/${groupId}/permissions`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json'
@@ -203,8 +218,7 @@ export function GroupPermissionsDialog({ isOpen, onClose, group, onUpdate }: Gro
       if (!response.ok) throw new Error('Failed to save permissions')
       
       toast.success(lang('saveSuccess'))
-      onUpdate()
-      onClose()
+      router.push('/admin/groups')
     } catch (error) {
       console.error('Failed to save permissions:', error)
       toast.error(lang('errors.saveFailed'))
@@ -218,6 +232,10 @@ export function GroupPermissionsDialog({ isOpen, onClose, group, onUpdate }: Gro
     resourceId: string,
     permissionType: typeof PERMISSION_TYPES[number]
   ) => {
+    // Admin group always has all permissions
+    if (groupId === 'admin') {
+      return true
+    }
     const perm = permissions[resourceType].find(p => p.resourceId === resourceId)
     return perm ? perm.permissions.includes(permissionType) : false
   }
@@ -257,6 +275,7 @@ export function GroupPermissionsDialog({ isOpen, onClose, group, onUpdate }: Gro
                         onCheckedChange={(checked) => 
                           handlePermissionChange(resourceType, resource.id, permType, checked as boolean)
                         }
+                        disabled={groupId === 'admin'}
                       />
                       <span className="text-sm">{lang(`permissions.${permType}`)}</span>
                     </label>
@@ -270,60 +289,138 @@ export function GroupPermissionsDialog({ isOpen, onClose, group, onUpdate }: Gro
     </Card>
   )
 
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh]">
-        <DialogHeader>
-          <DialogTitle className="flex items-center gap-2">
-            <Shield className="h-5 w-5" />
-            {lang('permissionsDialog.title')}: {group.name}
-          </DialogTitle>
-          <DialogDescription>
-            {lang('permissionsDialog.description')}
-          </DialogDescription>
-        </DialogHeader>
-        
-        {loading ? (
-          <div className="flex items-center justify-center py-8">
-            <Loader2 className="h-8 w-8 animate-spin" />
+  if (loading) {
+    return (
+      <div className="space-y-6">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <Button variant="ghost" size="icon" onClick={() => router.push('/admin/groups')}>
+              <ArrowLeft className="h-4 w-4" />
+            </Button>
+            <div>
+              <Skeleton className="h-9 w-64 mb-2" />
+              <Skeleton className="h-4 w-96" />
+            </div>
           </div>
-        ) : (
-          <Tabs defaultValue="agent" className="mt-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="agent">{lang('tabs.agents')}</TabsTrigger>
-              <TabsTrigger value="model">{lang('tabs.models')}</TabsTrigger>
-              <TabsTrigger value="rag_collection">{lang('tabs.collections')}</TabsTrigger>
-              <TabsTrigger value="vector_store">{lang('tabs.vectorStores')}</TabsTrigger>
-            </TabsList>
-            
-            <TabsContent value="agent">
-              {renderResourcePermissions(agents, 'agent', <Bot className="h-4 w-4" />)}
-            </TabsContent>
-            
-            <TabsContent value="model">
-              {renderResourcePermissions(models, 'model', <Brain className="h-4 w-4" />)}
-            </TabsContent>
-            
-            <TabsContent value="rag_collection">
-              {renderResourcePermissions(collections, 'rag_collection', <Database className="h-4 w-4" />)}
-            </TabsContent>
-            
-            <TabsContent value="vector_store">
-              {renderResourcePermissions(vectorStores, 'vector_store', <HardDrive className="h-4 w-4" />)}
-            </TabsContent>
-          </Tabs>
-        )}
+        </div>
+
+        <div className="space-y-4">
+          {/* Tabs skeleton */}
+          <div className="grid w-full grid-cols-4">
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+            <Skeleton className="h-10 w-full" />
+          </div>
+          
+          {/* Card skeleton */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-2">
+                <Skeleton className="h-4 w-4" />
+                <Skeleton className="h-6 w-32" />
+                <Skeleton className="h-5 w-10 rounded-full" />
+              </div>
+              <Skeleton className="h-4 w-80 mt-2" />
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                {[1, 2, 3].map((i) => (
+                  <div key={i} className="border rounded-lg p-4">
+                    <div className="mb-3">
+                      <Skeleton className="h-5 w-48" />
+                      <Skeleton className="h-3 w-64 mt-1" />
+                    </div>
+                    <div className="flex gap-4">
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-4 w-16" />
+                      <Skeleton className="h-4 w-16" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        <div className="flex justify-end gap-2">
+          <Skeleton className="h-10 w-20" />
+          <Skeleton className="h-10 w-20" />
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <Button variant="ghost" size="icon" onClick={() => router.push('/admin/groups')}>
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <h1 className="text-3xl font-bold">{lang('managePermissions')}</h1>
+            <p className="text-muted-foreground mt-1">
+              {group?.name} {lang('permissionManagementDesc')}
+            </p>
+          </div>
+        </div>
+      </div>
+
+      <Tabs defaultValue="agent" className="space-y-4">
+        <TabsList className="grid w-full grid-cols-4">
+          <TabsTrigger value="agent">{lang('tabs.agents')}</TabsTrigger>
+          <TabsTrigger value="model">{lang('tabs.models')}</TabsTrigger>
+          <TabsTrigger value="rag_collection">{lang('tabs.collections')}</TabsTrigger>
+          <TabsTrigger value="vector_store">{lang('tabs.vectorStores')}</TabsTrigger>
+        </TabsList>
         
-        <DialogFooter>
-          <Button variant="outline" onClick={onClose}>
-            {lang('dialog.cancel')}
-          </Button>
-          <Button onClick={handleSave} disabled={saving}>
-            {saving && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
-            {lang('dialog.save')}
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
+        <TabsContent value="agent">
+          {renderResourcePermissions(agents, 'agent', <Bot className="h-4 w-4" />)}
+        </TabsContent>
+        
+        <TabsContent value="model">
+          {renderResourcePermissions(models, 'model', <Brain className="h-4 w-4" />)}
+        </TabsContent>
+        
+        <TabsContent value="rag_collection">
+          {renderResourcePermissions(collections, 'rag_collection', <Database className="h-4 w-4" />)}
+        </TabsContent>
+        
+        <TabsContent value="vector_store">
+          {renderResourcePermissions(vectorStores, 'vector_store', <HardDrive className="h-4 w-4" />)}
+        </TabsContent>
+      </Tabs>
+
+      {groupId === 'admin' && (
+        <Card className="border-orange-200 bg-orange-50 dark:border-orange-900 dark:bg-orange-950">
+          <CardContent className="flex items-center gap-2 pt-6">
+            <Shield className="h-5 w-5 text-orange-600 dark:text-orange-400" />
+            <p className="text-sm text-orange-600 dark:text-orange-400">
+              {lang('adminGroupPermissionNotice')}
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="flex justify-end gap-2">
+        <Button variant="outline" onClick={() => router.push('/admin/groups')}>
+          {lang('dialog.cancel')}
+        </Button>
+        <Button onClick={handleSave} disabled={saving || groupId === 'admin'}>
+          {saving ? (
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin" />
+              {lang('saving')}
+            </div>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Save className="h-4 w-4" />
+              {lang('dialog.save')}
+            </div>
+          )}
+        </Button>
+      </div>
+    </div>
   )
 }
