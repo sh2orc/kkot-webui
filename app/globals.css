@@ -179,8 +179,16 @@ body.no-loading [data-nextjs-loading-state] {
     border-radius: 3px;
   }
   
+  .dark .messages-container::-webkit-scrollbar-thumb {
+    background: #4b5563;
+  }
+  
   .messages-container::-webkit-scrollbar-thumb:hover {
     background: #9ca3af;
+  }
+  
+  .dark .messages-container::-webkit-scrollbar-thumb:hover {
+    background: #6b7280;
   }
   
   /* Message container rendering optimization */
@@ -228,22 +236,12 @@ body.no-loading [data-nextjs-loading-state] {
 
 /* Click and hover effects */
 @layer base {
-  button:hover, a:hover, [role="button"]:hover {
-    background-color: hsl(var(--accent));
-    color: hsl(var(--accent-foreground));
-    transition: all 0.2s ease;
-  }
+  /* Hover effects removed to avoid conflicts with component-specific hover styles */
   
+  /* Active effects for visual feedback */
   button:active, a:active, [role="button"]:active {
-    background-color: hsl(210, 60%, 85%);
-    color: hsl(210, 60%, 20%);
     transform: scale(0.98);
-  }
-  
-  .dark button:active, .dark a:active, .dark [role="button"]:active {
-    background-color: hsl(210, 60%, 25%);
-    color: hsl(210, 60%, 90%);
-    transform: scale(0.98);
+    transition: transform 0.1s ease;
   }
 }
 

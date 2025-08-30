@@ -6,7 +6,7 @@ interface LoadingProps {
 
 export default function Loading({ text = 'Loading...', className = '', fullScreen = true }: LoadingProps) {
   const baseClasses = fullScreen 
-    ? `min-h-screen flex items-center justify-center bg-gray-50`
+    ? `min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900`
     : `flex-1 flex items-center justify-center`;
     
   return (

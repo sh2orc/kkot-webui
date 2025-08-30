@@ -226,7 +226,7 @@ export function UserManagementDialog({
                     required={isCreating}
                   />
                   {!isCreating && (
-                    <p className="text-sm text-gray-500 mt-1">{lang('passwordHint')}</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">{lang('passwordHint')}</p>
                   )}
                 </div>
 
@@ -290,7 +290,7 @@ export function UserManagementDialog({
                       />
                       <Label htmlFor={`role-${role.id}`} className="font-normal">
                         <span className="font-medium">{role.name}</span>
-                        <span className="text-sm text-gray-500 ml-2">{role.description}</span>
+                        <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">{role.description}</span>
                       </Label>
                     </div>
                   ))}
@@ -302,7 +302,7 @@ export function UserManagementDialog({
               <div className="space-y-4">
                 <div>
                   <h3 className="text-sm font-medium mb-2">{lang('tabs.groupsDescription') || "사용자가 속할 그룹을 선택하세요"}</h3>
-                  <p className="text-sm text-gray-500 mb-4">
+                  <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
                     {lang('tabs.groupsHint') || "그룹에 따라 리소스 접근 권한이 결정됩니다"}
                   </p>
                 </div>
@@ -323,7 +323,7 @@ export function UserManagementDialog({
                       <Label htmlFor={`group-${group.id}`} className="font-normal">
                         <span className="font-medium">{group.name}</span>
                         {group.description && (
-                          <span className="text-sm text-gray-500 ml-2">{group.description}</span>
+                          <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">{group.description}</span>
                         )}
                       </Label>
                     </div>

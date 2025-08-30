@@ -62,7 +62,7 @@ export default function GlobalLayout({ children }: GlobalLayoutProps) {
   // Admin pages use their own sidebar, so only show navigation bar
   if (isAdminPage) {
     return (
-      <div className="flex h-screen bg-white">
+      <div className="flex h-screen bg-white dark:bg-gray-900">
         <div className="flex-1 flex flex-col">
           <Navbar
             title={getPageTitle()}
@@ -78,7 +78,7 @@ export default function GlobalLayout({ children }: GlobalLayoutProps) {
 
   // Provide layout with main sidebar for regular pages
   return (
-    <div className="flex h-screen bg-white">
+    <div className="flex h-screen bg-white dark:bg-gray-900">
       <Sidebar
         currentPage={getCurrentPageType()}
         mobileSidebarOpen={mobileSidebarOpen}

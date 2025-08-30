@@ -27,7 +27,7 @@ const TextSwitch = React.forwardRef<
         "inline-flex h-7 min-w-[50px] px-3 items-center justify-center rounded-md text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
         checked 
           ? "bg-green-600 text-primary-foreground hover:bg-green-600/90 hover:text-white" 
-          : "bg-secondary text-secondary-foreground hover:bg-gray-300/80 border border-input",
+          : "bg-secondary text-secondary-foreground hover:bg-gray-300/80 dark:hover:bg-gray-700/80 border border-input",
         className
       )}
       ref={ref}

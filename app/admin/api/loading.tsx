@@ -13,7 +13,7 @@ export default function ApiEndpointLoading() {
       <CardContent>
         <div className="space-y-4">
           {/* Base URL section skeleton */}
-          <div className="bg-gray-50 p-4 rounded-lg space-y-2">
+          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg space-y-2">
             <Skeleton className="h-5 w-20" />
             <Skeleton className="h-12 w-full" />
           </div>

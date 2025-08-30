@@ -610,19 +610,19 @@ export default function Component({
               {/* User welcome message */}
               {currentSession?.user && (
                 <div className="text-center mb-8">
-                  <h1 className="text-3xl font-bold text-gray-900 mb-2">
+                  <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
                     {lang("welcome.greeting").replace("{name}", currentSession.user.name)}
                   </h1>
                   {selectedModel ? (
-                    <p className="text-lg text-gray-600">
+                    <p className="text-lg text-gray-600 dark:text-gray-300">
                       {lang("welcome.helpMessage")}
                     </p>
                   ) : (
                     <div className="space-y-4">
-                      <p className="text-lg text-gray-600">
+                      <p className="text-lg text-gray-600 dark:text-gray-300">
                         {lang("welcome.setupRequired")}
                       </p>
-                      <p className="text-sm text-gray-500">
+                      <p className="text-sm text-gray-500 dark:text-gray-400">
                         {lang("welcome.noModelMessage")}
                       </p>
                       {currentSession.user.role === 'admin' && (
@@ -645,7 +645,7 @@ export default function Component({
           <div className="w-full max-w-3xl mb-8">
             {/* Desktop Input */}
             <div className="hidden md:block">
-              <div className="flex-1 flex flex-col relative w-full shadow-lg rounded-xl border border-gray-200 hover:border-gray-300 focus-within:border-gray-300 transition bg-white">
+              <div className="flex-1 flex flex-col relative w-full shadow-lg rounded-xl border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 focus-within:border-gray-300 dark:focus-within:border-gray-500 transition bg-white dark:bg-gray-800">
                 {/* Image previews */}
                 {imagePreviews.length > 0 && (
                   <div className="flex flex-wrap gap-2 p-3">
@@ -654,7 +654,7 @@ export default function Component({
                         <img
                           src={preview}
                           alt={lang("images.uploadedImage").replace("{index}", (index + 1).toString())}
-                          className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                          className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
                         />
                         <button
                           onClick={() => removeImage(index)}
@@ -673,7 +673,7 @@ export default function Component({
                     <textarea
                       ref={textareaRef}
                       placeholder={lang("placeholder")}
-                      className={`w-full rounded-lg border-0 p-1 ${supportsMultimodal ? 'pr-16 sm:pr-20' : 'pr-12 sm:pr-14'} resize-none overflow-hidden focus:outline-none focus:ring-0 text-base leading-6 min-h-[52px] max-h-[120px] sm:max-h-[180px] touch-manipulation`}
+                      className={`w-full rounded-lg border-0 p-1 ${supportsMultimodal ? 'pr-16 sm:pr-20' : 'pr-12 sm:pr-14'} resize-none overflow-hidden focus:outline-none focus:ring-0 text-base leading-6 min-h-[52px] max-h-[120px] sm:max-h-[180px] touch-manipulation bg-transparent dark:text-gray-200 placeholder:text-gray-500 dark:text-gray-400 dark:placeholder:text-gray-400`}
                       style={{
                         height: 'auto',
                         minHeight: '52px',
@@ -698,7 +698,7 @@ export default function Component({
                     <Button
                       variant="default"
                       size="icon"
-                      className={`absolute right-0 bottom-2 sm:bottom-3 h-6 w-6 sm:h-9 sm:w-9 rounded-full text-white bg-black hover:bg-gray-800 hover:text-white touch-manipulation`}
+                      className={`absolute right-0 bottom-2 sm:bottom-3 h-6 w-6 sm:h-9 sm:w-9 rounded-full text-white bg-black dark:bg-gray-200 dark:text-black hover:bg-gray-800 dark:hover:bg-gray-300 hover:text-white dark:hover:text-black touch-manipulation`}
                       onClick={handleSubmit}
                       disabled={(!inputValue.trim() && uploadedImages.length === 0) || isSubmitting || !selectedModel}
                     >
@@ -708,7 +708,7 @@ export default function Component({
 
                   {/* Text length indicator */}
                   {(inputValue.length > 500 || uploadedImages.length > 0) && (
-                    <div className="text-xs text-gray-500 mt-1 px-1">
+                    <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 mt-1 px-1">
                       {inputValue.length}/{uploadedImages.length > 0 ? 1000 : 4000} {lang("images.charactersLimit")}
                       {uploadedImages.length > 0 && (
                         <span className="ml-2 text-orange-600">
@@ -731,7 +731,7 @@ export default function Component({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation"
+                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation"
                           onClick={() => fileInputRef.current?.click()}
                         >
                           <ImageIcon className="h-4 w-4" />
@@ -741,14 +741,14 @@ export default function Component({
                     <div className="flex items-center gap-2 sm:gap-2">
                       <Button variant="ghost" 
                         size="icon" 
-                        className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation">
+                        className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation">
                         <Mic className="h-4 w-4" />
                       </Button>
                       {supportsDeepResearch && (
                         <Button
                           variant="ghost"
                           size="icon"
-                          className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation ${isDeepResearchActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white" : ""}`}
+                          className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation ${isDeepResearchActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white dark:bg-cyan-600 dark:hover:bg-cyan-700" : ""}`}
                           data-testid="deep-research-toggle"
                           data-active={isDeepResearchActive}
                           onClick={() => {
@@ -767,7 +767,7 @@ export default function Component({
                         <Button
                           variant="ghost"
                           size="icon"
-                          className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation ${isGlobeActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white" : ""}`}
+                          className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation ${isGlobeActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white dark:bg-cyan-600 dark:hover:bg-cyan-700" : ""}`}
                           onClick={() => setIsGlobeActive(!isGlobeActive)}
                         >
                           <Globe className="h-4 w-4" />
@@ -776,7 +776,7 @@ export default function Component({
                     </div>
                   </div>
                 </div>
-                <div className="text-xs text-center text-gray-400 pb-2 mt-3 ">
+                <div className="text-xs text-center text-gray-400 dark:text-gray-500 dark:text-gray-400 pb-2 mt-3 ">
                   {lang("disclaimer")}
                 </div>
               </div>
@@ -784,8 +784,8 @@ export default function Component({
 
             {/* Mobile Input - Fixed at bottom */}
             <div className="md:hidden absolute bottom-0 left-0 right-0 p-0 chat-input-container mobile-keyboard-adjust">
-              <div className="max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto bg-white">
-                <div className="flex-1 flex flex-col relative w-full shadow-lg rounded-xl border border-gray-200 hover:border-gray-300 focus-within:border-gray-300 transition bg-white">
+              <div className="max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto bg-white dark:bg-gray-900">
+                <div className="flex-1 flex flex-col relative w-full shadow-lg rounded-xl border border-gray-200 dark:border-gray-600 hover:border-gray-300 dark:hover:border-gray-500 focus-within:border-gray-300 dark:focus-within:border-gray-500 transition bg-white dark:bg-gray-800">
                   {/* Image previews for mobile */}
                   {imagePreviews.length > 0 && (
                     <div className="flex flex-wrap gap-2 p-3">
@@ -794,7 +794,7 @@ export default function Component({
                                                   <img
                           src={preview}
                           alt={lang("images.uploadedImage").replace("{index}", (index + 1).toString())}
-                          className="w-16 h-16 object-cover rounded-lg border border-gray-200"
+                          className="w-16 h-16 object-cover rounded-lg border border-gray-200 dark:border-gray-600"
                         />
                           <button
                             onClick={() => removeImage(index)}
@@ -813,7 +813,7 @@ export default function Component({
                       <textarea
                         ref={textareaRef}
                         placeholder={lang("mobilePlaceholder")}
-                        className={`w-full rounded-lg border-0 p-1 ${supportsMultimodal ? 'pr-16 sm:pr-20' : 'pr-12 sm:pr-14'} resize-none overflow-hidden focus:outline-none focus:ring-0 text-base leading-6 min-h-[52px] max-h-[120px] sm:max-h-[180px] touch-manipulation`}
+                        className={`w-full rounded-lg border-0 p-1 ${supportsMultimodal ? 'pr-16 sm:pr-20' : 'pr-12 sm:pr-14'} resize-none overflow-hidden focus:outline-none focus:ring-0 text-base leading-6 min-h-[52px] max-h-[120px] sm:max-h-[180px] touch-manipulation bg-transparent dark:text-gray-200 placeholder:text-gray-500 dark:text-gray-400 dark:placeholder:text-gray-400`}
                         style={{
                           height: 'auto',
                           minHeight: '52px',
@@ -829,7 +829,7 @@ export default function Component({
                       <Button
                         variant="default"
                         size="icon"
-                        className={`absolute right-0 bottom-2 sm:bottom-3 h-6 w-6 sm:h-9 sm:w-9 rounded-full text-white bg-black hover:bg-gray-800 hover:text-white touch-manipulation`}
+                        className={`absolute right-0 bottom-2 sm:bottom-3 h-6 w-6 sm:h-9 sm:w-9 rounded-full text-white bg-black dark:bg-gray-200 dark:text-black hover:bg-gray-800 dark:hover:bg-gray-300 hover:text-white dark:hover:text-black touch-manipulation`}
                         onClick={handleSubmit}
                         disabled={(!inputValue.trim() && uploadedImages.length === 0) || isSubmitting || !selectedModel}
                       >
@@ -839,7 +839,7 @@ export default function Component({
 
                     {/* Text length indicator */}
                     {(inputValue.length > 500 || uploadedImages.length > 0) && (
-                      <div className="text-xs text-gray-500 mt-1 px-1">
+                      <div className="text-xs text-gray-500 dark:text-gray-400 dark:text-gray-400 mt-1 px-1">
                         {inputValue.length}/{uploadedImages.length > 0 ? 1000 : 4000} {lang("images.charactersLimit")}
                         {uploadedImages.length > 0 && (
                           <span className="ml-2 text-orange-600">
@@ -859,7 +859,7 @@ export default function Component({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation"
+                            className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation"
                             onClick={() => fileInputRef.current?.click()}
                           >
                             <ImageIcon className="h-4 w-4" />
@@ -869,14 +869,14 @@ export default function Component({
                       <div className="flex items-center gap-2 sm:gap-2">
                         <Button variant="ghost" 
                           size="icon" 
-                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation">
+                          className="h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation">
                           <Mic className="h-4 w-4" />
                         </Button>
                         {supportsDeepResearch && (
                           <Button
                             variant="ghost"
                             size="icon"
-                            className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation ${isDeepResearchActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white" : ""}`}
+                            className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation ${isDeepResearchActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white dark:bg-cyan-600 dark:hover:bg-cyan-700" : ""}`}
                             onClick={() => {
                               console.log('🧠 Deep research button clicked! (Mobile)')
                               console.log('  Current state:', isDeepResearchActive)
@@ -892,7 +892,7 @@ export default function Component({
                           <Button
                             variant="ghost"
                             size="icon"
-                            className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 touch-manipulation ${isGlobeActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white" : ""}`}
+                            className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation ${isGlobeActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white dark:bg-cyan-600 dark:hover:bg-cyan-700" : ""}`}
                             onClick={() => setIsGlobeActive(!isGlobeActive)}
                           >
                             <Globe className="h-4 w-4" />
@@ -902,7 +902,7 @@ export default function Component({
                     </div>
                   </div>
                 </div>
-                <div className="text-xs text-center text-gray-400 pb-2 mt-3 ">
+                <div className="text-xs text-center text-gray-400 dark:text-gray-500 dark:text-gray-400 pb-2 mt-3 ">
                   {lang("disclaimer")}
                 </div>
               </div>
@@ -916,12 +916,12 @@ export default function Component({
             {/* Keyboard Shortcut Hint */}
             {isExpanded && (
               <div className="hidden md:block absolute bottom-4 right-4">
-                <div className="bg-gray-100 text-gray-600 text-xs px-3 py-2 rounded-lg">
-                  <kbd className="bg-white px-2 py-1 rounded border text-xs mr-1">Enter</kbd>
+                <div className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300 dark:text-gray-400 text-xs px-3 py-2 rounded-lg">
+                  <kbd className="bg-white dark:bg-gray-700 px-2 py-1 rounded border dark:border-gray-600 text-xs mr-1">Enter</kbd>
                   {lang("shortcuts.send")} |
-                  <kbd className="bg-white px-2 py-1 rounded border text-xs mx-1">Shift</kbd>
+                  <kbd className="bg-white dark:bg-gray-700 px-2 py-1 rounded border dark:border-gray-600 text-xs mx-1">Shift</kbd>
                   +
-                  <kbd className="bg-white px-2 py-1 rounded border text-xs ml-1">Enter</kbd>
+                  <kbd className="bg-white dark:bg-gray-700 px-2 py-1 rounded border dark:border-gray-600 text-xs ml-1">Enter</kbd>
                   {lang("shortcuts.lineBreak")}
                 </div>
               </div>

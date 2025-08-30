@@ -220,7 +220,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
   if (!userProfile) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <p className="text-gray-500">{lang('errors.loadFailed')}</p>
+        <p className="text-gray-500 dark:text-gray-400">{lang('errors.loadFailed')}</p>
       </div>
     )
   }
@@ -263,7 +263,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
                 <div className="flex items-center gap-4">
                   <Avatar className="h-20 w-20">
                     <AvatarImage src={profileImage || ''} alt="Profile" />
-                    <AvatarFallback className="bg-gray-100 text-gray-600">
+                    <AvatarFallback className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
                       {userProfile.username.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -281,7 +281,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
                         className="hidden"
                       />
                     </Label>
-                    <p className="text-xs text-gray-500 mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                       {lang('profile.photoInfo') || 'PNG, JPG 파일만 업로드 가능합니다.'}
                     </p>
                   </div>
@@ -389,7 +389,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>{lang('notifications.marketing') || '마케팅 알림'}</Label>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {lang('notifications.marketingDescription') || '새로운 기능과 업데이트에 대한 알림을 받습니다.'}
                     </p>
                   </div>
@@ -399,7 +399,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>{lang('notifications.security') || '보안 알림'}</Label>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {lang('notifications.securityDescription') || '계정 보안에 관련된 중요한 알림을 받습니다.'}
                     </p>
                   </div>
@@ -409,7 +409,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>{lang('notifications.chat') || '채팅 알림'}</Label>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {lang('notifications.chatDescription') || '새로운 메시지와 응답에 대한 알림을 받습니다.'}
                     </p>
                   </div>
@@ -434,33 +434,33 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
                   <Label>{lang('preferences.theme.mode') || '테마 모드'}</Label>
                   <div className="grid grid-cols-3 gap-4">
                     <div 
-                      className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-gray-50 ${preferences.theme === 'light' ? 'border-primary bg-primary/5' : ''}`}
+                      className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 ${preferences.theme === 'light' ? 'border-primary bg-primary/5' : ''}`}
                       onClick={() => savePreferences({ ...preferences, theme: 'light' })}
                     >
                       <Sun className="h-5 w-5" />
                       <div className="flex-1">
                         <p className="text-sm font-medium">{lang('preferences.theme.light') || '라이트'}</p>
-                        <p className="text-xs text-gray-500">{lang('preferences.theme.lightDesc') || '밝은 테마'}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{lang('preferences.theme.lightDesc') || '밝은 테마'}</p>
                       </div>
                     </div>
                     <div 
-                      className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-gray-50 ${preferences.theme === 'dark' ? 'border-primary bg-primary/5' : ''}`}
+                      className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 ${preferences.theme === 'dark' ? 'border-primary bg-primary/5' : ''}`}
                       onClick={() => savePreferences({ ...preferences, theme: 'dark' })}
                     >
                       <Moon className="h-5 w-5" />
                       <div className="flex-1">
                         <p className="text-sm font-medium">{lang('preferences.theme.dark') || '다크'}</p>
-                        <p className="text-xs text-gray-500">{lang('preferences.theme.darkDesc') || '어두운 테마'}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{lang('preferences.theme.darkDesc') || '어두운 테마'}</p>
                       </div>
                     </div>
                     <div 
-                      className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-gray-50 ${preferences.theme === 'system' ? 'border-primary bg-primary/5' : ''}`}
+                      className={`flex items-center space-x-2 border rounded-lg p-4 cursor-pointer hover:bg-gray-50 dark:hover:bg-gray-800 ${preferences.theme === 'system' ? 'border-primary bg-primary/5' : ''}`}
                       onClick={() => savePreferences({ ...preferences, theme: 'system' })}
                     >
                       <Monitor className="h-5 w-5" />
                       <div className="flex-1">
                         <p className="text-sm font-medium">{lang('preferences.theme.system') || '시스템'}</p>
-                        <p className="text-xs text-gray-500">{lang('preferences.theme.systemDesc') || '시스템 설정 따르기'}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400">{lang('preferences.theme.systemDesc') || '시스템 설정 따르기'}</p>
                       </div>
                     </div>
                   </div>
@@ -494,7 +494,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>{lang('preferences.chat.enterToSend') || 'Enter로 전송'}</Label>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {lang('preferences.chat.enterToSendDesc') || 'Enter 키를 눌러 메시지를 전송합니다.'}
                     </p>
                   </div>
@@ -504,7 +504,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>{lang('preferences.chat.streamingResponse') || '실시간 응답'}</Label>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {lang('preferences.chat.streamingResponseDesc') || 'AI 응답을 실시간으로 표시합니다.'}
                     </p>
                   </div>
@@ -514,7 +514,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
                 <div className="flex items-center justify-between">
                   <div className="space-y-0.5">
                     <Label>{lang('preferences.chat.showTypingIndicator') || '타이핑 표시'}</Label>
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-gray-500 dark:text-gray-400">
                       {lang('preferences.chat.showTypingIndicatorDesc') || 'AI가 응답 중일 때 애니메이션을 표시합니다.'}
                     </p>
                   </div>

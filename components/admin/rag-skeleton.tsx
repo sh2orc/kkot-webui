@@ -36,7 +36,7 @@ export default function RAGSkeleton() {
             <CardContent>
               <div className="space-y-4">
                 {/* Table header skeleton */}
-                <div className="grid grid-cols-5 gap-4 p-3 bg-gray-50 rounded-lg">
+                <div className="grid grid-cols-5 gap-4 p-3 bg-gray-50 dark:bg-gray-700 rounded-lg">
                   <Skeleton className="h-4 w-16" />
                   <Skeleton className="h-4 w-20" />
                   <Skeleton className="h-4 w-24" />

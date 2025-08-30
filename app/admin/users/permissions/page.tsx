@@ -238,8 +238,8 @@ export default function PermissionsPage() {
                     {perms.map((perm) => (
                       <div key={perm.id} className="p-3 border rounded-lg">
                         <div className="font-medium">{perm.name}</div>
-                        <div className="text-sm text-gray-600">{perm.description}</div>
-                        <div className="text-xs text-gray-400 mt-1">ID: {perm.id}</div>
+                        <div className="text-sm text-gray-600 dark:text-gray-300">{perm.description}</div>
+                        <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">ID: {perm.id}</div>
                       </div>
                     ))}
                   </div>
@@ -306,7 +306,7 @@ export default function PermissionsPage() {
                           />
                           <Label htmlFor={perm.id} className="font-normal">
                             {perm.name}
-                            <span className="text-sm text-gray-500 ml-2">{perm.description}</span>
+                            <span className="text-sm text-gray-500 dark:text-gray-400 ml-2">{perm.description}</span>
                           </Label>
                         </div>
                       ))}

@@ -49,7 +49,7 @@ export default function DatabaseSettingsPage() {
   if (!isTranslationsLoaded) {
     return (
       <div className="flex justify-center py-8">
-        <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+        <RefreshCw className="h-8 w-8 animate-spin text-gray-400 dark:text-gray-500 dark:text-gray-400" />
       </div>
     )
   }
@@ -58,7 +58,7 @@ export default function DatabaseSettingsPage() {
     <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">{lang('title')}</h1>
-          <p className="text-gray-600 mt-1">{lang('description')}</p>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">{lang('description')}</p>
         </div>
 
         {/* Database status card */}
@@ -66,7 +66,7 @@ export default function DatabaseSettingsPage() {
           <CardHeader>
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <Database className="h-5 w-5 text-blue-600" />
+                <Database className="h-5 w-5 text-blue-600 dark:text-blue-400" />
                 <CardTitle>{lang('status.title')}</CardTitle>
               </div>
               <Button 
@@ -97,22 +97,22 @@ export default function DatabaseSettingsPage() {
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">{lang('status.type')}</h3>
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">{lang('status.type')}</h3>
                     <p className="font-medium">{dbStatus.dbType || 'sqlite'}</p>
                   </div>
                   
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">{lang('status.url')}</h3>
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">{lang('status.url')}</h3>
                     <p className="font-medium">{dbStatus.dbUrl || lang('status.defaultValue')}</p>
                   </div>
                   
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">{lang('status.users')}</h3>
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">{lang('status.users')}</h3>
                     <p className="font-medium">{dbStatus.existingUsers?.[0]?.count || 0}{lang('status.userCountUnit')}</p>
                   </div>
                   
                   <div>
-                    <h3 className="text-sm font-medium text-gray-500">{lang('status.lastChecked')}</h3>
+                    <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">{lang('status.lastChecked')}</h3>
                     <p className="font-medium">{new Date(dbStatus.timestamp).toLocaleString()}</p>
                   </div>
                 </div>
@@ -121,16 +121,16 @@ export default function DatabaseSettingsPage() {
                 {dbStatus.tableCounts && (
                   <div className="border-t pt-4">
                     <div className="flex items-center gap-2 mb-3">
-                      <Table className="h-4 w-4 text-gray-600" />
-                      <h3 className="font-medium text-gray-700">{lang('tables.statistics')}</h3>
+                      <Table className="h-4 w-4 text-gray-600 dark:text-gray-300" />
+                      <h3 className="font-medium text-gray-700 dark:text-gray-300">{lang('tables.statistics')}</h3>
                     </div>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                       {Object.entries(dbStatus.tableCounts).map(([tableName, count]) => (
-                        <div key={tableName} className="bg-gray-50 p-3 rounded-lg">
-                          <div className="text-xs text-gray-500 uppercase tracking-wide">
+                        <div key={tableName} className="bg-gray-50 dark:bg-gray-800 p-3 rounded-lg">
+                          <div className="text-xs text-gray-500 dark:text-gray-400 uppercase tracking-wide">
                             {tableName.replace(/([A-Z])/g, ' $1').trim()}
                           </div>
-                          <div className="text-lg font-semibold text-gray-900">
+                          <div className="text-lg font-semibold text-gray-900 dark:text-gray-100">
                             {typeof count === 'number' ? count.toLocaleString() : String(count)}
                           </div>
                         </div>
@@ -141,7 +141,7 @@ export default function DatabaseSettingsPage() {
               </div>
             ) : (
               <div className="flex justify-center py-4">
-                <RefreshCw className="h-8 w-8 animate-spin text-gray-400" />
+                <RefreshCw className="h-8 w-8 animate-spin text-gray-400 dark:text-gray-500 dark:text-gray-400" />
               </div>
             )}
           </CardContent>
@@ -155,17 +155,17 @@ export default function DatabaseSettingsPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <p className="text-gray-500">{lang('development.message')}</p>
-              <div className="bg-blue-50 p-4 rounded-lg">
-                <h4 className="font-medium text-blue-900 mb-2">{lang('development.environmentVariables')}</h4>
-                <p className="text-sm text-blue-700 mb-3">
+              <p className="text-gray-500 dark:text-gray-400">{lang('development.message')}</p>
+              <div className="bg-blue-50 dark:bg-blue-950/30 p-4 rounded-lg">
+                <h4 className="font-medium text-blue-900 dark:text-blue-300 mb-2">{lang('development.environmentVariables')}</h4>
+                <p className="text-sm text-blue-700 dark:text-blue-400 mb-3">
                   {lang('development.changeDescription')}
                 </p>
                 <div className="space-y-2">
-                  <div className="font-mono text-xs bg-blue-100 p-2 rounded border">
+                  <div className="font-mono text-xs bg-blue-100 dark:bg-blue-950/50 p-2 rounded border dark:border-blue-800">
                     <strong>DB_TYPE</strong>=sqlite|postgresql
                   </div>
-                  <div className="font-mono text-xs bg-blue-100 p-2 rounded border">
+                  <div className="font-mono text-xs bg-blue-100 dark:bg-blue-950/50 p-2 rounded border dark:border-blue-800">
                     <strong>DATABASE_URL</strong>=your-connection-string
                   </div>
                 </div>

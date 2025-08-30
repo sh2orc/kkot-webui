@@ -30,25 +30,25 @@ export default async function ApiEndpointPage() {
       </CardHeader>
       <CardContent>
         <div className="space-y-4 w-full">
-          <div className="bg-gray-50 p-4 rounded-lg w-full">
+          <div className="bg-gray-50 dark:bg-gray-800 p-4 rounded-lg w-full">
             <h4 className="font-medium mb-2">{getTranslationKey(translations, 'endpoints.baseUrl')}</h4>
             <input
               type="text"
               readOnly
               value={`${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/v1`}
-              className="w-full p-3 text-sm font-mono bg-white border rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer"
+              className="w-full p-3 text-sm font-mono bg-white dark:bg-gray-700 border dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 dark:focus:ring-blue-400 cursor-pointer dark:text-gray-200"
             />
           </div>
           
           <div className="space-y-3">
             <div className="border rounded-lg p-3">
               <h4 className="font-medium text-sm">{getTranslationKey(translations, 'endpoints.chatCompletions.title')}</h4>
-              <p className="text-sm text-gray-600">{getTranslationKey(translations, 'endpoints.chatCompletions.description')}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">{getTranslationKey(translations, 'endpoints.chatCompletions.description')}</p>
             </div>
             
             <div className="border rounded-lg p-3">
               <h4 className="font-medium text-sm">{getTranslationKey(translations, 'endpoints.models.title')}</h4>
-              <p className="text-sm text-gray-600">{getTranslationKey(translations, 'endpoints.models.description')}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-300">{getTranslationKey(translations, 'endpoints.models.description')}</p>
             </div>
           </div>
         </div>

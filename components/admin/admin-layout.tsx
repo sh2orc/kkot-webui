@@ -62,11 +62,11 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   };
 
   return (
-    <div className="flex h-full border-t border-gray-200">
+    <div className="flex h-full border-t border-gray-200 dark:border-gray-700">
       {/* Sidebar */}
-      <div className="w-64 bg-white border-r border-gray-200 overflow-y-auto">
+      <div className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
         <div className="p-4">
-          <h2 className="text-lg font-semibold mb-4">{lang('title')}</h2>
+          <h2 className="text-lg font-semibold mb-4 dark:text-gray-200">{lang('title')}</h2>
           <nav className="space-y-1">
             {menuItems
               .filter(item => !item.disabled) // Filter out disabled menu items
@@ -78,8 +78,8 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
                     onClick={() => handleMenuClick(item)}
                     className={`w-full flex items-center gap-3 px-3 py-2 text-sm rounded-md transition-colors ${
                       pathname === item.path
-                        ? "bg-blue-100 text-blue-700 font-medium"
-                        : "text-gray-700 hover:bg-gray-100"
+                        ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 font-medium"
+                        : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                     }`}
                   >
                     <Icon className="h-4 w-4" />

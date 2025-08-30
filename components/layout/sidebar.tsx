@@ -514,12 +514,12 @@ export default function Sidebar({
     <>
       {/* Desktop Sidebar */}
       <div
-        className={`${sidebarCollapsed ? "w-16" : "w-60"} bg-[#f5f5f5] dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 flex-col transition-all duration-300 hidden md:flex overflow-hidden`}
+        className={`${sidebarCollapsed ? "w-16" : "w-60"} bg-[#f5f5f5] dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex-col transition-all duration-300 hidden md:flex overflow-hidden`}
       >
         {sidebarCollapsed ? (
           /* Collapsed Sidebar - Icon Only */
           <div className="flex flex-col h-full">
-            <div className="p-0 border-b border-gray-200 dark:border-gray-800 h-[3rem] flex items-center justify-center">
+            <div className="p-0 border-b border-gray-200 dark:border-gray-700 h-[3rem] flex items-center justify-center">
               <Button variant="ghost" size="icon" className="h-8 w-8 focus:outline-none focus:ring-0" onClick={() => setSidebarCollapsed(false)}>
                 <Menu className="h-4 w-4" />
               </Button>
@@ -541,7 +541,7 @@ export default function Sidebar({
 
             <div className="flex-1"></div>
 
-            <div className="p-4 border-t border-gray-200 dark:border-gray-800">
+            <div className="p-4 border-t border-gray-200 dark:border-gray-700">
               <AccountMenu align="start" side="top">
                 <Button variant="ghost" className="w-full justify-start h-10 px-2 transition-all duration-500 focus:outline-none focus:ring-0">
                   <Avatar className={`h-8 w-8 transition-transform duration-300 -translate-x-2`}>
@@ -691,7 +691,7 @@ export default function Sidebar({
             className="absolute inset-0 bg-gray-600 bg-opacity-75 mobile-overlay" 
             onClick={() => setMobileSidebarOpen(false)}
           ></div>
-          <div className="relative flex flex-col w-64 sm:w-72 h-full bg-[#f5f5f5] dark:bg-gray-900 border-r border-gray-200 dark:border-gray-800 touch-scroll">
+          <div className="relative flex flex-col w-64 sm:w-72 h-full bg-[#f5f5f5] dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 touch-scroll">
             {/* Header */}
             <div className="p-0 h-[3rem] flex items-center px-4 touch-target">
               <div className="flex items-center justify-between w-full">

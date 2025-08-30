@@ -20,7 +20,7 @@ export default function WebSearchSettingsPage() {
     <div className="space-y-6">
         <div>
           <h1 className="text-2xl font-bold">{lang('title')}</h1>
-          <p className="text-gray-600 mt-1">{lang('description')}</p>
+          <p className="text-gray-600 dark:text-gray-300 mt-1">{lang('description')}</p>
         </div>
 
         <Card>
@@ -29,7 +29,7 @@ export default function WebSearchSettingsPage() {
             <CardDescription>{lang('description')}</CardDescription>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-500">{lang('developmentNotice')}</p>
+            <p className="text-gray-500 dark:text-gray-400">{lang('developmentNotice')}</p>
           </CardContent>
         </Card>
 
@@ -42,7 +42,7 @@ export default function WebSearchSettingsPage() {
             <div className="flex items-center justify-between">
               <div>
                 <Label className="text-base font-medium">{lang('internetSearch.enabled.label')}</Label>
-                <p className="text-sm text-gray-500">{lang('internetSearch.enabled.description')}</p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">{lang('internetSearch.enabled.description')}</p>
               </div>
               <Switch checked={internetSearchEnabled} onCheckedChange={setInternetSearchEnabled} />
             </div>

@@ -258,7 +258,7 @@ export const ChatInput = memo(function ChatInput({
               <textarea
                 ref={textareaRef}
                 placeholder={lang("mobilePlaceholder")}
-                className={`w-full rounded-lg border-0 p-1 ${supportsMultimodal ? 'pr-16 sm:pr-20' : 'pr-12 sm:pr-14'} resize-none overflow-hidden focus:outline-none focus:ring-0 text-base leading-6 min-h-[52px] max-h-[120px] sm:max-h-[180px] touch-manipulation`}
+                className={`w-full rounded-lg border-0 p-1 ${supportsMultimodal ? 'pr-16 sm:pr-20' : 'pr-12 sm:pr-14'} resize-none overflow-hidden focus:outline-none focus:ring-0 text-base leading-6 min-h-[52px] max-h-[120px] sm:max-h-[180px] touch-manipulation bg-transparent dark:text-gray-200 placeholder:text-gray-500 dark:placeholder:text-gray-400`}
                 style={{
                   height: 'auto',
                   minHeight: '52px',

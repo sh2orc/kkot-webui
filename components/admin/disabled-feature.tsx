@@ -14,7 +14,7 @@ export default function DisabledFeature({ title, description }: DisabledFeatureP
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-bold">{title}</h1>
-        <p className="text-gray-600 mt-1">{description}</p>
+        <p className="text-gray-600 dark:text-gray-400 mt-1">{description}</p>
       </div>
 
       <Alert variant="destructive">
@@ -34,7 +34,7 @@ export default function DisabledFeature({ title, description }: DisabledFeatureP
           <div className="flex flex-col items-center justify-center py-8">
             <AlertCircle className="h-16 w-16 text-yellow-500 mb-4" />
             <h3 className="text-xl font-medium mb-2">Feature Coming Soon</h3>
-            <p className="text-gray-500 text-center">
+            <p className="text-gray-500 dark:text-gray-400 text-center">
               This feature is currently in development and will be available soon.
             </p>
           </div>

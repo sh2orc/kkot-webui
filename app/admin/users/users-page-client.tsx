@@ -263,7 +263,7 @@ export default function UsersPageClient({ initialUsers }: UsersPageClientProps) 
           </div>
           <div className="space-y-4 mt-4">
             <div className="flex items-center gap-2">
-              <Search className="h-4 w-4 text-gray-400" />
+              <Search className="h-4 w-4 text-gray-400 dark:text-gray-500" />
               <Input
                 placeholder={lang('searchPlaceholder')}
                 value={searchTerm}
@@ -349,7 +349,7 @@ export default function UsersPageClient({ initialUsers }: UsersPageClientProps) 
                         {lang(`status.${user.status || 'active'}`)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600">
+                    <TableCell className="text-sm text-gray-600 dark:text-gray-300">
                       {user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : lang('never')}
                     </TableCell>
                     <TableCell className="text-right">

@@ -46,7 +46,7 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-900 p-0 h-12 min-h-12 max-h-12 flex items-center px-2 sm:px-3 md:px-4 border-b border-gray-200 dark:border-gray-800">
+    <div className="bg-white dark:bg-gray-900 p-0 h-12 min-h-12 max-h-12 flex items-center px-2 sm:px-3 md:px-4">
       <div className="flex items-center justify-between w-full">
         <div className="flex items-center gap-1 sm:gap-2 flex-1 min-w-0">
           <Button 
