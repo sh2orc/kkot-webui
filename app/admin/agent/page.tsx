@@ -20,7 +20,7 @@ export default async function AgentSettingsPage() {
     if (agent.imageData) {
       hasImage = true
       imageData = convertImageDataToDataUrl(agent.imageData)
-      console.log(`에이전트 ${agent.id} 이미지 SSR 변환:`, imageData ? '성공' : '실패')
+      console.log(`Agent ${agent.id} image SSR conversion:`, imageData ? 'success' : 'failed')
     }
     
     return {

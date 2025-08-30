@@ -23,7 +23,7 @@ export default async function AgentRegisterPage({
   
   if (editingId) {
     try {
-      console.log('에이전트 데이터 로드 시작:', editingId)
+      console.log('Starting agent data load:', editingId)
       
       // Directly retrieve agent basic information
       const agentResult = await agentManageRepository.findById(editingId)
@@ -33,9 +33,9 @@ export default async function AgentRegisterPage({
         
         // Convert and pass image data on server side
         if (agent.imageData) {
-          console.log('이미지 데이터 서버에서 변환 중...')
+          console.log('Converting image data on server...')
           imageData = convertImageDataToDataUrl(agent.imageData)
-          console.log(`에이전트 ${editingId} 이미지 SSR 변환:`, imageData ? '성공' : '실패')
+          console.log(`Agent ${editingId} image SSR conversion:`, imageData ? 'success' : 'failed')
         }
         
         // Extract only necessary data
@@ -65,9 +65,9 @@ export default async function AgentRegisterPage({
         if (agent) {
           // Convert and pass image data on server side
           if (agent.imageData) {
-            console.log('이미지 데이터 서버에서 변환 중...')
+            console.log('Converting image data on server...')
             imageData = convertImageDataToDataUrl(agent.imageData)
-            console.log(`에이전트 ${editingId} 이미지 SSR 변환:`, imageData ? '성공' : '실패')
+            console.log(`Agent ${editingId} image SSR conversion:`, imageData ? 'success' : 'failed')
           }
           
           // Extract only necessary data

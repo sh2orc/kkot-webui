@@ -504,7 +504,7 @@ export function LlmResponse({
         {isDeepResearchAborted && (
           <div className="text-xs text-orange-600 mt-2 mb-1 flex items-center gap-1">
             <span>⏹️</span>
-            <span>분석이 중단되었습니다</span>
+            <span>Analysis was interrupted</span>
           </div>
         )}
 

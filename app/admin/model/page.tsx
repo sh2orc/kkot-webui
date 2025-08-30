@@ -122,15 +122,15 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 export default async function ModelSettingsPage() {
-  console.log('=== Model 페이지 로드 시작 ===');
+  console.log('=== Model page load started ===');
   
   // Fetch enabled LLM servers
   const enabledServers = await llmServerRepository.findEnabled();
-  console.log('활성화된 서버 수:', enabledServers.length);
+  console.log('Number of enabled servers:', enabledServers.length);
   
   // Query each enabled server's models and sync with DB
   for (const server of enabledServers) {
-    console.log(`서버 ${server.name} (${server.provider}) 모델 동기화 시작`);
+    console.log(`Starting model sync for server ${server.name} (${server.provider})`);
     
     let models = [];
     
@@ -143,7 +143,7 @@ export default async function ModelSettingsPage() {
       models = await fetchGeminiModels(server);
     }
     
-    console.log(`서버 ${server.name}에서 ${models.length}개 모델 발견`);
+    console.log(`Found ${models.length} models on server ${server.name}`);
     
     // Upsert queried models to DB
     for (const model of models) {
@@ -165,7 +165,7 @@ export default async function ModelSettingsPage() {
     }
   }
   
-  console.log('모든 서버 모델 동기화 완료');
+  console.log('All server model synchronization completed');
   
   // Get updated servers and models after sync
   const [servers, modelsWithServer] = await Promise.all([
@@ -191,8 +191,8 @@ export default async function ModelSettingsPage() {
     models: modelsByServer[server.id] || []
   }))
   
-  console.log('최종 서버별 모델 수:', serversWithModels.map((s: any) => ({ name: s.name, modelCount: s.models.length })));
-  console.log('=== Model 페이지 로드 완료 ===');
+  console.log('Final model count per server:', serversWithModels.map((s: any) => ({ name: s.name, modelCount: s.models.length })));
+  console.log('=== Model page load completed ===');
   
   return <ModelManagementForm initialServers={serversWithModels} />
 } 

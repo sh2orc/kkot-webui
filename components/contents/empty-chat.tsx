@@ -144,7 +144,7 @@ export default function Component({
         console.log('Selected model:', selectedModel)
         console.log('Initial message:', inputValue)
         console.log('Images:', uploadedImages.length)
-        console.log('🔍🔍🔍 SUBMIT 시 딥리서치 상태 확인:')
+        console.log('🔍🔍🔍 Deep research state check on submit:')
         console.log('  React state isDeepResearchActive:', isDeepResearchActive)
         console.log('  Using deep research state:', actualDeepResearchState)
         console.log('  isGlobeActive:', isGlobeActive)

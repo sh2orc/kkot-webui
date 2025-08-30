@@ -228,25 +228,25 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
   return (
     <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
       <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">{lang('title') || '설정'}</h1>
+        <h1 className="text-2xl font-bold mb-6">{lang('title') || 'Settings'}</h1>
 
         <Tabs defaultValue="profile" className="w-full">
           <TabsList className="grid grid-cols-4 mb-8 rounded-lg">
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="h-4 w-4" />
-              <span className="hidden sm:inline">{lang('tabs.profile') || '프로필'}</span>
+              <span className="hidden sm:inline">{lang('tabs.profile') || 'Profile'}</span>
             </TabsTrigger>
             <TabsTrigger value="account" className="flex items-center gap-2">
               <Shield className="h-4 w-4" />
-              <span className="hidden sm:inline">{lang('tabs.account') || '계정'}</span>
+              <span className="hidden sm:inline">{lang('tabs.account') || 'Account'}</span>
             </TabsTrigger>
             <TabsTrigger value="notifications" className="flex items-center gap-2">
               <Bell className="h-4 w-4" />
-              <span className="hidden sm:inline">{lang('tabs.notifications') || '알림'}</span>
+              <span className="hidden sm:inline">{lang('tabs.notifications') || 'Notifications'}</span>
             </TabsTrigger>
             <TabsTrigger value="preferences" className="flex items-center gap-2">
               <Settings className="h-4 w-4" />
-              <span className="hidden sm:inline">{lang('tabs.preferences') || '환경설정'}</span>
+              <span className="hidden sm:inline">{lang('tabs.preferences') || 'Preferences'}</span>
             </TabsTrigger>
           </TabsList>
 
@@ -254,9 +254,9 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
           <TabsContent value="profile" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>{lang('profile.title') || '프로필 정보'}</CardTitle>
+                <CardTitle>{lang('profile.title') || 'Profile Information'}</CardTitle>
                 <CardDescription>
-                  {lang('profile.description') || '프로필 이미지와 기본 정보를 관리합니다.'}
+                  {lang('profile.description') || 'Manage your profile image and basic information.'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-6">
@@ -271,7 +271,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
                     <Label htmlFor="profile-image" className="cursor-pointer">
                       <div className="flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700">
                         <Upload className="h-4 w-4" />
-                        {lang('profile.changePhoto') || '프로필 사진 변경'}
+                        {lang('profile.changePhoto') || 'Change Profile Photo'}
                       </div>
                       <input
                         id="profile-image"
@@ -282,23 +282,23 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
                       />
                     </Label>
                     <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                      {lang('profile.photoInfo') || 'PNG, JPG 파일만 업로드 가능합니다.'}
+                      {lang('profile.photoInfo') || 'Only PNG and JPG files can be uploaded.'}
                     </p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <Label htmlFor="username">{lang('profile.username') || '사용자명'}</Label>
+                    <Label htmlFor="username">{lang('profile.username') || 'Username'}</Label>
                     <Input
                       id="username"
                       value={formData.username}
                       onChange={(e) => handleInputChange('username', e.target.value)}
-                      placeholder={lang('profile.usernamePlaceholder') || '사용자명을 입력하세요'}
+                      placeholder={lang('profile.usernamePlaceholder') || 'Enter your username'}
                     />
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="email">{lang('profile.email') || '이메일'}</Label>
+                    <Label htmlFor="email">{lang('profile.email') || 'Email'}</Label>
                     <Input
                       id="email"
                       type="email"
@@ -310,7 +310,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="role">{lang('profile.role') || '역할'}</Label>
+                  <Label htmlFor="role">{lang('profile.role') || 'Role'}</Label>
                   <Input
                     id="role"
                     value={userProfile.role}
@@ -320,7 +320,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
                 </div>
 
                 <div className="space-y-2">
-                  <Label htmlFor="member-since">{lang('profile.memberSince') || '가입일'}</Label>
+                  <Label htmlFor="member-since">{lang('profile.memberSince') || 'Member Since'}</Label>
                   <Input
                     id="member-since"
                     value={new Date(userProfile.createdAt).toLocaleDateString()}
@@ -336,40 +336,40 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
           <TabsContent value="account" className="space-y-6">
             <Card>
               <CardHeader>
-                <CardTitle>{lang('account.title') || '계정 보안'}</CardTitle>
+                <CardTitle>{lang('account.title') || 'Account Security'}</CardTitle>
                 <CardDescription>
-                  {lang('account.description') || '비밀번호와 계정 보안을 관리합니다.'}
+                  {lang('account.description') || 'Manage your password and account security.'}
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
-                  <Label htmlFor="current-password">{lang('account.currentPassword') || '현재 비밀번호'}</Label>
+                  <Label htmlFor="current-password">{lang('account.currentPassword') || 'Current Password'}</Label>
                   <Input
                     id="current-password"
                     type="password"
                     value={formData.currentPassword}
                     onChange={(e) => handleInputChange('currentPassword', e.target.value)}
-                    placeholder={lang('account.currentPasswordPlaceholder') || '현재 비밀번호를 입력하세요'}
+                    placeholder={lang('account.currentPasswordPlaceholder') || 'Enter your current password'}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="new-password">{lang('account.newPassword') || '새 비밀번호'}</Label>
+                  <Label htmlFor="new-password">{lang('account.newPassword') || 'New Password'}</Label>
                   <Input
                     id="new-password"
                     type="password"
                     value={formData.newPassword}
                     onChange={(e) => handleInputChange('newPassword', e.target.value)}
-                    placeholder={lang('account.newPasswordPlaceholder') || '새 비밀번호를 입력하세요'}
+                    placeholder={lang('account.newPasswordPlaceholder') || 'Enter new password'}
                   />
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="confirm-password">{lang('account.confirmPassword') || '새 비밀번호 확인'}</Label>
+                  <Label htmlFor="confirm-password">{lang('account.confirmPassword') || 'Confirm New Password'}</Label>
                   <Input
                     id="confirm-password"
                     type="password"
                     value={formData.confirmPassword}
                     onChange={(e) => handleInputChange('confirmPassword', e.target.value)}
-                    placeholder={lang('account.confirmPasswordPlaceholder') || '새 비밀번호를 다시 입력하세요'}
+                    placeholder={lang('account.confirmPasswordPlaceholder') || 'Re-enter new password'}
                   />
                 </div>
               </CardContent>
@@ -571,7 +571,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
             disabled={isLoading}
             className="min-w-24"
           >
-            {isLoading ? lang('common.saving') || '저장 중...' : lang('common.save') || '저장'}
+            {isLoading ? lang('common.saving') || 'Saving...' : lang('common.save') || 'Save'}
           </Button>
         </div>
       </div>

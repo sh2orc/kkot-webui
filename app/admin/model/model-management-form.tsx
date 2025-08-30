@@ -140,7 +140,7 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
         .filter(model => modifiedModels.has(model.id))
       
       if (modelsToUpdate.length === 0) {
-        toast.warning(lang('noChangesToSave') || '저장할 변경 사항이 없습니다.')
+        toast.warning(lang('noChangesToSave') || 'No changes to save.')
         setIsSaving(false)
         return
       }

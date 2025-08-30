@@ -56,7 +56,7 @@ export function UserRequest({
     console.log('Button should be enabled:', regeneratingMessageId === null)
     
     // Also check the actual DOM element state
-    const buttonElement = document.querySelector(`[data-message-id="${id}"] button[title*="생성"]`)
+    const buttonElement = document.querySelector(`[data-message-id="${id}"] button[title*="Generate"]`)
     if (buttonElement) {
       console.log('DOM Button disabled:', buttonElement.hasAttribute('disabled'))
       console.log('DOM Button classes:', buttonElement.className)

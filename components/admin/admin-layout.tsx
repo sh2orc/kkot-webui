@@ -36,7 +36,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
   const menuItems = [
     { id: "general", label: lang('menu.general'), icon: Settings, path: "/admin/general" },
     { id: "users", label: lang('menu.users'), icon: Users, path: "/admin/users" },
-    { id: "groups", label: lang('menu.groups') || "그룹 권한 관리", icon: Shield, path: "/admin/groups" },
+    { id: "groups", label: lang('menu.groups') || "Group Permission Management", icon: Shield, path: "/admin/groups" },
     { id: "connection", label: lang('menu.connection'), icon: Link, path: "/admin/connection" },
     { id: "model", label: lang('menu.model'), icon: Brain, path: "/admin/model" },
     { id: "agent", label: lang('menu.agent'), icon: Bot, path: "/admin/agent" },    

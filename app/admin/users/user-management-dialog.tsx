@@ -187,7 +187,7 @@ export function UserManagementDialog({
             <TabsList className="grid w-full grid-cols-3">
               <TabsTrigger value="basic">{lang('tabs.basicInfo')}</TabsTrigger>
               <TabsTrigger value="permissions">{lang('tabs.permissions')}</TabsTrigger>
-              <TabsTrigger value="groups">{lang('tabs.groups') || "그룹"}</TabsTrigger>
+              <TabsTrigger value="groups">{lang('tabs.groups') || "Groups"}</TabsTrigger>
             </TabsList>
             
             <TabsContent value="basic" className="space-y-4">
@@ -301,9 +301,9 @@ export function UserManagementDialog({
             <TabsContent value="groups" className="space-y-4">
               <div className="space-y-4">
                 <div>
-                  <h3 className="text-sm font-medium mb-2">{lang('tabs.groupsDescription') || "사용자가 속할 그룹을 선택하세요"}</h3>
+                  <h3 className="text-sm font-medium mb-2">{lang('tabs.groupsDescription') || "Select groups for this user"}</h3>
                   <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
-                    {lang('tabs.groupsHint') || "그룹에 따라 리소스 접근 권한이 결정됩니다"}
+                    {lang('tabs.groupsHint') || "Resource access permissions are determined by group membership"}
                   </p>
                 </div>
                 <div className="space-y-2">
