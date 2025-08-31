@@ -1,8 +1,7 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { getServerSession } from 'next-auth/next'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { getServerSession } from '@/lib/auth'
 import ClientProviders from '@/components/providers/client-providers'
 import GlobalLayout from '@/components/layout/global-layout'
 import { Toaster } from '@/components/ui/toaster'
@@ -19,7 +18,7 @@ export default async function RootLayout({
 }: {
   children: React.ReactNode
 }) {
-  const session = await getServerSession(authOptions)
+  const session = await getServerSession()
 
   return (
     <html lang="ko" suppressHydrationWarning>

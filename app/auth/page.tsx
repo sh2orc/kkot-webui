@@ -42,6 +42,7 @@ export default function AuthPage() {
   const router = useRouter();
   const { data: session, status } = useSession();
   const { t, lang, language } = useTranslation('auth');
+  const [oauthError, setOauthError] = useState('');
 
   // OAuth 제공자 가져오기
   useEffect(() => {
@@ -59,9 +60,50 @@ export default function AuthPage() {
     fetchOAuthProviders();
   }, []);
 
-  // Debug logging (simplified)
+  // Debug logging and error handling
   useEffect(() => {
     console.log('Auth Page - Session Status:', status);
+    
+    // URL에서 에러 파라미터 확인
+    const urlParams = new URLSearchParams(window.location.search);
+    const error = urlParams.get('error');
+    
+    if (error) {
+      console.log('OAuth Error detected:', error);
+      let errorMessage = '';
+      
+      switch(error) {
+        case 'OAuthSignin':
+          errorMessage = 'OAuth 로그인 시작 중 오류가 발생했습니다.';
+          break;
+        case 'OAuthCallback':
+          errorMessage = 'OAuth 콜백 처리 중 오류가 발생했습니다. Google Console에서 콜백 URL을 확인하세요.';
+          break;
+        case 'OAuthCreateAccount':
+          errorMessage = 'OAuth 계정 생성 중 오류가 발생했습니다.';
+          break;
+        case 'EmailCreateAccount':
+          errorMessage = '이메일 계정 생성 중 오류가 발생했습니다.';
+          break;
+        case 'Callback':
+          errorMessage = 'OAuth 인증 콜백 오류가 발생했습니다.';
+          break;
+        case 'OAuthAccountNotLinked':
+          errorMessage = '이미 다른 방법으로 가입된 이메일입니다.';
+          break;
+        case 'AccessDenied':
+          errorMessage = '접근이 거부되었습니다.';
+          break;
+        case 'google':
+          errorMessage = 'Google OAuth 설정 오류. Authorized redirect URIs를 확인하세요: http://localhost:3000/api/auth/callback/google';
+          break;
+        default:
+          errorMessage = `인증 오류: ${error}`;
+      }
+      
+      setOauthError(errorMessage);
+      toast.error(errorMessage);
+    }
   }, [status]);
 
   // Redirect to chat page if already logged in (once only)
@@ -439,6 +481,12 @@ export default function AuthPage() {
                     <Alert variant="destructive" className="mb-4">
                       <AlertTriangle className="h-4 w-4 mr-2" />
                       <AlertDescription>{loginError}</AlertDescription>
+                    </Alert>
+                  )}
+                  {oauthError && (
+                    <Alert variant="destructive" className="mb-4">
+                      <AlertTriangle className="h-4 w-4 mr-2" />
+                      <AlertDescription>{oauthError}</AlertDescription>
                     </Alert>
                   )}
                   <div className="space-y-2">

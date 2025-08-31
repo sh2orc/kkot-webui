@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Google OAuth Test</title>
+    <meta charset="utf-8">
+</head>
+<body>
+    <h1>Google OAuth 직접 테스트</h1>
+    <p>아래 버튼을 클릭하여 Google OAuth를 직접 테스트해보세요:</p>
+    
+    <a href="https://accounts.google.com/o/oauth2/v2/auth?client_id=142450213226-mqloh60l5f1cb400b7tqcpm13v8rcbg8.apps.googleusercontent.com&redirect_uri=http://localhost:3000/api/auth/callback/google&response_type=code&scope=openid+email+profile&state=test123&access_type=offline&prompt=consent" 
+       style="display: inline-block; padding: 10px 20px; background-color: #4285f4; color: white; text-decoration: none; border-radius: 5px;">
+        Google로 로그인 테스트
+    </a>
+    
+    <h2>예상되는 결과:</h2>
+    <ul>
+        <li>✅ Google 로그인 화면이 표시됨 → OAuth Client 설정 OK</li>
+        <li>❌ "Error 400: redirect_uri_mismatch" → Redirect URI 설정 문제</li>
+        <li>❌ "Access blocked" → OAuth consent screen의 Test users 미등록</li>
+        <li>❌ "This app is blocked" → OAuth consent screen 설정 미완료</li>
+    </ul>
+</body>
+</html>

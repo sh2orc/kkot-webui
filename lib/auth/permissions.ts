@@ -1,5 +1,5 @@
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getAuthOptions } from "@/app/api/auth/[...nextauth]/route";
 import { groupRepository } from "@/lib/db/repository";
 
 export type ResourceType = 'agent' | 'model' | 'rag_collection' | 'vector_store';
@@ -13,6 +13,7 @@ export async function checkResourcePermission(
   resourceId: string,
   permission: Permission
 ): Promise<boolean> {
+  const authOptions = await getAuthOptions();
   const session = await getServerSession(authOptions);
   if (!session) {
     return false;
@@ -33,6 +34,7 @@ export async function getUserAccessibleResources(
   resourceType: ResourceType,
   permission: Permission = 'read'
 ): Promise<string[]> {
+  const authOptions = await getAuthOptions();
   const session = await getServerSession(authOptions);
   if (!session) {
     return [];
@@ -53,6 +55,7 @@ export async function filterResourcesByPermission<T extends { id: any }>(
   resourceType: ResourceType,
   permission: Permission = 'read'
 ): Promise<T[]> {
+  const authOptions = await getAuthOptions();
   const session = await getServerSession(authOptions);
   if (!session) {
     return [];
@@ -84,6 +87,7 @@ export async function requireResourcePermission(
   resourceId: string,
   permission: Permission
 ): Promise<{ authorized: boolean; error?: string }> {
+  const authOptions = await getAuthOptions();
   const session = await getServerSession(authOptions);
   
   if (!session) {
@@ -103,6 +107,7 @@ export async function requireResourcePermission(
  * Get user's groups
  */
 export async function getUserGroups() {
+  const authOptions = await getAuthOptions();
   const session = await getServerSession(authOptions);
   if (!session) {
     return [];

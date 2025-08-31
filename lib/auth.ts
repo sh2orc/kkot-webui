@@ -39,5 +39,7 @@ export const baseAuthOptions: NextAuthOptions = {
 }
 
 export async function getServerSession() {
-  return nextAuthGetServerSession(baseAuthOptions)
+  // 동적으로 authOptions를 가져와야 하므로 직접 next-auth를 호출
+  // 이는 NextAuth 핸들러가 처리하도록 함
+  return nextAuthGetServerSession()
 }

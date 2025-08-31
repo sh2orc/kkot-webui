@@ -1,7 +1,7 @@
 import EmptyChat from "@/components/contents/empty-chat"
 import { agentManageRepository, llmModelRepository, convertImageDataToDataUrl } from "@/lib/db/server"
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { getAuthOptions } from "@/app/api/auth/[...nextauth]/route"
 import { loadTranslationModule } from "@/lib/i18n-server"
 import { headers } from "next/headers"
 
@@ -11,6 +11,7 @@ import { redirect } from "next/navigation"
 
 export default async function Page() {
   // Get session information from server
+  const authOptions = await getAuthOptions()
   const session = await getServerSession(authOptions)
   
   // 세션이 없으면 즉시 /auth로 리다이렉트
