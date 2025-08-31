@@ -1,52 +1,34 @@
+import type { Metadata } from 'next'
+import { Inter } from 'next/font/google'
 import './globals.css'
-import 'katex/dist/katex.min.css'
+import { getServerSession } from 'next-auth/next'
+import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import ClientProviders from '@/components/providers/client-providers'
 import GlobalLayout from '@/components/layout/global-layout'
-import { Metadata, Viewport } from 'next'
-import { adminSettingsRepository } from '@/lib/db/server'
+import { Toaster } from '@/components/ui/toaster'
 
-// Function to fetch branding settings from the server
-async function getBrandingSettings() {
-  try {
-    const appNameSetting = await adminSettingsRepository.findByKey('app.name')
-    const appName = appNameSetting && appNameSetting.length > 0 ? appNameSetting[0].value : 'KKOT WebUI'
-    return { appName }
-  } catch (error) {
-    console.warn('Failed to fetch branding settings:', error)
-    return { appName: 'kkot webui' }
-  }
+const inter = Inter({ subsets: ['latin'] })
+
+export const metadata: Metadata = {
+  title: 'KKOT WebUI',
+  description: 'Advanced AI Chat Interface',
 }
 
-// Generate dynamic metadata
-export async function generateMetadata(): Promise<Metadata> {
-  const { appName } = await getBrandingSettings()
-  
-  return {
-    title: appName,
-    description: `${appName} is an open-source UI project designed to provide a seamless user interface for interacting with large language models (LLMs).`,
-  }
-}
-
-export const viewport: Viewport = {
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  userScalable: false,
-  viewportFit: 'cover',
-}
-
-export default function RootLayout({
+export default async function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode
-}>) {
+}) {
+  const session = await getServerSession(authOptions)
+
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body suppressHydrationWarning>
+    <html lang="ko" suppressHydrationWarning>
+      <body className={inter.className}>
         <ClientProviders>
           <GlobalLayout>
             {children}
           </GlobalLayout>
+          <Toaster />
         </ClientProviders>
       </body>
     </html>

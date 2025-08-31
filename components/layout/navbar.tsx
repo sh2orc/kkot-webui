@@ -1,6 +1,6 @@
 "use client"
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Settings, Menu, MessageSquare } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -13,6 +13,7 @@ import { useTranslation } from "@/lib/i18n"
 import { ModelDropdown } from "@/components/ui/model-dropdown"
 import { useModel } from "@/components/providers/model-provider"
 import { useBranding } from "@/components/providers/branding-provider"
+import { useProfile } from "@/components/providers/profile-provider"
 import Image from "next/image"
 
 interface NavbarProps {
@@ -27,6 +28,7 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
   const { lang } = useTranslation('common')
   const { selectedModel } = useModel()
   const { branding } = useBranding()
+  const { profileImage, userProfile } = useProfile()
 
   // Check if current page is /chat
   const isChatPage = pathname.startsWith("/chat")
@@ -36,6 +38,9 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
 
   // Generate user avatar text
   const getAvatarText = () => {
+    if (userProfile?.username) {
+      return userProfile.username.charAt(0).toUpperCase()
+    }
     if (session?.user?.name) {
       return session.user.name.charAt(0).toUpperCase()
     }
@@ -105,9 +110,13 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
             </Button>
             <AccountMenu align="end" side="bottom">
               <Avatar className="h-8 w-8 cursor-pointer flex-shrink-0">
-                <AvatarFallback className="bg-orange-500 text-white text-xs">
-                  {getAvatarText()}
-                </AvatarFallback>
+                {profileImage ? (
+                  <AvatarImage src={profileImage} alt="Profile" />
+                ) : (
+                  <AvatarFallback className="bg-orange-500 text-white text-xs">
+                    {getAvatarText()}
+                  </AvatarFallback>
+                )}
               </Avatar>
             </AccountMenu>
           </div>

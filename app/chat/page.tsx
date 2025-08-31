@@ -7,9 +7,16 @@ import { headers } from "next/headers"
 
 export const dynamic = 'force-dynamic'
 
+import { redirect } from "next/navigation"
+
 export default async function Page() {
   // Get session information from server
   const session = await getServerSession(authOptions)
+  
+  // 세션이 없으면 즉시 /auth로 리다이렉트
+  if (!session) {
+    redirect('/auth')
+  }
   
   // Extract language information from Accept-Language header (default: 'kor')
   const headersList = await headers()

@@ -202,7 +202,7 @@ export function ChatGroupComponent({
   return (
     <div key={groupIndex} className="mb-4">
       <div
-        className={`text-xs font-medium text-gray-500 dark:text-gray-400 mb-1 transition-opacity duration-200 ${
+        className={`text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 transition-opacity duration-200 ${
           sidebarCollapsed ? "opacity-0" : "opacity-100"
         }`}
       >

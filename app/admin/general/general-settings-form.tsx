@@ -12,12 +12,13 @@ import { Label } from "@/components/ui/label"
 import { Switch } from "@/components/ui/switch"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import TimezoneCombobox from "@/components/ui/timezone-combobox"
 import { useTimezone, formatGmtLabel } from "@/components/providers/timezone-provider"
 import { getPrimaryCityForOffset } from "@/components/ui/timezone-data"
-import { Eye, EyeOff, Upload, X } from "lucide-react"
+import { Eye, EyeOff, Upload, X, Network, Loader2 } from "lucide-react"
 import { useTranslation } from "@/lib/i18n"
-import { useToast } from "@/hooks/use-toast"
+import { toast } from "sonner"
 import { useBranding } from "@/components/providers/branding-provider"
 import {
   Form,
@@ -107,7 +108,6 @@ interface GeneralSettingsFormProps {
 export default function GeneralSettingsForm({ initialSettings }: GeneralSettingsFormProps) {
   const router = useRouter()
   const { lang } = useTranslation('admin.general')
-  const { toast } = useToast()
   const { updateBranding } = useBranding()
   const [isSaving, setIsSaving] = useState(false)
   const { gmtOffsetMinutes, setGmtOffsetMinutes } = useTimezone()
@@ -120,6 +120,15 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
     kakaoClientSecret: false,
     naverClientSecret: false,
     githubClientSecret: false,
+  })
+
+  // OAuth test state
+  const [testingOAuth, setTestingOAuth] = useState<Record<string, boolean>>({
+    google: false,
+    microsoft: false,
+    kakao: false,
+    naver: false,
+    github: false,
   })
   
   // React Hook Form initialization
@@ -243,10 +252,8 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
         // Check for partial failures
         if (result.errors && result.errors.length > 0) {
           console.warn('Some settings failed to save:', result.errors)
-          toast({
-            title: lang('savePartialFailureTitle'),
-            description: lang('savePartialFailureMessage'),
-            variant: "destructive"
+          toast.error(lang('savePartialFailureTitle') || 'Some settings failed to save', {
+            description: lang('savePartialFailureMessage') || 'Please check the settings and try again.'
           })
         } else {
           // All settings saved successfully
@@ -259,9 +266,8 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
             setGmtOffsetMinutes(data.gmtOffsetMinutes)
           }
           
-          toast({
-            title: lang('saveSuccessTitle'),
-            description: lang('saveSuccessMessage'),
+          toast.success(lang('saveSuccessTitle') || 'Settings saved successfully', {
+            description: lang('saveSuccessMessage') || 'All settings have been updated.'
           })
           
           // Synchronize server state after saving
@@ -276,16 +282,96 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
       
     } catch (error) {
       console.error('Settings save error:', error)
-      toast({
-        title: lang('saveFailureTitle'),
-        description: error instanceof Error ? error.message : lang('saveFailureMessage'),
-        variant: "destructive"
+      toast.error(lang('saveFailureTitle') || 'Failed to save settings', {
+        description: error instanceof Error ? error.message : (lang('saveFailureMessage') || 'An error occurred while saving settings.')
       })
     } finally {
       setIsSaving(false)
     }
   }
 
+  // OAuth 테스트 함수
+  const testOAuthConnection = async (provider: string) => {
+    const formData = form.getValues()
+    let clientId = ''
+    let clientSecret = ''
+
+    // 제공자별 클라이언트 정보 가져오기
+    switch (provider) {
+      case 'google':
+        clientId = formData.googleClientId || ''
+        clientSecret = formData.googleClientSecret || ''
+        break
+      case 'microsoft':
+        clientId = formData.microsoftClientId || ''
+        clientSecret = formData.microsoftClientSecret || ''
+        break
+      case 'kakao':
+        clientId = formData.kakaoClientId || ''
+        clientSecret = formData.kakaoClientSecret || ''
+        break
+      case 'naver':
+        clientId = formData.naverClientId || ''
+        clientSecret = formData.naverClientSecret || ''
+        break
+      case 'github':
+        clientId = formData.githubClientId || ''
+        clientSecret = formData.githubClientSecret || ''
+        break
+    }
+
+    if (!clientId) {
+      toast.error('테스트 연결 실패', {
+        description: 'Client ID를 입력해주세요.'
+      })
+      return
+    }
+
+    // Client Secret이 마스킹된 경우 서버에서 실제 값을 사용하도록 처리
+    const isSecretMasked = clientSecret.startsWith('******')
+    
+    if (!clientSecret && !isSecretMasked) {
+      toast.error('테스트 연결 실패', {
+        description: 'Client Secret을 입력해주세요.'
+      })
+      return
+    }
+
+    setTestingOAuth(prev => ({ ...prev, [provider]: true }))
+
+    try {
+      const response = await fetch('/api/admin/oauth-test', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          provider,
+          clientId,
+          clientSecret: isSecretMasked ? null : clientSecret, // 마스킹된 경우 null 전송
+          useStoredSecret: isSecretMasked, // 서버에서 저장된 값 사용 여부
+        }),
+      })
+
+      const result = await response.json()
+
+      if (result.success) {
+        toast.success('연결 테스트 성공', {
+          description: result.details || `${provider.toUpperCase()} OAuth 설정이 올바릅니다.`
+        })
+      } else {
+        toast.error('연결 테스트 실패', {
+          description: result.details || result.message || '연결에 실패했습니다.'
+        })
+      }
+    } catch (error) {
+      toast.error('연결 테스트 실패', {
+        description: '서버와의 통신 중 오류가 발생했습니다.'
+      })
+    } finally {
+      setTestingOAuth(prev => ({ ...prev, [provider]: false }))
+    }
+  }
 
   return (
     <Form {...form}>
@@ -674,6 +760,33 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
                           )}
                         />
                       </div>
+                      <div className="flex justify-end">
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                disabled={testingOAuth.google}
+                                onClick={() => testOAuthConnection('google')}
+                              >
+                                {testingOAuth.google ? (
+                                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                                ) : (
+                                  <Network className="h-4 w-4 mr-2" />
+                                )}
+                                {testingOAuth.google ? '테스트 중...' : '연결 테스트'}
+                              </Button>
+                            </TooltipTrigger>
+                            {form.watch("googleClientSecret")?.startsWith('******') && (
+                              <TooltipContent>
+                                <p>저장된 Client Secret을 사용하여 테스트합니다</p>
+                              </TooltipContent>
+                            )}
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -740,6 +853,22 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
                             </FormItem>
                           )}
                         />
+                      </div>
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={testingOAuth.microsoft}
+                          onClick={() => testOAuthConnection('microsoft')}
+                        >
+                          {testingOAuth.microsoft ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Network className="h-4 w-4 mr-2" />
+                          )}
+                          {testingOAuth.microsoft ? '테스트 중...' : '연결 테스트'}
+                        </Button>
                       </div>
                     </div>
                   )}
@@ -808,6 +937,22 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
                           )}
                         />
                       </div>
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={testingOAuth.kakao}
+                          onClick={() => testOAuthConnection('kakao')}
+                        >
+                          {testingOAuth.kakao ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Network className="h-4 w-4 mr-2" />
+                          )}
+                          {testingOAuth.kakao ? '테스트 중...' : '연결 테스트'}
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -875,6 +1020,22 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
                           )}
                         />
                       </div>
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={testingOAuth.naver}
+                          onClick={() => testOAuthConnection('naver')}
+                        >
+                          {testingOAuth.naver ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Network className="h-4 w-4 mr-2" />
+                          )}
+                          {testingOAuth.naver ? '테스트 중...' : '연결 테스트'}
+                        </Button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -941,6 +1102,22 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
                             </FormItem>
                           )}
                         />
+                      </div>
+                      <div className="flex justify-end">
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          disabled={testingOAuth.github}
+                          onClick={() => testOAuthConnection('github')}
+                        >
+                          {testingOAuth.github ? (
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          ) : (
+                            <Network className="h-4 w-4 mr-2" />
+                          )}
+                          {testingOAuth.github ? '테스트 중...' : '연결 테스트'}
+                        </Button>
                       </div>
                     </div>
                   )}

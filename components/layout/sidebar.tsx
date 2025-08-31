@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input"
 import { ChevronLeft, Search, Plus, Menu, Book, Link as LinkIcon, X } from "lucide-react"
 import { useRouter, usePathname } from "next/navigation"
 import { useSession } from "next-auth/react"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { AccountMenu } from "@/components/ui/account-menu"
 import { ChatGroupComponent } from "@/components/sidebar/chat-group"
 import { ChatHistorySkeleton } from "@/components/sidebar/chat-history-skeleton"
@@ -14,6 +14,7 @@ import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 import { useTimezone, formatGmtWithCity } from "@/components/providers/timezone-provider"
 import { getPrimaryCityForOffset } from "@/components/ui/timezone-data"
 import { useBranding } from "@/components/providers/branding-provider"
+import { useProfile } from "@/components/providers/profile-provider"
 import Image from "next/image"
 import TransitionLink from "@/components/ui/transition-link"
 import { useTransitionRouter } from "@/components/providers/page-transition-provider"
@@ -58,7 +59,10 @@ export default function Sidebar({
   const { lang, language } = useTranslation('common')
   const { formatTime, formatDate, gmtOffsetMinutes } = useTimezone()
   const { branding } = useBranding()
+  const { profileImage, userProfile } = useProfile()
   const [hasFetchedChatSessions, setHasFetchedChatSessions] = useState(false)
+
+
 
   // Filtered chat groups based on search query
   const filteredChatGroups = useMemo(() => {
@@ -545,7 +549,15 @@ export default function Sidebar({
               <AccountMenu align="start" side="top">
                 <Button variant="ghost" className="w-full justify-start h-10 px-2 transition-all duration-500 focus:outline-none focus:ring-0">
                   <Avatar className={`h-8 w-8 transition-transform duration-300 -translate-x-2`}>
-                    <AvatarFallback className="bg-orange-500 text-white text-xs">A</AvatarFallback>
+                    {profileImage ? (
+                      <AvatarImage src={profileImage} alt="Profile" />
+                    ) : (
+                      <AvatarFallback className="bg-orange-500 text-white text-xs">
+                        {userProfile?.username?.charAt(0).toUpperCase() || 
+                         session?.user?.name?.charAt(0).toUpperCase() || 
+                         session?.user?.email?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    )}
                   </Avatar>
                   {!sidebarCollapsed && (
                     <span className="text-sm font-medium ml-2 transition-opacity duration-300 dark:text-gray-200">{lang('sidebar.admin')}</span>
@@ -667,14 +679,19 @@ export default function Sidebar({
                   <Avatar
                     className={`h-8 w-8 transition-transform duration-300 ${sidebarCollapsed ? "-translate-x-1" : ""}`}
                   >
-                    <AvatarFallback className="bg-orange-500 text-white text-xs">
-                      {session?.user?.name ? session.user.name.charAt(0).toUpperCase() : 
-                       session?.user?.email ? session.user.email.charAt(0).toUpperCase() : 'U'}
-                    </AvatarFallback>
+                    {profileImage ? (
+                      <AvatarImage src={profileImage} alt="Profile" />
+                    ) : (
+                      <AvatarFallback className="bg-orange-500 text-white text-xs">
+                        {userProfile?.username?.charAt(0).toUpperCase() || 
+                         session?.user?.name?.charAt(0).toUpperCase() || 
+                         session?.user?.email?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    )}
                   </Avatar>
                   {!sidebarCollapsed && (
                     <span className="text-sm font-medium ml-2 transition-opacity duration-300 dark:text-gray-200">
-                      {session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}
+                      {userProfile?.username || session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}
                     </span>
                   )}
                 </Button>
@@ -802,13 +819,18 @@ export default function Sidebar({
               <AccountMenu align="start" side="top">
                 <Button variant="ghost" className="w-full justify-start h-12 px-3 transition-all duration-300 focus:outline-none focus:ring-0 touch-target">
                   <Avatar className="h-8 w-8">
-                    <AvatarFallback className="bg-orange-500 text-white text-xs">
-                      {session?.user?.name ? session.user.name.charAt(0).toUpperCase() : 
-                       session?.user?.email ? session.user.email.charAt(0).toUpperCase() : 'U'}
-                    </AvatarFallback>
+                    {profileImage ? (
+                      <AvatarImage src={profileImage} alt="Profile" />
+                    ) : (
+                      <AvatarFallback className="bg-orange-500 text-white text-xs">
+                        {userProfile?.username?.charAt(0).toUpperCase() || 
+                         session?.user?.name?.charAt(0).toUpperCase() || 
+                         session?.user?.email?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    )}
                   </Avatar>
                   <span className="text-sm font-medium ml-3 dark:text-gray-200">
-                    {session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}
+                    {userProfile?.username || session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}
                   </span>
                 </Button>
               </AccountMenu>

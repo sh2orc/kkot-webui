@@ -40,6 +40,7 @@ export const userRepository = {
     const id = generateId();
     const now = new Date();
     
+    // The actual database has TEXT id, not INTEGER
     return await db.insert(schema.users).values({
       id: id as any,
       username: userData.username,
@@ -54,7 +55,7 @@ export const userRepository = {
   /**
    * Update user
    */
-  update: async (id: string | number, userData: Partial<{ username: string; email: string; password: string; role: string; department?: string; phone_number?: string; status?: string; email_verified?: number; failed_login_attempts?: number; locked_until?: any }>) => {
+  update: async (id: string | number, userData: Partial<{ username: string; email: string; password: string; role: string; profileImage?: string | null; department?: string; phone_number?: string; status?: string; email_verified?: number; failed_login_attempts?: number; locked_until?: any }>) => {
     return await db.update(schema.users)
       .set({ ...userData, updatedAt: new Date() as any })
       .where(eq(schema.users.id, id as any))

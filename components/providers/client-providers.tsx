@@ -6,6 +6,7 @@ import { BrandingProvider } from './branding-provider'
 import LanguageProvider from './language-provider'
 import { ModelProvider } from './model-provider'
 import { PageTransitionProvider } from './page-transition-provider'
+import { ProfileProvider } from './profile-provider'
 import { Toaster } from 'sonner'
 import Loading from '@/components/ui/loading'
 import { TimezoneProvider } from './timezone-provider'
@@ -53,13 +54,15 @@ export default function ClientProviders({ children }: { children: ReactNode }) {
             <Suspense fallback={<LoadingFallback />}>
               <LanguageProvider>
                 <ModelProvider>
-                  <TimezoneProvider>
-                    <PageTransitionProvider>
-                      <PreferencesInitializer />
-                      {children}
-                      <Toaster position="top-right" richColors />
-                    </PageTransitionProvider>
-                  </TimezoneProvider>
+                  <ProfileProvider>
+                    <TimezoneProvider>
+                      <PageTransitionProvider>
+                        <PreferencesInitializer />
+                        {children}
+                        <Toaster position="top-right" richColors />
+                      </PageTransitionProvider>
+                    </TimezoneProvider>
+                  </ProfileProvider>
                 </ModelProvider>
               </LanguageProvider>
             </Suspense>

@@ -26,8 +26,10 @@ export async function middleware(request: NextRequest) {
                       request.cookies.get('__Secure-next-auth.session-token')?.value;
 
   // Debug logs
-  console.log(`Middleware - Path: ${pathname}`);
-  console.log(`Middleware - Session Cookie:`, !!sessionToken);
+  console.log(`[Middleware] Path: ${pathname}`);
+  console.log(`[Middleware] Session Cookie:`, !!sessionToken);
+  console.log(`[Middleware] All Cookies:`, request.cookies.getAll().map(c => c.name));
+  console.log(`[Middleware] Session Token Value:`, sessionToken ? 'exists' : 'null');
 
   // Get JWT token for detailed info (if session cookie exists)
   let token = null;
@@ -45,7 +47,7 @@ export async function middleware(request: NextRequest) {
 
   // If no session cookie (not authenticated)
   if (!sessionToken) {
-    console.log(`Middleware - No session cookie, redirecting to /auth`);
+    console.log(`[Middleware] No session cookie for ${pathname}, redirecting to /auth`);
     // Return JSON error response for API routes
     if (pathname.startsWith('/api/')) {
       return NextResponse.json(

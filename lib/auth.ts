@@ -1,20 +1,43 @@
-import { createHash, randomBytes, pbkdf2Sync } from 'crypto';
+import { getServerSession as nextAuthGetServerSession } from 'next-auth/next'
+import type { NextAuthOptions } from 'next-auth'
+import crypto from 'crypto'
 
-// Password hashing
+// 비밀번호 해싱 및 검증 함수
 export function hashPassword(password: string): string {
-  const salt = randomBytes(16).toString('hex');
-  const hash = pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
-  return `${salt}:${hash}`;
+  const salt = crypto.randomBytes(16).toString('hex')
+  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex')
+  return `${salt}:${hash}`
 }
 
-// Password verification
-export function verifyPassword(password: string, hashedPassword: string): boolean {
-  const [salt, hash] = hashedPassword.split(':');
-  const hashVerify = pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
-  return hash === hashVerify;
+export function verifyPassword(password: string, storedPassword: string): boolean {
+  const [salt, storedHash] = storedPassword.split(':')
+  const hash = crypto.pbkdf2Sync(password, salt, 1000, 64, 'sha512').toString('hex')
+  return hash === storedHash
 }
 
-// User ID generation
 export function generateUserId(): string {
-  return createHash('sha256').update(randomBytes(16)).digest('hex').substring(0, 16);
+  return crypto.randomBytes(16).toString('hex')
+}
+
+// getServerSession을 위한 기본 authOptions
+// 실제 OAuth 프로바이더는 런타임에 동적으로 로드됨
+export const baseAuthOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET || 'fallback-secret-for-development',
+  providers: [], // 런타임에 동적으로 설정
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60,
+  },
+  jwt: {
+    maxAge: 30 * 24 * 60 * 60,
+  },
+  pages: {
+    signIn: '/auth',
+    signOut: '/auth',
+    error: '/auth',
+  },
+}
+
+export async function getServerSession() {
+  return nextAuthGetServerSession(baseAuthOptions)
 }

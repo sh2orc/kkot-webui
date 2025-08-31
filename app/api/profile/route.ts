@@ -30,6 +30,7 @@ export async function GET() {
         username: user.username,
         email: user.email,
         role: user.role,
+        profileImage: user.profileImage,
         createdAt: user.createdAt
       }
     })
@@ -55,7 +56,7 @@ export async function PUT(request: NextRequest) {
     }
 
     const body = await request.json()
-    const { username, currentPassword, newPassword } = body
+    const { username, currentPassword, newPassword, profileImage } = body
 
     // Get current user information
     const currentUser = await userRepository.findByEmail(session.user.email)
@@ -74,6 +75,39 @@ export async function PUT(request: NextRequest) {
     // Update username
     if (username && username.trim()) {
       updateData.username = username.trim()
+    }
+
+    // Update profile image
+    if (profileImage !== undefined) {
+      if (profileImage && typeof profileImage === 'string') {
+        // Process base64 image data
+        let imageData = profileImage
+        
+        // If image data starts with data:image/, extract only base64 part
+        if (imageData.startsWith('data:image/')) {
+          imageData = imageData.split(',')[1]
+        }
+        
+        // Validate base64 string
+        try {
+          const buffer = Buffer.from(imageData, 'base64')
+          if (buffer.length < 100) {
+            return NextResponse.json(
+              { error: 'Image data is too small' },
+              { status: 400 }
+            )
+          }
+          updateData.profileImage = profileImage // Store full data URL
+        } catch (error) {
+          return NextResponse.json(
+            { error: 'Invalid image data' },
+            { status: 400 }
+          )
+        }
+      } else {
+        // Remove profile image
+        updateData.profileImage = null
+      }
     }
 
     // Change password
@@ -109,6 +143,7 @@ export async function PUT(request: NextRequest) {
         username: updatedUser.username,
         email: updatedUser.email,
         role: updatedUser.role,
+        profileImage: updatedUser.profileImage,
         createdAt: updatedUser.createdAt
       }
     })

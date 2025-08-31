@@ -19,10 +19,8 @@ export default function Page() {
       // If authenticated successfully, smoothly navigate to chat page
       router.replace("/chat")
     } else if (status === "unauthenticated") {
-      // If not authenticated, handle logout and redirect to auth page
-      signOut({ redirect: false }).then(() => {
-        router.replace("/auth")
-      })
+      // If not authenticated, redirect to auth page
+      router.replace("/auth")
     }
   }, [status, session?.user]) // Remove router from dependencies and only track session.user
 

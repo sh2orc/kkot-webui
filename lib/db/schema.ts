@@ -19,6 +19,7 @@ export const users = getDbType() === 'sqlite'
       email: text('email').notNull(),
       password: text('password').notNull(),
       role: text('role', { enum: ['user', 'admin'] }).default('user'),
+      profileImage: text('profile_image'),
       createdAt: integer('created_at', { mode: 'timestamp' }),
       updatedAt: integer('updated_at', { mode: 'timestamp' }),
     })
@@ -28,6 +29,7 @@ export const users = getDbType() === 'sqlite'
       email: varchar('email', { length: 255 }).notNull(),
       password: varchar('password', { length: 255 }).notNull(),
       role: varchar('role', { length: 50 }).default('user'),
+      profileImage: text('profile_image'),
       createdAt: timestamp('created_at').defaultNow(),
       updatedAt: timestamp('updated_at').defaultNow(),
     });

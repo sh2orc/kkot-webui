@@ -17,6 +17,7 @@ import { toast } from "sonner"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 import Loading from "@/components/ui/loading"
 import { useTheme } from "next-themes"
+import { useProfile } from "@/components/providers/profile-provider"
 
 interface UserProfile {
   id: string
@@ -33,14 +34,15 @@ interface SettingsPageProps {
 export default function SettingsPage({ initialUserProfile }: SettingsPageProps) {
   const { lang, language } = useTranslation('settings')
   const { theme, setTheme, systemTheme } = useTheme()
+  const { userProfile, profileImage, updateProfile, updateProfileImage } = useProfile()
   const [isLoaded, setIsLoaded] = useState(false)
-  const [profileImage, setProfileImage] = useState<string | null>(null)
-  const [userProfile, setUserProfile] = useState<UserProfile | null>(initialUserProfile || null)
+  const [localProfileImage, setLocalProfileImage] = useState<string | null>(profileImage)
   const [isLoading, setIsLoading] = useState(false)
+
   
   // Form state - set initial values from server data
   const [formData, setFormData] = useState({
-    username: initialUserProfile?.username || '',
+    username: userProfile?.username || initialUserProfile?.username || '',
     currentPassword: '',
     newPassword: '',
     confirmPassword: ''
@@ -107,23 +109,28 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
     loadTranslations()
   }, [language])
 
-  // Update form data when initial profile data changes
+  // Update form data when profile data changes
   useEffect(() => {
-    if (initialUserProfile) {
-      setUserProfile(initialUserProfile)
+    if (userProfile) {
       setFormData(prev => ({
         ...prev,
-        username: initialUserProfile.username
+        username: userProfile.username
       }))
     }
-  }, [initialUserProfile])
+  }, [userProfile])
+
+  // Sync local profile image with global state
+  useEffect(() => {
+    setLocalProfileImage(profileImage)
+  }, [profileImage])
 
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (file) {
       const reader = new FileReader()
       reader.onload = (e) => {
-        setProfileImage(e.target?.result as string)
+        const imageUrl = e.target?.result as string
+        setLocalProfileImage(imageUrl)
       }
       reader.readAsDataURL(file)
     }
@@ -150,6 +157,11 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
     try {
       const updateData: any = {
         username: formData.username.trim()
+      }
+
+      // Include profile image if it has been changed
+      if (localProfileImage !== profileImage) {
+        updateData.profileImage = localProfileImage
       }
 
       // If password change is requested
@@ -194,7 +206,8 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
 
       if (response.ok) {
         toast.success(lang('success.profileUpdated'))
-        setUserProfile(result.user)
+        updateProfile(result.user)
+        updateProfileImage(result.user.profileImage)
         // Reset password fields
         setFormData(prev => ({
           ...prev,
@@ -226,11 +239,12 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
-      <div className="max-w-4xl mx-auto">
-        <h1 className="text-2xl font-bold mb-6">{lang('title') || 'Settings'}</h1>
+    <div className="flex-1 flex flex-col min-h-0">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8">
+        <div className="max-w-4xl mx-auto">
+          <h1 className="text-2xl font-bold mb-6">{lang('title') || 'Settings'}</h1>
 
-        <Tabs defaultValue="profile" className="w-full">
+          <Tabs defaultValue="profile" className="w-full">
           <TabsList className="grid grid-cols-4 mb-8 rounded-lg">
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="h-4 w-4" />
@@ -251,7 +265,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
           </TabsList>
 
           {/* Profile Tab */}
-          <TabsContent value="profile" className="space-y-6">
+          <TabsContent value="profile" className="space-y-6 max-h-[calc(100vh-300px)] overflow-y-auto">
             <Card>
               <CardHeader>
                 <CardTitle>{lang('profile.title') || 'Profile Information'}</CardTitle>
@@ -262,10 +276,13 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
               <CardContent className="space-y-6">
                 <div className="flex items-center gap-4">
                   <Avatar className="h-20 w-20">
-                    <AvatarImage src={profileImage || ''} alt="Profile" />
-                    <AvatarFallback className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
-                      {userProfile.username.charAt(0).toUpperCase()}
-                    </AvatarFallback>
+                    {localProfileImage ? (
+                      <AvatarImage src={localProfileImage} alt="Profile" />
+                    ) : (
+                      <AvatarFallback className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-300">
+                        {userProfile?.username?.charAt(0).toUpperCase() || 'U'}
+                      </AvatarFallback>
+                    )}
                   </Avatar>
                   <div className="flex-1">
                     <Label htmlFor="profile-image" className="cursor-pointer">
@@ -304,7 +321,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
                       type="email"
                       value={userProfile.email}
                       disabled
-                      className="bg-gray-50"
+                      className="bg-gray-50 dark:bg-gray-800 dark:text-gray-300"
                     />
                   </div>
                 </div>
@@ -315,7 +332,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
                     id="role"
                     value={userProfile.role}
                     disabled
-                    className="bg-gray-50"
+                    className="bg-gray-50 dark:bg-gray-800 dark:text-gray-300"
                   />
                 </div>
 
@@ -325,7 +342,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
                     id="member-since"
                     value={new Date(userProfile.createdAt).toLocaleDateString()}
                     disabled
-                    className="bg-gray-50"
+                    className="bg-gray-50 dark:bg-gray-800 dark:text-gray-300"
                   />
                 </div>
               </CardContent>
@@ -333,7 +350,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
           </TabsContent>
 
           {/* Account Tab */}
-          <TabsContent value="account" className="space-y-6">
+          <TabsContent value="account" className="space-y-6 max-h-[calc(100vh-300px)] overflow-y-auto">
             <Card>
               <CardHeader>
                 <CardTitle>{lang('account.title') || 'Account Security'}</CardTitle>
@@ -377,7 +394,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
           </TabsContent>
 
           {/* Notifications Tab */}
-          <TabsContent value="notifications" className="space-y-6">
+          <TabsContent value="notifications" className="space-y-6 max-h-[calc(100vh-300px)] overflow-y-auto">
             <Card>
               <CardHeader>
                 <CardTitle>{lang('notifications.title') || '알림 설정'}</CardTitle>
@@ -420,7 +437,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
           </TabsContent>
 
           {/* Preferences Tab */}
-          <TabsContent value="preferences" className="space-y-6">
+          <TabsContent value="preferences" className="space-y-6 max-h-[calc(100vh-300px)] overflow-y-auto">
             {/* Theme Settings */}
             <Card>
               <CardHeader>
@@ -564,15 +581,16 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
           </TabsContent>
         </Tabs>
 
-        {/* Save Button */}
-        <div className="mt-8 flex justify-end">
-          <Button 
-            onClick={handleProfileUpdate}
-            disabled={isLoading}
-            className="min-w-24"
-          >
-            {isLoading ? lang('common.saving') || 'Saving...' : lang('common.save') || 'Save'}
-          </Button>
+          {/* Save Button */}
+          <div className="mt-8 flex justify-end">
+            <Button 
+              onClick={handleProfileUpdate}
+              disabled={isLoading}
+              className="min-w-24"
+            >
+              {isLoading ? lang('common.saving') || 'Saving...' : lang('common.save') || 'Save'}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
