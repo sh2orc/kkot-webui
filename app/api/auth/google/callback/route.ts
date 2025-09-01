@@ -4,8 +4,8 @@ import { hashPassword } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import { encode } from 'next-auth/jwt';
 
-const GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID';
-const GOOGLE_CLIENT_SECRET = 'YOUR_GOOGLE_CLIENT_SECRET';
+const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
+const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const BASE_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
 export async function GET(request: NextRequest) {
@@ -15,6 +15,12 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error');
 
   console.log('🚀 Google OAuth callback:', { code: !!code, state, error });
+  
+  // Check if OAuth credentials are configured
+  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+    console.error('❌ Google OAuth credentials not configured');
+    return NextResponse.redirect(new URL('/auth?error=OAuthNotConfigured', request.url));
+  }
 
   if (error) {
     console.error('🚀 Google OAuth error:', error);

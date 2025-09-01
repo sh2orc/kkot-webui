@@ -29,12 +29,13 @@ export async function GET(request: NextRequest) {
     const googleClientIdSetting = await adminSettingsRepository.findByKey('auth.oauth.google.clientId');
     const googleClientSecretSetting = await adminSettingsRepository.findByKey('auth.oauth.google.clientSecret');
     
-    const GOOGLE_CLIENT_ID = googleClientIdSetting?.[0]?.value || 
-                             process.env.GOOGLE_CLIENT_ID || 
-                             '" + "YOUR_GOOGLE_CLIENT_ID';
-    const GOOGLE_CLIENT_SECRET = googleClientSecretSetting?.[0]?.value || 
-                                 process.env.GOOGLE_CLIENT_SECRET || 
-                                 '" + "YOUR_GOOGLE_CLIENT_SECRET';
+    const GOOGLE_CLIENT_ID = googleClientIdSetting?.[0]?.value || process.env.GOOGLE_CLIENT_ID;
+    const GOOGLE_CLIENT_SECRET = googleClientSecretSetting?.[0]?.value || process.env.GOOGLE_CLIENT_SECRET;
+    
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+      console.error('❌ Google OAuth credentials not configured');
+      return NextResponse.redirect(new URL('/auth?error=OAuthNotConfigured', request.url));
+    }
 
     console.log('🔍 Using Client ID from:', googleClientIdSetting?.[0]?.value ? 'DB' : 'Environment/Default');
     console.log('🔍 Using Client Secret from:', googleClientSecretSetting?.[0]?.value ? 'DB' : 'Environment/Default');
