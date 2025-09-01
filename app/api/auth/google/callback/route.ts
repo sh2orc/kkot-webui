@@ -1,11 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { userRepository } from '@/lib/db/repository';
+import { userRepository, adminSettingsRepository } from '@/lib/db/repository';
 import { hashPassword } from '@/lib/auth';
 import { cookies } from 'next/headers';
 import { encode } from 'next-auth/jwt';
 
-const GOOGLE_CLIENT_ID = process.env.GOOGLE_CLIENT_ID;
-const GOOGLE_CLIENT_SECRET = process.env.GOOGLE_CLIENT_SECRET;
 const BASE_URL = process.env.NEXTAUTH_URL || 'http://localhost:3000';
 
 export async function GET(request: NextRequest) {
@@ -15,12 +13,6 @@ export async function GET(request: NextRequest) {
   const error = searchParams.get('error');
 
   console.log('🚀 Google OAuth callback:', { code: !!code, state, error });
-  
-  // Check if OAuth credentials are configured
-  if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-    console.error('❌ Google OAuth credentials not configured');
-    return NextResponse.redirect(new URL('/auth?error=OAuthNotConfigured', request.url));
-  }
 
   if (error) {
     console.error('🚀 Google OAuth error:', error);
@@ -33,6 +25,20 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    // DB에서 Google OAuth 설정 가져오기
+    const googleClientIdSetting = await adminSettingsRepository.findByKey('auth.oauth.google.clientId');
+    const googleClientSecretSetting = await adminSettingsRepository.findByKey('auth.oauth.google.clientSecret');
+    
+    const GOOGLE_CLIENT_ID = googleClientIdSetting?.[0]?.value || process.env.GOOGLE_CLIENT_ID;
+    const GOOGLE_CLIENT_SECRET = googleClientSecretSetting?.[0]?.value || process.env.GOOGLE_CLIENT_SECRET;
+    
+    if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
+      console.error('❌ Google OAuth credentials not configured');
+      return NextResponse.redirect(new URL('/auth?error=OAuthNotConfigured', request.url));
+    }
+    
+    console.log('🔍 Using Client ID from:', googleClientIdSetting?.[0]?.value ? 'DB' : 'Environment');
+    console.log('🔍 Using Client Secret from:', googleClientSecretSetting?.[0]?.value ? 'DB' : 'Environment');
     // 액세스 토큰 교환
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -138,6 +144,7 @@ export async function GET(request: NextRequest) {
       
       const token = await encode({
         token: {
+          id: authUser.id,
           sub: authUser.id,
           email: authUser.email,
           name: authUser.name,

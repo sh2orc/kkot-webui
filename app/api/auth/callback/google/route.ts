@@ -135,17 +135,18 @@ export async function GET(request: NextRequest) {
       const maxAge = 30 * 24 * 60 * 60; // 30일
       
       const token = await encode({
-        token: {
-          sub: authUser.id,
-          email: authUser.email,
-          name: authUser.name,
-          role: authUser.role,
-          iat: Math.floor(Date.now() / 1000),
-          exp: Math.floor(Date.now() / 1000) + maxAge,
-        },
-        secret: secret!,
-        maxAge,
-      });
+      token: {
+        id: authUser.id,
+        sub: authUser.id,
+        email: authUser.email,
+        name: authUser.name,
+        role: authUser.role,
+        iat: Math.floor(Date.now() / 1000),
+        exp: Math.floor(Date.now() / 1000) + maxAge,
+      },
+      secret: secret!,
+      maxAge,
+    });
       
       console.log('🚀 NextAuth JWT token created:', !!token);
       
