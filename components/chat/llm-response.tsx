@@ -150,12 +150,8 @@ export function LlmResponse({
               }
               return <p {...props}>{children}</p>;
             },
-            // Handle broken images gracefully
+            // Handle broken images gracefully - simplified without hooks
             img: ({ node, src, alt, ...props }: any) => {
-              const [hasError, setHasError] = useState(false);
-              const [isLoading, setIsLoading] = useState(true);
-              const [retryCount, setRetryCount] = useState(0);
-              
               // Check if src is empty or undefined
               if (!src || src.trim() === '') {
                 return (
@@ -171,11 +167,11 @@ export function LlmResponse({
               const isExpiredDalleUrl = src?.includes('oaidalleapiprodscus.blob.core.windows.net') || src?.includes('blob.core.windows.net');
               const isExpired = isExpiredDalleUrl && (src?.includes('st=2024-') || src?.includes('se=2024-'));
               
-              if (hasError || isExpired) {
+              if (isExpired) {
                 return (
                   <span className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-400">
                     <span className="text-red-500">🖼️</span>
-                    <span>{isExpired ? '[만료된 이미지]' : '[이미지 로딩 실패]'}</span>
+                    <span>[만료된 이미지]</span>
                     {alt && <span className="text-xs">({alt})</span>}
                   </span>
                 );
@@ -187,31 +183,22 @@ export function LlmResponse({
                 : src;
               
               return (
-                <>
-                <span className="relative inline-block">
+                <span className="relative inline-block group">
                   <img
                     {...props}
                     src={convertedSrc}
                     alt={alt}
-                    className="max-w-[50%] h-auto rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-80 transition-opacity"
-                    onLoad={() => setIsLoading(false)}
+                    className="max-w-[50%] h-auto rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-90 transition-opacity"
+                    loading="lazy"
                     onError={(e: any) => {
-                      console.error('Image load error:', convertedSrc, 'Retry count:', retryCount);
-                      
-                      // Retry loading the image up to 3 times
-                      if (retryCount < 3) {
-                        setTimeout(() => {
-                          setRetryCount(prev => prev + 1);
-                          // Force reload by appending timestamp
-                          const img = e.target as HTMLImageElement;
-                          const url = new URL(img.src, window.location.origin);
-                          url.searchParams.set('retry', String(Date.now()));
-                          img.src = url.toString();
-                        }, 1000 * (retryCount + 1)); // Exponential backoff
-                      } else {
-                        setHasError(true);
-                        setIsLoading(false);
-                      }
+                      console.error('Image load error:', convertedSrc);
+                      // Replace with placeholder on error
+                      const img = e.target as HTMLImageElement;
+                      img.style.display = 'none';
+                      const errorSpan = document.createElement('span');
+                      errorSpan.className = 'inline-flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-400';
+                      errorSpan.innerHTML = '<span class="text-red-500">🖼️</span><span>[이미지 로딩 실패]</span>';
+                      img.parentNode?.appendChild(errorSpan);
                     }}
                     onClick={() => {
                       // Create modal overlay
@@ -251,25 +238,12 @@ export function LlmResponse({
                       };
                       document.addEventListener('keydown', handleEscape);
                     }}
-                    style={{ 
-                      opacity: isLoading ? 0 : 1,
-                      transition: 'opacity 0.3s ease-in-out'
-                    }}
                   />
-                  {isLoading && (
-                    <span className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg">
-                      <span className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
-                        <span className="animate-spin">⏳</span>
-                        <span>이미지 로딩 중{retryCount > 0 && ` (재시도 ${retryCount}/3)`}...</span>
-                      </span>
-                    </span>
-                  )}
                   {/* Overlay hint */}
-                  <span className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded opacity-0 hover:opacity-100 transition-opacity pointer-events-none">
+                  <span className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
                     클릭하여 확대
                   </span>
                 </span>
-                </>
               );
             },
           }}

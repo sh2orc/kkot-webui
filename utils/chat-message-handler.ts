@@ -282,6 +282,7 @@ export const sendMessageToAI = async (
                     }
                   }
 
+                  // Process streaming content (when done is false)
                   if (data.content && !data.done) {
                     // For streaming content (not final), append incrementally
                     assistantContent += data.content;
