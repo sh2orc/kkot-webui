@@ -268,6 +268,28 @@ export function UserManagementDialog({
                     </SelectContent>
                   </Select>
                 </div>
+
+                <div className="col-span-2 sm:col-span-1">
+                  <Label htmlFor="role">{lang('fields.role')}</Label>
+                  <Select
+                    value={formData.role}
+                    onValueChange={(value) => setFormData({ ...formData, role: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="admin">{lang('roles.admin')}</SelectItem>
+                      <SelectItem value="user">{lang('roles.user')}</SelectItem>
+                      <SelectItem value="guest">{lang('roles.guest')}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  {formData.role === 'guest' && (
+                    <p className="text-xs text-red-500 mt-1">
+                      게스트 계정은 로그인할 수 없습니다.
+                    </p>
+                  )}
+                </div>
               </div>
             </TabsContent>
 

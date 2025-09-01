@@ -67,30 +67,29 @@ export function LlmResponse({
   const { formatTime } = useTimezone()
   const contentRef = useRef<HTMLDivElement | null>(null)
 
-  // Check if this is a deep research response
-  // If isDeepResearch is explicitly provided, use that value
-  // Otherwise, fallback to content-based detection
-  const isDeepResearchResponse = isDeepResearch || 
-                                 (!isDeepResearch && (
-                                   content.includes('# 🧠 Deep Research Analysis Start') || 
-                                   content.includes('## 📊 Research Overview') ||
-                                   content.includes('## 🔍 Analysis Process') ||
-                                   content.includes('Deep Research Methodology:') ||
-                                   content.includes('# 🧠 Deep Research Analysis Start') || 
-                                   content.includes('## 📊 Research Overview') ||
-                                   content.includes('## 🔍 Analysis Process') ||
-                                   content.includes('Deep Research Methodology:')
-                                 ))
+  // Check if this is an image generation/editing loading message
+  const isImageGenerationLoading = content.includes('🎨 이미지를 생성하고 있습니다...');
+  const isImageEditingLoading = content.includes('🎨 이미지를 편집하고 있습니다...');
+  const isImageProcessingLoading = isImageGenerationLoading || isImageEditingLoading;
+  
+  if (isImageProcessingLoading) {
+    const loadingText = isImageEditingLoading ? '이미지를 편집하고 있습니다...' : '이미지를 생성하고 있습니다...';
+    
+    return (
+      <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
+        <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent"></div>
+        <span className="text-blue-700 dark:text-blue-300 font-medium">{loadingText}</span>
+      </div>
+    );
+  }
 
-  // Check if this contains deep research steps
-  // Only detect from content if isDeepResearch is not explicitly set
-  const hasDeepResearchSteps = !isDeepResearch && content.includes('### ') && (
-    content.includes('Question Analysis') || 
-    content.includes('Analysis:') ||
-    content.includes('Question Analysis') || 
-    content.includes('Analysis:') ||
-    content.includes('### ')
-  )
+  // Check if this is a deep research response
+  // ONLY use explicit isDeepResearch flag - don't rely on content detection
+  const isDeepResearchResponse = isDeepResearch === true
+
+  // Check if this contains deep research steps  
+  // ONLY rely on explicit isDeepResearch flag
+  const hasDeepResearchSteps = false // Disable problematic content-based detection
 
   // Get current step type for streaming indication
   const getStepTypeLabel = (stepType?: string) => {
@@ -150,6 +149,128 @@ export function LlmResponse({
                 }
               }
               return <p {...props}>{children}</p>;
+            },
+            // Handle broken images gracefully
+            img: ({ node, src, alt, ...props }: any) => {
+              const [hasError, setHasError] = useState(false);
+              const [isLoading, setIsLoading] = useState(true);
+              const [retryCount, setRetryCount] = useState(0);
+              
+              // Check if src is empty or undefined
+              if (!src || src.trim() === '') {
+                return (
+                  <span className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-400">
+                    <span className="text-yellow-500">⚠️</span>
+                    <span>[이미지 URL 없음]</span>
+                    {alt && <span className="text-xs">({alt})</span>}
+                  </span>
+                );
+              }
+              
+              // Check if this is a potentially expired DALL-E URL
+              const isExpiredDalleUrl = src?.includes('oaidalleapiprodscus.blob.core.windows.net') || src?.includes('blob.core.windows.net');
+              const isExpired = isExpiredDalleUrl && (src?.includes('st=2024-') || src?.includes('se=2024-'));
+              
+              if (hasError || isExpired) {
+                return (
+                  <span className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-400">
+                    <span className="text-red-500">🖼️</span>
+                    <span>{isExpired ? '[만료된 이미지]' : '[이미지 로딩 실패]'}</span>
+                    {alt && <span className="text-xs">({alt})</span>}
+                  </span>
+                );
+              }
+              
+              // Convert old /temp-images/ URLs to new /api/images/ format
+              const convertedSrc = src.startsWith('/temp-images/') 
+                ? src.replace('/temp-images/', '/api/images/')
+                : src;
+              
+              return (
+                <>
+                <span className="relative inline-block">
+                  <img
+                    {...props}
+                    src={convertedSrc}
+                    alt={alt}
+                    className="max-w-[50%] h-auto rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-80 transition-opacity"
+                    onLoad={() => setIsLoading(false)}
+                    onError={(e: any) => {
+                      console.error('Image load error:', convertedSrc, 'Retry count:', retryCount);
+                      
+                      // Retry loading the image up to 3 times
+                      if (retryCount < 3) {
+                        setTimeout(() => {
+                          setRetryCount(prev => prev + 1);
+                          // Force reload by appending timestamp
+                          const img = e.target as HTMLImageElement;
+                          const url = new URL(img.src, window.location.origin);
+                          url.searchParams.set('retry', String(Date.now()));
+                          img.src = url.toString();
+                        }, 1000 * (retryCount + 1)); // Exponential backoff
+                      } else {
+                        setHasError(true);
+                        setIsLoading(false);
+                      }
+                    }}
+                    onClick={() => {
+                      // Create modal overlay
+                      const overlay = document.createElement('div');
+                      overlay.className = 'fixed inset-0 bg-black bg-opacity-75 flex items-center justify-center z-50 cursor-pointer';
+                      overlay.style.backdropFilter = 'blur(4px)';
+                      
+                      // Create full-size image
+                      const fullImg = document.createElement('img');
+                      fullImg.src = convertedSrc;
+                      fullImg.alt = alt || 'Generated Image';
+                      fullImg.className = 'max-w-[95vw] max-h-[95vh] object-contain rounded-lg shadow-2xl';
+                      fullImg.style.cursor = 'pointer';
+                      
+                      // Add click to close
+                      overlay.addEventListener('click', () => {
+                        document.body.removeChild(overlay);
+                        document.body.style.overflow = 'auto';
+                      });
+                      
+                      // Prevent image click from closing modal
+                      fullImg.addEventListener('click', (e) => {
+                        e.stopPropagation();
+                      });
+                      
+                      overlay.appendChild(fullImg);
+                      document.body.appendChild(overlay);
+                      document.body.style.overflow = 'hidden';
+                      
+                      // Add escape key to close
+                      const handleEscape = (e: KeyboardEvent) => {
+                        if (e.key === 'Escape') {
+                          document.body.removeChild(overlay);
+                          document.body.style.overflow = 'auto';
+                          document.removeEventListener('keydown', handleEscape);
+                        }
+                      };
+                      document.addEventListener('keydown', handleEscape);
+                    }}
+                    style={{ 
+                      opacity: isLoading ? 0 : 1,
+                      transition: 'opacity 0.3s ease-in-out'
+                    }}
+                  />
+                  {isLoading && (
+                    <span className="absolute inset-0 flex items-center justify-center bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg">
+                      <span className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
+                        <span className="animate-spin">⏳</span>
+                        <span>이미지 로딩 중{retryCount > 0 && ` (재시도 ${retryCount}/3)`}...</span>
+                      </span>
+                    </span>
+                  )}
+                  {/* Overlay hint */}
+                  <span className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded opacity-0 hover:opacity-100 transition-opacity pointer-events-none">
+                    클릭하여 확대
+                  </span>
+                </span>
+                </>
+              );
             },
           }}
         >

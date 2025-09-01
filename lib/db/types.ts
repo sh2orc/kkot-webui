@@ -9,6 +9,11 @@ export interface User {
   username: string;
   email: string;
   role?: string;
+  profileImage?: string;
+  googleId?: string;
+  oauthProvider?: string;
+  oauthLinkedAt?: Date;
+  oauthProfilePicture?: string;
   createdAt?: Date;
   updatedAt?: Date;
 }

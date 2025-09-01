@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { getAuthOptions } from "@/app/api/auth/[...nextauth]/route";
 import { groupRepository } from "@/lib/db/repository";
 
 // GET /api/groups - 그룹 목록 조회
 export async function GET(req: NextRequest) {
   try {
     // Check authentication
+    const authOptions = await getAuthOptions();
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
@@ -42,6 +43,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     // Check authentication
+    const authOptions = await getAuthOptions();
     const session = await getServerSession(authOptions);
     console.log('Groups POST - Session:', session);
     console.log('Groups POST - User role:', session?.user?.role);

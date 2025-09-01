@@ -64,6 +64,19 @@ export const sendMessageToAI = async (
   const finalDeepResearch = urlDeepResearch || localDeepResearch || !!isDeepResearchActive;
   const finalGlobe = urlGlobe || localGlobe || !!isGlobeActive;
   
+  // 디버깅 로그 추가 (개발 환경에서만)
+  if (process.env.NODE_ENV === 'development') {
+    console.log('📨 메시지 전송 시 딥리서치 상태 확인:');
+    console.log('  URL 파라미터:', urlDeepResearch);
+    console.log('  localStorage:', localDeepResearch);
+    console.log('  React State:', !!isDeepResearchActive);
+    console.log('  === 최종 결과 ===');
+    console.log('  finalDeepResearch:', finalDeepResearch);
+    console.log('  finalGlobe:', finalGlobe);
+    console.log('  chatId:', chatId);
+    console.log('  message preview:', message.substring(0, 50) + '...');
+  }
+  
   if (!session?.user?.email) {
     return;
   }
@@ -148,27 +161,40 @@ export const sendMessageToAI = async (
       // Add user ID for authentication
       formData.append('userId', session?.user?.email || '');
       
+      // 디버깅: multipart 전송 시 딥리서치 값 확인
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🚀 multipart로 서버에 전송되는 딥리서치 값:', finalDeepResearch);
+      }
+      
       response = await fetch(`/api/chat/${chatId}`, {
         method: 'POST',
         body: formData
       });
     } else {
       // Use JSON for text-only messages
+      const requestBody = {
+        message,
+        agentId: agentInfo.type === 'agent' ? agentInfo.id : undefined,
+        modelId: agentInfo.type === 'model' ? agentInfo.id : undefined,
+        modelType: agentInfo.type,
+        isRegeneration,
+        isDeepResearchActive: finalDeepResearch,
+        isGlobeActive: finalGlobe,
+        userId: session?.user?.email
+      };
+      
+      // 디버깅: JSON 전송 시 딥리서치 값 확인
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🚀 JSON으로 서버에 전송되는 딥리서치 값:', finalDeepResearch);
+        console.log('🚀 전체 요청 body:', requestBody);
+      }
+      
       response = await fetch(`/api/chat/${chatId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          message,
-          agentId: agentInfo.type === 'agent' ? agentInfo.id : undefined,
-          modelId: agentInfo.type === 'model' ? agentInfo.id : undefined,
-          modelType: agentInfo.type,
-          isRegeneration,
-          isDeepResearchActive: finalDeepResearch,
-          isGlobeActive: finalGlobe,
-          userId: session?.user?.email
-        })
+        body: JSON.stringify(requestBody)
       });
     }
 
@@ -256,7 +282,8 @@ export const sendMessageToAI = async (
                     }
                   }
 
-                  if (data.content) {
+                  if (data.content && !data.done) {
+                    // For streaming content (not final), append incrementally
                     assistantContent += data.content;
                     // Update AI response in real-time
                     setMessages(prev => 
@@ -470,8 +497,31 @@ export const sendMessageToAI = async (
                     }));
                   }
 
+                  // Process content BEFORE checking done status
+                  // This ensures final messages with both content and done:true are handled properly
+                  if (data.content && data.messageId && data.done) {
+                    // For image generation responses, the final content includes the complete response
+                    // Check if this is a complete replacement (contains image markdown)
+                    if (data.content.includes('![') && data.content.includes('](')) {
+                      // This is likely an image response, replace entirely
+                      assistantContent = data.content;
+                    } else {
+                      // For normal streaming, append the final chunk
+                      assistantContent += data.content;
+                    }
+                    
+                    setMessages(prev => 
+                      prev.map(m => 
+                        m.id === assistantMessageId 
+                          ? { ...m, content: assistantContent }
+                          : m
+                      )
+                    );
+                  }
+
                   if (data.done) {
                     console.log('=== Streaming completed (data.done=true) ===');
+                    console.log('Final content length:', assistantContent.length);
                     
                     // Reset streaming state immediately
                     console.log('=== Reset streaming state immediately ===');

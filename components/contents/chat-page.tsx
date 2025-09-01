@@ -87,6 +87,55 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     }
   }, [isMobile])
 
+  // 딥리서치 상태 완전 초기화 함수
+  const resetDeepResearchState = () => {
+    if (typeof window !== 'undefined' && chatId) {
+      // localStorage 초기화
+      localStorage.removeItem(`chat_${chatId}_deepResearch`)
+      localStorage.removeItem(`chat_${chatId}_globe`)
+      
+      // URL 파라미터 초기화
+      const newUrl = window.location.pathname
+      window.history.replaceState({}, '', newUrl)
+      
+      // React state 초기화
+      setIsDeepResearchActive(false)
+      setIsGlobeActive(false)
+      
+      console.log('🔄 딥리서치 상태가 완전히 초기화되었습니다')
+    }
+  }
+
+  // 딥리서치 상태 디버깅 정보
+  const getDeepResearchDebugInfo = () => {
+    if (typeof window === 'undefined' || !chatId) return null
+    
+    const urlParams = new URLSearchParams(window.location.search)
+    const urlDeepResearch = urlParams.get('deepResearch') === 'true'
+    const localDeepResearch = localStorage.getItem(`chat_${chatId}_deepResearch`) === 'true'
+    
+    // localStorage의 모든 딥리서치 관련 키 확인
+    const allDeepResearchKeys = []
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i)
+      if (key && key.includes('deepResearch')) {
+        allDeepResearchKeys.push({
+          key,
+          value: localStorage.getItem(key)
+        })
+      }
+    }
+    
+    return {
+      urlParam: urlDeepResearch,
+      localStorage: localDeepResearch,
+      reactState: isDeepResearchActive,
+      final: urlDeepResearch || localDeepResearch || isDeepResearchActive,
+      allLocalStorageKeys: allDeepResearchKeys,
+      currentChatKey: `chat_${chatId}_deepResearch`
+    }
+  }
+
   // Load initial deep research and globe state from URL parameters and localStorage
   useEffect(() => {
     if (typeof window !== 'undefined' && chatId) {
@@ -101,6 +150,14 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       // Use URL parameters first, then localStorage as fallback
       const finalDeepResearch = urlDeepResearch || localDeepResearch
       const finalGlobe = urlGlobe || localGlobe
+      
+      // 디버깅 로그 추가
+      console.log('🔍 딥리서치 상태 확인:', {
+        urlParam: urlDeepResearch,
+        localStorage: localDeepResearch,
+        finalResult: finalDeepResearch,
+        chatId
+      })
       
       if (finalDeepResearch) {
         setIsDeepResearchActive(true)
@@ -1320,6 +1377,85 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             supportsMultimodal={supportsMultimodal}
             selectedAgent={selectedModel?.type === 'agent' ? selectedModel : null}
           />
+
+          {/* 딥리서치 디버깅 도구 (임시) */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-t border-yellow-200 dark:border-yellow-800">
+              <details className="text-sm">
+                <summary className="cursor-pointer font-medium mb-2 text-yellow-800 dark:text-yellow-200">
+                  🔍 딥리서치 디버깅 정보
+                </summary>
+                <div className="space-y-2 text-xs text-yellow-700 dark:text-yellow-300">
+                  {(() => {
+                    const debugInfo = getDeepResearchDebugInfo()
+                    if (!debugInfo) return <div>디버깅 정보를 가져올 수 없습니다.</div>
+                    
+                    return (
+                      <>
+                        <div>URL 파라미터: {debugInfo.urlParam ? '✅ true' : '❌ false'}</div>
+                        <div>현재 채팅 localStorage ({debugInfo.currentChatKey}): {debugInfo.localStorage ? '✅ true' : '❌ false'}</div>
+                        <div>React State: {debugInfo.reactState ? '✅ true' : '❌ false'}</div>
+                        
+                        <div className="pt-1 border-t border-yellow-300 dark:border-yellow-700">
+                          <div className="font-medium">
+                            최종 결과: {debugInfo.final ? '🔴 딥리서치 활성화됨' : '🟢 딥리서치 비활성화됨'}
+                          </div>
+                        </div>
+                        
+                        {debugInfo.allLocalStorageKeys.length > 0 && (
+                          <div className="pt-1 border-t border-yellow-300 dark:border-yellow-700">
+                            <div className="font-medium mb-1">모든 딥리서치 localStorage 키:</div>
+                            {debugInfo.allLocalStorageKeys.map((item, index) => (
+                              <div key={index} className="pl-2 text-xs">
+                                • {item.key}: {item.value}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                        
+                        <div className="pt-2 space-x-2">
+                          <button
+                            onClick={resetDeepResearchState}
+                            className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs"
+                          >
+                            🔄 현재 채팅 초기화
+                          </button>
+                          <button
+                            onClick={() => {
+                              if (typeof window !== 'undefined') {
+                                // 모든 딥리서치 관련 localStorage 키 삭제
+                                const keysToRemove = []
+                                for (let i = 0; i < localStorage.length; i++) {
+                                  const key = localStorage.key(i)
+                                  if (key && key.includes('deepResearch')) {
+                                    keysToRemove.push(key)
+                                  }
+                                }
+                                keysToRemove.forEach(key => localStorage.removeItem(key))
+                                
+                                // URL 파라미터 초기화
+                                const newUrl = window.location.pathname
+                                window.history.replaceState({}, '', newUrl)
+                                
+                                // React state 초기화
+                                setIsDeepResearchActive(false)
+                                setIsGlobeActive(false)
+                                
+                                console.log('🔄 모든 딥리서치 상태가 완전히 초기화되었습니다')
+                              }
+                            }}
+                            className="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs"
+                          >
+                            🗑️ 전체 초기화
+                          </button>
+                        </div>
+                      </>
+                    )
+                  })()}
+                </div>
+              </details>
+            </div>
+          )}
       </div>
     </>
   )

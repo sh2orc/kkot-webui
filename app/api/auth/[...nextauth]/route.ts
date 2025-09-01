@@ -1,7 +1,7 @@
 import NextAuth from 'next-auth';
 import type { NextAuthOptions } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
-import GoogleProvider from 'next-auth/providers/google';
+// GoogleProvider는 제거됨 - 커스텀 Google OAuth 핸들러 사용
 import { userRepository, adminSettingsRepository } from '@/lib/db/repository';
 import { hashPassword, verifyPassword } from '@/lib/auth';
 import { cookies } from 'next/headers';
@@ -9,10 +9,18 @@ import { cookies } from 'next/headers';
 // OAuth 설정을 DB에서 가져오는 함수
 async function getOAuthSettings() {
   try {
+    console.log('🔍 Fetching OAuth settings from DB...');
+    
     // Google OAuth 설정 확인
     const googleEnabled = await adminSettingsRepository.findByKey('auth.oauth.google.enabled');
     const googleClientId = await adminSettingsRepository.findByKey('auth.oauth.google.clientId');
     const googleClientSecret = await adminSettingsRepository.findByKey('auth.oauth.google.clientSecret');
+    
+    console.log('🔍 Raw DB values:', {
+      googleEnabled: googleEnabled?.[0]?.value,
+      googleClientId: googleClientId?.[0]?.value ? 'EXISTS' : 'MISSING',
+      googleClientSecret: googleClientSecret?.[0]?.value ? 'EXISTS' : 'MISSING'
+    });
     
     const oauthSettings = {
       enabled: true, // OAuth 자체는 활성화
@@ -25,17 +33,19 @@ async function getOAuthSettings() {
       }
     };
     
-    console.log('OAuth settings loaded:', {
+    console.log('🔍 OAuth settings loaded:', {
       google: {
         enabled: oauthSettings.providers.google.enabled,
         hasClientId: !!oauthSettings.providers.google.clientId,
-        hasClientSecret: !!oauthSettings.providers.google.clientSecret
+        hasClientSecret: !!oauthSettings.providers.google.clientSecret,
+        clientIdLength: oauthSettings.providers.google.clientId?.length,
+        secretLength: oauthSettings.providers.google.clientSecret?.length
       }
     });
     
     return oauthSettings;
   } catch (error) {
-    console.error('Failed to get OAuth settings:', error);
+    console.error('❌ Failed to get OAuth settings:', error);
   }
   return null;
 }
@@ -76,6 +86,12 @@ async function createProviders() {
             return null;
           }
           
+          // Check if user is guest
+          if (user.role === 'guest') {
+            console.log('Guest user attempted login');
+            throw new Error('GUEST_ACCOUNT');
+          }
+          
           // Return user data
           console.log('Returning user:', { id: user.id, email: user.email, name: user.name, role: user.role });
           return {
@@ -90,42 +106,8 @@ async function createProviders() {
         }
       },
     })
+    // Google OAuth는 이제 커스텀 핸들러 (/api/google/signin, /api/google/callback)를 사용합니다.
   ];
-
-  // OAuth 설정을 DB에서 가져와서 동적으로 추가
-  const oauthSettings = await getOAuthSettings();
-  if (oauthSettings?.enabled && oauthSettings?.providers?.google?.enabled) {
-    const googleConfig = oauthSettings.providers.google;
-    if (googleConfig.clientId && googleConfig.clientSecret) {
-      console.log('Adding Google provider with:', {
-        clientId: googleConfig.clientId,
-        hasSecret: !!googleConfig.clientSecret
-      });
-      
-      providers.push(
-        GoogleProvider({
-          clientId: googleConfig.clientId,
-          clientSecret: googleConfig.clientSecret,
-          authorization: {
-            params: {
-              prompt: "consent",
-              access_type: "offline",
-              response_type: "code"
-            }
-          },
-          // 명시적으로 프로필 설정
-          profile(profile) {
-            return {
-              id: profile.sub,
-              name: profile.name,
-              email: profile.email,
-              image: profile.picture,
-            }
-          },
-        })
-      );
-    }
-  }
 
   return providers;
 }
@@ -221,7 +203,20 @@ export async function createAuthOptions(): Promise<NextAuthOptions> {
           session.user.id = token.id as string;
           session.user.email = token.email as string;
           session.user.name = token.name as string;
-          session.user.role = token.role as string;
+          
+          // 실시간 권한 체크: 매번 DB에서 최신 권한 정보 가져오기
+          try {
+            const user = await userRepository.findByEmail(token.email as string);
+            if (user) {
+              session.user.role = user.role; // DB에서 가져온 최신 권한 사용
+              console.log('Updated role from DB:', user.role);
+            } else {
+              session.user.role = token.role as string; // 사용자가 없으면 토큰의 권한 사용
+            }
+          } catch (error) {
+            console.error('Error fetching user role from DB:', error);
+            session.user.role = token.role as string; // 에러 시 토큰의 권한 사용
+          }
         }
         console.log('Final session:', session);
         return session;
@@ -230,6 +225,17 @@ export async function createAuthOptions(): Promise<NextAuthOptions> {
     pages: {
       signIn: '/auth',
       error: '/auth',
+    },
+    logger: {
+      error(code, metadata) {
+        console.error('🔥 NextAuth Error:', code, metadata);
+      },
+      warn(code) {
+        console.warn('🔥 NextAuth Warning:', code);
+      },
+      debug(code, metadata) {
+        console.log('🔥 NextAuth Debug:', code, metadata);
+      }
     },
     debug: true,
     events: {
@@ -264,7 +270,7 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
   return cachedAuthOptions;
 }
 
-// 이전 버전과의 호환성을 위한 authOptions export (동기적으로 생성)
+// Main authOptions export
 export const authOptions: NextAuthOptions = {
   secret: process.env.NEXTAUTH_SECRET || 'your-secret-key-here',
   providers: [
@@ -301,8 +307,12 @@ export const authOptions: NextAuthOptions = {
             return null;
           }
           
+          // Update last login time
+          await userRepository.updateLastLogin(user.id);
+          console.log('Updated last login time for user:', user.id);
+
           // Return user data
-          console.log('Returning user:', { id: user.id, email: user.email, name: user.name, role: user.role });
+          console.log('Returning user:', { id: user.id, email: user.email, name: user.username, role: user.role });
           return {
             id: user.id,
             email: user.email,
@@ -315,6 +325,7 @@ export const authOptions: NextAuthOptions = {
         }
       },
     })
+    // Google OAuth는 이제 커스텀 핸들러 (/api/google/signin, /api/google/callback)를 사용합니다.
   ],
   session: {
     strategy: 'jwt',
@@ -324,10 +335,7 @@ export const authOptions: NextAuthOptions = {
     async signIn({ user, account, profile, email, credentials }) {
       console.log('=== SignIn Callback Debug ===');
       console.log('Provider:', account?.provider);
-      console.log('Account:', JSON.stringify(account, null, 2));
       console.log('User:', JSON.stringify(user, null, 2));
-      console.log('Profile:', JSON.stringify(profile, null, 2));
-      console.log('Credentials:', credentials ? 'exists' : 'null');
       
       if (account?.provider === 'google') {
         try {
@@ -354,7 +362,7 @@ export const authOptions: NextAuthOptions = {
             const newUser = await userRepository.create({
               username: user.name || user.email.split('@')[0],
               email: user.email,
-              password: '', // OAuth users don't need password
+              password: await hashPassword(Math.random().toString(36).slice(-8)), // Random password for OAuth users
               role: 'user'
             });
             
@@ -420,23 +428,39 @@ export const authOptions: NextAuthOptions = {
   debug: true,
 };
 
+// Create NextAuth handler with main authOptions
+const handler = NextAuth(authOptions);
+
 // NextAuth 핸들러 export
 export async function GET(req: Request, context: { params: Promise<{ nextauth: string[] }> }) {
   const params = await context.params;
-  console.log('NextAuth GET request:', params.nextauth);
+  console.log('🔥 Static NextAuth GET request:', params.nextauth);
   
-  const authOptions = await getAuthOptions();
-  const handler = NextAuth(authOptions);
-  
-  return handler(req, context);
+  try {
+    const response = await handler(req, context);
+    
+    // 에러 응답인 경우 상세 로깅
+    if (response.status >= 300) {
+      console.log('🔥 NextAuth response status:', response.status);
+      console.log('🔥 NextAuth response headers:', Object.fromEntries(response.headers));
+      
+      // 리다이렉트 URL에서 에러 확인
+      const location = response.headers.get('location');
+      if (location && location.includes('error=')) {
+        console.log('🔥 Error detected in redirect:', location);
+      }
+    }
+    
+    return response;
+  } catch (error) {
+    console.error('🔥 NextAuth handler error:', error);
+    throw error;
+  }
 }
 
 export async function POST(req: Request, context: { params: Promise<{ nextauth: string[] }> }) {
   const params = await context.params;
-  console.log('NextAuth POST request:', params.nextauth);
-  
-  const authOptions = await getAuthOptions();
-  const handler = NextAuth(authOptions);
+  console.log('🔥 Static NextAuth POST request:', params.nextauth);
   
   return handler(req, context);
 }

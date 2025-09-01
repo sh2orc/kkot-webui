@@ -225,4 +225,12 @@ export async function preloadTranslationModule(language: Language, module: strin
 // Preload multiple modules at once
 export async function preloadTranslationModules(language: Language, modules: string[]) {
   await Promise.all(modules.map(module => loadTranslationModule(language, module)))
+}
+
+// Cache multiple language translations at once
+export function cacheAllLanguageTranslations(module: string, allTranslations: Record<string, any>) {
+  Object.keys(allTranslations).forEach(language => {
+    const cacheKey = `${language}.${module}`
+    translationCache.set(cacheKey, allTranslations[language])
+  })
 } 

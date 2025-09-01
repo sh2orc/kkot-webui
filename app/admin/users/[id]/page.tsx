@@ -44,6 +44,11 @@ interface UserDetail {
   email_verified: boolean
   failed_login_attempts: number
   locked_until: string | null
+  // OAuth 정보 추가
+  oauth_provider?: string
+  google_id?: string
+  oauth_linked_at?: string
+  oauth_profile_picture?: string
   created_at: string
   updated_at: string
   roles: Role[]
@@ -66,10 +71,11 @@ interface Permission {
 interface ActivityLog {
   id: string
   action: string
-  resource_type: string
-  resource_id: string
-  ip_address: string
-  created_at: string
+  resourceType?: string
+  resourceId?: string
+  ipAddress?: string
+  userAgent?: string
+  createdAt: string | number
 }
 
 export default function UserDetailPage() {
@@ -256,10 +262,29 @@ export default function UserDetailPage() {
           <CardContent className="space-y-4">
             <div className="flex justify-center">
               <Avatar className="h-24 w-24">
-                <AvatarImage src={user.profile_image || undefined} />
+                <AvatarImage src={user.oauth_profile_picture || user.profile_image || undefined} />
                 <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
               </Avatar>
             </div>
+            
+            {user.oauth_provider && (
+              <div className="text-center">
+                <Badge variant="outline" className="text-xs">
+                  {user.oauth_provider === 'google' ? (
+                    <span className="flex items-center gap-1">
+                      🟡 Google
+                    </span>
+                  ) : (
+                    user.oauth_provider
+                  )}
+                </Badge>
+                {user.oauth_linked_at && (
+                  <p className="text-xs text-gray-500 mt-1">
+                    연결: {new Date(user.oauth_linked_at).toLocaleDateString()}
+                  </p>
+                )}
+              </div>
+            )}
 
             <div className="space-y-3">
               <div>
@@ -335,9 +360,9 @@ export default function UserDetailPage() {
           <Tabs defaultValue="info">
             <CardHeader>
               <TabsList>
-                <TabsTrigger value="info">{lang('tabs.info')}</TabsTrigger>
-                <TabsTrigger value="permissions">{lang('tabs.permissions')}</TabsTrigger>
-                <TabsTrigger value="activity">{lang('tabs.activity')}</TabsTrigger>
+                <TabsTrigger value="info" className="text-sm">{lang('tabs.info')}</TabsTrigger>
+                <TabsTrigger value="permissions" className="text-sm">{lang('tabs.permissions')}</TabsTrigger>
+                <TabsTrigger value="activity" className="text-sm">{lang('tabs.activity')}</TabsTrigger>
               </TabsList>
             </CardHeader>
             <CardContent>
@@ -383,6 +408,34 @@ export default function UserDetailPage() {
                     />
                   </div>
                 </div>
+
+                {user.oauth_provider && (
+                  <div className="space-y-2 pt-4 border-t">
+                    <h4 className="font-medium text-sm mb-2">OAuth 연동 정보</h4>
+                    <div className="bg-gray-50 p-3 rounded-md space-y-2">
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm text-gray-600">제공업체</span>
+                        <Badge variant="outline" className="text-xs">
+                          {user.oauth_provider === 'google' ? '🟡 Google' : user.oauth_provider}
+                        </Badge>
+                      </div>
+                      {user.google_id && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">Google ID</span>
+                          <span className="text-xs font-mono text-gray-700">{user.google_id}</span>
+                        </div>
+                      )}
+                      {user.oauth_linked_at && (
+                        <div className="flex items-center justify-between">
+                          <span className="text-sm text-gray-600">연결일시</span>
+                          <span className="text-xs text-gray-700">
+                            {new Date(user.oauth_linked_at).toLocaleString()}
+                          </span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
 
                 <div className="space-y-2 pt-4 border-t">
                   <div className="flex items-center gap-2">
@@ -466,23 +519,31 @@ export default function UserDetailPage() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {activities.map((activity) => (
+                    {activities.length > 0 ? activities.map((activity) => (
                       <TableRow key={activity.id}>
                         <TableCell>{activity.action}</TableCell>
                         <TableCell>
-                          {activity.resource_type && (
+                          {activity.resourceType && (
                             <span className="text-sm text-gray-600">
-                              {activity.resource_type}
-                              {activity.resource_id && ` #${activity.resource_id}`}
+                              {activity.resourceType}
+                              {activity.resourceId && ` #${activity.resourceId}`}
                             </span>
                           )}
                         </TableCell>
-                        <TableCell className="font-mono text-sm">{activity.ip_address}</TableCell>
+                        <TableCell className="font-mono text-sm">{activity.ipAddress || '-'}</TableCell>
                         <TableCell className="text-sm">
-                          {new Date(activity.created_at).toLocaleString()}
+                          {typeof activity.createdAt === 'number' 
+                            ? new Date(activity.createdAt * 1000).toLocaleString()
+                            : new Date(activity.createdAt).toLocaleString()}
                         </TableCell>
                       </TableRow>
-                    ))}
+                    )) : (
+                      <TableRow>
+                        <TableCell colSpan={4} className="text-center text-gray-500">
+                          활동 로그가 없습니다.
+                        </TableCell>
+                      </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </TabsContent>

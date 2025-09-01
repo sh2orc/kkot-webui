@@ -288,6 +288,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       const modelResult = await llmModelRepository.findById(modelId)
       if (modelResult && modelResult.length > 0) {
         model = modelResult[0]
+        
+        // Set default parameters for model mode
+        llmParams = {
+          temperature: 0.7,
+          maxTokens: 4096,
+          topP: 0.95
+        }
+        
+        // Increase token limit when images are present
+        if (images.length > 0) {
+          llmParams.maxTokens = Math.max(llmParams.maxTokens, 18432)
+        }
       }
     }
 
@@ -595,6 +607,166 @@ Parallel Processing Plan:
             console.log('✅ SKIPPING normal LLM processing - Deep research was active or completion already handled')
             console.log('Deep research was active or completion already handled - skipping normal LLM processing')
             return
+          }
+
+          // Check if this model supports image generation
+          console.log('🎨 Checking image generation capability:', {
+            modelId: model.modelId,
+            supportsImageGeneration: model.supportsImageGeneration,
+            provider: server.provider
+          });
+          
+          // Only proceed if model supports image generation
+          if (model.supportsImageGeneration) {
+            // Check if user uploaded images (for editing) or wants to generate new images
+            const hasUploadedImages = images && images.length > 0;
+            
+            // Define keywords for image generation and editing
+            const imageGenerationKeywords = [
+              '그림', '이미지', '사진', '그려', '생성', '만들어', '그래픽', '일러스트', '아트', '아티스트', 
+              'image', 'picture', 'draw', 'create', 'generate', 'art', 'illustration', 'graphic'
+            ];
+            
+            const imageEditingKeywords = [
+              '수정', '편집', '바꿔', '변경', '조정', '개선', '스타일', '색상', '추가', '제거', '삭제',
+              'edit', 'modify', 'change', 'adjust', 'improve', 'style', 'color', 'add', 'remove', 'delete'
+            ];
+            
+            const hasGenerationKeywords = imageGenerationKeywords.some(keyword => 
+              message.toLowerCase().includes(keyword.toLowerCase())
+            );
+            
+            const hasEditingKeywords = imageEditingKeywords.some(keyword => 
+              message.toLowerCase().includes(keyword.toLowerCase())
+            );
+            
+            console.log('🎨 Image processing analysis:', {
+              hasUploadedImages,
+              hasGenerationKeywords,
+              hasEditingKeywords,
+              imageCount: images?.length || 0
+            });
+            
+            // Determine if this is an image generation/editing request
+            const isImageRequest = hasUploadedImages ? hasEditingKeywords : hasGenerationKeywords;
+            
+            if (isImageRequest) {
+              const requestType = hasUploadedImages ? 'Image Editing' : 'Image Generation';
+              console.log(`🎨 ${requestType} request detected, using Gemini ${requestType.toLowerCase()}`)
+            
+            try {
+              console.log(`🎨 Starting image ${hasUploadedImages ? 'editing' : 'generation'} process...`);
+              
+              // Send loading message based on request type
+              const loadingMessage = hasUploadedImages 
+                ? '🎨 이미지를 편집하고 있습니다...'
+                : '🎨 이미지를 생성하고 있습니다...';
+              
+              safeEnqueue(
+                new TextEncoder().encode(
+                  `data: ${JSON.stringify({
+                    messageId: assistantMessageId,
+                    content: loadingMessage,
+                    done: false
+                  })}\n\n`
+                )
+              );
+
+              // Prepare image data for editing if images are uploaded
+              let imageOptions: any = {};
+              
+              if (hasUploadedImages && images.length > 0) {
+                console.log('🎨 Preparing input images for editing:', images.length);
+                
+                // Convert uploaded File objects to format expected by Gemini
+                imageOptions.inputImages = await Promise.all(images.map(async (file: File) => {
+                  const arrayBuffer = await file.arrayBuffer();
+                  const base64 = Buffer.from(arrayBuffer).toString('base64');
+                  
+                  return {
+                    data: base64,
+                    mimeType: file.type || 'image/jpeg'
+                  };
+                }));
+                
+                console.log('🎨 Input images prepared for editing:', {
+                  count: imageOptions.inputImages.length,
+                  mimeTypes: imageOptions.inputImages.map((img: any) => img.mimeType)
+                });
+              }
+              
+              // Generate image using Gemini image generation/editing
+              console.log('🎨 Calling generateImage with message:', message);
+              console.log('🎨 Image options:', imageOptions);
+              const imageResponse = await (llmClient as any).generateImage(message, imageOptions);
+              console.log('🎨 Image generation completed');
+
+              fullResponse = imageResponse.content;
+              
+              // Clear the loading message first
+              console.log('🎨 Clearing loading message...');
+              safeEnqueue(
+                new TextEncoder().encode(
+                  `data: ${JSON.stringify({ 
+                    messageId: assistantMessageId,
+                    content: '',
+                    done: false 
+                  })}\n\n`
+                )
+              );
+              
+              // Small delay to ensure loading message is cleared
+              await new Promise(resolve => setTimeout(resolve, 100));
+              
+              // Send final response with image
+              console.log('🎨 Sending final response to client...');
+              safeEnqueue(
+                new TextEncoder().encode(
+                  `data: ${JSON.stringify({ 
+                    messageId: assistantMessageId,
+                    content: imageResponse.content,
+                    done: true 
+                  })}\n\n`
+                )
+              );
+
+              // Save assistant message
+              const assistantMessage = {
+                sessionId: chatId,
+                role: 'assistant' as const,
+                content: imageResponse.content
+              };
+              await chatMessageRepository.create(assistantMessage);
+              console.log('🎨 Assistant message saved to database');
+              
+              completionHandled = true;
+              safeClose();
+              console.log('🎨 Image generation process completed successfully');
+              return;
+
+            } catch (imageError) {
+              console.error('Image generation error:', imageError);
+              
+              // Fallback to normal text generation
+              const errorContent = `이미지 생성 중 오류가 발생했습니다: ${imageError instanceof Error ? imageError.message : String(imageError)}\n\n대신 텍스트로 설명해드리겠습니다.\n\n`;
+              
+              safeEnqueue(
+                new TextEncoder().encode(
+                  `data: ${JSON.stringify({ 
+                    messageId: assistantMessageId,
+                    content: errorContent,
+                    done: false 
+                  })}\n\n`
+                )
+              );
+              
+                            // Continue with normal processing below
+            }
+            } else {
+              console.log(`🎨 ${hasUploadedImages ? 'Image editing' : 'Image generation'} keywords not found in message, proceeding with normal text generation`);
+            }
+          } else {
+            console.log('🎨 Model does not support image generation, proceeding with normal text generation');
           }
 
           // Define streaming callbacks

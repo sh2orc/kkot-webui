@@ -1,12 +1,13 @@
 import { NextRequest, NextResponse } from "next/server"
 import { userRepository } from "@/lib/db/repository"
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { createAuthOptions } from "@/app/api/auth/[...nextauth]/route"
 
 export async function POST(req: NextRequest) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions)
+    const authOptions = await createAuthOptions()
+  const session = await getServerSession(authOptions)
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
         { error: "Unauthorized" },

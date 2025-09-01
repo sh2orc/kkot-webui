@@ -1,11 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { chatSessionRepository, agentManageRepository, userRepository, chatMessageRepository } from '@/lib/db/server'
 import { getServerSession } from 'next-auth'
-import { authOptions } from '@/app/api/auth/[...nextauth]/route'
+import { getAuthOptions } from '@/app/api/auth/[...nextauth]/route'
 
 export async function POST(request: NextRequest) {
   console.log('=== Chat API POST request received ===')
   try {
+    const authOptions = await getAuthOptions()
     const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {
@@ -204,14 +205,19 @@ export async function POST(request: NextRequest) {
 export async function GET(request: NextRequest) {
   console.log('=== Chat API GET request received - Chat session list query ===')
   try {
+    const authOptions = await getAuthOptions()
     const session = await getServerSession(authOptions)
+    console.log('Session data:', session ? { email: session.user?.email, id: session.user?.id } : 'No session')
     
     if (!session?.user?.email) {
+      console.log('No valid session found, returning 401')
       return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
     }
 
+    console.log('Fetching chat sessions for user email:', session.user.email)
     // Retrieve all chat sessions for the user (in descending order)
     const sessions = await chatSessionRepository.findByUserEmail(session.user.email)
+    console.log('Raw sessions from DB:', sessions.length, 'sessions found')
     
     // Process additional session information (last message time, etc.)
     const processedSessions = sessions.map((session: any) => ({
@@ -233,6 +239,8 @@ export async function GET(request: NextRequest) {
     
   } catch (error) {
     console.error('Chat session list retrieval error:', error)
+    console.error('Error details:', error instanceof Error ? error.message : String(error))
+    console.error('Error stack:', error instanceof Error ? error.stack : 'No stack trace')
     return NextResponse.json({ error: 'Failed to load chat session list' }, { status: 500 })
   }
 } 

@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getServerSession } from 'next-auth/next'
 import { userRepository } from '@/lib/db/repository'
 import { hashPassword, verifyPassword } from '@/lib/auth'
+import { getAuthOptions } from '@/app/api/auth/[...nextauth]/route'
 
 // GET - Fetch current user profile information
 export async function GET() {
   try {
-    const session = await getServerSession()
+    const authOptions = await getAuthOptions()
+    const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {
       return NextResponse.json(
@@ -46,7 +48,8 @@ export async function GET() {
 // PUT - Update user profile information
 export async function PUT(request: NextRequest) {
   try {
-    const session = await getServerSession()
+    const authOptions = await getAuthOptions()
+    const session = await getServerSession(authOptions)
     
     if (!session?.user?.email) {
       return NextResponse.json(

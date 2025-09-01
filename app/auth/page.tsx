@@ -20,8 +20,9 @@ interface OAuthProvider {
   id: string;
   name: string;
   type: string;
-  signinUrl: string;
-  callbackUrl: string;
+  clientId?: string;
+  signinUrl?: string;
+  callbackUrl?: string;
 }
 
 export default function AuthPage() {
@@ -44,14 +45,15 @@ export default function AuthPage() {
   const { t, lang, language } = useTranslation('auth');
   const [oauthError, setOauthError] = useState('');
 
-  // OAuth 제공자 가져오기
+  // OAuth 제공자 가져오기 (DB에서 활성화된 것만)
   useEffect(() => {
     const fetchOAuthProviders = async () => {
       try {
-        const response = await fetch('/api/auth/providers');
+        const response = await fetch('/api/oauth-providers');
         const data = await response.json();
         console.log('OAuth providers response:', data);
-        setOauthProviders(data.providers || []);
+        
+        setOauthProviders(data);
       } catch (error) {
         console.error('Failed to fetch OAuth providers:', error);
       }
@@ -96,6 +98,15 @@ export default function AuthPage() {
           break;
         case 'google':
           errorMessage = 'Google OAuth 설정 오류. Authorized redirect URIs를 확인하세요: http://localhost:3000/api/auth/callback/google';
+          break;
+        case 'email_required':
+          errorMessage = '카카오 로그인을 위해서는 이메일 동의가 필요합니다. 카카오 개발자 콘솔에서 account_email 동의항목을 설정해주세요.';
+          break;
+        case 'kakao_oauth':
+          errorMessage = '카카오 OAuth 인증 중 오류가 발생했습니다. 카카오 개발자 콘솔 설정을 확인해주세요.';
+          break;
+        case 'GUEST_ACCOUNT':
+          errorMessage = '게스트 계정은 로그인할 수 없습니다. 관리자에게 문의하여 권한을 요청하세요.';
           break;
         default:
           errorMessage = `인증 오류: ${error}`;
@@ -149,9 +160,70 @@ export default function AuthPage() {
     
     try {
       if (providerId === 'google') {
-        // 직접 OAuth URL로 리다이렉트
-        console.log('Redirecting to Google OAuth...');
-        window.location.href = '/api/auth/signin/google?callbackUrl=' + encodeURIComponent('/chat');
+        // 직접 구현한 구글 OAuth로 리다이렉트 (NextAuth 표준 URL 사용)
+        console.log('🚀 Redirecting to direct Google OAuth...');
+        
+        // OAuth providers에서 Google Client ID 찾기
+        const googleProvider = oauthProviders.find(provider => provider.id === 'google');
+        if (!googleProvider?.clientId) {
+          console.error('Google Client ID not found in OAuth providers');
+          setOauthLoading('');
+          return;
+        }
+        
+        // 동적으로 현재 도메인 가져오기
+        const baseUrl = window.location.origin;
+        const redirectUri = `${baseUrl}/api/auth/callback/google`;
+        
+        const googleAuthUrl = new URL('https://accounts.google.com/o/oauth2/v2/auth');
+        googleAuthUrl.searchParams.set('client_id', googleProvider.clientId);
+        googleAuthUrl.searchParams.set('redirect_uri', redirectUri);
+        googleAuthUrl.searchParams.set('response_type', 'code');
+        googleAuthUrl.searchParams.set('scope', 'openid email profile');
+        googleAuthUrl.searchParams.set('access_type', 'offline');
+        googleAuthUrl.searchParams.set('prompt', 'consent');
+        const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        googleAuthUrl.searchParams.set('state', state);
+        
+        console.log('🔍 Using base URL:', baseUrl);
+        console.log('🔍 Using redirect_uri:', redirectUri);
+        console.log('🔍 Using client_id:', googleProvider.clientId);
+        console.log('🔍 Full Google Auth URL:', googleAuthUrl.toString());
+        
+        window.location.href = googleAuthUrl.toString();
+        return;
+      }
+
+      if (providerId === 'kakao') {
+        // 직접 구현한 카카오 OAuth로 리다이렉트
+        console.log('🚀 Redirecting to direct Kakao OAuth...');
+        
+        // OAuth providers에서 Kakao Client ID 찾기
+        const kakaoProvider = oauthProviders.find(provider => provider.id === 'kakao');
+        if (!kakaoProvider?.clientId) {
+          console.error('Kakao Client ID not found in OAuth providers');
+          setOauthLoading('');
+          return;
+        }
+        
+        // 동적으로 현재 도메인 가져오기
+        const baseUrl = window.location.origin;
+        const redirectUri = `${baseUrl}/api/auth/callback/kakao`;
+        
+        const kakaoAuthUrl = new URL('https://kauth.kakao.com/oauth/authorize');
+        kakaoAuthUrl.searchParams.set('client_id', kakaoProvider.clientId);
+        kakaoAuthUrl.searchParams.set('redirect_uri', redirectUri);
+        kakaoAuthUrl.searchParams.set('response_type', 'code');
+        kakaoAuthUrl.searchParams.set('scope', 'account_email');
+        const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
+        kakaoAuthUrl.searchParams.set('state', state);
+        
+        console.log('🔍 Using base URL:', baseUrl);
+        console.log('🔍 Using redirect_uri:', redirectUri);
+        console.log('🔍 Using client_id:', kakaoProvider.clientId);
+        console.log('🔍 Full Kakao Auth URL:', kakaoAuthUrl.toString());
+        
+        window.location.href = kakaoAuthUrl.toString();
         return;
       }
       
@@ -192,15 +264,7 @@ export default function AuthPage() {
         );
       case 'github':
         return <Github className="w-5 h-5" />;
-      case 'microsoft':
-        return (
-          <svg className="w-5 h-5" viewBox="0 0 24 24">
-            <path fill="#f25022" d="M1 1h10v10H1z"/>
-            <path fill="#00a4ef" d="M13 1h10v10H13z"/>
-            <path fill="#7fba00" d="M1 13h10v10H1z"/>
-            <path fill="#ffb900" d="M13 13h10v10H13z"/>
-          </svg>
-        );
+
       case 'kakao':
         return (
           <svg className="w-5 h-5" viewBox="0 0 24 24">
@@ -405,7 +469,15 @@ export default function AuthPage() {
       }
 
       // Registration successful
-      toast.success(await t('messages.registerSuccess'));
+      const successMessage = data.message || await t('messages.registerSuccess');
+      toast.success(successMessage);
+      
+      // If guest account, show additional warning
+      if (data.user?.role === 'guest') {
+        toast.warning('게스트 계정은 로그인할 수 없습니다. 관리자에게 문의하여 권한을 요청하세요.', {
+          duration: 8000 // 8초 동안 표시
+        });
+      }
       
       // Pre-fill email in login form
       const registeredEmail = registerForm.email;
@@ -448,11 +520,8 @@ export default function AuthPage() {
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
           <div className="flex justify-center items-center">
-            <Image src="/images/logo.svg" alt="KKOT WebUI" width={130} height={24} priority />
+            <Image src="/images/logo.svg" alt="KKOT WebUI" width={80} height={24} priority />
           </div>
-          <h2 className="mt-6 text-3xl font-extrabold text-gray-900 dark:text-gray-100">
-            {safeTranslate('title', 'KKOT WebUI')}
-          </h2>
           <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
             {safeTranslate('subtitle', 'Sign in to your account or create a new one')}
           </p>

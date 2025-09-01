@@ -100,12 +100,20 @@ async function fetchGeminiModels(server: any) {
         const supportsMultimodal = model.supportedGenerationMethods?.includes('generateContent') && 
                                    (model.inputTokenLimit > 100000 || model.name.includes('vision'));
         
+        // Check if model supports image generation
+        const supportsImageGeneration = model.name.includes('image') || 
+                                       model.name.includes('imagen') ||
+                                       model.name.includes('flash-image') ||
+                                       model.displayName?.toLowerCase().includes('image');
+        
         return {
           modelId: model.name.replace('models/', ''), // Remove 'models/' prefix
           supportsMultimodal,
+          supportsImageGeneration,
           capabilities: {
             chat: true, // Most Gemini models support chat
             image: supportsMultimodal,
+            imageGeneration: supportsImageGeneration,
             audio: false // Currently no audio support in standard Gemini models
           },
           contextLength: model.inputTokenLimit
@@ -153,11 +161,10 @@ export default async function ModelSettingsPage() {
           modelId: model.modelId,
           provider: server.provider,
           capabilities: model.capabilities,
-          contextLength: model.contextLength,
-          supportsMultimodal: model.supportsMultimodal
-          // enabled and isPublic are not passed
-          // - New models: set to disabled (false) by default
-          // - Existing models: maintain current status
+          contextLength: model.contextLength
+          // enabled, isPublic, supportsMultimodal, supportsImageGeneration are not passed
+          // - New models: set to default values (false) 
+          // - Existing models: maintain current user settings
         });
       } catch (err) {
         console.error('Error upserting model:', err);

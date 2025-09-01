@@ -1,12 +1,14 @@
 import { NextRequest, NextResponse } from "next/server"
 import { userRepository, groupRepository } from "@/lib/db/repository"
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { createAuthOptions } from "@/app/api/auth/[...nextauth]/route"
+import { hashPassword } from "@/lib/auth"
 
 export async function GET(req: NextRequest) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions)
+    const authOptions = await createAuthOptions()
+  const session = await getServerSession(authOptions)
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -17,7 +19,7 @@ export async function GET(req: NextRequest) {
     const users = await userRepository.findAll()
 
     // Remove sensitive information
-    const sanitizedUsers = users.map(user => ({
+    const sanitizedUsers = users.map((user: any) => ({
       id: user.id,
       email: user.email,
       name: user.username,
@@ -25,7 +27,12 @@ export async function GET(req: NextRequest) {
       department: user.department,
       status: user.status || 'active',
       email_verified: user.email_verified || false,
-      last_login_at: user.last_login_at,
+      last_login_at: user.lastLoginAt || user.last_login_at,
+      // OAuth 정보 추가
+      oauth_provider: user.oauthProvider,
+      google_id: user.googleId,
+      oauth_linked_at: user.oauthLinkedAt,
+      oauth_profile_picture: user.oauthProfilePicture,
       createdAt: user.createdAt,
       updatedAt: user.updatedAt
     }))
@@ -43,7 +50,8 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions)
+    const authOptions = await createAuthOptions()
+  const session = await getServerSession(authOptions)
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -74,7 +82,7 @@ export async function POST(req: NextRequest) {
     const newUser = await userRepository.create({
       username: name,
       email,
-      password, // This should be hashed in the repository
+      password: hashPassword(password), // Hash the password
       role,
       department,
       phone_number,

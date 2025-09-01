@@ -1,7 +1,6 @@
 import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
-import { getServerSession } from '@/lib/auth'
 import ClientProviders from '@/components/providers/client-providers'
 import GlobalLayout from '@/components/layout/global-layout'
 import { Toaster } from '@/components/ui/toaster'
@@ -13,13 +12,11 @@ export const metadata: Metadata = {
   description: 'Advanced AI Chat Interface',
 }
 
-export default async function RootLayout({
+export default function RootLayout({
   children,
 }: {
   children: React.ReactNode
 }) {
-  const session = await getServerSession()
-
   return (
     <html lang="ko" suppressHydrationWarning>
       <body className={inter.className}>

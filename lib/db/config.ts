@@ -141,9 +141,26 @@ export async function runMigrations() {
             sqlite.exec(statement);
           } catch (err) {
             console.warn(`SQL statement execution error (${file}):`, err);
-            // Ignore errors like ON CONFLICT and continue execution
-            if (err instanceof Error && !err.message.includes('UNIQUE constraint failed')) {
-              throw err;
+            // Ignore common SQL errors that are expected during migrations
+            if (err instanceof Error) {
+              const errorMessage = err.message.toLowerCase();
+              const ignorableErrors = [
+                'unique constraint failed',
+                'duplicate column name',
+                'table already exists',
+                'index already exists',
+                'column already exists'
+              ];
+              
+              const shouldIgnore = ignorableErrors.some(ignorableError => 
+                errorMessage.includes(ignorableError)
+              );
+              
+              if (!shouldIgnore) {
+                throw err;
+              } else {
+                console.log(`Ignoring expected error: ${err.message}`);
+              }
             }
           }
         }

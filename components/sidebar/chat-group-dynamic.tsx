@@ -202,7 +202,7 @@ export function ChatGroupDynamic({
       {groups.map((group, groupIndex) => (
         <div key={groupIndex} className="mb-4">
           <div
-            className={`text-sm font-medium text-gray-500 dark:text-gray-400 mb-1 transition-opacity duration-200 ${
+            className={`text-xs font-normal text-gray-400 dark:text-gray-500 mb-2 px-2 transition-opacity duration-200 ${
               sidebarCollapsed ? "opacity-0" : "opacity-100"
             }`}
           >

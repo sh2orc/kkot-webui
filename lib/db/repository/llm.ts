@@ -186,6 +186,7 @@ export const llmModelRepository = {
         capabilities: schema.llmModels.capabilities,
         contextLength: schema.llmModels.contextLength,
         supportsMultimodal: schema.llmModels.supportsMultimodal,
+        supportsImageGeneration: schema.llmModels.supportsImageGeneration,
         isEmbeddingModel: schema.llmModels.isEmbeddingModel,
         isRerankingModel: schema.llmModels.isRerankingModel,
         createdAt: schema.llmModels.createdAt,
@@ -391,7 +392,9 @@ export const llmModelRepository = {
     capabilities?: any;
     contextLength?: number;
     supportsMultimodal?: boolean;
+    supportsImageGeneration?: boolean;
     isEmbeddingModel?: boolean;
+    isRerankingModel?: boolean;
   }) => {
     const existing = await llmModelRepository.findByServerAndModelId(modelData.serverId, modelData.modelId);
     const now = new Date();
@@ -406,7 +409,9 @@ export const llmModelRepository = {
       if (modelData.capabilities !== undefined) data.capabilities = JSON.stringify(modelData.capabilities);
       if (modelData.contextLength !== undefined) data.contextLength = modelData.contextLength;
       if (typeof modelData.supportsMultimodal === 'boolean') data.supportsMultimodal = modelData.supportsMultimodal ? 1 : 0;
+      if (typeof modelData.supportsImageGeneration === 'boolean') data.supportsImageGeneration = modelData.supportsImageGeneration ? 1 : 0;
       if (typeof modelData.isEmbeddingModel === 'boolean') data.isEmbeddingModel = modelData.isEmbeddingModel ? 1 : 0;
+      if (typeof modelData.isRerankingModel === 'boolean') data.isRerankingModel = modelData.isRerankingModel ? 1 : 0;
       
       return await db.update(schema.llmModels)
         .set(data)
@@ -426,7 +431,9 @@ export const llmModelRepository = {
         capabilities: modelData.capabilities ? JSON.stringify(modelData.capabilities) : null,
         contextLength: modelData.contextLength,
         supportsMultimodal: modelData.supportsMultimodal ? 1 : 0 as any,
+        supportsImageGeneration: modelData.supportsImageGeneration ? 1 : 0 as any,
         isEmbeddingModel: modelData.isEmbeddingModel ? 1 : 0 as any,
+        isRerankingModel: modelData.isRerankingModel ? 1 : 0 as any,
         createdAt: now as any,
         updatedAt: now as any
       }).returning();
@@ -442,6 +449,7 @@ export const llmModelRepository = {
     capabilities: any;
     contextLength: number;
     supportsMultimodal: boolean;
+    supportsImageGeneration: boolean;
     isEmbeddingModel: boolean;
     isRerankingModel: boolean;
   }>) => {
@@ -452,6 +460,7 @@ export const llmModelRepository = {
     if (modelData.capabilities !== undefined) data.capabilities = JSON.stringify(modelData.capabilities);
     if (modelData.contextLength !== undefined) data.contextLength = modelData.contextLength;
     if (typeof modelData.supportsMultimodal === 'boolean') data.supportsMultimodal = modelData.supportsMultimodal ? 1 : 0;
+    if (typeof modelData.supportsImageGeneration === 'boolean') data.supportsImageGeneration = modelData.supportsImageGeneration ? 1 : 0;
     if (typeof modelData.isEmbeddingModel === 'boolean') data.isEmbeddingModel = modelData.isEmbeddingModel ? 1 : 0;
     if (typeof modelData.isRerankingModel === 'boolean') data.isRerankingModel = modelData.isRerankingModel ? 1 : 0;
     

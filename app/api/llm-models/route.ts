@@ -2,13 +2,14 @@ import { NextRequest, NextResponse } from 'next/server';
 import { revalidatePath } from 'next/cache';
 import { llmModelRepository, llmServerRepository } from '@/lib/db/server';
 import { getServerSession } from 'next-auth';
-import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { getAuthOptions } from '@/app/api/auth/[...nextauth]/route';
 import { filterResourcesByPermission, requireResourcePermission } from '@/lib/auth/permissions';
 
 // GET: Retrieve LLM models
 export async function GET(request: NextRequest) {
   try {
     // Check authentication
+    const authOptions = await getAuthOptions();
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json(
@@ -72,6 +73,7 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
+    const authOptions = await getAuthOptions();
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json(
@@ -262,6 +264,7 @@ export async function POST(request: NextRequest) {
 export async function PUT(request: NextRequest) {
   try {
     // Check authentication
+    const authOptions = await getAuthOptions();
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json(
@@ -272,6 +275,8 @@ export async function PUT(request: NextRequest) {
 
     const body = await request.json();
     const { id, ...updateData } = body;
+    
+    console.log('🔧 Model update request:', { id, updateData });
     
     if (!id) {
       return NextResponse.json(
@@ -289,7 +294,9 @@ export async function PUT(request: NextRequest) {
       );
     }
     
+    console.log('🔧 Calling llmModelRepository.update with:', { id, updateData });
     const result = await llmModelRepository.update(id, updateData);
+    console.log('🔧 Update result:', result);
     
     if (result.length === 0) {
       return NextResponse.json(
@@ -301,6 +308,7 @@ export async function PUT(request: NextRequest) {
     // Invalidate page cache
     revalidatePath('/admin/model');
     
+    console.log('🔧 Model successfully updated:', result[0]);
     return NextResponse.json({
       message: 'Model has been updated.',
       data: result[0]
@@ -318,6 +326,7 @@ export async function PUT(request: NextRequest) {
 export async function DELETE(request: NextRequest) {
   try {
     // Check authentication
+    const authOptions = await getAuthOptions();
     const session = await getServerSession(authOptions);
     if (!session) {
       return NextResponse.json(

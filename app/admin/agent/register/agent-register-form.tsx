@@ -102,6 +102,7 @@ export default function AgentRegisterForm({
   // Image upload related state
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [previewImage, setPreviewImage] = useState<string>('')
+  const [isParametersOpen, setIsParametersOpen] = useState(false)
   
   // No API call needed as image is passed through SSR 
   // Initial data setup (including image)
@@ -468,8 +469,6 @@ export default function AgentRegisterForm({
     }
   };
 
-  const [isParametersOpen, setIsParametersOpen] = useState(false);
-
   return (
     <div className="space-y-6">
         <div className="flex items-center gap-4">
@@ -701,7 +700,7 @@ export default function AgentRegisterForm({
                     checked={formData.enabled}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, enabled: checked }))}
                   />
-                  <Label htmlFor="enabled" className="text-sm font-medium">
+                  <Label htmlFor="enabled" className="text-sm">
                     {lang('form.enableAgent')}
                   </Label>
                   <span className="text-xs text-gray-500 ml-2">
@@ -715,7 +714,7 @@ export default function AgentRegisterForm({
                     checked={formData.supportsDeepResearch ?? true}
                     onCheckedChange={(checked) => setFormData(prev => ({ ...prev, supportsDeepResearch: checked }))}
                   />
-                  <Label htmlFor="supportsDeepResearch" className="text-sm font-medium">
+                  <Label htmlFor="supportsDeepResearch" className="text-sm">
                     Deep Research 지원
                   </Label>
                   <span className="text-xs text-gray-500 ml-2">

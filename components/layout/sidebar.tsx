@@ -208,8 +208,16 @@ export default function Sidebar({
 
   // Fetch chat sessions list (CSR fallback)
   const fetchChatSessions = useCallback(async () => {
-    if (!session?.user?.id) {
-      console.log('No session available, skipping chat sessions fetch')
+    // 세션 상태 확인
+    if (status === 'loading') {
+      console.log('Session still loading, skipping chat sessions fetch')
+      return
+    }
+    
+    if (status === 'unauthenticated' || !session?.user?.id) {
+      console.log('No valid session available, skipping chat sessions fetch')
+      console.log('Session status:', status)
+      console.log('Session data:', session)
       setIsLoading(false)
       setRawChatSessions([])
       setChatGroups([])
@@ -218,17 +226,43 @@ export default function Sidebar({
 
     try {
       setIsLoading(true)
-      console.log('Fetching chat sessions for user:', session.user.id)
-      const response = await fetch(`/api/chat?userId=${session.user.id}`)
-      const data = await response.json()
+      console.log('Fetching chat sessions for user:', session.user.email)
+      console.log('Session status:', status)
+      
+      // 헤더 설정
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      }
+      
+      // NextAuth 토큰이 있다면 Authorization 헤더에 포함
+      if ((session as any)?.accessToken) {
+        headers['Authorization'] = `Bearer ${(session as any).accessToken}`
+        console.log('Including access token in Authorization header')
+      } else {
+        console.log('No access token found, relying on cookies')
+      }
+      
+      const response = await fetch(`/api/chat`, {
+        method: 'GET',
+        credentials: 'include', // 쿠키 포함하여 전송
+        headers
+      })
+      
+      console.log('API Response status:', response.status)
+      console.log('API Response ok:', response.ok)
       
       if (response.status === 401 || response.status === 404) {
+        console.error('Authentication error or resource not found, status:', response.status)
         // Redirect to homepage on authentication error or resource not found
         router.push('/')
         return
       }
       
+      const data = await response.json()
+      console.log('API Response data:', data)
+      
       if (data.sessions) {
+        console.log('Successfully loaded', data.sessions.length, 'chat sessions')
         // Store raw sessions for language switching
         setRawChatSessions(data.sessions)
         // Group by date
@@ -236,11 +270,16 @@ export default function Sidebar({
         setChatGroups(groups)
       } else if (data.error) {
         console.error('Chat session load error:', data.error)
+        console.error('Full error response:', data)
         // Redirect to homepage on "Invalid user" error
         if (data.error === 'Invalid user') {
           router.push('/')
           return
         }
+        setRawChatSessions([])
+        setChatGroups([])
+      } else {
+        console.error('Unexpected API response format:', data)
         setRawChatSessions([])
         setChatGroups([])
       }
@@ -560,7 +599,7 @@ export default function Sidebar({
                     )}
                   </Avatar>
                   {!sidebarCollapsed && (
-                    <span className="text-sm font-medium ml-2 transition-opacity duration-300 dark:text-gray-200">{lang('sidebar.admin')}</span>
+                    <span className="text-sm ml-2 transition-opacity duration-300 dark:text-gray-200">{lang('sidebar.admin')}</span>
                   )}
                 </Button>
               </AccountMenu>
@@ -690,7 +729,7 @@ export default function Sidebar({
                     )}
                   </Avatar>
                   {!sidebarCollapsed && (
-                    <span className="!text-sm font-medium ml-2 transition-opacity duration-300 dark:text-gray-200">
+                    <span className="!text-sm ml-2 transition-opacity duration-300 dark:text-gray-200">
                       {userProfile?.username || session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}
                     </span>
                   )}
@@ -829,7 +868,7 @@ export default function Sidebar({
                       </AvatarFallback>
                     )}
                   </Avatar>
-                  <span className="text-sm font-medium ml-3 dark:text-gray-200">
+                  <span className="text-sm ml-3 dark:text-gray-200">
                     {userProfile?.username || session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}
                   </span>
                 </Button>

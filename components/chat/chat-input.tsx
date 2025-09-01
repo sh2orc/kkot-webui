@@ -341,7 +341,24 @@ export const ChatInput = memo(function ChatInput({
                     variant="ghost"
                     size="icon"
                     className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation ${isDeepResearchActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white dark:bg-cyan-600 dark:hover:bg-cyan-700" : ""}`}
-                    onClick={() => setIsDeepResearchActive(!isDeepResearchActive)}
+                    onClick={() => {
+                      const newState = !isDeepResearchActive;
+                      setIsDeepResearchActive(newState);
+                      
+                      // localStorage 업데이트 (현재 채팅 ID가 있는 경우만)
+                      if (typeof window !== 'undefined') {
+                        const currentChatId = window.location.pathname.split('/').pop();
+                        if (currentChatId && currentChatId !== 'chat') {
+                          if (newState) {
+                            localStorage.setItem(`chat_${currentChatId}_deepResearch`, 'true');
+                          } else {
+                            localStorage.removeItem(`chat_${currentChatId}_deepResearch`);
+                          }
+                        }
+                      }
+                      
+                      console.log('🧠 딥리서치 토글:', { newState, localStorage: newState });
+                    }}
                   >
                     <Brain className="h-4 w-4" />
                   </Button>

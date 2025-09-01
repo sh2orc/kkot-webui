@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { userRepository } from '@/lib/db/repository';
+import { userRepository, adminSettingsRepository } from '@/lib/db/repository';
 import { hashPassword } from '@/lib/auth';
 
 export async function POST(request: Request) {
@@ -43,13 +43,26 @@ export async function POST(request: Request) {
     const allUsers = await userRepository.findAll();
     const isFirstUser = allUsers.length === 0;
 
+    // 회원가입 활성화 설정 확인
+    const signupEnabledSetting = await adminSettingsRepository.findByKey('auth.signupEnabled');
+    const signupEnabled = signupEnabledSetting?.[0]?.value === 'true';
+
     // 사용자 생성
     const hashedPassword = hashPassword(password);
+    
+    // 첫 번째 사용자는 항상 admin, 그 외에는 signupEnabled 설정에 따라 결정
+    let userRole = 'user';
+    if (isFirstUser) {
+      userRole = 'admin';
+    } else if (!signupEnabled) {
+      userRole = 'guest'; // 회원가입이 비활성화되어 있으면 guest 권한
+    }
+
     const [newUser] = await userRepository.create({
       username: username || email.split('@')[0],
       email,
       password: hashedPassword,
-      role: isFirstUser ? 'admin' : 'user'
+      role: userRole
     });
 
     return NextResponse.json({
@@ -59,7 +72,10 @@ export async function POST(request: Request) {
         email: newUser.email,
         username: newUser.username,
         role: newUser.role
-      }
+      },
+      message: newUser.role === 'guest' 
+        ? '계정이 생성되었습니다. 로그인하려면 관리자에게 문의하여 권한을 요청하세요.' 
+        : '회원가입이 완료되었습니다.'
     });
   } catch (error) {
     console.error('Registration error:', error);

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { userRepository } from "@/lib/db/repository"
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { createAuthOptions } from "@/app/api/auth/[...nextauth]/route"
 
 interface Params {
   params: {
@@ -11,8 +11,13 @@ interface Params {
 
 export async function POST(req: NextRequest, { params }: Params) {
   try {
+    // Await params to comply with Next.js 15 dynamic API rules
+    const resolvedParams = await params
+    
     // Check authentication
+    const authOptions = await createAuthOptions()
     const session = await getServerSession(authOptions)
+    
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -20,7 +25,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       )
     }
 
-    const users = await userRepository.findById(params.id)
+    const users = await userRepository.findById(resolvedParams.id)
     const user = users[0]
 
     if (!user) {
@@ -31,7 +36,7 @@ export async function POST(req: NextRequest, { params }: Params) {
     }
 
     // Unlock user account
-    await userRepository.update(params.id, { 
+    await userRepository.update(resolvedParams.id, { 
       failed_login_attempts: 0,
       locked_until: null,
       status: 'active'
@@ -42,7 +47,7 @@ export async function POST(req: NextRequest, { params }: Params) {
       user_id: session.user.id,
       action: 'unlock_account',
       resource_type: 'user',
-      resource_id: params.id,
+      resource_id: resolvedParams.id,
       ip_address: req.headers.get('x-forwarded-for') || req.headers.get('x-real-ip') || 'unknown',
       user_agent: req.headers.get('user-agent') || 'unknown'
     })

@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Badge } from "@/components/ui/badge"
-import { Edit, Trash2, UserPlus, Search, Filter, Eye, MoreHorizontal, Download, Upload, Shield } from "lucide-react"
+import { Edit, Trash2, UserPlus, Search, Filter, Eye, MoreHorizontal, Download, Upload, Shield, ExternalLink } from "lucide-react"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
@@ -25,15 +25,21 @@ interface User {
   status?: 'active' | 'inactive' | 'suspended'
   email_verified: boolean
   last_login_at?: string
+  // OAuth 정보 추가
+  oauth_provider?: string
+  google_id?: string
+  oauth_linked_at?: string
+  oauth_profile_picture?: string
   createdAt: string
   updatedAt: string
 }
 
 interface UsersPageClientProps {
   initialUsers: User[]
+  allTranslations?: Record<string, any>
 }
 
-export default function UsersPageClient({ initialUsers }: UsersPageClientProps) {
+export default function UsersPageClient({ initialUsers, allTranslations }: UsersPageClientProps) {
   const { lang, language } = useTranslation('admin.users')
   const router = useRouter()
   const [users, setUsers] = useState<User[]>(initialUsers)
@@ -47,12 +53,14 @@ export default function UsersPageClient({ initialUsers }: UsersPageClientProps) 
   const [roleFilter, setRoleFilter] = useState<string>("all")
   const [showFilters, setShowFilters] = useState(false)
 
-  // Preload translations when language changes
+  // Cache all translations when component mounts
   useEffect(() => {
-    import('@/lib/i18n').then(({ preloadTranslationModule }) => {
-      preloadTranslationModule(language, 'admin.users')
-    })
-  }, [language])
+    if (allTranslations) {
+      import('@/lib/i18n').then(({ cacheAllLanguageTranslations }) => {
+        cacheAllLanguageTranslations('admin.users', allTranslations)
+      })
+    }
+  }, [allTranslations])
 
   const fetchUsers = async () => {
     setLoading(true)
@@ -165,6 +173,25 @@ export default function UsersPageClient({ initialUsers }: UsersPageClientProps) 
       fetchUsers()
     } catch (error) {
       toast.error(lang('errors.bulkActionFailed'))
+    }
+  }
+
+  const handleRoleChange = async (userId: string, newRole: string) => {
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ role: newRole })
+      })
+
+      if (!response.ok) throw new Error('Failed to update role')
+      
+      toast.success('권한이 성공적으로 변경되었습니다.')
+      fetchUsers()
+    } catch (error) {
+      toast.error('권한 변경에 실패했습니다.')
     }
   }
 
@@ -316,6 +343,7 @@ export default function UsersPageClient({ initialUsers }: UsersPageClientProps) 
                   <TableHead>{lang('fields.department')}</TableHead>
                   <TableHead>{lang('fields.role')}</TableHead>
                   <TableHead>{lang('fields.status')}</TableHead>
+                  <TableHead>OAuth</TableHead>
                   <TableHead>{lang('fields.lastLogin')}</TableHead>
                   <TableHead className="text-right">{lang('actions')}</TableHead>
                 </TableRow>
@@ -330,28 +358,96 @@ export default function UsersPageClient({ initialUsers }: UsersPageClientProps) 
                       />
                     </TableCell>
                     <TableCell>
-                      <div>
-                        <div className="font-medium">{user.name || user.username}</div>
-                        {!user.email_verified && (
-                          <span className="text-xs text-yellow-600">{lang('unverified')}</span>
+                      <div className="flex items-center gap-2">
+                        {user.oauth_profile_picture && (
+                          <img 
+                            src={user.oauth_profile_picture} 
+                            alt="Profile" 
+                            className="w-6 h-6 rounded-full"
+                            onError={(e) => {
+                              e.currentTarget.style.display = 'none'
+                            }}
+                          />
                         )}
+                        <div>
+                          <div className="text-sm">{user.name || user.username}</div>
+                          {!user.email_verified && (
+                            <span className="text-xs text-yellow-600">{lang('unverified')}</span>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
                     <TableCell>{user.department || '-'}</TableCell>
                     <TableCell>
-                      <Badge variant={user.role === 'admin' ? 'default' : 'secondary'}>
-                        {lang(`roles.${user.role}`)}
-                      </Badge>
+                      <Select
+                        value={user.role}
+                        onValueChange={(newRole) => handleRoleChange(user.id, newRole)}
+                      >
+                        <SelectTrigger className="w-24 h-8">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="admin">
+                            <span className="text-sm text-gray-900">관리자</span>
+                          </SelectItem>
+                          <SelectItem value="user">
+                            <span className="text-sm text-gray-700">사용자</span>
+                          </SelectItem>
+                          <SelectItem value="guest">
+                            <span className="flex items-center gap-2">
+                              <span className="text-sm text-gray-600">게스트</span>
+                            </span>
+                          </SelectItem>
+                        </SelectContent>
+                      </Select>
                     </TableCell>
                     <TableCell>
                       <Badge variant={getStatusBadgeVariant(user.status || 'active')}>
                         {lang(`status.${user.status || 'active'}`)}
                       </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-gray-600 dark:text-gray-300">
-                      {user.last_login_at ? new Date(user.last_login_at).toLocaleDateString() : lang('never')}
+                    <TableCell>
+                      {user.oauth_provider ? (
+                        <div className="space-y-1">
+                          <Badge variant="outline" className="text-xs">
+                            {user.oauth_provider === 'google' ? (
+                              <span className="flex items-center gap-1">
+                                🟡 Google
+                              </span>
+                            ) : (
+                              user.oauth_provider
+                            )}
+                          </Badge>
+                          {user.oauth_linked_at && (
+                            <div className="text-xs text-gray-500">
+                              연결: {new Date(user.oauth_linked_at).toLocaleDateString()}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-xs text-gray-400">-</span>
+                      )}
                     </TableCell>
+                                    <TableCell className="text-sm text-gray-600 dark:text-gray-300">
+                  {user.last_login_at ? (() => {
+                    let timestamp = user.last_login_at;
+                    
+                    // 문자열인 경우 숫자로 변환
+                    if (typeof timestamp === 'string') {
+                      timestamp = parseInt(timestamp);
+                    }
+                    
+                    // Unix timestamp (초)를 밀리초로 변환
+                    const date = new Date(timestamp * 1000);
+                    
+                    if (isNaN(date.getTime())) {
+                      return '날짜 오류';
+                    }
+                    
+                    return date.toLocaleDateString('ko-KR');
+                  })() : lang('never')}
+                </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

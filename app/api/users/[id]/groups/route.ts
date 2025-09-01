@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
-import { authOptions } from "@/app/api/auth/[...nextauth]/route";
+import { createAuthOptions } from "@/app/api/auth/[...nextauth]/route";
 import { groupRepository } from "@/lib/db/repository";
 
 interface RouteParams {
@@ -12,7 +12,11 @@ interface RouteParams {
 // GET /api/users/[id]/groups - 사용자의 그룹 목록 조회
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
+    // Await params to comply with Next.js 15 dynamic API rules
+    const resolvedParams = await params
+    
     // Check authentication
+    const authOptions = await createAuthOptions()
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
@@ -21,7 +25,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const groups = await groupRepository.getUserGroups(params.id);
+    const groups = await groupRepository.getUserGroups(resolvedParams.id);
     return NextResponse.json(groups);
   } catch (error) {
     console.error("Error fetching user groups:", error);
@@ -35,7 +39,11 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
 // PUT /api/users/[id]/groups - 사용자의 그룹 설정 (전체 교체)
 export async function PUT(req: NextRequest, { params }: RouteParams) {
   try {
+    // Await params to comply with Next.js 15 dynamic API rules
+    const resolvedParams = await params
+    
     // Check authentication
+    const authOptions = await createAuthOptions()
     const session = await getServerSession(authOptions);
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
@@ -54,7 +62,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await groupRepository.setUserGroups(params.id, groupIds, session.user.id);
+    await groupRepository.setUserGroups(resolvedParams.id, groupIds, session.user.id);
 
     return NextResponse.json({ success: true });
   } catch (error) {

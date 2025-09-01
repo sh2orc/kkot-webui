@@ -78,6 +78,13 @@
       "when": 1709716000000,
       "tag": "0011_group_permissions",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "5",
+      "when": 1756696800000,
+      "tag": "0016_add_last_login_at",
+      "breakpoints": true
     }
   ]
 } 

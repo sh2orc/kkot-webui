@@ -180,14 +180,14 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
                           </div>
                           
                           <div>
-                            <div className="font-medium">{agent.name}</div>
+                            <div className="text-sm">{agent.name}</div>
                             <div className="text-sm text-muted-foreground">ID: {agent.agentId}</div>
                           </div>
                         </div>
                       </TableCell>
                       <TableCell>
                         <div>
-                          <div className="font-medium">{agent.modelName || agent.modelId}</div>
+                          <div className="text-sm">{agent.modelName || agent.modelId}</div>
                           {agent.serverName && (
                             <div className="text-sm text-muted-foreground">{agent.serverName}</div>
                           )}

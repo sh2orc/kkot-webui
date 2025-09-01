@@ -123,4 +123,18 @@ export abstract class BaseLLM {
   updateConfig(config: Partial<LLMModelConfig>): void {
     this.config = { ...this.config, ...config };
   }
+
+  /**
+   * Generate image from text prompt
+   * Default implementation throws error - override in specific LLM implementations that support image generation
+   * @param prompt Text prompt for image generation
+   * @param options Optional generation parameters
+   */
+  generateImage(prompt: string, options?: {
+    model?: string;
+    aspectRatio?: '1:1' | '9:16' | '16:9' | '4:3' | '3:4';
+    negativePrompt?: string;
+  }): Promise<LLMResponse> {
+    throw new Error(`Image generation is not supported by ${this.config.modelName || 'this model'}. Please use a model that supports image generation.`);
+  }
 } 

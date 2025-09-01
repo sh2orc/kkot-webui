@@ -28,6 +28,7 @@ interface LLMModel {
   enabled: boolean
   isPublic: boolean
   supportsMultimodal: boolean
+  supportsImageGeneration: boolean
   isEmbeddingModel: boolean
   isRerankingModel: boolean
   capabilities?: any
@@ -119,7 +120,7 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
   }
 
   // Update model settings
-  const updateModel = (modelId: string, field: 'enabled' | 'isPublic' | 'supportsMultimodal' | 'isEmbeddingModel' | 'isRerankingModel', value: boolean) => {
+  const updateModel = (modelId: string, field: 'enabled' | 'isPublic' | 'supportsMultimodal' | 'supportsImageGeneration' | 'isEmbeddingModel' | 'isRerankingModel', value: boolean) => {
     setServers(prev => prev.map(server => ({
       ...server,
       models: server.models.map(model => 
@@ -160,6 +161,7 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
               enabled: model.enabled,
               isPublic: model.isPublic,
               supportsMultimodal: model.supportsMultimodal,
+              supportsImageGeneration: model.supportsImageGeneration,
               isEmbeddingModel: model.isEmbeddingModel,
               isRerankingModel: model.isRerankingModel
             })
@@ -254,6 +256,7 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
                     <TableHead className="text-center w-[100px]">{lang('tableHeaders.enabled')}</TableHead>
                     <TableHead className="text-center w-[100px]">{lang('tableHeaders.public')}</TableHead>
                     <TableHead className="text-center w-[100px]">{lang('tableHeaders.multimodal')}</TableHead>
+                    <TableHead className="text-center w-[120px]">Image Generation</TableHead>
                     <TableHead className="text-center w-[100px]">{lang('tableHeaders.embedding')}</TableHead>
                     <TableHead className="text-center w-[100px]">{lang('tableHeaders.reranking')}</TableHead>
                     <TableHead className="w-[120px]">{lang('tableHeaders.updatedAt')}</TableHead>
@@ -288,6 +291,14 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
                           onCheckedChange={(checked) => updateModel(model.id, 'supportsMultimodal', checked)}
                           onText={lang('switch.on')}
                           offText={lang('switch.off')}
+                        />
+                      </TableCell>
+                      <TableCell className="text-center w-[120px]">
+                        <TextSwitch
+                          checked={model.supportsImageGeneration}
+                          onCheckedChange={(checked) => updateModel(model.id, 'supportsImageGeneration', checked)}
+                          onText="ON"
+                          offText="OFF"
                         />
                       </TableCell>
                       <TableCell className="text-center w-[100px]">

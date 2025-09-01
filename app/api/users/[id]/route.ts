@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { userRepository, groupRepository } from "@/lib/db/repository"
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { createAuthOptions } from "@/app/api/auth/[...nextauth]/route"
+import { hashPassword } from "@/lib/auth"
 
 interface Params {
   params: {
@@ -11,7 +12,11 @@ interface Params {
 
 export async function GET(req: NextRequest, { params }: Params) {
   try {
+    // Await params to comply with Next.js 15 dynamic API rules
+    const resolvedParams = await params
+    
     // Check authentication
+    const authOptions = await createAuthOptions()
     const session = await getServerSession(authOptions)
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
@@ -20,7 +25,7 @@ export async function GET(req: NextRequest, { params }: Params) {
       )
     }
 
-    const users = await userRepository.findById(params.id)
+    const users = await userRepository.findById(resolvedParams.id)
     const user = users[0]
 
     if (!user) {
@@ -50,6 +55,11 @@ export async function GET(req: NextRequest, { params }: Params) {
       failed_login_attempts: user.failed_login_attempts || 0,
       locked_until: user.locked_until,
       profile_image: user.profile_image,
+      // OAuth 정보 추가
+      oauth_provider: user.oauthProvider,
+      google_id: user.googleId,
+      oauth_linked_at: user.oauthLinkedAt,
+      oauth_profile_picture: user.oauthProfilePicture,
       roles: roles,
       groups: groups,
       createdAt: user.createdAt,
@@ -69,6 +79,7 @@ export async function GET(req: NextRequest, { params }: Params) {
 export async function PUT(req: NextRequest, { params }: Params) {
   try {
     // Check authentication
+    const authOptions = await createAuthOptions()
     const session = await getServerSession(authOptions)
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
@@ -96,7 +107,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (name !== undefined) updateData.username = name
     if (email !== undefined) updateData.email = email
     if (role !== undefined) updateData.role = role
-    if (password !== undefined) updateData.password = password
+    if (password !== undefined) updateData.password = hashPassword(password)
     if (department !== undefined) updateData.department = department
     if (phone_number !== undefined) updateData.phone_number = phone_number
     if (status !== undefined) updateData.status = status
@@ -133,7 +144,11 @@ export async function PUT(req: NextRequest, { params }: Params) {
 
 export async function DELETE(req: NextRequest, { params }: Params) {
   try {
+    // Await params to comply with Next.js 15 dynamic API rules
+    const resolvedParams = await params
+    
     // Check authentication
+    const authOptions = await createAuthOptions()
     const session = await getServerSession(authOptions)
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
@@ -142,7 +157,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       )
     }
 
-    const users = await userRepository.findById(params.id)
+    const users = await userRepository.findById(resolvedParams.id)
     const user = users[0]
 
     if (!user) {
@@ -160,7 +175,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
       )
     }
 
-    await userRepository.delete(params.id)
+    await userRepository.delete(resolvedParams.id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

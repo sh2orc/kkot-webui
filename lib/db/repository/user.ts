@@ -1,10 +1,12 @@
 // This file is for server-side only
 import 'server-only';
 
-import { eq } from 'drizzle-orm';
+import { eq, desc, asc } from 'drizzle-orm';
 import { getDb } from '../config';
 import * as schema from '../schema';
+import { activityLogs } from '../schema';
 import { generateId } from './utils';
+import { nanoid } from 'nanoid';
 
 // Get DB instance
 const db = getDb();
@@ -55,7 +57,26 @@ export const userRepository = {
   /**
    * Update user
    */
-  update: async (id: string | number, userData: Partial<{ username: string; email: string; password: string; role: string; profileImage?: string | null; department?: string; phone_number?: string; status?: string; email_verified?: number; failed_login_attempts?: number; locked_until?: any }>) => {
+  update: async (id: string | number, userData: Partial<{ 
+    username: string; 
+    email: string; 
+    password: string; 
+    role: string; 
+    profileImage?: string | null; 
+    department?: string; 
+    phone_number?: string; 
+    status?: string; 
+    email_verified?: number; 
+    failed_login_attempts?: number; 
+    locked_until?: any;
+    // OAuth fields
+    googleId?: string;
+    oauthProvider?: string;
+    oauthLinkedAt?: Date;
+    oauthProfilePicture?: string;
+    // Login tracking
+    lastLoginAt?: Date;
+  }>) => {
     return await db.update(schema.users)
       .set({ ...userData, updatedAt: new Date() as any })
       .where(eq(schema.users.id, id as any))
@@ -67,6 +88,16 @@ export const userRepository = {
    */
   delete: async (id: string | number) => {
     return await db.delete(schema.users).where(eq(schema.users.id, id as any));
+  },
+
+  /**
+   * Update last login time
+   */
+  updateLastLogin: async (id: string | number) => {
+    return await db.update(schema.users)
+      .set({ lastLoginAt: new Date() as any })
+      .where(eq(schema.users.id, id as any))
+      .returning();
   },
 
   /**
@@ -210,14 +241,46 @@ export const userRepository = {
    * Get user activity logs
    */
   getUserActivityLogs: async (userId: string, options?: { limit?: number; orderBy?: string; order?: 'ASC' | 'DESC' }) => {
-    // Temporary implementation - returns empty array
-    return [];
+    try {
+      const { limit = 50, orderBy = 'created_at', order = 'DESC' } = options || {};
+      
+      const query = db
+        .select()
+        .from(activityLogs)
+        .where(eq(activityLogs.userId, userId))
+        .limit(limit);
+
+      if (orderBy === 'created_at') {
+        query.orderBy(order === 'DESC' ? desc(activityLogs.createdAt) : asc(activityLogs.createdAt));
+      }
+
+      return await query;
+    } catch (error) {
+      console.error('Error fetching user activity logs:', error);
+      return [];
+    }
   },
 
   /**
    * Log activity
    */
   logActivity: async (data: { user_id: string; action: string; resource_type?: string; resource_id?: string; ip_address?: string; user_agent?: string }) => {
-    // Temporary implementation - no-op
+    try {
+      const newActivity = {
+        id: nanoid(),
+        userId: data.user_id,
+        action: data.action,
+        resourceType: data.resource_type || null,
+        resourceId: data.resource_id || null,
+        ipAddress: data.ip_address || null,
+        userAgent: data.user_agent || null,
+        createdAt: new Date(),
+      };
+
+      await db.insert(activityLogs).values(newActivity);
+      return newActivity;
+    } catch (error) {
+      console.error('Error logging activity:', error);
+    }
   }
 };

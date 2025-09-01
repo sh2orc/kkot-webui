@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { userRepository } from "@/lib/db/repository"
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { createAuthOptions } from "@/app/api/auth/[...nextauth]/route"
 
 interface Params {
   params: {
@@ -11,7 +11,11 @@ interface Params {
 
 export async function GET(req: NextRequest, { params }: Params) {
   try {
+    // Await params to comply with Next.js 15 dynamic API rules
+    const resolvedParams = await params
+    
     // Check authentication
+    const authOptions = await createAuthOptions()
     const session = await getServerSession(authOptions)
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
@@ -20,7 +24,7 @@ export async function GET(req: NextRequest, { params }: Params) {
       )
     }
 
-    const users = await userRepository.findById(params.id)
+    const users = await userRepository.findById(resolvedParams.id)
     const user = users[0]
 
     if (!user) {
@@ -31,7 +35,7 @@ export async function GET(req: NextRequest, { params }: Params) {
     }
 
     // Get user activity logs
-    const activities = await userRepository.getUserActivityLogs(params.id, {
+    const activities = await userRepository.getUserActivityLogs(resolvedParams.id, {
       limit: 50,
       orderBy: 'created_at',
       order: 'DESC'

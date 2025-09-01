@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { userRepository } from "@/lib/db/repository"
 import { getServerSession } from "next-auth"
-import { authOptions } from "@/app/api/auth/[...nextauth]/route"
+import { createAuthOptions } from "@/app/api/auth/[...nextauth]/route"
 
 interface Params {
   params: {
@@ -12,7 +12,8 @@ interface Params {
 export async function PUT(req: NextRequest, { params }: Params) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions)
+    const authOptions = await createAuthOptions()
+  const session = await getServerSession(authOptions)
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -23,7 +24,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const { name, description, permissions } = await req.json()
 
     // Check if role exists
-    const role = await userRepository.getRoleById(params.id)
+    const resolvedParams = await params
+    const role = await userRepository.getRoleById(resolvedParams.id)
     if (!role) {
       return NextResponse.json(
         { error: "Role not found" },
@@ -40,14 +42,14 @@ export async function PUT(req: NextRequest, { params }: Params) {
     }
 
     // Update role
-    await userRepository.updateRole(params.id, {
+    await userRepository.updateRole(resolvedParams.id, {
       name,
       description
     })
 
     // Update role permissions
     if (permissions && Array.isArray(permissions)) {
-      await userRepository.updateRolePermissions(params.id, permissions)
+      await userRepository.updateRolePermissions(resolvedParams.id, permissions)
     }
 
     return NextResponse.json({ success: true })
@@ -63,7 +65,8 @@ export async function PUT(req: NextRequest, { params }: Params) {
 export async function DELETE(req: NextRequest, { params }: Params) {
   try {
     // Check authentication
-    const session = await getServerSession(authOptions)
+    const authOptions = await createAuthOptions()
+  const session = await getServerSession(authOptions)
     if (!session || session.user.role !== 'admin') {
       return NextResponse.json(
         { error: "Unauthorized" },
@@ -72,7 +75,8 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     }
 
     // Check if role exists
-    const role = await userRepository.getRoleById(params.id)
+    const resolvedParams = await params
+    const role = await userRepository.getRoleById(resolvedParams.id)
     if (!role) {
       return NextResponse.json(
         { error: "Role not found" },
@@ -89,7 +93,7 @@ export async function DELETE(req: NextRequest, { params }: Params) {
     }
 
     // Delete role
-    await userRepository.deleteRole(params.id)
+    await userRepository.deleteRole(resolvedParams.id)
 
     return NextResponse.json({ success: true })
   } catch (error) {

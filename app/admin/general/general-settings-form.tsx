@@ -48,9 +48,7 @@ const SETTING_KEYS = {
   OAUTH_GOOGLE_ENABLED: 'auth.oauth.google.enabled',
   OAUTH_GOOGLE_CLIENT_ID: 'auth.oauth.google.clientId',
   OAUTH_GOOGLE_CLIENT_SECRET: 'auth.oauth.google.clientSecret',
-  OAUTH_MICROSOFT_ENABLED: 'auth.oauth.microsoft.enabled',
-  OAUTH_MICROSOFT_CLIENT_ID: 'auth.oauth.microsoft.clientId',
-  OAUTH_MICROSOFT_CLIENT_SECRET: 'auth.oauth.microsoft.clientSecret',
+
   OAUTH_KAKAO_ENABLED: 'auth.oauth.kakao.enabled',
   OAUTH_KAKAO_CLIENT_ID: 'auth.oauth.kakao.clientId',
   OAUTH_KAKAO_CLIENT_SECRET: 'auth.oauth.kakao.clientSecret',
@@ -84,9 +82,7 @@ const formSchema = z.object({
   googleEnabled: z.boolean(),
   googleClientId: z.string().optional(),
   googleClientSecret: z.string().optional(),
-  microsoftEnabled: z.boolean(),
-  microsoftClientId: z.string().optional(),
-  microsoftClientSecret: z.string().optional(),
+
   kakaoEnabled: z.boolean(),
   kakaoClientId: z.string().optional(),
   kakaoClientSecret: z.string().optional(),
@@ -116,7 +112,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
   const [showPasswords, setShowPasswords] = useState<Record<string, boolean>>({
     ldapAppPassword: false,
     googleClientSecret: false,
-    microsoftClientSecret: false,
+
     kakaoClientSecret: false,
     naverClientSecret: false,
     githubClientSecret: false,
@@ -125,7 +121,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
   // OAuth test state
   const [testingOAuth, setTestingOAuth] = useState<Record<string, boolean>>({
     google: false,
-    microsoft: false,
+
     kakao: false,
     naver: false,
     github: false,
@@ -153,9 +149,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
       googleEnabled: initialSettings[SETTING_KEYS.OAUTH_GOOGLE_ENABLED] === 'true',
       googleClientId: initialSettings[SETTING_KEYS.OAUTH_GOOGLE_CLIENT_ID] || "",
       googleClientSecret: initialSettings[SETTING_KEYS.OAUTH_GOOGLE_CLIENT_SECRET] ? "******" : "",
-      microsoftEnabled: initialSettings[SETTING_KEYS.OAUTH_MICROSOFT_ENABLED] === 'true',
-      microsoftClientId: initialSettings[SETTING_KEYS.OAUTH_MICROSOFT_CLIENT_ID] || "",
-      microsoftClientSecret: initialSettings[SETTING_KEYS.OAUTH_MICROSOFT_CLIENT_SECRET] ? "******" : "",
+
       kakaoEnabled: initialSettings[SETTING_KEYS.OAUTH_KAKAO_ENABLED] === 'true',
       kakaoClientId: initialSettings[SETTING_KEYS.OAUTH_KAKAO_CLIENT_ID] || "",
       kakaoClientSecret: initialSettings[SETTING_KEYS.OAUTH_KAKAO_CLIENT_SECRET] ? "******" : "",
@@ -215,9 +209,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
         { key: SETTING_KEYS.OAUTH_GOOGLE_ENABLED, value: data.googleEnabled ? 'true' : 'false' },
         { key: SETTING_KEYS.OAUTH_GOOGLE_CLIENT_ID, value: data.googleClientId || '' },
         ...(data.googleClientSecret && !data.googleClientSecret.startsWith('******') ? [{ key: SETTING_KEYS.OAUTH_GOOGLE_CLIENT_SECRET, value: data.googleClientSecret }] : []),
-        { key: SETTING_KEYS.OAUTH_MICROSOFT_ENABLED, value: data.microsoftEnabled ? 'true' : 'false' },
-        { key: SETTING_KEYS.OAUTH_MICROSOFT_CLIENT_ID, value: data.microsoftClientId || '' },
-        ...(data.microsoftClientSecret && !data.microsoftClientSecret.startsWith('******') ? [{ key: SETTING_KEYS.OAUTH_MICROSOFT_CLIENT_SECRET, value: data.microsoftClientSecret }] : []),
+
         { key: SETTING_KEYS.OAUTH_KAKAO_ENABLED, value: data.kakaoEnabled ? 'true' : 'false' },
         { key: SETTING_KEYS.OAUTH_KAKAO_CLIENT_ID, value: data.kakaoClientId || '' },
         ...(data.kakaoClientSecret && !data.kakaoClientSecret.startsWith('******') ? [{ key: SETTING_KEYS.OAUTH_KAKAO_CLIENT_SECRET, value: data.kakaoClientSecret }] : []),
@@ -302,10 +294,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
         clientId = formData.googleClientId || ''
         clientSecret = formData.googleClientSecret || ''
         break
-      case 'microsoft':
-        clientId = formData.microsoftClientId || ''
-        clientSecret = formData.microsoftClientSecret || ''
-        break
+
       case 'kakao':
         clientId = formData.kakaoClientId || ''
         clientSecret = formData.kakaoClientSecret || ''
@@ -791,88 +780,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
                   )}
                 </div>
 
-                {/* Microsoft OAuth */}
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="microsoftEnabled"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between">
-                        <FormLabel className="text-base font-medium">{lang('authentication.oauth.microsoft.label')}</FormLabel>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
 
-                  {form.watch("microsoftEnabled") && (
-                    <div className="space-y-4 pl-4 border-l-2 border-gray-200">
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="microsoftClientId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{lang('authentication.oauth.microsoft.clientId')}</FormLabel>
-                              <FormControl>
-                                <Input placeholder={lang('authentication.oauth.microsoft.clientIdPlaceholder')} {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="microsoftClientSecret"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{lang('authentication.oauth.microsoft.clientSecret')}</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <Input
-                                    type={showPasswords.microsoftClientSecret ? "text" : "password"}
-                                    placeholder={lang('authentication.oauth.microsoft.clientSecretPlaceholder')}
-                                    {...field}
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
-                                    onClick={() => setShowPasswords(prev => ({ ...prev, microsoftClientSecret: !prev.microsoftClientSecret }))}
-                                  >
-                                    {showPasswords.microsoftClientSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                  </Button>
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <div className="flex justify-end">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={testingOAuth.microsoft}
-                          onClick={() => testOAuthConnection('microsoft')}
-                        >
-                          {testingOAuth.microsoft ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <Network className="h-4 w-4 mr-2" />
-                          )}
-                          {testingOAuth.microsoft ? '테스트 중...' : '연결 테스트'}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
 
                 {/* Kakao OAuth */}
                 <div className="space-y-4">

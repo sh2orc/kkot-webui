@@ -1,6 +1,13 @@
 "use client"
 
 import { createContext, useContext, useState, useEffect, ReactNode } from "react"
+import { 
+  clearSessionAndRedirect, 
+  isAuthError, 
+  getErrorMessage, 
+  handleApiResponse,
+  isValidArray 
+} from "@/lib/session-utils"
 
 // Type definitions for agents and models
 export interface Agent {
@@ -63,65 +70,92 @@ export function ModelProvider({ children }: { children: ReactNode }) {
   const fetchModelsAndAgents = async () => {
     try {
       setIsLoading(true)
+      setError(null) // Clear previous errors
+      
       const response = await fetch('/api/agents')
       
-      // Handle authentication error
-      if (response.status === 401) {
-        console.log('Authentication required')
-        // Only redirect if not already on auth page
-        if (typeof window !== 'undefined' && !window.location.pathname.startsWith('/auth')) {
-          console.log('Redirecting to login page...')
-          window.location.href = '/auth'
-        }
+      // Use utility function to handle API response and authentication
+      const data = await handleApiResponse(response)
+      
+      // Ensure data is an object before accessing properties
+      if (!data || typeof data !== 'object') {
+        console.log('Invalid data format received, setting empty arrays')
+        setAgents([])
+        setPublicModels([])
         return
       }
       
-      if (!response.ok) {
-        throw new Error(`Failed to fetch agent list: ${response.status} ${response.statusText}`)
-      }
-      
-      const data = await response.json()
-      
-      if (data.agents && Array.isArray(data.agents)) {
+      // Safely process agents data using utility function
+      if (isValidArray(data.agents)) {
         setAgents(data.agents)
+      } else {
+        console.log('No agents data or invalid format, setting empty array')
+        setAgents([])
       }
       
-      if (data.publicModels && Array.isArray(data.publicModels)) {
+      // Safely process public models data using utility function
+      if (isValidArray(data.publicModels)) {
         setPublicModels(data.publicModels)
+      } else {
+        console.log('No public models data or invalid format, setting empty array')
+        setPublicModels([])
       }
       
       // Access localStorage only in browser environment
       if (typeof window !== 'undefined') {
-        const savedModelId = localStorage.getItem('selectedModelId')
-        const savedModelType = localStorage.getItem('selectedModelType')
-        
-        if (savedModelId && savedModelType) {
-          // Find model by saved model ID
-          if (savedModelType === 'agent') {
-            const savedAgent = data.agents?.find((agent: Agent) => agent.id === savedModelId)
-            if (savedAgent) {
-              setSelectedModel(savedAgent)
+        try {
+          const savedModelId = localStorage.getItem('selectedModelId')
+          const savedModelType = localStorage.getItem('selectedModelType')
+          
+          if (savedModelId && savedModelType) {
+            // Find model by saved model ID
+            if (savedModelType === 'agent' && isValidArray(data.agents)) {
+              const savedAgent = data.agents.find((agent: Agent) => agent && agent.id === savedModelId)
+              if (savedAgent) {
+                setSelectedModel(savedAgent)
+              }
+            } else if (savedModelType === 'model' && isValidArray(data.publicModels)) {
+              const savedModel = data.publicModels.find((model: PublicModel) => model && model.id === savedModelId)
+              if (savedModel) {
+                setSelectedModel(savedModel)
+              }
             }
-          } else if (savedModelType === 'model') {
-            const savedModel = data.publicModels?.find((model: PublicModel) => model.id === savedModelId)
-            if (savedModel) {
-              setSelectedModel(savedModel)
+          } else if (isValidArray(data.agents) && data.agents.length > 0) {
+            // Select first agent if no saved model
+            const firstAgent = data.agents[0]
+            if (firstAgent) {
+              setSelectedModel(firstAgent)
+              saveSelectedModelToLocalStorage(firstAgent)
+            }
+          } else if (isValidArray(data.publicModels) && data.publicModels.length > 0) {
+            // Select first public model if no agents
+            const firstModel = data.publicModels[0]
+            if (firstModel) {
+              setSelectedModel(firstModel)
+              saveSelectedModelToLocalStorage(firstModel)
             }
           }
-        } else if (data.agents && data.agents.length > 0) {
-          // Select first agent if no saved model
-          setSelectedModel(data.agents[0])
-          saveSelectedModelToLocalStorage(data.agents[0])
-        } else if (data.publicModels && data.publicModels.length > 0) {
-          // Select first public model if no agents
-          setSelectedModel(data.publicModels[0])
-          saveSelectedModelToLocalStorage(data.publicModels[0])
+        } catch (localStorageError) {
+          console.error('Error accessing localStorage:', localStorageError)
         }
       }
       
     } catch (err) {
       console.error('Error fetching agents and models list:', err)
-      setError('Failed to load agent list')
+      
+      // Handle authentication errors using utility function
+      if (isAuthError(err)) {
+        await clearSessionAndRedirect('Authentication expired while fetching agents')
+        return // Early return as clearSessionAndRedirect handles everything
+      }
+      
+      // Get user-friendly error message
+      const errorMessage = getErrorMessage(err, 'Failed to load agent list')
+      setError(errorMessage)
+      
+      // Set empty defaults on error
+      setAgents([])
+      setPublicModels([])
     } finally {
       setIsLoading(false)
       setIsInitialized(true)

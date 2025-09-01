@@ -2,7 +2,8 @@
 import 'server-only';
 
 import { sqliteTable, text, integer, blob, primaryKey } from 'drizzle-orm/sqlite-core';
-import { pgTable, serial, varchar, boolean, timestamp, text as pgText } from 'drizzle-orm/pg-core';
+import { pgTable, serial, varchar, boolean, timestamp, text as pgText, numeric } from 'drizzle-orm/pg-core';
+import { sql } from 'drizzle-orm';
 import { DbType } from './types';
 
 // Function to determine DB type
@@ -18,8 +19,15 @@ export const users = getDbType() === 'sqlite'
       username: text('username').notNull(),
       email: text('email').notNull(),
       password: text('password').notNull(),
-      role: text('role', { enum: ['user', 'admin'] }).default('user'),
+      role: text('role', { enum: ['user', 'admin', 'guest'] }).default('guest'),
       profileImage: text('profile_image'),
+      // OAuth fields
+      googleId: text('google_id'),
+      oauthProvider: text('oauth_provider'),
+      oauthLinkedAt: integer('oauth_linked_at', { mode: 'timestamp' }),
+      oauthProfilePicture: text('oauth_profile_picture'),
+      // Login tracking
+      lastLoginAt: integer('last_login_at', { mode: 'timestamp' }),
       createdAt: integer('created_at', { mode: 'timestamp' }),
       updatedAt: integer('updated_at', { mode: 'timestamp' }),
     })
@@ -30,6 +38,13 @@ export const users = getDbType() === 'sqlite'
       password: varchar('password', { length: 255 }).notNull(),
       role: varchar('role', { length: 50 }).default('user'),
       profileImage: text('profile_image'),
+      // OAuth fields
+      googleId: text('google_id'),
+      oauthProvider: varchar('oauth_provider', { length: 50 }),
+      oauthLinkedAt: timestamp('oauth_linked_at'),
+      oauthProfilePicture: text('oauth_profile_picture'),
+      // Login tracking
+      lastLoginAt: timestamp('last_login_at'),
       createdAt: timestamp('created_at').defaultNow(),
       updatedAt: timestamp('updated_at').defaultNow(),
     });
@@ -239,6 +254,7 @@ export const llmModels = getDbType() === 'sqlite'
       capabilities: text('capabilities'), // JSON string for model capabilities
       contextLength: integer('context_length'),
       supportsMultimodal: integer('supports_multimodal', { mode: 'boolean' }).default(false), // Multimodal support
+      supportsImageGeneration: integer('supports_image_generation', { mode: 'boolean' }).default(false), // Image generation support
       isEmbeddingModel: integer('is_embedding_model', { mode: 'boolean' }).default(false), // Embedding model flag
       isRerankingModel: integer('is_reranking_model', { mode: 'boolean' }).default(false), // Reranking model flag
       createdAt: integer('created_at', { mode: 'timestamp' }),
@@ -254,6 +270,7 @@ export const llmModels = getDbType() === 'sqlite'
       capabilities: pgText('capabilities'),
       contextLength: integer('context_length'),
       supportsMultimodal: boolean('supports_multimodal').default(false), // Multimodal support
+      supportsImageGeneration: boolean('supports_image_generation').default(false), // Image generation support
       isEmbeddingModel: boolean('is_embedding_model').default(false), // Embedding model flag
       isRerankingModel: boolean('is_reranking_model').default(false), // Reranking model flag
       createdAt: timestamp('created_at').defaultNow(),
@@ -704,5 +721,32 @@ export const groupResourcePermissions = getDbType() === 'sqlite'
       createdAt: timestamp('created_at').defaultNow(),
       updatedAt: timestamp('updated_at').defaultNow(),
     });
+
+// Activity Logs table
+export const activityLogs = getDbType() === 'sqlite'
+  ? sqliteTable('activity_logs', {
+      id: text('id').primaryKey(),
+      userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+      action: text('action').notNull(),
+      resourceType: text('resource_type'),
+      resourceId: text('resource_id'),
+      ipAddress: text('ip_address'),
+      userAgent: text('user_agent'),
+      createdAt: integer('created_at', { mode: 'timestamp' }).default(sql`(unixepoch())`),
+    })
+  : pgTable('activity_logs', {
+      id: varchar('id', { length: 255 }).primaryKey(),
+      userId: varchar('user_id', { length: 255 }).notNull().references(() => users.id, { onDelete: 'cascade' }),
+      action: varchar('action', { length: 255 }).notNull(),
+      resourceType: varchar('resource_type', { length: 255 }),
+      resourceId: varchar('resource_id', { length: 255 }),
+      ipAddress: varchar('ip_address', { length: 255 }),
+      userAgent: text('user_agent'),
+      createdAt: timestamp('created_at').defaultNow(),
+    });
+
+// Export activity log types
+export type ActivityLog = typeof activityLogs.$inferSelect;
+export type NewActivityLog = typeof activityLogs.$inferInsert;
 
  

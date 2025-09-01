@@ -52,6 +52,17 @@ export async function POST(request: Request) {
       );
     }
 
+    // Guest 권한 체크
+    if (user.role === 'guest') {
+      return NextResponse.json(
+        { 
+          success: false,
+          error: '게스트 계정은 로그인할 수 없습니다. 관리자에게 문의하여 권한을 요청하세요.' 
+        },
+        { status: 403 }
+      );
+    }
+
     // 로그인 성공 - 사용자 정보 반환
     return NextResponse.json({
       success: true,

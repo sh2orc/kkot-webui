@@ -752,11 +752,25 @@ export default function Component({
                           data-testid="deep-research-toggle"
                           data-active={isDeepResearchActive}
                           onClick={() => {
+                            const newState = !isDeepResearchActive;
                             console.log('🧠 Deep research button clicked!')
                             console.log('  Current state:', isDeepResearchActive)
-                            console.log('  New state will be:', !isDeepResearchActive)
-                            setIsDeepResearchActive(!isDeepResearchActive)
-                            console.log('  setIsDeepResearchActive called with:', !isDeepResearchActive)
+                            console.log('  New state will be:', newState)
+                            setIsDeepResearchActive(newState)
+                            
+                            // localStorage 업데이트 (현재 채팅 ID가 있는 경우만)
+                            if (typeof window !== 'undefined') {
+                              const currentChatId = window.location.pathname.split('/').pop();
+                              if (currentChatId && currentChatId !== 'chat') {
+                                if (newState) {
+                                  localStorage.setItem(`chat_${currentChatId}_deepResearch`, 'true');
+                                } else {
+                                  localStorage.removeItem(`chat_${currentChatId}_deepResearch`);
+                                }
+                              }
+                            }
+                            
+                            console.log('  localStorage 업데이트됨:', newState)
                           }}
                           title={isDeepResearchActive ? lang("tooltips.deepResearchActive") : lang("tooltips.deepResearchInactive")}
                         >
