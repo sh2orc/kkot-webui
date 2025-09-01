@@ -682,7 +682,7 @@ export default function Sidebar({
                     {profileImage ? (
                       <AvatarImage src={profileImage} alt="Profile" />
                     ) : (
-                      <AvatarFallback className="bg-orange-500 text-white text-xs">
+                      <AvatarFallback className="bg-orange-500 text-white !text-xs">
                         {userProfile?.username?.charAt(0).toUpperCase() || 
                          session?.user?.name?.charAt(0).toUpperCase() || 
                          session?.user?.email?.charAt(0).toUpperCase() || 'U'}
@@ -690,7 +690,7 @@ export default function Sidebar({
                     )}
                   </Avatar>
                   {!sidebarCollapsed && (
-                    <span className="text-sm font-medium ml-2 transition-opacity duration-300 dark:text-gray-200">
+                    <span className="!text-sm font-medium ml-2 transition-opacity duration-300 dark:text-gray-200">
                       {userProfile?.username || session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}
                     </span>
                   )}

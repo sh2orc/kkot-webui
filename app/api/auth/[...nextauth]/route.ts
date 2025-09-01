@@ -198,6 +198,19 @@ export async function createAuthOptions(): Promise<NextAuthOptions> {
           token.email = user.email;
           token.name = user.name;
           token.role = user.role;
+        } else if (token.email) {
+          // Refresh user data from database to get latest role
+          try {
+            const dbUser = await userRepository.findByEmail(token.email as string);
+            if (dbUser) {
+              token.id = dbUser.id;
+              token.email = dbUser.email;
+              token.name = dbUser.username;
+              token.role = dbUser.role;
+            }
+          } catch (error) {
+            console.error('Error refreshing user data in JWT callback:', error);
+          }
         }
         console.log('JWT token:', { ...token, iat: 'hidden', exp: 'hidden' });
         return token;
@@ -251,8 +264,161 @@ export async function getAuthOptions(): Promise<NextAuthOptions> {
   return cachedAuthOptions;
 }
 
-// 이전 버전과의 호환성을 위한 authOptions export
-export const authOptions = getAuthOptions();
+// 이전 버전과의 호환성을 위한 authOptions export (동기적으로 생성)
+export const authOptions: NextAuthOptions = {
+  secret: process.env.NEXTAUTH_SECRET || 'your-secret-key-here',
+  providers: [
+    Credentials({
+      name: 'credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        console.log('Authorize function called with:', credentials?.email);
+        
+        if (!credentials?.email || !credentials?.password) {
+          console.log('Missing credentials');
+          return null;
+        }
+
+        try {
+          // Find user by email
+          const user = await userRepository.findByEmail(credentials.email);
+          console.log('Found user:', user ? 'Yes' : 'No');
+          
+          if (!user) {
+            console.log('User not found');
+            return null;
+          }
+          
+          // Verify password
+          const isValid = await verifyPassword(credentials.password, user.password);
+          console.log('Password valid:', isValid);
+          
+          if (!isValid) {
+            console.log('Invalid password');
+            return null;
+          }
+          
+          // Return user data
+          console.log('Returning user:', { id: user.id, email: user.email, name: user.name, role: user.role });
+          return {
+            id: user.id,
+            email: user.email,
+            name: user.username,
+            role: user.role,
+          };
+        } catch (error) {
+          console.error('Authorize error:', error);
+          return null;
+        }
+      },
+    })
+  ],
+  session: {
+    strategy: 'jwt',
+    maxAge: 30 * 24 * 60 * 60,
+  },
+  callbacks: {
+    async signIn({ user, account, profile, email, credentials }) {
+      console.log('=== SignIn Callback Debug ===');
+      console.log('Provider:', account?.provider);
+      console.log('Account:', JSON.stringify(account, null, 2));
+      console.log('User:', JSON.stringify(user, null, 2));
+      console.log('Profile:', JSON.stringify(profile, null, 2));
+      console.log('Credentials:', credentials ? 'exists' : 'null');
+      
+      if (account?.provider === 'google') {
+        try {
+          console.log('Processing Google OAuth sign-in...');
+          
+          if (!user.email) {
+            console.error('No email provided by Google');
+            return false;
+          }
+          
+          // Check if user exists
+          const existingUser = await userRepository.findByEmail(user.email);
+          
+          if (existingUser) {
+            console.log('Existing user found, allowing sign-in');
+            // Update user info from Google if needed
+            user.id = existingUser.id;
+            user.name = existingUser.username;
+            user.role = existingUser.role;
+            return true;
+          } else {
+            console.log('Creating new user from Google OAuth');
+            // Create new user
+            const newUser = await userRepository.create({
+              username: user.name || user.email.split('@')[0],
+              email: user.email,
+              password: '', // OAuth users don't need password
+              role: 'user'
+            });
+            
+            if (newUser && newUser.length > 0) {
+              user.id = newUser[0].id;
+              user.name = newUser[0].username;
+              user.role = newUser[0].role;
+              console.log('New user created successfully');
+              return true;
+            } else {
+              console.error('Failed to create new user');
+              return false;
+            }
+          }
+        } catch (error) {
+          console.error('Error in Google OAuth sign-in:', error);
+          return false;
+        }
+      }
+      
+      return true;
+    },
+    async jwt({ token, user }) {
+      console.log('JWT callback - user:', user ? 'exists' : 'null');
+      if (user) {
+        token.id = user.id;
+        token.email = user.email;
+        token.name = user.name;
+        token.role = user.role;
+      } else if (token.email) {
+        // Refresh user data from database to get latest role
+        try {
+          const dbUser = await userRepository.findByEmail(token.email as string);
+          if (dbUser) {
+            token.id = dbUser.id;
+            token.email = dbUser.email;
+            token.name = dbUser.username;
+            token.role = dbUser.role;
+          }
+        } catch (error) {
+          console.error('Error refreshing user data in JWT callback:', error);
+        }
+      }
+      console.log('JWT token:', { ...token, iat: 'hidden', exp: 'hidden' });
+      return token;
+    },
+    async session({ session, token }) {
+      console.log('Session callback - token:', token ? 'exists' : 'null');
+      if (token && session.user) {
+        session.user.id = token.id as string;
+        session.user.email = token.email as string;
+        session.user.name = token.name as string;
+        session.user.role = token.role as string;
+      }
+      console.log('Final session:', session);
+      return session;
+    },
+  },
+  pages: {
+    signIn: '/auth',
+    error: '/auth',
+  },
+  debug: true,
+};
 
 // NextAuth 핸들러 export
 export async function GET(req: Request, context: { params: Promise<{ nextauth: string[] }> }) {

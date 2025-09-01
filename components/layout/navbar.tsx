@@ -113,7 +113,7 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
                 {profileImage ? (
                   <AvatarImage src={profileImage} alt="Profile" />
                 ) : (
-                  <AvatarFallback className="bg-orange-500 text-white text-xs">
+                  <AvatarFallback className="bg-orange-500 text-white !text-xs">
                     {getAvatarText()}
                   </AvatarFallback>
                 )}

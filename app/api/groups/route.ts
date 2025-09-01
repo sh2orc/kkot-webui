@@ -19,7 +19,7 @@ export async function GET(req: NextRequest) {
     
     // Get user count for each group
     const groupsWithUserCount = await Promise.all(
-      groups.map(async (group) => {
+      groups.map(async (group: any) => {
         const users = await groupRepository.getUsers(group.id);
         return {
           ...group,
@@ -43,7 +43,11 @@ export async function POST(req: NextRequest) {
   try {
     // Check authentication
     const session = await getServerSession(authOptions);
+    console.log('Groups POST - Session:', session);
+    console.log('Groups POST - User role:', session?.user?.role);
+    
     if (!session || session.user.role !== 'admin') {
+      console.log('Groups POST - Access denied. Session exists:', !!session, 'Role:', session?.user?.role);
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }

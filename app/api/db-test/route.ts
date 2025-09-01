@@ -14,9 +14,12 @@ import { authOptions } from '@/app/api/auth/[...nextauth]/route';
 export async function GET(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+    console.log('DB-test GET - Session:', session);
+    console.log('DB-test GET - User role:', session?.user?.role);
     
     // Admin access check
     if (!session?.user || session.user.role !== 'admin') {
+      console.log('DB-test GET - Access denied. Session exists:', !!session, 'Role:', session?.user?.role);
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 
@@ -134,9 +137,12 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const session = await getServerSession(authOptions);
+    console.log('DB-test POST - Session:', session);
+    console.log('DB-test POST - User role:', session?.user?.role);
     
     // Admin access check
     if (!session?.user || session.user.role !== 'admin') {
+      console.log('DB-test POST - Access denied. Session exists:', !!session, 'Role:', session?.user?.role);
       return NextResponse.json({ error: 'Admin access required' }, { status: 403 });
     }
 

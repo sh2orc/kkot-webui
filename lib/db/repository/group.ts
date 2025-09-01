@@ -136,24 +136,23 @@ export const groupRepository = {
    * Set user groups (replace all groups)
    */
   setUserGroups: async (userId: string, groupIds: string[], assignedBy?: string) => {
-    // Start transaction
-    await db.transaction(async (tx) => {
-      // Remove all existing groups
-      await tx.delete(schema.userGroups).where(eq(schema.userGroups.userId, userId as any));
+    // Remove all existing groups
+    await db.delete(schema.userGroups).where(eq(schema.userGroups.userId, userId as any));
+    
+    // Add new groups
+    if (groupIds.length > 0) {
+      const now = new Date();
+      const values = groupIds.map(groupId => ({
+        userId: userId as any,
+        groupId: groupId as any,
+        assignedBy: assignedBy as any,
+        assignedAt: now as any
+      }));
       
-      // Add new groups
-      if (groupIds.length > 0) {
-        const now = new Date();
-        const values = groupIds.map(groupId => ({
-          userId: userId as any,
-          groupId: groupId as any,
-          assignedBy: assignedBy as any,
-          assignedAt: now as any
-        }));
-        
-        await tx.insert(schema.userGroups).values(values);
-      }
-    });
+      return await db.insert(schema.userGroups).values(values);
+    }
+    
+    return [];
   },
 
   /**
@@ -176,7 +175,7 @@ export const groupRepository = {
     
     const results = await query;
     
-    return results.map(r => ({
+    return results.map((r: any) => ({
       id: r.id,
       groupId: r.groupId,
       resourceType: r.resourceType,
@@ -277,7 +276,7 @@ export const groupRepository = {
       return false;
     }
 
-    const groupIds = userGroups.map(ug => ug.groupId);
+    const groupIds = userGroups.map((ug: any) => ug.groupId);
 
     // Check permissions for user's groups
     const permissions = await db
@@ -327,7 +326,7 @@ export const groupRepository = {
       return [];
     }
 
-    const groupIds = userGroups.map(ug => ug.groupId);
+    const groupIds = userGroups.map((ug: any) => ug.groupId);
 
     // Get permissions for user's groups
     const permissions = await db
@@ -356,25 +355,25 @@ export const groupRepository = {
    * Bulk set resource permissions for a group
    */
   bulkSetResourcePermissions: async (groupId: string, permissions: GroupResourcePermission[]) => {
-    await db.transaction(async (tx) => {
-      // Remove all existing permissions for the group
-      await tx.delete(schema.groupResourcePermissions).where(eq(schema.groupResourcePermissions.groupId, groupId));
+    // Remove all existing permissions for the group
+    await db.delete(schema.groupResourcePermissions).where(eq(schema.groupResourcePermissions.groupId, groupId));
+    
+    // Add new permissions
+    if (permissions.length > 0) {
+      const now = new Date();
+      const values = permissions.map(p => ({
+        id: generateId() as any,
+        groupId: groupId,
+        resourceType: p.resourceType,
+        resourceId: p.resourceId,
+        permissions: JSON.stringify(p.permissions),
+        createdAt: now as any,
+        updatedAt: now as any
+      }));
       
-      // Add new permissions
-      if (permissions.length > 0) {
-        const now = new Date();
-        const values = permissions.map(p => ({
-          id: generateId() as any,
-          groupId: groupId,
-          resourceType: p.resourceType,
-          resourceId: p.resourceId,
-          permissions: JSON.stringify(p.permissions),
-          createdAt: now as any,
-          updatedAt: now as any
-        }));
-        
-        await tx.insert(schema.groupResourcePermissions).values(values);
-      }
-    });
+      return await db.insert(schema.groupResourcePermissions).values(values);
+    }
+    
+    return [];
   }
 };

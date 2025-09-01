@@ -24,7 +24,8 @@ const TextSwitch = React.forwardRef<
       onClick={() => !disabled && onCheckedChange(!checked)}
       disabled={disabled}
       className={cn(
-        "inline-flex h-7 min-w-[50px] px-3 items-center justify-center rounded-md text-xs font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+        "inline-flex h-7 min-w-[50px] px-3 items-center justify-center rounded-md font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50",
+        "!text-xs", // Force text-xs size regardless of font size settings
         checked 
           ? "bg-green-600 text-primary-foreground hover:bg-green-600/90 hover:text-white" 
           : "bg-secondary text-secondary-foreground hover:bg-gray-300/80 dark:hover:bg-gray-700/80 border border-input",

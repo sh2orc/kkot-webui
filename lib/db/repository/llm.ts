@@ -196,6 +196,33 @@ export const llmModelRepository = {
       .from(schema.llmModels)
       .leftJoin(schema.llmServers, eq(schema.llmModels.serverId, schema.llmServers.id));
   },
+
+  /**
+   * Find all chat models with server info (excluding embedding models)
+   */
+  findAllChatModelsWithServer: async () => {
+    return await db
+      .select({
+        id: schema.llmModels.id,
+        serverId: schema.llmModels.serverId,
+        modelId: schema.llmModels.modelId,
+        provider: schema.llmModels.provider,
+        enabled: schema.llmModels.enabled,
+        isPublic: schema.llmModels.isPublic,
+        capabilities: schema.llmModels.capabilities,
+        contextLength: schema.llmModels.contextLength,
+        supportsMultimodal: schema.llmModels.supportsMultimodal,
+        isEmbeddingModel: schema.llmModels.isEmbeddingModel,
+        isRerankingModel: schema.llmModels.isRerankingModel,
+        createdAt: schema.llmModels.createdAt,
+        updatedAt: schema.llmModels.updatedAt,
+        serverName: schema.llmServers.name,
+        serverBaseUrl: schema.llmServers.baseUrl
+      })
+      .from(schema.llmModels)
+      .leftJoin(schema.llmServers, eq(schema.llmModels.serverId, schema.llmServers.id))
+      .where(eq(schema.llmModels.isEmbeddingModel, 0 as any)); // Exclude embedding models
+  },
   
   /**
    * Find LLM models by server ID
@@ -228,6 +255,35 @@ export const llmModelRepository = {
       .from(schema.llmModels)
       .leftJoin(schema.llmServers, eq(schema.llmModels.serverId, schema.llmServers.id))
       .where(eq(schema.llmModels.serverId, serverId));
+  },
+
+  /**
+   * Find chat models by server ID with server info (excluding embedding models)
+   */
+  findChatModelsByServerIdWithServer: async (serverId: string) => {
+    return await db
+      .select({
+        id: schema.llmModels.id,
+        serverId: schema.llmModels.serverId,
+        modelId: schema.llmModels.modelId,
+        provider: schema.llmModels.provider,
+        enabled: schema.llmModels.enabled,
+        isPublic: schema.llmModels.isPublic,
+        capabilities: schema.llmModels.capabilities,
+        contextLength: schema.llmModels.contextLength,
+        supportsMultimodal: schema.llmModels.supportsMultimodal,
+        isEmbeddingModel: schema.llmModels.isEmbeddingModel,
+        createdAt: schema.llmModels.createdAt,
+        updatedAt: schema.llmModels.updatedAt,
+        serverName: schema.llmServers.name,
+        serverBaseUrl: schema.llmServers.baseUrl
+      })
+      .from(schema.llmModels)
+      .leftJoin(schema.llmServers, eq(schema.llmModels.serverId, schema.llmServers.id))
+      .where(and(
+        eq(schema.llmModels.serverId, serverId),
+        eq(schema.llmModels.isEmbeddingModel, 0 as any) // Exclude embedding models
+      ));
   },
   
   /**

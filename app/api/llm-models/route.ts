@@ -22,17 +22,25 @@ export async function GET(request: NextRequest) {
     const provider = url.searchParams.get('provider');
     const publicOnly = url.searchParams.get('publicOnly') === 'true';
     const embeddingOnly = url.searchParams.get('embeddingOnly') === 'true';
+    const chatOnly = url.searchParams.get('chatOnly') === 'true';
     
     let models;
     
     if (serverId) {
-      models = await llmModelRepository.findByServerIdWithServer(serverId);
+      // For specific server, check if we need chat models only
+      if (chatOnly) {
+        models = await llmModelRepository.findChatModelsByServerIdWithServer(serverId);
+      } else {
+        models = await llmModelRepository.findByServerIdWithServer(serverId);
+      }
     } else if (provider) {
       models = await llmModelRepository.findByProvider(provider);
     } else if (publicOnly && embeddingOnly) {
       models = await llmModelRepository.findPublicEmbeddingModels();
     } else if (publicOnly) {
-      models = await llmModelRepository.findPublic();
+      models = await llmModelRepository.findPublic(); // Already excludes embedding models
+    } else if (chatOnly) {
+      models = await llmModelRepository.findAllChatModelsWithServer();
     } else {
       models = await llmModelRepository.findAllWithServer();
     }
@@ -125,15 +133,22 @@ export async function POST(request: NextRequest) {
               }));
             } else {
               // For standard OpenAI, retrieve all models (same logic as page)
-              models = data.data.map((model: any) => ({
-                modelId: model.id,
-                capabilities: {
-                  // Infer capabilities from model name (same logic as connection page)
-                  chat: model.id.includes('gpt') || model.id.includes('llama') || model.id.includes('mistral') || model.id.includes('qwen') || !model.id.includes('dall-e') && !model.id.includes('whisper'),
-                  image: model.id.includes('dall-e') || model.id.includes('vision') || model.id.includes('-VL'),
-                  audio: model.id.includes('whisper') || model.id.includes('tts')
-                }
-              }));
+              models = data.data.map((model: any) => {
+                // Check if it's an embedding model
+                const isEmbeddingModel = model.id.includes('text-embedding') || model.id.includes('embedding');
+                
+                return {
+                  modelId: model.id,
+                  isEmbeddingModel,
+                  capabilities: {
+                    // Infer capabilities from model name (same logic as connection page)
+                    // Embedding models should not have chat capability
+                    chat: !isEmbeddingModel && (model.id.includes('gpt') || model.id.includes('llama') || model.id.includes('mistral') || model.id.includes('qwen') || !model.id.includes('dall-e') && !model.id.includes('whisper')),
+                    image: model.id.includes('dall-e') || model.id.includes('vision') || model.id.includes('-VL'),
+                    audio: model.id.includes('whisper') || model.id.includes('tts')
+                  }
+                };
+              });
             }
           }
         } catch (err) {
@@ -148,15 +163,21 @@ export async function POST(request: NextRequest) {
           
           if (response.ok) {
             const data = await response.json();
-            models = data.models?.map((model: any) => ({
-              modelId: model.name,
-              capabilities: {
-                chat: true,
-                image: false,
-                audio: false
-              },
-              contextLength: model.details?.parameter_size
-            })) || [];
+            models = data.models?.map((model: any) => {
+              // Check if it's an embedding model
+              const isEmbeddingModel = model.name.includes('embedding') || model.name.includes('embed');
+              
+              return {
+                modelId: model.name,
+                isEmbeddingModel,
+                capabilities: {
+                  chat: !isEmbeddingModel, // Embedding models should not have chat capability
+                  image: false,
+                  audio: false
+                },
+                contextLength: model.details?.parameter_size
+              };
+            }) || [];
           }
         } catch (err) {
           console.error('Failed to retrieve Ollama models:', err);
@@ -170,16 +191,23 @@ export async function POST(request: NextRequest) {
           
           if (response.ok) {
             const data = await response.json();
-            models = data.models?.map((model: any) => ({
-              modelId: model.name.replace('models/', ''), // Remove 'models/' prefix
-              capabilities: {
-                chat: true, // Most Gemini models support chat
-                image: model.supportedGenerationMethods?.includes('generateContent') && 
-                       (model.inputTokenLimit > 100000 || model.name.includes('vision')), // Vision models typically have large context
-                audio: false // Currently no audio support in standard Gemini models
-              },
-              contextLength: model.inputTokenLimit
-            })) || [];
+            models = data.models?.map((model: any) => {
+              const modelName = model.name.replace('models/', ''); // Remove 'models/' prefix
+              // Check if it's an embedding model
+              const isEmbeddingModel = modelName.includes('embedding') || modelName.includes('embed');
+              
+              return {
+                modelId: modelName,
+                isEmbeddingModel,
+                capabilities: {
+                  chat: !isEmbeddingModel, // Embedding models should not have chat capability
+                  image: !isEmbeddingModel && model.supportedGenerationMethods?.includes('generateContent') && 
+                         (model.inputTokenLimit > 100000 || model.name.includes('vision')), // Vision models typically have large context
+                  audio: false // Currently no audio support in standard Gemini models
+                },
+                contextLength: model.inputTokenLimit
+              };
+            }) || [];
           }
         } catch (err) {
           console.error('Failed to retrieve Gemini models:', err);
@@ -194,7 +222,8 @@ export async function POST(request: NextRequest) {
           modelId: model.modelId,
           provider: server.provider,
           capabilities: model.capabilities,
-          contextLength: model.contextLength
+          contextLength: model.contextLength,
+          isEmbeddingModel: model.isEmbeddingModel || false
           // Not passing enabled and isPublic
           // - New models: Set to disabled(false) by default
           // - Existing models: Current state is preserved

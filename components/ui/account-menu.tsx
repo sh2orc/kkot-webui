@@ -56,14 +56,14 @@ export function AccountMenu({ children, align = "start", side = "top" }: Account
           <>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">
+                <p className="!text-sm font-medium leading-none">
                   {session.user.name || session.user.email?.split('@')[0]}
                 </p>
-                <p className="text-xs leading-none text-muted-foreground">
+                <p className="!text-xs leading-none text-muted-foreground">
                   {session.user.email}
                 </p>
                 {session.user.role && (
-                  <p className="text-xs leading-none text-muted-foreground">
+                  <p className="!text-xs leading-none text-muted-foreground">
                     {session.user.role === 'admin' ? lang("roles.admin") : lang("roles.user")}
                   </p>
                 )}

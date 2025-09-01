@@ -77,10 +77,11 @@ export async function PUT(req: NextRequest, { params }: Params) {
       )
     }
 
+    const resolvedParams = await params;
     const data = await req.json()
     const { name, email, role, password, department, phone_number, status, roles, groups } = data
 
-    const users = await userRepository.findById(params.id)
+    const users = await userRepository.findById(resolvedParams.id)
     const user = users[0]
 
     if (!user) {
@@ -100,17 +101,17 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (phone_number !== undefined) updateData.phone_number = phone_number
     if (status !== undefined) updateData.status = status
 
-    const updatedUsers = await userRepository.update(params.id, updateData)
+    const updatedUsers = await userRepository.update(resolvedParams.id, updateData)
     const updatedUser = updatedUsers[0]
 
     // Update roles if provided
     if (roles && Array.isArray(roles)) {
-      await userRepository.updateUserRoles(params.id, roles)
+      await userRepository.updateUserRoles(resolvedParams.id, roles)
     }
     
     // Update groups if provided
     if (groups && Array.isArray(groups)) {
-      await groupRepository.setUserGroups(params.id, groups, session.user.id)
+      await groupRepository.setUserGroups(resolvedParams.id, groups, session.user.id)
     }
 
     return NextResponse.json({
