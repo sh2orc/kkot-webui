@@ -64,15 +64,30 @@ export const ChatInput = memo(function ChatInput({
 
   // Clear images function
   const clearImagesHandler = () => {
+    console.log('🖼️ Clearing images in ChatInput')
     setUploadedImages([])
     setImagePreviews([])
+    
+    // Also reset file input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = ''
+    }
   }
 
-  // Clear images when clearImages prop changes
+  // Clear images when clearImages prop changes (skip initial render)
+  const isFirstRender = useRef(true)
   useEffect(() => {
-    if (clearImages) {
-      clearImagesHandler()
+    console.log('📸 clearImages prop changed:', clearImages, 'isFirstRender:', isFirstRender.current)
+    
+    // Skip the first render to avoid clearing images on mount
+    if (isFirstRender.current) {
+      isFirstRender.current = false
+      return
     }
+    
+    // Clear images on any change of clearImages prop (toggle behavior)
+    console.log('✨ Clearing images due to clearImages prop change')
+    clearImagesHandler()
   }, [clearImages])
 
   // Image resize and compression function
@@ -220,11 +235,12 @@ export const ChatInput = memo(function ChatInput({
       return
     }
 
+    console.log('🚀 Submit clicked, current images:', uploadedImages.length)
     handleSubmit()
-    // Clear images after submitting
-    if (uploadedImages.length > 0) {
-      clearImagesHandler()
-    }
+    
+    // Always clear images after submitting (whether there are images or not)
+    console.log('🧹 Clearing images after submit')
+    clearImagesHandler()
   }
 
   return (

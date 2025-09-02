@@ -62,26 +62,14 @@ export function LlmResponse({
   const [thumbsUpClick, setThumbsUpClick] = useState(false)
   const [thumbsDownHover, setThumbsDownHover] = useState(false)
   const [copiedRendered, setCopiedRendered] = useState(false)
-  const { lang } = useTranslation('chat')
+  const { lang, language } = useTranslation('chat')
   const isMobile = useIsMobile()
   const { formatTime } = useTimezone()
   const contentRef = useRef<HTMLDivElement | null>(null)
 
   // Check if this is an image generation/editing loading message
-  const isImageGenerationLoading = content.includes('🎨 이미지를 생성하고 있습니다...');
-  const isImageEditingLoading = content.includes('🎨 이미지를 편집하고 있습니다...');
-  const isImageProcessingLoading = isImageGenerationLoading || isImageEditingLoading;
-  
-  if (isImageProcessingLoading) {
-    const loadingText = isImageEditingLoading ? '이미지를 편집하고 있습니다...' : '이미지를 생성하고 있습니다...';
-    
-    return (
-      <div className="flex items-center gap-3 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg border border-blue-200 dark:border-blue-800">
-        <div className="animate-spin rounded-full h-5 w-5 border-2 border-blue-500 border-t-transparent"></div>
-        <span className="text-blue-700 dark:text-blue-300 font-medium">{loadingText}</span>
-      </div>
-    );
-  }
+  // Show loading animation when content is empty and streaming (image processing)
+  const isImageProcessingLoading = content === '' && isStreaming && !isDeepResearch;
 
   // Check if this is a deep research response
   // ONLY use explicit isDeepResearch flag - don't rely on content detection
@@ -126,7 +114,7 @@ export function LlmResponse({
    
     // Prefer ReactMarkdown pipeline with remark-math/rehype-katex for robust math rendering
     return (
-      <div className="prose max-w-none dark:prose-invert prose-headings:font-semibold prose-p:my-5 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-strong:font-bold prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
+      <div className="prose max-w-none dark:prose-invert prose-headings:font-semibold prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-strong:font-bold prose-code:bg-gray-100 dark:prose-code:bg-gray-800 prose-code:px-1 prose-code:py-0.5 prose-code:rounded prose-img:my-0" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
         <ReactMarkdown
           remarkPlugins={[remarkMath, remarkGfm]}
           rehypePlugins={[rehypeKatex]}
@@ -152,8 +140,11 @@ export function LlmResponse({
             },
             // Handle broken images gracefully - simplified without hooks
             img: ({ node, src, alt, ...props }: any) => {
+              console.log('🖼️ Image component rendered:', { src, alt, props });
+              
               // Check if src is empty or undefined
               if (!src || src.trim() === '') {
+                console.log('🖼️ Empty src detected');
                 return (
                   <span className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-400">
                     <span className="text-yellow-500">⚠️</span>
@@ -182,22 +173,39 @@ export function LlmResponse({
                 ? src.replace('/temp-images/', '/api/images/')
                 : src;
               
+              console.log('🖼️ Image URL conversion:', { original: src, converted: convertedSrc });
+              
               return (
-                <span className="relative inline-block group">
+                <span className="relative block group">
                   <img
                     {...props}
                     src={convertedSrc}
                     alt={alt}
-                    className="max-w-[50%] h-auto rounded-lg border border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-90 transition-opacity"
+                    className="max-w-[20vw] min-w-[200px] h-auto rounded-lg border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-90 transition-opacity"
                     loading="lazy"
+                    onLoad={(e: any) => {
+                      console.log('✅ Image loaded successfully:', {
+                        src: convertedSrc,
+                        naturalWidth: e.target.naturalWidth,
+                        naturalHeight: e.target.naturalHeight,
+                        displayWidth: e.target.width,
+                        displayHeight: e.target.height
+                      });
+                    }}
                     onError={(e: any) => {
-                      console.error('Image load error:', convertedSrc);
+                      console.error('🚨 Image load error:', {
+                        src: convertedSrc,
+                        originalSrc: src,
+                        error: e,
+                        target: e.target
+                      });
+                      
                       // Replace with placeholder on error
                       const img = e.target as HTMLImageElement;
                       img.style.display = 'none';
                       const errorSpan = document.createElement('span');
-                      errorSpan.className = 'inline-flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-400';
-                      errorSpan.innerHTML = '<span class="text-red-500">🖼️</span><span>[이미지 로딩 실패]</span>';
+                      errorSpan.className = 'inline-flex items-center gap-2 px-3 py-2 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-600 rounded-lg text-sm text-red-600 dark:text-red-400';
+                      errorSpan.innerHTML = `<span class="text-red-500">🚨</span><span>[이미지 로딩 실패: ${convertedSrc}]</span>`;
                       img.parentNode?.appendChild(errorSpan);
                     }}
                     onClick={() => {
@@ -491,10 +499,14 @@ export function LlmResponse({
     id,
     contentLength: content.length,
     contentPreview: content.substring(0, 100),
+    fullContent: content,
     isDeepResearch,
     deepResearchStepType,
     isDeepResearchComplete,
-    isStreaming
+    isStreaming,
+    contentParts: contentParts.length,
+    hasImages: content.includes('!['),
+    isImageProcessingLoading
   });
 
   return (
@@ -531,18 +543,28 @@ export function LlmResponse({
         </div>
       )}
 
-      <div 
-        className={`prose max-w-none text-sm dark:prose-invert ${isStreaming ? 'streaming-content' : ''} ${
-          isDeepResearchResponse ? 'deep-research-content' : ''
-        }`} 
-        style={{ 
-          overflowWrap: 'break-word', 
-          wordBreak: 'break-word',          
-        }}
-      >
-        <div ref={contentRef}>
-        {/* Deep Research Display */}
-        {isDeepResearchResponse ? (
+      {/* Image Processing Loading Display */}
+      {isImageProcessingLoading ? (
+        <div className="flex items-center py-4 ml-2">
+          <div className="bubble-loading-simple">
+            <div className="bubble-simple"></div>
+            <div className="bubble-simple"></div>
+            <div className="bubble-simple"></div>
+          </div>
+        </div>
+      ) : (
+        <div 
+          className={`prose max-w-none text-sm dark:prose-invert ${isStreaming ? 'streaming-content' : ''} ${
+            isDeepResearchResponse ? 'deep-research-content' : ''
+          }`} 
+          style={{ 
+            overflowWrap: 'break-word', 
+            wordBreak: 'break-word',          
+          }}
+        >
+          <div ref={contentRef}>
+          {/* Deep Research Display */}
+          {isDeepResearchResponse ? (
           <div>
             <DeepResearchDisplay 
               key={`deep-research-${id}-${deepResearchStepInfo?.plannedSteps?.length || 0}-${deepResearchStepInfo?.plannedSteps?.map(s => s.title).join('|').substring(0, 50) || 'empty'}`}
@@ -616,7 +638,7 @@ export function LlmResponse({
             } else {
               displayTime = new Date();
             }
-            const { language } = useTranslation('chat');
+            // Use already declared language from useTranslation hook at component level
             return formatTime(displayTime, language === 'kor' ? 'ko-KR' : 'en-US', { hour: '2-digit', minute: '2-digit' })
           })()}
         </div>
@@ -731,7 +753,8 @@ export function LlmResponse({
             />
           </button>
         </div>
-      </div>
+        </div>
+      )}
     </div>
   )
 }

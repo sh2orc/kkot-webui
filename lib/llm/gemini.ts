@@ -215,6 +215,8 @@ export class GeminiLLM extends BaseLLM {
 
   /**
    * Generate images using Gemini image generation models
+   * Based on official Google Gemini API documentation
+   * https://ai.google.dev/gemini-api/docs/image-generation
    */
   async generateImage(prompt: string, options?: {
     model?: string;
@@ -224,103 +226,119 @@ export class GeminiLLM extends BaseLLM {
   }): Promise<LLMResponse> {
     try {
       // Use Gemini native image generation model
+      // Try different model names as the preview model might not support image generation
       const imageModel = options?.model || 'gemini-2.5-flash-image-preview';
       
-      console.log('🎨 Generating image with model:', imageModel);
-      console.log('🎨 Original prompt:', prompt);
-      console.log('🎨 Input images:', options?.inputImages ? options.inputImages.length : 0);
+
       
-      // Prepare contents for API call
+      // Prepare contents for API call based on official documentation
       let contents: any;
       
       if (options?.inputImages && options.inputImages.length > 0) {
-        // Image editing mode: combine text + images
-        console.log('🎨 Image editing mode: combining text with input images');
+        // Image editing mode: combine images + text
+        // Following the official documentation pattern for image editing
+
         
-        contents = [
-          // Add input images first
-          ...options.inputImages.map(img => ({
+        // Create an array with image parts followed by text
+        const parts = [];
+        
+        // Add all input images as inline data
+        for (const img of options.inputImages) {
+          parts.push({
             inlineData: {
-              data: img.data,
-              mimeType: img.mimeType
+              mimeType: img.mimeType,
+              data: img.data
             }
-          })),
-          // Add text prompt
-          prompt
-        ];
+          });
+        }
         
-        console.log('🎨 Multimodal contents prepared:', {
-          imageCount: options.inputImages.length,
-          textPrompt: prompt
+        // Add the text prompt with explicit image generation request
+        parts.push({
+          text: prompt
         });
+        
+        // For image generation, contents should be the parts array directly (no role wrapper)
+        contents = parts;
+        
+
       } else {
         // Image generation mode: text only
-        console.log('🎨 Image generation mode: text-to-image');
-        const optimizedPrompt = `Create a detailed image: ${prompt}`;
-        console.log('🎨 Optimized prompt:', optimizedPrompt);
-        contents = optimizedPrompt;
+
+        
+        // Simple text prompt for image generation with explicit request
+        contents = [{
+          text: prompt
+        }];
+        
+
       }
       
-      // Following the exact pattern from the official documentation
+      // Call the API using the correct method
+      console.log('🚀 Gemini image generation request - Model:', imageModel, 'Images:', options?.inputImages?.length || 0);
+      
       const response = await this.client.models.generateContent({
         model: imageModel,
-        contents: contents,
+        contents: contents
       });
 
-      console.log('🎨 Raw response:', JSON.stringify(response, null, 2));
-      console.log('🎨 Candidates:', response.candidates);
+      // Get the response result
+      console.log('🔍 Gemini response - candidates:', response?.candidates?.length || 0);
+      
+      // Only log full response if there's an error
+      if (!response?.candidates || response.candidates.length === 0) {
+        console.log('🚨 No candidates in response:', JSON.stringify(response, null, 2));
+      }
 
-      // Extract image from response (following official documentation)
+      // Extract image from response following official documentation pattern
       let imageBase64 = '';
       let textContent = '';
       
-      console.log('🎨 Response structure check:');
-      console.log('🎨 Has candidates:', !!response.candidates);
-      console.log('🎨 Candidates length:', response.candidates?.length || 0);
-      
       if (response.candidates && response.candidates.length > 0) {
         const candidate = response.candidates[0];
-        console.log('🎨 Candidate keys:', Object.keys(candidate));
-        console.log('🎨 Has content:', !!candidate.content);
-        console.log('🎨 Content keys:', candidate.content ? Object.keys(candidate.content) : 'none');
+
         
         if (candidate.content && candidate.content.parts) {
-          console.log('🎨 Parts length:', candidate.content.parts.length);
+
           
-          // Following the exact pattern from the documentation
-          for (const part of candidate.content.parts) {
-            console.log('🎨 Part keys:', Object.keys(part));
+          // Process each part in the response
+          for (let i = 0; i < candidate.content.parts.length; i++) {
+            const part = candidate.content.parts[i];
+
             
             if (part.text) {
               textContent += part.text;
-              console.log('🎨 ✅ Text part found:');
-              console.log('🎨 📝 Full text content:', part.text);
-            } else if (part.inlineData) {
-              // This is the exact property name from the documentation
+
+            }
+            
+            if (part.inlineData) {
+              // Extract image data from inlineData
               const imageData = part.inlineData.data;
+              const mimeType = part.inlineData.mimeType || 'image/png';
+              
               if (imageData) {
                 imageBase64 = imageData;
-                console.log('🎨 ✅ Image data found! Size:', imageData.length, 'characters');
-                console.log('🎨 ✅ MIME type:', part.inlineData.mimeType || 'unknown');
+
               } else {
-                console.log('🎨 ❌ InlineData exists but no data property');
+
               }
-            } else {
-              console.log('🎨 ⚠️  Unknown part type. Available keys:', Object.keys(part));
             }
           }
         } else {
-          console.log('🎨 ❌ No content.parts found in candidate');
+
         }
       } else {
-        console.log('🎨 ❌ No candidates found in response');
+
+        throw new Error('No candidates found in Gemini response');
       }
 
       if (!imageBase64) {
-        console.log('🎨 ❌ No image data found, using test image instead');
-        // Use a small test image (1x1 red pixel) for debugging
-        imageBase64 = 'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg==';
-        console.log('🎨 🧪 Using test image data');
+
+        
+        // Return text-only response without any test image
+        return {
+          content: textContent || "이미지 생성에 실패했습니다.",
+          imageUrl: null
+        };
       }
 
       // Detect actual mime type from the response
@@ -331,14 +349,14 @@ export class GeminiLLM extends BaseLLM {
         for (const part of response.candidates[0].content.parts) {
           if (part.inlineData?.mimeType) {
             mimeType = part.inlineData.mimeType;
-            console.log('🎨 ✅ Detected MIME type:', mimeType);
+
             break;
           }
         }
       }
       
       // Save large image to file instead of using base64 data URL
-      console.log('🎨 💾 Saving image to file (base64 too large for browser)');
+
       
       // Create unique filename
       const imageId = crypto.randomUUID();
@@ -350,7 +368,7 @@ export class GeminiLLM extends BaseLLM {
       // Ensure directory exists
       if (!fs.existsSync(publicDir)) {
         fs.mkdirSync(publicDir, { recursive: true });
-        console.log('🎨 📁 Created temp-images directory');
+
       }
       
       // Save image to file
@@ -363,11 +381,7 @@ export class GeminiLLM extends BaseLLM {
       // Create public URL using API endpoint for better reliability
       const imageUrl = `/api/images/${fileName}`;
       
-      console.log('🎨 💾 Image saved successfully:');
-      console.log('🎨 📂 File path:', filePath);
-      console.log('🎨 🌐 API URL:', imageUrl);
-      console.log('🎨 📏 File size:', imageBuffer.length, 'bytes');
-      console.log('🎨 📋 MIME type:', mimeType);
+
       
       // Create comprehensive response with both text and image
       let markdownContent = '';
@@ -375,25 +389,14 @@ export class GeminiLLM extends BaseLLM {
       // Add text description if available
       if (textContent && textContent.trim()) {
         markdownContent += textContent.trim() + '\n\n';
-        console.log('🎨 📝 ✅ Text description included:', textContent.trim());
-      } else {
-        // Add default description if no text provided
-        markdownContent += '🎨 **생성된 이미지**\n\n';
-        console.log('🎨 📝 ℹ️ No text from Gemini, using default description');
+
       }
       
-      // Add the image
+      // Add the image directly without default text
       markdownContent += `![Generated Image](${imageUrl})`;
-      
-      console.log('🎨 📝 Final markdown with file URL:');
-      console.log('🎨 📝 Text portion length:', textContent ? textContent.length : 0);
-      console.log('🎨 📝 Image URL:', imageUrl);
-      console.log('🎨 📝 Complete markdown:');
-      console.log(markdownContent);
       
       // Test if markdown contains image tag
       const hasImageTag = markdownContent.includes('![Generated Image]');
-      console.log('🎨 📝 Contains image tag:', hasImageTag);
 
       return {
         content: markdownContent,

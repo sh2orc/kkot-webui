@@ -5,6 +5,40 @@ import { LLMFactory } from '@/lib/llm'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
 import { DeepResearchUtils, DeepResearchProcessor } from '@/lib/llm/deepresearch'
+import * as fs from 'fs'
+import * as path from 'path'
+import sharp from 'sharp'
+
+// Function to resize image to max 300px width/height while maintaining aspect ratio
+async function resizeImageToBase64(base64Data: string, mimeType: string, maxSize: number = 500): Promise<string> {
+  try {
+    // Remove data URL prefix if present
+    const cleanBase64 = base64Data.replace(/^data:image\/[^;]+;base64,/, '');
+    
+    // Convert base64 to buffer
+    const buffer = Buffer.from(cleanBase64, 'base64');
+    
+    // Resize image while maintaining aspect ratio
+    const resizedBuffer = await sharp(buffer)
+      .resize(maxSize, maxSize, {
+        fit: 'inside',
+        withoutEnlargement: true // Don't enlarge smaller images
+      })
+      .jpeg({ quality: 90 }) // Convert to JPEG with good quality for smaller size
+      .toBuffer();
+    
+    // Convert back to base64
+    const resizedBase64 = resizedBuffer.toString('base64');
+    
+    console.log(`🔧 Resized image: ${buffer.length} bytes → ${resizedBuffer.length} bytes (${((resizedBuffer.length / buffer.length) * 100).toFixed(1)}% of original)`);
+    
+    return resizedBase64;
+  } catch (error) {
+    console.error('🔧 Error resizing image:', error);
+    // Return original if resize fails
+    return base64Data;
+  }
+}
 
 export async function POST(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   console.log('=== Chat [id] API POST request received ===')
@@ -32,6 +66,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     let isDeepResearchActive: boolean
     let isGlobeActive: boolean
     let images: File[] = []
+    let fromMessageId: string | undefined
     
     if (contentType?.includes('multipart/form-data')) {
       // Handle FormData (with images)
@@ -45,6 +80,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       isRegeneration = formData.get('isRegeneration') === 'true'
       isDeepResearchActive = formData.get('isDeepResearchActive') === 'true'
       isGlobeActive = formData.get('isGlobeActive') === 'true'
+      fromMessageId = formData.get('fromMessageId') as string || undefined
       
       // Extract images
       const imageFiles = formData.getAll('images') as File[]
@@ -122,6 +158,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       isRegeneration = body.isRegeneration
       isDeepResearchActive = body.isDeepResearchActive || false
       isGlobeActive = body.isGlobeActive || false
+      fromMessageId = body.fromMessageId
       
       console.log('🔍 JSON Request Body Deep Research Debug:')
       console.log('  Full body:', body)
@@ -234,6 +271,18 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       }
     } else {
       console.log('Regeneration mode: skipping user message save')
+      
+      // In regeneration mode, ensure any remaining messages after this regeneration are cleaned up
+      // This provides a safety net in case frontend deletion failed
+      if (fromMessageId) {
+        console.log('🧹 Regeneration mode: cleaning up any remaining messages after', fromMessageId)
+        try {
+          const cleanupResult = await chatMessageRepository.deleteFromMessageOnwards(chatId, fromMessageId)
+          console.log('🧹 Regeneration cleanup result:', cleanupResult?.length || 0, 'messages removed')
+        } catch (cleanupError) {
+          console.warn('🧹 Regeneration cleanup failed (non-critical):', cleanupError)
+        }
+      }
     }
 
     // Retrieve existing message history (refresh after potential save)
@@ -253,6 +302,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       if (agentResult && agentResult.length > 0) {
         agent = agentResult[0]
         console.log('Selected agent:', agent)
+        console.log('Agent supportsMultimodal:', agent.supportsMultimodal)
         // Use system prompt if it's 3 characters or longer
         if (agent.systemPrompt && agent.systemPrompt.trim().length >= 3) {
           systemPrompt = agent.systemPrompt
@@ -282,12 +332,17 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         if (modelResult && modelResult.length > 0) {
           model = modelResult[0]
           console.log('Selected model:', model)
+          console.log('Model supportsImageGeneration:', model.supportsImageGeneration)
+          console.log('Model supportsMultimodal:', model.supportsMultimodal)
         }
       }
     } else if (modelType === 'model' && modelId) {
       const modelResult = await llmModelRepository.findById(modelId)
       if (modelResult && modelResult.length > 0) {
         model = modelResult[0]
+        console.log('Selected model (direct):', model)
+        console.log('Model supportsImageGeneration (direct):', model.supportsImageGeneration)
+        console.log('Model supportsMultimodal (direct):', model.supportsMultimodal)
         
         // Set default parameters for model mode
         llmParams = {
@@ -340,23 +395,135 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       messages.push({ role: 'system', content: systemPrompt })
     }
 
-    // Add existing message history (limit more aggressively when images present)
-    const maxHistory = images.length > 0 ? 1 : 5
+    // Add existing message history with full multimodal context for image generation
+    const maxHistory = images.length > 0 ? 2 : 5 // Include more history for image context
+    
+    // In both regeneration and normal mode, exclude the last message (current user message)
+    // Regeneration: current user message exists in DB, but we want history before it
+    // Normal: current user message was just saved, exclude it for history
     const historyToUse = messageHistory.slice(0, -1).slice(-maxHistory)
+    
+    console.log(`📝 Message history processing:`)
+    console.log(`  - Is regeneration mode: ${isRegeneration}`)
+    console.log(`  - Total history count: ${messageHistory.length}`)
+    console.log(`  - Max history to use: ${maxHistory}`)
+    console.log(`  - History messages to process: ${historyToUse.length}`)
+    historyToUse.forEach((msg: any, index: number) => {
+      console.log(`    ${index + 1}. ${msg.role}: "${msg.content.substring(0, 50)}..."`)
+    })
+    
     for (const historyMessage of historyToUse) {
       let historyContent = historyMessage.content
       
-      // Handle multimodal messages in history - extract only text for LLM context
+      // Handle multimodal messages in history - preserve images for image generation context
       if (historyMessage.role === 'user') {
         try {
           const parsed = JSON.parse(historyMessage.content)
-          if (parsed.hasImages && parsed.text !== undefined) {
-            // For history, use only text content to avoid confusion
-            historyContent = parsed.text || historyMessage.content
+          if (parsed.hasImages && parsed.images && Array.isArray(parsed.images)) {
+            // For image generation context, include both text and images
+            const textContent = parsed.text || ''
+            const imageContents = await Promise.all(
+              parsed.images.map(async (imageInfo: any) => {
+                if (imageInfo.data) {
+                  // Image is already in base64 format, extract just the data part
+                  const base64Data = imageInfo.data.includes(',') 
+                    ? imageInfo.data.split(',')[1] 
+                    : imageInfo.data
+                  
+                  return {
+                    type: 'image_url',
+                    image_url: {
+                      url: imageInfo.data // Use full data URL
+                    }
+                  }
+                }
+                return null
+              })
+            ).then(contents => contents.filter(content => content !== null))
+            
+            // Create multimodal content if either model or agent support it
+            const supportsMultimodal = model?.supportsMultimodal || agent?.supportsMultimodal
+            if (supportsMultimodal && imageContents.length > 0) {
+              console.log('✅ Including user images - model or agent supports multimodal')
+              historyContent = [
+                { type: 'text', text: textContent },
+                ...imageContents
+              ]
+            } else {
+              console.log(`🚫 Excluding user images - multimodal not supported (model: ${model?.supportsMultimodal}, agent: ${agent?.supportsMultimodal})`)
+              historyContent = textContent // Text only
+            }
           }
         } catch (e) {
           // If not JSON, use as is
           historyContent = historyMessage.content
+        }
+      } else if (historyMessage.role === 'assistant') {
+        // Check if assistant message contains generated images
+        if (historyMessage.content.includes('![Generated Image](')) {
+          const imageMatches = historyMessage.content.match(/!\[Generated Image\]\((\/api\/images\/generated-[a-f0-9-]+\.png)\)/g)
+          if (imageMatches) {
+            try {
+              // Extract text and image parts
+              let textPart = historyMessage.content
+              const imageParts = []
+              
+              for (const match of imageMatches) {
+                const urlMatch = match.match(/!\[Generated Image\]\((\/api\/images\/generated-[a-f0-9-]+\.png)\)/)
+                if (urlMatch) {
+                  const imageUrl = urlMatch[1]
+                  // Convert image URL to base64 using file system (more efficient than fetch)
+                  const imagePath = imageUrl.replace('/api/images/', '')
+                  const fullPath = path.join(process.cwd(), 'public', 'temp-images', imagePath)
+                  
+                  let base64 = ''
+                  if (fs.existsSync(fullPath)) {
+                    const imageBuffer = fs.readFileSync(fullPath)
+                    base64 = `data:image/png;base64,${imageBuffer.toString('base64')}`
+                  } else {
+                    console.warn(`Generated image not found: ${fullPath}`)
+                    continue
+                  }
+                  
+                  imageParts.push({
+                    type: 'image_url',
+                    image_url: {
+                      url: base64
+                    }
+                  })
+                  
+                  // Remove image markdown from text
+                  textPart = textPart.replace(match, '')
+                }
+              }
+              
+              // Handle assistant images based on provider
+              const supportsMultimodal = model?.supportsMultimodal || agent?.supportsMultimodal
+              const isOpenAI = model?.provider === 'openai' || server?.provider === 'openai'
+              
+              if (imageParts.length > 0 && supportsMultimodal) {
+                if (!isOpenAI) {
+                  console.log('✅ Including assistant images - non-OpenAI model supports multimodal')
+                  historyContent = [
+                    { type: 'text', text: textPart.trim() },
+                    ...imageParts
+                  ]
+                } else {
+                  // For OpenAI: Convert assistant message with images to user message with tag
+                  console.log('🔄 Converting assistant images to user message for OpenAI compatibility')
+                  const taggedText = `[Assistant 응답] ${textPart.trim()}`
+                  historyContent = [
+                    { type: 'text', text: taggedText },
+                    ...imageParts
+                  ]
+                  // Mark this message to be converted to user role later
+                  historyMessage._convertToUser = true
+                }
+              }
+            } catch (error) {
+              console.warn('Failed to process assistant image in history:', error)
+            }
+          }
         }
       }
       
@@ -365,49 +532,168 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         historyContent = historyContent.substring(0, 2000) + "..."
       }
       
+      // Convert assistant messages with images to user messages for OpenAI compatibility
+      const finalRole = historyMessage._convertToUser ? 'user' : (historyMessage.role as 'user' | 'assistant')
+      
       messages.push({
-        role: historyMessage.role as 'user' | 'assistant',
+        role: finalRole,
         content: historyContent
       })
     }
 
-    // Add current user message (with images if present)
+    // Add current user message (with images if model supports multimodal)
     if (images.length > 0) {
       console.log('Processing multimodal message with', images.length, 'images')
-      // Convert images to base64 for multimodal message
-      const imageContents = await Promise.all(
-        images.map(async (image) => {
-          const arrayBuffer = await image.arrayBuffer()
-          const base64 = Buffer.from(arrayBuffer).toString('base64')
-          console.log(`Converted image ${image.name} to base64, size: ${base64.length} chars`)
-          return {
-            type: 'image_url',
-            image_url: {
-              url: `data:${image.type};base64,${base64}`
+      
+      const supportsMultimodal = model?.supportsMultimodal || agent?.supportsMultimodal
+      if (supportsMultimodal) {
+        console.log('✅ Including current user images - model or agent supports multimodal')
+        // Convert images to base64 for multimodal message
+        const imageContents = await Promise.all(
+          images.map(async (image) => {
+            const arrayBuffer = await image.arrayBuffer()
+            const base64 = Buffer.from(arrayBuffer).toString('base64')
+            console.log(`Converted image ${image.name} to base64, size: ${base64.length} chars`)
+            return {
+              type: 'image_url',
+              image_url: {
+                url: `data:${image.type};base64,${base64}`
+              }
             }
-          }
-        })
-      )
-      
-      // Create multimodal message content
-      const multimodalContent = [
-        ...(message?.trim() ? [{ type: 'text', text: message }] : []),
-        ...imageContents
-      ]
-      
-      console.log('Multimodal content structure:', multimodalContent.map(item => ({ 
-        type: item.type, 
-        hasTextData: 'text' in item && !!item.text,
-        hasImageData: 'image_url' in item && !!item.image_url
-      })))
-      messages.push({ role: 'user', content: multimodalContent })
+          })
+        )
+        
+        // Create multimodal message content
+        const multimodalContent = [
+          ...(message?.trim() ? [{ type: 'text', text: message }] : []),
+          ...imageContents
+        ]
+        
+        console.log('Multimodal content structure:', multimodalContent.map(item => ({ 
+          type: item.type, 
+          hasTextData: 'text' in item && !!item.text,
+          hasImageData: 'image_url' in item && !!item.image_url
+        })))
+        messages.push({ role: 'user', content: multimodalContent })
+      } else {
+        console.log(`🚫 Excluding current user images - multimodal not supported (model: ${model?.supportsMultimodal}, agent: ${agent?.supportsMultimodal})`)
+        messages.push({ role: 'user', content: message || '' }) // Text only
+      }
     } else {
       console.log('Processing text-only message')
-      // Text-only message
-      messages.push({ role: 'user', content: message })
+      
+      // Check if user is asking for original uploaded image
+      const wantsOriginalImage = true
+      
+      let shouldIncludeImage = false
+      let imageDataToInclude = null
+      
+      if (wantsOriginalImage) {
+        console.log('🖼️ User is requesting original uploaded image')
+        // Look for the first user message with uploaded images in history
+        for (let i = 0; i < messages.length; i++) {
+          const msg = messages[i]
+          if (msg.role === 'user' && Array.isArray(msg.content)) {
+            // Find image parts in user message (original uploads)
+            const imageParts = msg.content.filter((part: any) => part.type === 'image_url')
+            if (imageParts.length > 0) {
+              imageDataToInclude = imageParts[0] // Get the first original uploaded image
+              shouldIncludeImage = true
+              console.log('🖼️ Found original uploaded image, including for editing')
+              break
+            }
+          }
+        }
+        
+        if (!shouldIncludeImage) {
+          console.log('🖼️ Original image not found, falling back to recent generated image')
+          // Fallback to recent generated image if original not found
+          for (let i = historyToUse.length - 1; i >= 0; i--) {
+            const historyMsg = historyToUse[i]
+            if (historyMsg.role === 'assistant' && historyMsg.content.includes('![Generated Image](')) {
+              shouldIncludeImage = true
+              break
+            }
+          }
+          
+          if (shouldIncludeImage) {
+            for (let i = messages.length - 1; i >= 0; i--) {
+              const msg = messages[i]
+              if (msg.role === 'assistant' && Array.isArray(msg.content)) {
+                const imageParts = msg.content.filter((part: any) => part.type === 'image_url')
+                if (imageParts.length > 0) {
+                  imageDataToInclude = imageParts[0]
+                  console.log('🖼️ Including recent generated image as fallback')
+                  break
+                }
+              }
+            }
+          }
+        }
+      } else {
+        // Check if there was a recent generated image to continue editing
+        for (let i = historyToUse.length - 1; i >= 0; i--) {
+          const historyMsg = historyToUse[i]
+          if (historyMsg.role === 'assistant' && historyMsg.content.includes('![Generated Image](')) {
+            shouldIncludeImage = true
+            console.log('🖼️ Found recent generated image, including for text-based editing')
+            break
+          }
+        }
+        
+        if (shouldIncludeImage) {
+          // Find the most recent generated image from the processed history
+          for (let i = messages.length - 1; i >= 0; i--) {
+            const msg = messages[i]
+            if (msg.role === 'assistant' && Array.isArray(msg.content)) {
+              // Find image parts in assistant message
+              const imageParts = msg.content.filter((part: any) => part.type === 'image_url')
+              if (imageParts.length > 0) {
+                imageDataToInclude = imageParts[0] // Get the first (most recent) image
+                console.log('🖼️ Including recent generated image for text-based editing')
+                break
+              }
+            }
+          }
+        }
+      }
+      
+      if (shouldIncludeImage && imageDataToInclude) {
+        // Create multimodal message with text + selected image
+        const multimodalContent = [
+          { type: 'text', text: message },
+          imageDataToInclude
+        ]
+        messages.push({ role: 'user', content: multimodalContent })
+      } else {
+        // Text-only message
+        console.log('🖼️ No suitable image found, using text-only')
+        messages.push({ role: 'user', content: message })
+      }
     }
     
-    console.log('Final message array:', messages)
+    console.log('📨 Final message array structure:')
+    messages.forEach((msg, index) => {
+      console.log(`  Message ${index + 1}:`)
+      console.log(`    - Role: ${msg.role}`)
+      if (typeof msg.content === 'string') {
+        console.log(`    - Content type: string`)
+        console.log(`    - Text preview: "${msg.content.substring(0, 100)}..."`)
+      } else if (Array.isArray(msg.content)) {
+        console.log(`    - Content type: multimodal array`)
+        console.log(`    - Parts count: ${msg.content.length}`)
+        msg.content.forEach((part: any, partIndex: number) => {
+          if (part.type === 'text') {
+            console.log(`      Part ${partIndex + 1}: text - "${part.text.substring(0, 50)}..."`)
+          } else if (part.type === 'image_url') {
+            console.log(`      Part ${partIndex + 1}: image - ${part.image_url.url.substring(0, 50)}...`)
+          }
+        })
+      } else {
+        console.log(`    - Content type: ${typeof msg.content}`)
+        console.log(`    - Content:`, msg.content)
+      }
+    })
 
     // Generate streaming response
     const stream = new ReadableStream({
@@ -610,16 +896,43 @@ Parallel Processing Plan:
           }
 
           // Check if this model supports image generation
-          console.log('🎨 Checking image generation capability:', {
-            modelId: model.modelId,
-            supportsImageGeneration: model.supportsImageGeneration,
-            provider: server.provider
-          });
+
           
           // Only proceed if model supports image generation
           if (model.supportsImageGeneration) {
             // Check if user uploaded images (for editing) or wants to generate new images
             const hasUploadedImages = images && images.length > 0;
+            
+            // Check for previously generated images in conversation
+            let previousGeneratedImageUrl = null;
+            let previousGeneratedImagePath = null;
+            let messagesSinceLastImage = 0;
+            
+            if (!hasUploadedImages && messages.length > 0) {
+              // Look for the most recent AI message with a generated image
+
+              
+              // Find both generated images and user uploaded images
+              for (let i = messages.length - 1; i >= 0; i--) {
+                const msg = messages[i];
+                messagesSinceLastImage++;
+                
+                // Check for AI generated images
+                if (msg.role === 'assistant' && msg.content.includes('![Generated Image](')) {
+                  const imageMatch = msg.content.match(/!\[Generated Image\]\((\/api\/images\/generated-[a-f0-9-]+\.png)\)/);
+                  if (imageMatch && !previousGeneratedImageUrl) {
+                    previousGeneratedImageUrl = imageMatch[1];
+                    previousGeneratedImagePath = previousGeneratedImageUrl.replace('/api/images/', 'public/temp-images/');
+
+                    messagesSinceLastImage = 0;
+                  }
+                }
+                
+                // Check for user uploaded images (in metadata or content)
+                // Note: User uploaded images would need to be tracked separately in the message content
+                // or through a different mechanism as messages don't have metadata property
+              }
+            }
             
             // Define keywords for image generation and editing
             const imageGenerationKeywords = [
@@ -629,7 +942,10 @@ Parallel Processing Plan:
             
             const imageEditingKeywords = [
               '수정', '편집', '바꿔', '변경', '조정', '개선', '스타일', '색상', '추가', '제거', '삭제',
-              'edit', 'modify', 'change', 'adjust', 'improve', 'style', 'color', 'add', 'remove', 'delete'
+              '노란', '빨간', '파란', '초록', '검은', '하얀', '머리', '얼굴', '옷', '배경', '색깔',
+              '머리카락', '헤어스타일', '단발', '장발', '긴', '짧은', '색', '톤', '밝게', '어둡게',
+              'edit', 'modify', 'change', 'adjust', 'improve', 'style', 'color', 'add', 'remove', 'delete',
+              'hair', 'face', 'clothes', 'background', 'yellow', 'red', 'blue', 'green', 'black', 'white'
             ];
             
             const hasGenerationKeywords = imageGenerationKeywords.some(keyword => 
@@ -640,27 +956,84 @@ Parallel Processing Plan:
               message.toLowerCase().includes(keyword.toLowerCase())
             );
             
-            console.log('🎨 Image processing analysis:', {
-              hasUploadedImages,
-              hasGenerationKeywords,
-              hasEditingKeywords,
-              imageCount: images?.length || 0
-            });
+            // Check for reference words that indicate editing existing image
+            const referencePatterns = [
+              /이\s*(이미지|그림|사진)/,
+              /방금\s*(그린|만든|생성한|나온)/,
+              /여기[서에서의]/,
+              /이거/,
+              /그\s*(이미지|그림)/,
+              /위[의에]\s*(이미지|그림)/,
+              /아까\s*(그|만든|생성한)/
+            ];
             
-            // Determine if this is an image generation/editing request
-            const isImageRequest = hasUploadedImages ? hasEditingKeywords : hasGenerationKeywords;
+            const hasReferenceWords = referencePatterns.some(pattern => 
+              pattern.test(message)
+            );
+            
+            // Check for explicit new image requests
+            const newImagePatterns = [
+              /새로운\s*(이미지|그림|사진)/,
+              /다른\s*(이미지|그림|사진)/,
+              /처음부터/,
+              /완전히\s*다른/
+            ];
+            
+            const hasNewImageRequest = newImagePatterns.some(pattern => 
+              pattern.test(message)
+            );
+            
+            // Calculate context continuity score
+            const isRecentContext = messagesSinceLastImage <= 4; // Within 4 messages
+            const hasContinuousContext = isRecentContext && !hasNewImageRequest;
+            
+
+            
+            // Determine if this is editing a previous image based on context
+            let shouldEditPreviousImage = false;
+            
+            if (previousGeneratedImageUrl && !hasNewImageRequest) {
+              // Case 1: Explicit reference words (이 이미지, 방금 그린)
+              if (hasReferenceWords) {
+                shouldEditPreviousImage = true;
+
+              }
+              // Case 2: Recent context with editing intent
+              else if (hasContinuousContext && (hasEditingKeywords || !hasGenerationKeywords)) {
+                shouldEditPreviousImage = true;
+
+              }
+              // Case 3: Editing keywords with recent image
+              else if (hasEditingKeywords && isRecentContext) {
+                shouldEditPreviousImage = true;
+
+              }
+              // Case 4: Very recent context (within 2 messages) without generation keywords
+              else if (messagesSinceLastImage <= 2 && !hasGenerationKeywords) {
+                shouldEditPreviousImage = true;
+
+              }
+            } else if (hasNewImageRequest) {
+
+            }
+            
+
+            
+            // Determine if this is an image request
+            const isImageRequest = model?.supportsImageGeneration || 
+                                 hasUploadedImages || 
+                                 hasGenerationKeywords || 
+                                 shouldEditPreviousImage;
             
             if (isImageRequest) {
-              const requestType = hasUploadedImages ? 'Image Editing' : 'Image Generation';
-              console.log(`🎨 ${requestType} request detected, using Gemini ${requestType.toLowerCase()}`)
+              const requestType = (hasUploadedImages || shouldEditPreviousImage) ? 'Image Editing' : 'Image Generation';
+
             
             try {
-              console.log(`🎨 Starting image ${hasUploadedImages ? 'editing' : 'generation'} process...`);
+
               
-              // Send loading message based on request type
-              const loadingMessage = hasUploadedImages 
-                ? '🎨 이미지를 편집하고 있습니다...'
-                : '🎨 이미지를 생성하고 있습니다...';
+              // Send empty loading message to trigger loading animation
+              const loadingMessage = '';
               
               safeEnqueue(
                 new TextEncoder().encode(
@@ -672,16 +1045,21 @@ Parallel Processing Plan:
                 )
               );
 
-              // Prepare image data for editing if images are uploaded
+              // Prepare image data for editing - collect all relevant images for Gemini image generation model
               let imageOptions: any = {};
+              const allInputImages: Array<{ data: string; mimeType: string }> = [];
               
+              // 1. Add uploaded images (current context)
               if (hasUploadedImages && images.length > 0) {
-                console.log('🎨 Preparing input images for editing:', images.length);
+                console.log('🎨 Image generation/editing with uploaded images');
+                console.log(`🖼️ Processing ${images.length} uploaded context images`);
                 
                 // Convert uploaded File objects to format expected by Gemini
-                imageOptions.inputImages = await Promise.all(images.map(async (file: File) => {
+                const uploadedImages = await Promise.all(images.map(async (file: File, index: number) => {
                   const arrayBuffer = await file.arrayBuffer();
                   const base64 = Buffer.from(arrayBuffer).toString('base64');
+                  
+                  console.log(`🖼️ Uploaded Image ${index + 1}: ${file.name}, size: ${file.size} bytes, type: ${file.type}`);
                   
                   return {
                     data: base64,
@@ -689,37 +1067,180 @@ Parallel Processing Plan:
                   };
                 }));
                 
-                console.log('🎨 Input images prepared for editing:', {
-                  count: imageOptions.inputImages.length,
-                  mimeTypes: imageOptions.inputImages.map((img: any) => img.mimeType)
-                });
+                allInputImages.push(...uploadedImages);
               }
               
-              // Generate image using Gemini image generation/editing
-              console.log('🎨 Calling generateImage with message:', message);
-              console.log('🎨 Image options:', imageOptions);
-              const imageResponse = await (llmClient as any).generateImage(message, imageOptions);
-              console.log('🎨 Image generation completed');
+              // 2. Add recent images from history (user uploads + generated images) - limit to last 3 messages
+              console.log('🖼️ Collecting images from recent conversation history for Gemini image model');
+              const recentMessages = messages.slice(-3); // Only last 3 messages
+              const addedImageHashes = new Set(); // Track unique images to avoid duplicates
+              
+              for (const msg of recentMessages) {
+                if (msg.role === 'user' && Array.isArray(msg.content)) {
+                  // Extract user uploaded images from history
+                  const userImageParts = msg.content.filter((part: any) => part.type === 'image_url');
+                  for (const imagePart of userImageParts) {
+                    if (imagePart.image_url?.url?.startsWith('data:')) {
+                      const imageUrl = imagePart.image_url.url;
+                      const imageHash = imageUrl.substring(0, 100); // Use first 100 chars as hash
+                      
+                      if (!addedImageHashes.has(imageHash)) {
+                        const [, mimeAndData] = imageUrl.split(',');
+                        const [mimeInfo] = imageUrl.split(';');
+                        const mimeType = mimeInfo.split(':')[1] || 'image/jpeg';
+                        
+                        // Resize image to 300px max for history context
+                        const resizedData = await resizeImageToBase64(mimeAndData, mimeType, 300);
+                        
+                        allInputImages.push({
+                          data: resizedData,
+                          mimeType: 'image/jpeg' // Sharp converts to JPEG
+                        });
+                        addedImageHashes.add(imageHash);
+                        console.log(`🖼️ Added resized user image from recent history: ${mimeType} → JPEG, original: ${mimeAndData.length} chars`);
+                      }
+                    }
+                  }
+                } else if (msg.role === 'assistant' && Array.isArray(msg.content)) {
+                  // Extract generated images from history
+                  const assistantImageParts = msg.content.filter((part: any) => part.type === 'image_url');
+                  for (const imagePart of assistantImageParts) {
+                    if (imagePart.image_url?.url?.startsWith('data:')) {
+                      const imageUrl = imagePart.image_url.url;
+                      const imageHash = imageUrl.substring(0, 100); // Use first 100 chars as hash
+                      
+                      if (!addedImageHashes.has(imageHash)) {
+                        const [, mimeAndData] = imageUrl.split(',');
+                        const [mimeInfo] = imageUrl.split(';');
+                        const mimeType = mimeInfo.split(':')[1] || 'image/png';
+                        
+                        // Resize image to 300px max for history context
+                        const resizedData = await resizeImageToBase64(mimeAndData, mimeType, 300);
+                        
+                        allInputImages.push({
+                          data: resizedData,
+                          mimeType: 'image/jpeg' // Sharp converts to JPEG
+                        });
+                        addedImageHashes.add(imageHash);
+                        console.log(`🖼️ Added resized generated image from recent history: ${mimeType} → JPEG, original: ${mimeAndData.length} chars`);
+                      }
+                    }
+                  }
+                }
+              }
+              
+              // 3. Add previous generated image if editing mode
+              if (shouldEditPreviousImage && previousGeneratedImagePath) {
+                console.log('🖼️ Adding previous generated image for editing');
+                
+                try {
+                  const fullPath = path.join(process.cwd(), previousGeneratedImagePath);
+                  
+                  if (fs.existsSync(fullPath)) {
+                    const imageBuffer = fs.readFileSync(fullPath);
+                    const base64 = imageBuffer.toString('base64');
+                    const mimeType = previousGeneratedImagePath.endsWith('.png') ? 'image/png' : 'image/jpeg';
+                    
+                    // Resize previous generated image to 300px max for history context
+                    const resizedData = await resizeImageToBase64(base64, mimeType, 300);
+                    
+                    allInputImages.push({
+                      data: resizedData,
+                      mimeType: 'image/jpeg' // Sharp converts to JPEG
+                    });
+                    console.log(`🖼️ Added resized previous generated image: ${mimeType} → JPEG`);
 
+                  } else {
+                    console.warn(`🖼️ Previous generated image not found: ${fullPath}`);
+                  }
+                } catch (error) {
+                  console.error('🖼️ Error loading previous generated image:', error);
+                }
+              }
+              
+              // 4. Set all collected images to imageOptions
+              if (allInputImages.length > 0) {
+                imageOptions.inputImages = allInputImages;
+                console.log(`🎨 Final: Prepared ${allInputImages.length} images for Gemini image generation model`);
+                
+                // Log image details for debugging
+                allInputImages.forEach((img, index) => {
+                  console.log(`🖼️ Image ${index + 1}: ${img.mimeType}, data size: ${img.data.length} chars`);
+                });
+              } else {
+                console.log('🎨 No input images found - will generate new image from text only');
+              }
+              
+              // Generate image using Gemini image generation/editing with context
+
+              
+              // Create a simple, direct prompt for image generation
+              let contextualPrompt = message;
+              
+              // For image generation, keep prompt simple and direct with quality instructions
+              if (allInputImages.length > 0) {
+                // If we have context images, this is image editing
+                contextualPrompt = `Edit this image: ${message}. Generate a new high-quality, detailed, sharp image with the requested changes. Make it professional quality with vivid colors and clear details.`;
+              } else {
+                // If no context images, this is new image generation  
+                contextualPrompt = `Generate a high-quality, detailed, sharp image: ${message}. Make it professional quality with vivid colors and clear details.`;
+              }
+              
+
+              const imageResponse = await (llmClient as any).generateImage(contextualPrompt, imageOptions);
+
+
+              // Check if image was actually generated
+              if (!imageResponse.imageUrl) {
+
+                
+                // Send text-only response
+                fullResponse = imageResponse.content;
+                
+                // Clear the loading message
+                safeEnqueue(
+                  new TextEncoder().encode(
+                    `data: ${JSON.stringify({ 
+                      messageId: assistantMessageId,
+                      content: '',
+                      done: false 
+                    })}\n\n`
+                  )
+                );
+                
+                // Small delay
+                await new Promise(resolve => setTimeout(resolve, 50));
+                
+                // Send the complete response at once (no streaming for image-related content)
+                safeEnqueue(
+                  new TextEncoder().encode(
+                    `data: ${JSON.stringify({
+                      messageId: assistantMessageId,
+                      content: fullResponse,
+                      done: true
+                    })}\n\n`
+                  )
+                );
+                
+                // Save assistant message
+                const assistantMessage = {
+                  sessionId: chatId,
+                  role: 'assistant' as const,
+                  content: fullResponse
+                };
+                await chatMessageRepository.create(assistantMessage);
+
+                
+                completionHandled = true;
+                safeClose();
+                return;
+              }
+
+              // Image was generated successfully
               fullResponse = imageResponse.content;
               
-              // Clear the loading message first
-              console.log('🎨 Clearing loading message...');
-              safeEnqueue(
-                new TextEncoder().encode(
-                  `data: ${JSON.stringify({ 
-                    messageId: assistantMessageId,
-                    content: '',
-                    done: false 
-                  })}\n\n`
-                )
-              );
-              
-              // Small delay to ensure loading message is cleared
-              await new Promise(resolve => setTimeout(resolve, 100));
-              
-              // Send final response with image
-              console.log('🎨 Sending final response to client...');
+              // Send the image response directly (replacing the loading message)
+
               safeEnqueue(
                 new TextEncoder().encode(
                   `data: ${JSON.stringify({ 
@@ -745,10 +1266,18 @@ Parallel Processing Plan:
               return;
 
             } catch (imageError) {
-              console.error('Image generation error:', imageError);
+              console.error('🚨 Image generation error:', imageError);
+              console.error('🚨 Error stack:', imageError instanceof Error ? imageError.stack : 'No stack trace');
+              console.error('🚨 Error details:', {
+                name: imageError instanceof Error ? imageError.name : 'Unknown',
+                message: imageError instanceof Error ? imageError.message : String(imageError),
+                hasUploadedImages,
+                imageCount: images?.length || 0,
+                modelSupportsImageGeneration: model?.supportsImageGeneration
+              });
               
               // Fallback to normal text generation
-              const errorContent = `이미지 생성 중 오류가 발생했습니다: ${imageError instanceof Error ? imageError.message : String(imageError)}\n\n대신 텍스트로 설명해드리겠습니다.\n\n`;
+              const errorContent = `🚨 이미지 ${hasUploadedImages ? '편집' : '생성'} 중 오류가 발생했습니다: ${imageError instanceof Error ? imageError.message : String(imageError)}\n\n대신 텍스트로 설명해드리겠습니다.\n\n`;
               
               safeEnqueue(
                 new TextEncoder().encode(
@@ -760,7 +1289,7 @@ Parallel Processing Plan:
                 )
               );
               
-                            // Continue with normal processing below
+              // Continue with normal processing below
             }
             } else {
               console.log(`🎨 ${hasUploadedImages ? 'Image editing' : 'Image generation'} keywords not found in message, proceeding with normal text generation`);

@@ -47,7 +47,8 @@ export const sendMessageToAI = async (
   handleParallelDeepResearch?: any,
   deepResearchInProgress?: React.MutableRefObject<Set<string>>,
   setRegeneratingMessageId?: React.Dispatch<React.SetStateAction<string | null>>,
-  messagesContainerRef?: React.RefObject<HTMLDivElement | null>
+  messagesContainerRef?: React.RefObject<HTMLDivElement | null>,
+  fromMessageId?: string
 ) => {
   if (!setMessages || !setIsStreaming || !setStreamingMessageId || !setNewMessageIds) return;
   
@@ -161,6 +162,11 @@ export const sendMessageToAI = async (
       // Add user ID for authentication
       formData.append('userId', session?.user?.email || '');
       
+      // Add fromMessageId if provided (for regeneration cleanup)
+      if (fromMessageId) {
+        formData.append('fromMessageId', fromMessageId);
+      }
+      
       // 디버깅: multipart 전송 시 딥리서치 값 확인
       if (process.env.NODE_ENV === 'development') {
         console.log('🚀 multipart로 서버에 전송되는 딥리서치 값:', finalDeepResearch);
@@ -180,7 +186,8 @@ export const sendMessageToAI = async (
         isRegeneration,
         isDeepResearchActive: finalDeepResearch,
         isGlobeActive: finalGlobe,
-        userId: session?.user?.email
+        userId: session?.user?.email,
+        ...(fromMessageId && { fromMessageId })
       };
       
       // 디버깅: JSON 전송 시 딥리서치 값 확인

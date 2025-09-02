@@ -321,7 +321,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     )
   }
 
-  const sendMessageToAILocal = async (message: string, agentInfo: {id: string, type: string}, isRegeneration: boolean = false, images?: File[]) => {
+  const sendMessageToAILocal = async (message: string, agentInfo: {id: string, type: string}, isRegeneration: boolean = false, images?: File[], fromMessageId?: string) => {
     return sendMessageToAI(
       chatId,
             message,
@@ -342,7 +342,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       handleParallelDeepResearchLocal,
       deepResearchInProgress,
       setRegeneratingMessageId,
-      messagesContainerRef
+      messagesContainerRef,
+      fromMessageId
     )
   }
 
@@ -904,19 +905,13 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     setSelectedMessageId(null)
   }, [])
 
-  const handleSaveEdit = (messageId: string) => {
-    // Update message content
-    const updatedMessages = messages.map((msg) => 
-      msg.id === messageId ? { ...msg, content: editingContent } : msg
-    )
-    setMessages(updatedMessages)
-    
-    // Reset edit state
+  const handleSaveEdit = async (messageId: string) => {
+    // Reset edit state first
     setEditingMessageId(null)
     const savedContent = editingContent
     setEditingContent("")
 
-    // If edited message is from user, delete all subsequent messages and regenerate
+    // Find the edited message
     const messageIndex = messages.findIndex((msg) => msg.id === messageId)
     const editedMessage = messages[messageIndex]
     
@@ -929,25 +924,197 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       // Set regeneration state for the user message
       setRegeneratingMessageId(messageId)
       
-      // Remove all messages after the user message (edited user message is kept)
-      setTimeout(() => {
-        setMessages(prev => prev.slice(0, messageIndex + 1))
+      console.log(`🗑️ Edit mode: Deleting from message '${messageId}' onwards (including the edited message)`)
+      
+      try {
+        // Delete the edited message and all subsequent messages from the database
+        const response = await fetch(`/api/chat/${chatId}?userId=${session.user.email}&fromMessageId=${messageId}`, {
+          method: 'DELETE'
+        })
+        
+        if (!response.ok) {
+          const errorData = await response.json().catch(() => ({}));
+          throw new Error(`Failed to delete messages from database: ${response.status} ${errorData.error || response.statusText}`);
+        }
+        
+        const deleteResult = await response.json();
+        console.log(`🗑️ Edit delete result:`, deleteResult)
+        
+        if (deleteResult.success && deleteResult.deletedCount > 0) {
+          console.log(`✅ Successfully deleted ${deleteResult.deletedCount} messages from database (including edited message)`)
+        }
+      } catch (error) {
+        console.error('🚨 Error deleting messages during edit:', error);
+        // Continue anyway, the UI will proceed
+      }
+      
+      // Remove all messages from the edited message onwards (including the edited message itself)
+      setMessages(prev => prev.slice(0, messageIndex))
+      
+      // Scroll to current position
+      setTimeout(() => scrollToBottomSmoothLocal(), 100)
+
+      // Create new user message and regenerate AI response
+      setTimeout(async () => {
         
         // Scroll to current position
         setTimeout(() => scrollToBottomSmoothLocal(), 100)
 
-        // Regenerate AI with edited content
-        setTimeout(() => {
+        // Submit new user message with edited content (like handleSubmit)
+        setTimeout(async () => {
           // Duplicate prevention logic initialization
           streamingInProgress.current = false
           sessionStorage.removeItem(`lastMessage_${chatId}`)
           lastSubmittedMessage.current = null
           lastSubmittedTime.current = 0
           
-          sendMessageToAILocal(savedContent, {
-            id: selectedModel.id,
-            type: selectedModel.type
-          }, true)
+          // Helper function to resize image for edit mode (smaller than normal uploads)
+          const resizeImageForEdit = (file: File): Promise<File> => {
+            return new Promise((resolve) => {
+              const canvas = document.createElement('canvas')
+              const ctx = canvas.getContext('2d')!
+              const img = new Image()
+              
+              img.onload = () => {
+                // Set maximum size to 200px for edit mode (smaller than normal 512px)
+                const maxSize = 200
+                let { width, height } = img
+                
+                // Maintain aspect ratio while resizing
+                if (width > height) {
+                  if (width > maxSize) {
+                    height = (height * maxSize) / width
+                    width = maxSize
+                  }
+                } else {
+                  if (height > maxSize) {
+                    width = (width * maxSize) / height
+                    height = maxSize
+                  }
+                }
+                
+                canvas.width = width
+                canvas.height = height
+                
+                // Draw image
+                ctx.drawImage(img, 0, 0, width, height)
+                
+                // Convert to compressed image (JPEG, quality 0.8 for edit mode)
+                canvas.toBlob((blob) => {
+                  if (blob) {
+                    const compressedFile = new File([blob], file.name, {
+                      type: 'image/jpeg',
+                      lastModified: Date.now()
+                    })
+                    console.log(`🔧 Edit resize: ${file.name} ${file.size} bytes → ${compressedFile.size} bytes (${((compressedFile.size / file.size) * 100).toFixed(1)}%)`)
+                    resolve(compressedFile)
+                  } else {
+                    resolve(file) // Return original if compression fails
+                  }
+                }, 'image/jpeg', 0.8)
+              }
+              
+              img.onerror = () => {
+                console.warn('Failed to load image for resizing, using original')
+                resolve(file)
+              }
+              
+              img.src = URL.createObjectURL(file)
+            })
+          }
+
+          // Extract original images from the edited message (if any)
+          let originalImages: File[] = []
+          try {
+            const originalMessage = editedMessage
+            if (originalMessage?.content) {
+              const parsedContent = JSON.parse(originalMessage.content)
+              if (parsedContent.hasImages && parsedContent.images) {
+                console.log(`🖼️ Edit mode: Found ${parsedContent.images.length} original images`)
+                
+                // Convert base64 images back to File objects and resize them
+                for (const imageInfo of parsedContent.images) {
+                  if (imageInfo.data) {
+                    try {
+                      const response = await fetch(imageInfo.data)
+                      const blob = await response.blob()
+                      const file = new File([blob], imageInfo.name || 'image.png', { 
+                        type: imageInfo.mimeType || 'image/png'
+                      })
+                      
+                      // Resize the image to 200px max for edit mode
+                      const resizedFile = await resizeImageForEdit(file)
+                      originalImages.push(resizedFile)
+                      console.log(`🖼️ Edit mode: Added resized image: ${resizedFile.name}`)
+                    } catch (error) {
+                      console.warn(`Failed to recreate/resize image file for ${imageInfo.name}:`, error)
+                    }
+                  }
+                }
+              }
+            }
+          } catch (e) {
+            // Not JSON or no images, continue with text only
+            console.log(`🖼️ Edit mode: No images found or failed to parse, sending text only`)
+          }
+          
+          console.log(`🔄 Edit mode: Creating new user message with ${originalImages.length} images`)
+          console.log(`🔄 Edit content: "${savedContent.substring(0, 50)}..."`)
+          
+          // Create new user message and add to UI immediately (like in handleSubmit)
+          const newUserMessageId = generateUniqueId('msg')
+          let userMessageContent = savedContent
+          
+          // If images exist, create multimodal content
+          if (originalImages.length > 0) {
+            const imageInfos = await Promise.all(
+              originalImages.map(async (image) => {
+                const arrayBuffer = await image.arrayBuffer()
+                const base64 = Buffer.from(arrayBuffer).toString('base64')
+                return {
+                  type: 'image',
+                  name: image.name,
+                  size: image.size,
+                  mimeType: image.type,
+                  data: `data:${image.type};base64,${base64}`
+                }
+              })
+            )
+            
+            userMessageContent = JSON.stringify({
+              text: savedContent || '',
+              images: imageInfos,
+              hasImages: true
+            })
+          }
+          
+          // Add new user message to UI
+          const newUserMessage: Message = {
+            id: newUserMessageId,
+            role: "user" as const,
+            content: userMessageContent,
+            timestamp: new Date()
+          }
+          
+          setMessages(prev => [...prev, newUserMessage])
+          setNewMessageIds(prev => new Set([...prev, newUserMessageId]))
+          
+          // Scroll to bottom
+          setTimeout(() => scrollToBottomSmoothLocal(), 100)
+          
+          try {
+            // Now send to AI (like in handleSubmit)
+            await sendMessageToAILocal(savedContent, {
+              id: selectedModel.id,
+              type: selectedModel.type
+            }, false, originalImages.length > 0 ? originalImages : undefined)
+          } catch (error) {
+            console.error('Error in sendMessageToAI during edit:', error)
+            // Reset state if error occurs
+            setRegeneratingMessageId(null)
+            setIsStreaming(false)
+            streamingInProgress.current = false
+          }
         }, 300)
       }, 100) // Wait after message update
     }
@@ -1010,13 +1177,16 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         // Set regeneration state for the user message
         setRegeneratingMessageId(messageId)
         
-        // Check if there are any messages after the user message
+        // Always attempt to delete messages after the user message from the database
+        // This ensures proper cleanup even if UI state and DB state are out of sync
         const nextMessageIndex = messageIndex + 1
-        if (nextMessageIndex < messages.length) {
-          const nextMessage = messages[nextMessageIndex]
+        const messagesAfterUser = messages.slice(nextMessageIndex)
+        
+        if (messagesAfterUser.length > 0) {
+          const nextMessage = messagesAfterUser[0]
+          console.log(`🗑️ Attempting to delete ${messagesAfterUser.length} messages after user message`)
           
           try {
-            
             // Delete all messages after the user message from the database
             const response = await fetch(`/api/chat/${chatId}?userId=${session.user.email}&fromMessageId=${nextMessage.id}`, {
               method: 'DELETE'
@@ -1028,10 +1198,12 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             }
             
             const deleteResult = await response.json();
+            console.log(`🗑️ Delete result:`, deleteResult)
             
             if (deleteResult.success) {
               // Verify that the messages were actually deleted after the deletion operation is complete
               if (deleteResult.deletedCount > 0) {
+                console.log(`✅ Successfully deleted ${deleteResult.deletedCount} messages from database`)
                 
                 // Check if the messages were actually deleted after the deletion operation is complete
                 setTimeout(async () => {
@@ -1045,20 +1217,26 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                       const deletedMessageStillExists = currentMessages.some((msg: any) => msg.id === nextMessage.id);
                       
                       if (deletedMessageStillExists) {
-                        console.error('ERROR: Deleted message still exists in database!');
+                        console.error('🚨 ERROR: Deleted message still exists in database!');
+                      } else {
+                        console.log('✅ Verified: Messages successfully deleted from database')
                       }
                     }
                   } catch (verifyError) {
                     console.error('Failed to verify deletion:', verifyError);
                   }
                 }, 1000);
+              } else {
+                console.log('ℹ️ No messages were deleted (already clean)')
               }
             }
           } catch (error) {
-            console.error('Error deleting messages from database:', error);
+            console.error('🚨 Error deleting messages from database:', error);
             
             // Even if the database deletion fails, the UI will proceed
           }
+        } else {
+          console.log('ℹ️ No messages after user message to delete')
         }
         
         // Remove all messages after the user message (user message is kept)
@@ -1076,15 +1254,17 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           lastSubmittedMessage.current = null
           lastSubmittedTime.current = 0
           
-          // Extract image information from the user message
+          // Extract image information from the user message and collect context images
           let messageContent = userMessage.content
           let imagesToSend: File[] = []
+          let hasUserImages = false
           
           try {
             // Extract image information from the message stored in JSON format
             const parsed = JSON.parse(userMessage.content)
             if (parsed.hasImages && parsed.images && Array.isArray(parsed.images)) {
               messageContent = parsed.text || ''
+              hasUserImages = true
               // Convert Base64 data to File object
               imagesToSend = await Promise.all(
                 parsed.images.map(async (imageInfo: any) => {
@@ -1093,7 +1273,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                     const response = await fetch(imageInfo.data)
                     const blob = await response.blob()
                     // Convert Blob to File object
-                    return new File([blob], imageInfo.name || 'image.png', { 
+                    return new File([blob], imageInfo.name || 'user-image.png', { 
                       type: imageInfo.mimeType || 'image/png' 
                     })
                   }
@@ -1106,11 +1286,57 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             messageContent = userMessage.content
           }
           
+          // Check if there was any LLM generated image after the current user message
+          let hasLLMGeneratedImage = false
+          let lastLLMImageUrl = null
+          
+          for (let i = messageIndex + 1; i < messages.length; i++) {
+            const msg = messages[i]
+            if (msg.role === 'assistant' && msg.content.includes('![Generated Image](')) {
+              const imageMatch = msg.content.match(/!\[Generated Image\]\((\/api\/images\/generated-[a-f0-9-]+\.png)\)/)
+              if (imageMatch) {
+                hasLLMGeneratedImage = true
+                lastLLMImageUrl = imageMatch[1]
+                break // Get the first (most recent to this user message) generated image
+              }
+            }
+          }
+          
+          // Logic for including LLM generated image in context
+          if (hasLLMGeneratedImage && lastLLMImageUrl) {
+            try {
+              // Convert LLM generated image to File object and add to context
+              const response = await fetch(lastLLMImageUrl)
+              const blob = await response.blob()
+              const file = new File([blob], 'generated-image.png', { 
+                type: 'image/png' 
+              })
+              imagesToSend.push(file)
+              console.log(`🖼️ Added LLM generated image to regeneration context: ${lastLLMImageUrl}`)
+            } catch (error) {
+              console.warn('Failed to convert generated image for regeneration:', error)
+            }
+          }
+          
+          console.log(`🖼️ Regeneration context:`)
+          console.log(`  - User has images: ${hasUserImages}`)
+          console.log(`  - LLM generated image exists: ${hasLLMGeneratedImage}`)
+          console.log(`  - Total context images: ${imagesToSend.length}`)
+          console.log(`  - Message content: "${messageContent.substring(0, 50)}..."`)
+          
+          // If no LLM image was generated, just use user's original message
+          if (!hasLLMGeneratedImage) {
+            console.log(`🖼️ No LLM generated image found, sending original user content only`)
+          }
+          
+          // Determine fromMessageId for cleanup (first message after user message)
+          const nextMessageAfterUser = messagesAfterUser.length > 0 ? messagesAfterUser[0].id : undefined
+          
           try {
             await sendMessageToAILocal(messageContent, {
               id: selectedModel.id,
               type: selectedModel.type
-            }, true, imagesToSend)
+            }, true, imagesToSend, nextMessageAfterUser)
           } catch (error) {
             console.error('Error in sendMessageToAI during regeneration:', error)
             // Reset state if error occurs during regeneration

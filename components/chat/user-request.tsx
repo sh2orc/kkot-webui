@@ -39,7 +39,7 @@ export function UserRequest({
   isStreaming = false,
   regeneratingMessageId = null,
 }: UserRequestProps) {
-  const { lang } = useTranslation("chat")
+  const { lang, language } = useTranslation("chat")
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const [selectedImage, setSelectedImage] = useState<{src: string, name: string} | null>(null)
   const { formatTime } = useTimezone()
@@ -188,7 +188,7 @@ export function UserRequest({
                         /* Image thumbnail */
                         <div 
                           className="relative cursor-pointer rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 transition-colors w-full sm:w-[400px]"
-                          style={{ width: 'min(40vw, 400px)' }}
+                          style={{ width: '20vw' }}
                           onClick={() => setSelectedImage({src: image.data, name: image.name || `Image ${index + 1}`})}
                         >
                           <img
@@ -238,7 +238,6 @@ export function UserRequest({
                   } else {
                     displayTime = new Date();
                   }
-                  const { language } = useTranslation('chat');
                   return formatTime(displayTime, language === 'kor' ? 'ko-KR' : 'en-US', { hour: '2-digit', minute: '2-digit' })
                 })()}
               </div>

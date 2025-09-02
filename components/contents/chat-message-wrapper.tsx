@@ -49,7 +49,7 @@ export const ChatMessageWrapper = memo(({
 }: ChatMessageWrapperProps) => {
   return (
     <div 
-      className={`message-item mb-6 ${isNewMessage ? 'message-enter' : ''} ${message.role === "user" ? "flex justify-end" : ""}`}
+      className={`message-item mb-4 ${isNewMessage ? 'message-enter' : ''} ${message.role === "user" ? "flex justify-end" : ""}`}
     >
       {message.role === "assistant" && (
         <LlmResponse
@@ -152,8 +152,8 @@ export const ChatMessageWrapper = memo(({
     return false
   }
   
-  // Current message is being edited, rerender
-  if (nextProps.editingMessageId === message.id) {
+  // Current message is being edited or was being edited, rerender
+  if (nextProps.editingMessageId === message.id || prevProps.editingMessageId === message.id) {
     return false
   }
   

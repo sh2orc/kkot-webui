@@ -1,7 +1,7 @@
 // This file is for server-side only
 import 'server-only';
 
-import { eq, inArray } from 'drizzle-orm';
+import { eq, inArray, and, gte } from 'drizzle-orm';
 import { getDb } from '../config';
 import * as schema from '../schema';
 import { generateId } from './utils';
@@ -115,50 +115,51 @@ export const chatMessageRepository = {
     console.log('sessionId:', sessionId);
     console.log('fromMessageId:', fromMessageId);
     
-    // First, get all messages for the session ordered by creation time
-    const allMessages = await db.select().from(schema.chatMessages)
-      .where(eq(schema.chatMessages.sessionId, sessionId as any))
-      .orderBy(schema.chatMessages.createdAt);
+    // First, find the target message to get its creation time
+    const targetMessage = await db.select().from(schema.chatMessages)
+      .where(and(
+        eq(schema.chatMessages.sessionId, sessionId as any),
+        eq(schema.chatMessages.id, fromMessageId as any)
+      ))
+      .limit(1);
     
-    console.log('Total messages in session:', allMessages.length);
-    
-    // Find the index of the target message
-    const fromMessageIndex = allMessages.findIndex((msg: any) => msg.id === fromMessageId);
-    
-    if (fromMessageIndex === -1) {
+    if (targetMessage.length === 0) {
       console.log('Target message not found, no deletion needed');
       throw new Error('Message not found');
     }
     
-    console.log('Found target message at index:', fromMessageIndex);
+    const targetCreatedAt = targetMessage[0].createdAt;
+    console.log('Target message created at:', targetCreatedAt);
     
-    // Get all message IDs from the target message onwards
-    const messagesToDelete = allMessages.slice(fromMessageIndex);
-    const messageIds = messagesToDelete.map((msg: any) => msg.id);
+    // Find all messages created at or after the target message's creation time
+    const messagesToDelete = await db.select().from(schema.chatMessages)
+      .where(and(
+        eq(schema.chatMessages.sessionId, sessionId as any),
+        gte(schema.chatMessages.createdAt, targetCreatedAt)
+      ));
     
-    console.log('Messages to delete:', messageIds);
+    console.log('Messages to delete count:', messagesToDelete.length);
+    console.log('Messages to delete IDs:', messagesToDelete.map(m => m.id));
     
-    if (messageIds.length === 0) {
+    if (messagesToDelete.length === 0) {
       console.log('No messages to delete');
       return [];
     }
     
     try {
-      // Delete all messages from the target message onwards
+      // Delete all messages from the target message onwards (based on creation time)
       const deleteResult = await db.delete(schema.chatMessages)
-        .where(
-          messageIds.length === 1 
-            ? eq(schema.chatMessages.id, messageIds[0] as any)
-            : inArray(schema.chatMessages.id, messageIds as any[])
-        )
+        .where(and(
+          eq(schema.chatMessages.sessionId, sessionId as any),
+          gte(schema.chatMessages.createdAt, targetCreatedAt)
+        ))
         .returning();
       
       console.log('Delete operation completed. Deleted count:', deleteResult.length);
       
       // Verify deletion by checking remaining messages
       const remainingMessages = await db.select().from(schema.chatMessages)
-        .where(eq(schema.chatMessages.sessionId, sessionId as any))
-        .orderBy(schema.chatMessages.createdAt);
+        .where(eq(schema.chatMessages.sessionId, sessionId as any));
       
       console.log('Remaining messages after deletion:', remainingMessages.length);
       
