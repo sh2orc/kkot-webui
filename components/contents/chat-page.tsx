@@ -1185,6 +1185,10 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         if (messagesAfterUser.length > 0) {
           const nextMessage = messagesAfterUser[0]
           console.log(`🗑️ Attempting to delete ${messagesAfterUser.length} messages after user message`)
+          console.log(`🗑️ User message ID: ${messageId}`)
+          console.log(`🗑️ Next message ID (fromMessageId): ${nextMessage.id}`)
+          console.log(`🗑️ Messages after user:`, messagesAfterUser.map(m => ({id: m.id, role: m.role})))
+          console.log(`🗑️ DELETE URL: /api/chat/${chatId}?userId=${session.user.email}&fromMessageId=${nextMessage.id}`)
           
           try {
             // Delete all messages after the user message from the database
@@ -1232,6 +1236,9 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             }
           } catch (error) {
             console.error('🚨 Error deleting messages from database:', error);
+            console.error('🚨 DELETE request failed for chatId:', chatId);
+            console.error('🚨 DELETE request failed for fromMessageId:', nextMessage.id);
+            console.error('🚨 Full error details:', error);
             
             // Even if the database deletion fails, the UI will proceed
           }

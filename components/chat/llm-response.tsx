@@ -68,7 +68,9 @@ export function LlmResponse({
   const contentRef = useRef<HTMLDivElement | null>(null)
 
   // Check if this is an image generation/editing loading message
-  // Show loading animation when content is empty and streaming (image processing)
+  // Show loading animation when content is empty and streaming (for image processing)
+  // We need to be more specific to avoid showing animation for regular text responses
+  const hasImages = content.includes('![');
   const isImageProcessingLoading = content === '' && isStreaming && !isDeepResearch;
 
   // Check if this is a deep research response
@@ -505,7 +507,7 @@ export function LlmResponse({
     isDeepResearchComplete,
     isStreaming,
     contentParts: contentParts.length,
-    hasImages: content.includes('!['),
+    hasImages,
     isImageProcessingLoading
   });
 
