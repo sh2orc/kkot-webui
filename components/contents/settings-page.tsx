@@ -586,7 +586,7 @@ export default function SettingsPage({ initialUserProfile }: SettingsPageProps) 
             <Button 
               onClick={handleProfileUpdate}
               disabled={isLoading}
-              className="min-w-24"
+              className="min-w-24 bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-500 dark:hover:bg-blue-600 dark:text-white"
             >
               {isLoading ? lang('common.saving') || 'Saving...' : lang('common.save') || 'Save'}
             </Button>

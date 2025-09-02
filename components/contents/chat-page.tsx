@@ -649,35 +649,37 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     return false
   }, [selectedModel])
 
+  // Track user scroll state
+  const userScrolledRef = useRef(false)
+
   // Add scroll event listener - prevent auto scroll when user scrolls
   useEffect(() => {
     const container = messagesContainerRef.current
     if (!container) return
 
     let scrollTimeout: NodeJS.Timeout | null = null
-    let userScrolled = false
 
     const handleScroll = () => {
+      // Only process if not programmatically scrolling
+      if (isScrollingToBottom.current) {
+        return
+      }
+
       // Optimize scroll event debouncing for performance
       if (scrollTimeout) {
         clearTimeout(scrollTimeout)
       }
       
       scrollTimeout = setTimeout(() => {
-        // Check if user manually scrolled
-        if (!isScrollingToBottom.current) {
-          const { scrollTop, scrollHeight, clientHeight } = container
-          const isAtBottom = scrollHeight - scrollTop - clientHeight < 80
-          
-          // Set userScrolled flag if user scrolled up
-          if (!isAtBottom) {
-            userScrolled = true
-            // Ensure rendering stability when scrolling up
-            container.style.contentVisibility = 'auto'
-          } else {
-            // Reset userScrolled flag if user scrolled back to bottom
-            userScrolled = false
-          }
+        const { scrollTop, scrollHeight, clientHeight } = container
+        const isAtBottom = scrollHeight - scrollTop - clientHeight < 80
+        
+        // Set userScrolled flag based on scroll position
+        userScrolledRef.current = !isAtBottom
+        
+        // Ensure rendering stability
+        if (!isAtBottom) {
+          container.style.contentVisibility = 'auto'
         }
       }, 16) // Debounce for 60fps
     }
@@ -685,7 +687,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     container.addEventListener('scroll', handleScroll, { passive: true })
     
     // Save userScrolled state to container for other functions to access
-    ;(container as any).userScrolled = () => userScrolled
+    ;(container as any).userScrolled = () => userScrolledRef.current
     
     return () => {
       container.removeEventListener('scroll', handleScroll)
@@ -746,6 +748,61 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       setIsStreaming(false)
     }
   }, [])
+
+  // 이미지 관련 이벤트 리스너 추가
+  useEffect(() => {
+    // 이미지가 추가될 때 처리
+    const handleImageAdded = (event: CustomEvent) => {
+      console.log('🖼️ Image added event received:', event.detail);
+      
+      // 현재 스트리밍 중이거나 최근 메시지에 대한 이미지인 경우 스크롤
+      const messageId = event.detail.messageId;
+      const isRecentMessage = messages.some(msg => msg.id === messageId);
+      
+      if (isRecentMessage) {
+        // 사용자가 수동으로 스크롤하지 않았거나 스트리밍 중인 경우에만 스크롤
+        const container = messagesContainerRef.current;
+        const userScrolled = (container as any)?.userScrolled?.() || false;
+        
+        if (!userScrolled || isStreaming || event.detail.isStreaming) {
+          // 이벤트는 이미 300ms 지연 후 발생하므로 바로 스크롤
+          scrollToBottomSmoothLocal(true); // force scroll
+        }
+      }
+    };
+
+    // 이미지가 로드 완료될 때 처리 (백업)
+    const handleImageLoaded = (event: CustomEvent) => {
+      console.log('🖼️ Image loaded event received:', event.detail);
+      
+      // 현재 스트리밍 중이거나 최근 메시지에 대한 이미지인 경우 스크롤
+      const messageId = event.detail.messageId;
+      const isRecentMessage = messages.some(msg => msg.id === messageId);
+      
+      if (isRecentMessage) {
+        // 사용자가 수동으로 스크롤하지 않았거나 스트리밍 중인 경우에만 스크롤
+        const container = messagesContainerRef.current;
+        const userScrolled = (container as any)?.userScrolled?.() || false;
+        
+        if (!userScrolled || isStreaming) {
+          // 이미지 렌더링 완료 후 스크롤하도록 약간의 지연 추가
+          setTimeout(() => {
+            scrollToBottomSmoothLocal(true); // force scroll
+          }, 100);
+        }
+      }
+    };
+
+    // 이벤트 리스너 등록
+    window.addEventListener('chat-image-added', handleImageAdded as EventListener);
+    window.addEventListener('chat-image-loaded', handleImageLoaded as EventListener);
+
+    // 클린업
+    return () => {
+      window.removeEventListener('chat-image-added', handleImageAdded as EventListener);
+      window.removeEventListener('chat-image-loaded', handleImageLoaded as EventListener);
+    };
+  }, [messages, isStreaming, scrollToBottomSmoothLocal])
 
   const adjustHeight = () => {
     // Use fixed height

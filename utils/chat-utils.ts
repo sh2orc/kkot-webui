@@ -29,6 +29,11 @@ export const scrollToBottomInstant = (
     const maxScrollTop = container.scrollHeight - container.clientHeight;
     container.scrollTop = Math.max(0, maxScrollTop);
     lastScrollHeight.current = container.scrollHeight;
+    
+    // 즉시 스크롤 완료 플래그 리셋 (instant이므로 바로 완료됨)
+    setTimeout(() => {
+      isScrollingToBottom.current = false;
+    }, 50);
   }
 };
 
@@ -45,7 +50,7 @@ export const scrollToBottomSmooth = (
   lastScrollHeight: React.MutableRefObject<number>,
   force: boolean = false
 ): void => {
-  if (container && !isScrollingToBottom.current) {
+  if (container) {
     const newScrollHeight = container.scrollHeight;
     
     // If scroll height doesn't change, don't scroll (ignore if force is true)
@@ -53,6 +58,7 @@ export const scrollToBottomSmooth = (
       return;
     }
     
+    // 스크롤 시작
     isScrollingToBottom.current = true;
     lastScrollHeight.current = newScrollHeight;
     
@@ -65,19 +71,20 @@ export const scrollToBottomSmooth = (
       behavior: 'smooth'
     });
     
-    // Check multiple times after scroll completion
+    // 스크롤 완료 후 플래그 리셋
     setTimeout(() => {
       const currentMaxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
       if (container.scrollTop < currentMaxScrollTop - 20) {
         container.scrollTop = currentMaxScrollTop;
       }
       
-      // Check again
+      // 최종 확인 후 플래그 리셋
       setTimeout(() => {
         const finalMaxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
         if (container.scrollTop < finalMaxScrollTop - 20) {
           container.scrollTop = finalMaxScrollTop;
         }
+        // 스크롤 완료
         isScrollingToBottom.current = false;
       }, 300);
     }, 600); // Wait for animation completion

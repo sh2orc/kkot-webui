@@ -4,6 +4,43 @@ import { hashPassword } from '@/lib/auth';
 import { encode } from 'next-auth/jwt';
 import { cookies } from 'next/headers';
 import { getOAuthData, deleteOAuthData } from '@/lib/oauth-temp-storage';
+import sharp from 'sharp';
+
+// 구글 프로필 사진을 다운로드하고 base64로 변환하는 함수
+async function downloadGoogleProfilePicture(pictureUrl: string): Promise<string | null> {
+  try {
+    console.log('🖼️ Downloading Google profile picture from:', pictureUrl);
+    
+    // 구글 프로필 사진 다운로드
+    const response = await fetch(pictureUrl);
+    if (!response.ok) {
+      console.error('🖼️ Failed to download profile picture:', response.status);
+      return null;
+    }
+    
+    const arrayBuffer = await response.arrayBuffer();
+    const buffer = Buffer.from(arrayBuffer);
+    
+    // 이미지 리사이즈 (최대 300x300px)
+    const resizedBuffer = await sharp(buffer)
+      .resize(300, 300, {
+        fit: 'inside',
+        withoutEnlargement: true
+      })
+      .jpeg({ quality: 90 })
+      .toBuffer();
+    
+    // Base64로 변환
+    const base64 = resizedBuffer.toString('base64');
+    const dataUrl = `data:image/jpeg;base64,${base64}`;
+    
+    console.log('🖼️ Profile picture downloaded and converted successfully');
+    return dataUrl;
+  } catch (error) {
+    console.error('🖼️ Error downloading profile picture:', error);
+    return null;
+  }
+}
 
 export async function GET(request: NextRequest) {
   try {
@@ -106,6 +143,15 @@ export async function POST(request: NextRequest) {
       // Google OAuth의 경우에만 googleId 필드 추가
       if (oauthData.provider === 'google') {
         updateData.googleId = oauthData.id;
+        
+        // 구글 프로필 사진 다운로드 및 저장
+        if (oauthData.picture) {
+          const profileImageDataUrl = await downloadGoogleProfilePicture(oauthData.picture);
+          if (profileImageDataUrl) {
+            updateData.profileImage = profileImageDataUrl;
+            console.log('🖼️ Updated user profile image with Google photo');
+          }
+        }
       }
       
       const updatedUsers = await userRepository.update(existingUser.id, updateData);
@@ -161,6 +207,15 @@ export async function POST(request: NextRequest) {
       // Google OAuth의 경우에만 googleId 필드 추가
       if (oauthData.provider === 'google') {
         updateData.googleId = oauthData.id;
+        
+        // 구글 프로필 사진 다운로드 및 저장
+        if (oauthData.picture) {
+          const profileImageDataUrl = await downloadGoogleProfilePicture(oauthData.picture);
+          if (profileImageDataUrl) {
+            updateData.profileImage = profileImageDataUrl;
+            console.log('🖼️ Updated new user profile image with Google photo');
+          }
+        }
       }
       
       const updatedUsers = await userRepository.update(user.id, updateData);
@@ -216,9 +271,11 @@ export async function POST(request: NextRequest) {
     const response = NextResponse.json({ success: true });
     
     // 쿠키를 응답 헤더에 직접 설정
+    const url = new URL(request.url);
+    const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
     response.cookies.set('next-auth.session-token', jwtToken, {
       httpOnly: true,
-      secure: false, // localhost에서는 false
+      secure: process.env.NODE_ENV === 'production' && !isLocalhost,
       sameSite: 'lax',
       maxAge,
       path: '/',

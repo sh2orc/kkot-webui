@@ -60,14 +60,17 @@ export async function POST(request: Request) {
 
     // 쿠키 설정
     const cookieStore = cookies();
+    const url = new URL(request.url);
+    const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
     const isProduction = process.env.NODE_ENV === 'production';
+    const shouldUseSecure = isProduction && !isLocalhost;
     
     cookieStore.set({
-      name: isProduction ? '__Secure-next-auth.session-token' : 'next-auth.session-token',
+      name: 'next-auth.session-token',  // 항상 동일한 이름 사용
       value: token,
       httpOnly: true,
       sameSite: 'lax',
-      secure: isProduction,
+      secure: shouldUseSecure,
       path: '/',
       maxAge: 30 * 24 * 60 * 60, // 30 days
     });

@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useRef, useState } from "react"
+import React, { useRef, useState, useEffect } from "react"
 import { Copy, Clipboard, FileCode, ThumbsUp, ThumbsDown, Check, Brain, Search } from "lucide-react"
 import { useTranslation } from "@/lib/i18n"
 import ReactMarkdown from 'react-markdown'
@@ -66,12 +66,34 @@ export function LlmResponse({
   const isMobile = useIsMobile()
   const { formatTime } = useTimezone()
   const contentRef = useRef<HTMLDivElement | null>(null)
+  const [prevHasImages, setPrevHasImages] = useState(false)
 
   // Check if this is an image generation/editing loading message
   // Show loading animation when content is empty and streaming (for image processing)
   // We need to be more specific to avoid showing animation for regular text responses
   const hasImages = content.includes('![');
   const isImageProcessingLoading = content === '' && isStreaming && !isDeepResearch;
+
+  // 이미지가 새로 추가되었을 때 스크롤 이벤트 발생
+  useEffect(() => {
+    if (hasImages && !prevHasImages) {
+      console.log('🖼️ New image detected in content, triggering scroll event');
+      
+      // 300ms 후에 스크롤 이벤트 발생 (이미지 렌더링 시간 고려)
+      setTimeout(() => {
+        const event = new CustomEvent('chat-image-added', {
+          detail: { 
+            messageId: id,
+            hasImages: true,
+            isStreaming: isStreaming
+          },
+          bubbles: true
+        });
+        window.dispatchEvent(event);
+      }, 300);
+    }
+    setPrevHasImages(hasImages);
+  }, [hasImages, id, isStreaming, prevHasImages]);
 
   // Check if this is a deep research response
   // ONLY use explicit isDeepResearch flag - don't rely on content detection
@@ -193,6 +215,18 @@ export function LlmResponse({
                         displayWidth: e.target.width,
                         displayHeight: e.target.height
                       });
+                      
+                      // 이미지 로드 완료 시 커스텀 이벤트 발생
+                      const event = new CustomEvent('chat-image-loaded', {
+                        detail: { 
+                          messageId: id,
+                          imageSrc: convertedSrc,
+                          naturalWidth: e.target.naturalWidth,
+                          naturalHeight: e.target.naturalHeight
+                        },
+                        bubbles: true
+                      });
+                      window.dispatchEvent(event);
                     }}
                     onError={(e: any) => {
                       console.error('🚨 Image load error:', {

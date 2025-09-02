@@ -152,9 +152,10 @@ export async function GET(request: NextRequest) {
       
       // 세션 쿠키 설정
       const cookieStore = await cookies();
+      const isLocalhost = request.nextUrl.hostname === 'localhost' || request.nextUrl.hostname === '127.0.0.1';
       cookieStore.set('next-auth.session-token', token, {
         httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
+        secure: process.env.NODE_ENV === 'production' && !isLocalhost,
         sameSite: 'lax',
         maxAge,
         path: '/',

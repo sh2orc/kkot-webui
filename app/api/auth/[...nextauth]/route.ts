@@ -286,7 +286,7 @@ export const authOptions: NextAuthOptions = {
         if (!credentials?.email || !credentials?.password) {
           console.log('Missing credentials');
           return null;
-        }
+        } you 
 
         try {
           // Find user by email
