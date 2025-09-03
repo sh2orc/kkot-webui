@@ -1,4 +1,3 @@
-import type { Metadata } from 'next'
 import { Inter } from 'next/font/google'
 import './globals.css'
 import ClientProviders from '@/components/providers/client-providers'
@@ -7,10 +6,8 @@ import { Toaster } from '@/components/ui/toaster'
 
 const inter = Inter({ subsets: ['latin'] })
 
-export const metadata: Metadata = {
-  title: 'KKOT WebUI',
-  description: 'Advanced AI Chat Interface',
-}
+// Remove static metadata to allow dynamic title changes
+// Title is now managed by BrandingProvider
 
 export default function RootLayout({
   children,
