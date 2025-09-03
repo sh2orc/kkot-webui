@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { userRepository, adminSettingsRepository } from '@/lib/db/repository';
 import { hashPassword } from '@/lib/auth';
 import { cookies } from 'next/headers';
-import { encode } from 'next-auth/jwt';
+import { createJWTToken, JWT_CONFIG } from '@/lib/jwt-auth';
 
 const BASE_URL = process.env.NEXTAUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : 'http://localhost:3000');
 
@@ -122,33 +122,16 @@ export async function GET(request: NextRequest) {
       }
       
       // Generate NextAuth JWT token
-      console.log('🚀 Creating NextAuth JWT token');
+      console.log('🚀 Creating MSA 호환 JWT token');
       
-      const authUser = {
+      const token = await createJWTToken({
         id: user.id.toString(),
         email: user.email,
         name: user.username,
         role: user.role,
-      };
+      });
       
-      const secret = process.env.NEXTAUTH_SECRET;
-      const maxAge = 30 * 24 * 60 * 60; // 30 days
-      
-      const token = await encode({
-      token: {
-        id: authUser.id,
-        sub: authUser.id,
-        email: authUser.email,
-        name: authUser.name,
-        role: authUser.role,
-        iat: Math.floor(Date.now() / 1000),
-        exp: Math.floor(Date.now() / 1000) + maxAge,
-      },
-      secret: secret!,
-      maxAge,
-    });
-      
-      console.log('🚀 NextAuth JWT token created:', !!token);
+      console.log('🚀 MSA JWT token created:', !!token);
       
       // Set session cookie
       const cookieStore = await cookies();
@@ -157,7 +140,7 @@ export async function GET(request: NextRequest) {
         httpOnly: true,
         secure: process.env.NODE_ENV === 'production' && !isLocalhost,
         sameSite: 'lax',
-        maxAge,
+        maxAge: JWT_CONFIG.maxAge,
         path: '/',
       });
       

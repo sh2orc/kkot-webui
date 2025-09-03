@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import { userRepository } from '@/lib/db/repository';
 import { verifyPassword } from '@/lib/auth';
-import { encode } from 'next-auth/jwt';
+import { createJWTToken } from '@/lib/jwt-auth';
 import { cookies } from 'next/headers';
 
 export async function POST(request: Request) {
@@ -46,16 +46,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate JWT token
-    const token = await encode({
-      token: {
-        id: user.id,
-        email: user.email,
-        name: user.username,
-        role: user.role,
-      },
-      secret: process.env.NEXTAUTH_SECRET || 'fallback-secret-for-development',
-      maxAge: 30 * 24 * 60 * 60, // 30 days
+    // Generate MSA 호환 JWT token
+    const token = await createJWTToken({
+      id: user.id,
+      email: user.email,
+      name: user.username,
+      role: user.role,
     });
 
     // Cookie setup

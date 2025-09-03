@@ -1,16 +1,10 @@
 import { NextResponse } from 'next/server'
 import type { NextRequest } from 'next/server'
-import { getToken } from 'next-auth/jwt'
+import { authenticateRequest, JWTPayload } from '@/lib/jwt-auth'
 
 export async function middleware(request: NextRequest) {
-  // Get JWT token
-  // Don't use secure cookies for localhost even in production mode
-  const isLocalhost = request.nextUrl.hostname === 'localhost' || request.nextUrl.hostname === '127.0.0.1'
-  const token = await getToken({ 
-    req: request, 
-    secret: process.env.NEXTAUTH_SECRET,
-    secureCookie: process.env.NODE_ENV === 'production' && !isLocalhost
-  })
+  // MSA 호환 JWT 토큰 검증
+  const user = await authenticateRequest(request)
 
   const pathname = request.nextUrl.pathname
   
@@ -30,7 +24,10 @@ export async function middleware(request: NextRequest) {
                       request.cookies.get('__Secure-next-auth.session-token')?.value
   console.log('[Middleware] Session Token Value:', sessionToken ? 'exists' : 'missing')
   
-  console.log('[Middleware] NextAuth JWT verified:', !!token)
+  console.log('[Middleware] JWT User verified:', !!user)
+  if (user) {
+    console.log('[Middleware] User info:', { email: user.email, role: user.role })
+  }
 
   // Allow public access to these paths
   const publicPaths = [
@@ -52,8 +49,8 @@ export async function middleware(request: NextRequest) {
   )
 
   // If user is not authenticated and trying to access protected route
-  if (!token && !isPublicPath) {
-    console.log('[Middleware] Redirecting to /auth - No valid session')
+  if (!user && !isPublicPath) {
+    console.log('[Middleware] Redirecting to /auth - No valid JWT user')
     return NextResponse.redirect(new URL('/auth', request.url))
   }
 
@@ -63,8 +60,8 @@ export async function middleware(request: NextRequest) {
     pathname === path || pathname.startsWith(path + '/')
   )
 
-  if (isAdminPath && (!token || token.role !== 'admin')) {
-    console.log('[Middleware] Access denied to admin path')
+  if (isAdminPath && (!user || user.role !== 'admin')) {
+    console.log('[Middleware] Access denied to admin path - Role:', user?.role || 'none')
     return NextResponse.redirect(new URL('/', request.url))
   }
 
