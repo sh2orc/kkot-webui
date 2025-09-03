@@ -14,6 +14,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Separator } from "@/components/ui/separator"
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import TimezoneCombobox from "@/components/ui/timezone-combobox"
+import JWTExpirySelector from "@/components/ui/jwt-expiry-selector"
 import { useTimezone, formatGmtLabel } from "@/components/providers/timezone-provider"
 import { getPrimaryCityForOffset } from "@/components/ui/timezone-data"
 import { Eye, EyeOff, Upload, X, Network, Loader2 } from "lucide-react"
@@ -461,7 +462,10 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
                   <FormItem>
                     <FormLabel>{lang('authentication.jwt.expiry.label')}</FormLabel>
                     <FormControl>
-                      <Input type="number" {...field} />
+                      <JWTExpirySelector
+                        value={field.value}
+                        onChange={field.onChange}
+                      />
                     </FormControl>
                     <FormDescription>
                       {lang('authentication.jwt.expiry.description')}

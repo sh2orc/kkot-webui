@@ -15,21 +15,57 @@ export interface JWTPayload {
 // MSA 공통 JWT 설정
 export const JWT_CONFIG = {
   secret: process.env.NEXTAUTH_SECRET || 'fallback-secret-for-development',
-  maxAge: 30 * 24 * 60 * 60, // 30일
+  maxAge: 30 * 24 * 60 * 60, // 30일 (기본값)
   algorithm: 'HS256' as const,
 }
 
 /**
- * NextAuth JWT 토큰 생성 (기존 방식 유지)
+ * DB에서 JWT 만료시간 설정을 가져오는 함수
+ */
+export async function getJWTMaxAge(): Promise<number> {
+  try {
+    // 서버 환경에서만 DB 접근
+    if (typeof window !== 'undefined') {
+      return JWT_CONFIG.maxAge
+    }
+
+    const { adminSettingsRepository } = await import('@/lib/db/repository')
+    const jwtExpirySettings = await adminSettingsRepository.findByKey('auth.jwtExpiry')
+    
+    if (jwtExpirySettings && jwtExpirySettings.length > 0) {
+      const expiryValue = parseInt(jwtExpirySettings[0].value)
+      
+      // -1은 무제한 (매우 긴 시간으로 설정)
+      if (expiryValue === -1) {
+        return 365 * 24 * 60 * 60 // 1년
+      }
+      
+      // 양수 값이면 그대로 사용
+      if (expiryValue > 0) {
+        return expiryValue
+      }
+    }
+  } catch (error) {
+    console.warn('[JWT] Failed to load JWT expiry from DB, using default:', error)
+  }
+  
+  // 기본값 반환
+  return JWT_CONFIG.maxAge
+}
+
+/**
+ * NextAuth JWT 토큰 생성 (DB 설정 사용)
  */
 export async function createJWTToken(payload: Omit<JWTPayload, 'iat' | 'exp'>): Promise<string> {
+  const maxAge = await getJWTMaxAge()
+  
   return await encode({
     token: {
       ...payload,
       sub: payload.id, // NextAuth 호환성을 위해 sub 추가
     },
     secret: JWT_CONFIG.secret,
-    maxAge: JWT_CONFIG.maxAge,
+    maxAge: maxAge,
   })
 }
 
@@ -56,7 +92,7 @@ export async function verifyJWTToken(token: string): Promise<JWTPayload | null> 
     }
 
     // 만료 시간 확인
-    if (decoded.exp && decoded.exp < Math.floor(Date.now() / 1000)) {
+    if (decoded.exp && typeof decoded.exp === 'number' && decoded.exp < Math.floor(Date.now() / 1000)) {
       console.log('[JWT] Token expired')
       return null
     }
@@ -66,8 +102,8 @@ export async function verifyJWTToken(token: string): Promise<JWTPayload | null> 
       email: decoded.email as string,
       name: decoded.name as string,
       role: decoded.role as string,
-      iat: decoded.iat as number,
-      exp: decoded.exp as number,
+      iat: (typeof decoded.iat === 'number') ? decoded.iat : undefined,
+      exp: (typeof decoded.exp === 'number') ? decoded.exp : undefined,
     }
   } catch (error) {
     console.error('[JWT] Token verification failed:', error)
@@ -152,7 +188,7 @@ export class JWTAuth {
   }
 
   /**
-   * 토큰 생성
+   * 토큰 생성 (DB 설정 사용)
    */
   static async create(payload: Omit<JWTPayload, 'iat' | 'exp'>): Promise<string> {
     return await createJWTToken(payload)

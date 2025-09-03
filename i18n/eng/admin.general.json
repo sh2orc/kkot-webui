@@ -59,8 +59,8 @@
     },
     "jwt": {
       "expiry": {
-        "label": "JWT Expiry Time (seconds)",
-        "description": "If the value is -1, it will not expire. Example: You can enter in formats like '3h', '2d', '1w'."
+        "label": "JWT Token Expiry Time",
+        "description": "Set the validity period for user login tokens. Use shorter durations for security-critical environments and longer durations for convenience-focused environments."
       }
     },
     "ldap": {

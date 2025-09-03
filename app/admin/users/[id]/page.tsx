@@ -16,6 +16,7 @@ import { Switch } from "@/components/ui/switch"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 import { toast } from "sonner"
 import { useTimezone } from "@/components/providers/timezone-provider"
+import UserDetailSkeleton from "@/components/admin/user-detail-skeleton"
 import { 
   ArrowLeft, 
   Edit, 
@@ -219,7 +220,7 @@ export default function UserDetailPage() {
   }
 
   if (loading || !user) {
-    return <div className="text-center py-4">{lang('loading')}</div>
+    return <UserDetailSkeleton />
   }
 
   return (
