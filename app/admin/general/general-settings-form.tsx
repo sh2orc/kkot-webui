@@ -232,7 +232,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
           })
         } else {
           // All settings saved successfully
-          // Update branding provider
+          // Update branding provider immediately for UI feedback
           updateBranding({
             appName: data.appName
           })
@@ -245,7 +245,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
             description: lang('saveSuccessMessage') || 'All settings have been updated.'
           })
           
-          // Synchronize server state after saving
+          // Refresh to sync all components with new DB values
           router.refresh()
         }
       } else {

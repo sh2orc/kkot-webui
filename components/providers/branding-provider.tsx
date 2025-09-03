@@ -28,71 +28,65 @@ interface BrandingProviderProps {
 }
 
 export function BrandingProvider({ children }: BrandingProviderProps) {
-  const [branding, setBranding] = useState<BrandingSettings>(defaultBranding)
+  // Initialize from localStorage first
+  const getInitialBranding = (): BrandingSettings => {
+    if (typeof window !== 'undefined') {
+      const cached = localStorage.getItem('system-branding')
+      if (cached) {
+        try {
+          const parsed = JSON.parse(cached)
+          const { _cachedAt, ...brandingData } = parsed
+          return { ...defaultBranding, ...brandingData }
+        } catch (e) {
+          console.error('Failed to parse cached branding:', e)
+        }
+      }
+    }
+    return defaultBranding
+  }
+
+  const [branding, setBranding] = useState<BrandingSettings>(getInitialBranding)
   const [isInitialized, setIsInitialized] = useState(false)
   const { data: session, status } = useSession()
 
-  // Logic that only runs in the browser
+  // Fetch branding from DB when user logs in
   useEffect(() => {
-    // Don't execute if already initialized
     if (isInitialized) return
     
-    // Load branding settings from localStorage
-    if (typeof window !== 'undefined') {
-      const savedBranding = localStorage.getItem('branding-settings')
-      if (savedBranding) {
-        try {
-          const parsed = JSON.parse(savedBranding)
-          setBranding({ ...defaultBranding, ...parsed })
-        } catch (error) {
-          console.error('Failed to parse branding settings:', error)
-        }
-      }
-      
-      // Try to fetch app name from DB for all users (branding should be visible to everyone)
-      try {
-        fetch('/api/admin-settings?key=app.name')
-          .then(res => {
-            if (!res.ok) {
-              // Don't throw error for 404, just log it
-              if (res.status === 404) {
-                console.log('Admin settings API not found, using default settings')
-                return null
-              }
-              throw new Error('Failed to fetch app name')
+    // Only fetch if user is authenticated
+    if (status === 'authenticated' && session?.user) {
+      // Always fetch on login to get latest settings
+      fetch('/api/admin-settings?key=app.name')
+        .then(res => res.ok ? res.json() : null)
+        .then(data => {
+          if (data && data.value) {
+            const newBranding = {
+              ...branding,
+              appName: data.value
             }
-            return res.json()
-          })
-          .then(data => {
-            if (data && data.value) {
-              setBranding(prev => ({
-                ...prev,
-                appName: data.value
-              }))
-              // Update localStorage as well
-              const currentSettings = localStorage.getItem('branding-settings')
-              const settings = currentSettings ? JSON.parse(currentSettings) : {}
-              localStorage.setItem('branding-settings', JSON.stringify({
-                ...settings,
-                appName: data.value
-              }))
-            }
-          })
-          .catch(error => {
-            // Only log warning for non-404 errors
-            if (error.message !== 'Failed to fetch app name') {
-              console.warn('Failed to fetch app name from DB:', error)
-            }
-          })
-          .finally(() => {
-            setIsInitialized(true)
-          })
-      } catch (error) {
-        console.warn('Error occurred while fetching app name:', error)
-        setIsInitialized(true)
-      }
+            setBranding(newBranding)
+            // Cache for future use
+            localStorage.setItem('system-branding', JSON.stringify({
+              ...newBranding,
+              _cachedAt: Date.now()
+            }))
+          }
+        })
+        .catch(error => {
+          console.error('Failed to fetch branding:', error)
+        })
     }
-  }, [status, session?.user?.role])
+    
+    setIsInitialized(true)
+  }, [status, session, isInitialized])
+
+  // Clear cache on logout
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      localStorage.removeItem('system-branding')
+      setBranding(defaultBranding)
+    }
+  }, [status])
 
   // Update document title and favicon whenever branding settings change
   useEffect(() => {
@@ -127,22 +121,18 @@ export function BrandingProvider({ children }: BrandingProviderProps) {
   const updateBranding = useCallback((settings: Partial<BrandingSettings>) => {
     setBranding(prev => {
       const newBranding = { ...prev, ...settings }
-      
-      // Save to localStorage
+      // Update cache
       if (typeof window !== 'undefined') {
-        localStorage.setItem('branding-settings', JSON.stringify(newBranding))
+        localStorage.setItem('system-branding', JSON.stringify(newBranding))
       }
-      
       return newBranding
     })
   }, [])
 
   const resetBranding = useCallback(() => {
     setBranding(defaultBranding)
-    if (typeof window !== 'undefined') {
-      localStorage.removeItem('branding-settings')
-    }
   }, [])
+
 
   return (
     <BrandingContext.Provider value={{ branding, updateBranding, resetBranding }}>
