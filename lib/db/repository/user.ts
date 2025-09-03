@@ -94,8 +94,10 @@ export const userRepository = {
    * Update last login time
    */
   updateLastLogin: async (id: string | number) => {
+    const now = new Date();
+    console.log('🔍 Updating lastLoginAt for user:', id, 'with timestamp:', now.getTime(), 'Date:', now.toISOString());
     return await db.update(schema.users)
-      .set({ lastLoginAt: new Date() as any })
+      .set({ lastLoginAt: now as any })
       .where(eq(schema.users.id, id as any))
       .returning();
   },

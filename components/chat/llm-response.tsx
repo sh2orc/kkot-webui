@@ -74,12 +74,12 @@ export function LlmResponse({
   const hasImages = content.includes('![');
   const isImageProcessingLoading = content === '' && isStreaming && !isDeepResearch;
 
-  // 이미지가 새로 추가되었을 때 스크롤 이벤트 발생
+  // Trigger scroll event when new images are added
   useEffect(() => {
     if (hasImages && !prevHasImages) {
       console.log('🖼️ New image detected in content, triggering scroll event');
       
-      // 300ms 후에 스크롤 이벤트 발생 (이미지 렌더링 시간 고려)
+      // Trigger scroll event after 300ms (considering image rendering time)
       setTimeout(() => {
         const event = new CustomEvent('chat-image-added', {
           detail: { 
@@ -186,7 +186,7 @@ export function LlmResponse({
                 return (
                   <span className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-400">
                     <span className="text-red-500">🖼️</span>
-                    <span>[만료된 이미지]</span>
+                    <span>[expired 이미지]</span>
                     {alt && <span className="text-xs">({alt})</span>}
                   </span>
                 );
@@ -216,7 +216,7 @@ export function LlmResponse({
                         displayHeight: e.target.height
                       });
                       
-                      // 이미지 로드 완료 시 커스텀 이벤트 발생
+                      // Dispatch custom event when image loading is completed
                       const event = new CustomEvent('chat-image-loaded', {
                         detail: { 
                           messageId: id,
@@ -241,7 +241,7 @@ export function LlmResponse({
                       img.style.display = 'none';
                       const errorSpan = document.createElement('span');
                       errorSpan.className = 'inline-flex items-center gap-2 px-3 py-2 bg-red-100 dark:bg-red-900/20 border border-red-300 dark:border-red-600 rounded-lg text-sm text-red-600 dark:text-red-400';
-                      errorSpan.innerHTML = `<span class="text-red-500">🚨</span><span>[이미지 로딩 실패: ${convertedSrc}]</span>`;
+                      errorSpan.innerHTML = `<span class="text-red-500">🚨</span><span>[이미지 로딩 failed: ${convertedSrc}]</span>`;
                       img.parentNode?.appendChild(errorSpan);
                     }}
                     onClick={() => {
@@ -285,7 +285,7 @@ export function LlmResponse({
                   />
                   {/* Overlay hint */}
                   <span className="absolute bottom-2 right-2 bg-black bg-opacity-60 text-white text-xs px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none">
-                    클릭하여 확대
+                    Click to enlarge
                   </span>
                 </span>
               );

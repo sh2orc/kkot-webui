@@ -105,7 +105,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${BASE_URL}/auth?error=email_required`);
     }
 
-    // 사용자 처리
+    // Handle 사용자
     console.log('🚀 Processing Kakao user:', { email, nickname });
     
     try {
@@ -182,7 +182,7 @@ export async function GET(request: NextRequest) {
       
       console.log('🚀 NextAuth JWT token created:', !!token);
       
-      // 세션 쿠키 설정
+      // Set session cookie
       const cookieStore = await cookies();
       cookieStore.set('next-auth.session-token', token, {
         httpOnly: true,

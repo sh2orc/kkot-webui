@@ -90,6 +90,8 @@ export const apiManagementRepository = {
     rateLimitRequests: number;
     rateLimitWindow: number;
     requireAuth: boolean;
+    apiKeyEnabled: boolean;
+    apiKeyEndpointLimited: boolean;
   }) => {
     const id = 'default';
     const now = new Date();
@@ -108,6 +110,8 @@ export const apiManagementRepository = {
           rateLimitRequests: data.rateLimitRequests,
           rateLimitWindow: data.rateLimitWindow,
           requireAuth: data.requireAuth as any,
+          apiKeyEnabled: data.apiKeyEnabled as any,
+          apiKeyEndpointLimited: data.apiKeyEndpointLimited as any,
           updatedAt: now as any
         })
         .where(eq(schema.apiManagement.id, id as any))
@@ -123,6 +127,8 @@ export const apiManagementRepository = {
         rateLimitRequests: data.rateLimitRequests,
         rateLimitWindow: data.rateLimitWindow,
         requireAuth: data.requireAuth as any,
+        apiKeyEnabled: data.apiKeyEnabled as any,
+        apiKeyEndpointLimited: data.apiKeyEndpointLimited as any,
         createdAt: now as any,
         updatedAt: now as any
       }).returning();
@@ -142,6 +148,8 @@ export const apiManagementRepository = {
       rateLimitRequests: 1000,
       rateLimitWindow: 3600,
       requireAuth: true,
+      apiKeyEnabled: false,
+      apiKeyEndpointLimited: false,
     };
   }
 };

@@ -5,7 +5,6 @@ export async function GET() {
   try {
     // Google OAuth 설정 확인
     const googleEnabled = await adminSettingsRepository.findByKey('auth.oauth.google.enabled');
-    const githubEnabled = await adminSettingsRepository.findByKey('auth.oauth.github.enabled');
 
     const kakaoEnabled = await adminSettingsRepository.findByKey('auth.oauth.kakao.enabled');
     const naverEnabled = await adminSettingsRepository.findByKey('auth.oauth.naver.enabled');
@@ -24,16 +23,6 @@ export async function GET() {
       });
     }
 
-    if (githubEnabled?.[0]?.value === 'true') {
-      const githubClientId = await adminSettingsRepository.findByKey('auth.oauth.github.clientId');
-      
-      providers.push({
-        id: 'github',
-        name: 'GitHub', 
-        type: 'oauth',
-        clientId: githubClientId?.[0]?.value || process.env.GITHUB_CLIENT_ID
-      });
-    }
 
 
 

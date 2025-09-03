@@ -192,7 +192,7 @@ export default function ModelManagementForm({ initialServers }: ModelManagementF
         }, 1000)
       } else if (successCount > 0) {
         // Partial success
-        toast.warning(`${successCount}개 모델이 저장되었지만 ${errors.length}개 실패: ${errors.join(', ')}`)
+        toast.warning(`${successCount}개 모델이 저장되었지만 ${errors.length}개 failed: ${errors.join(', ')}`)
       } else {
         // All failed
         toast.error(`${lang('saveFailure')}: ${errors.join(', ')}`)

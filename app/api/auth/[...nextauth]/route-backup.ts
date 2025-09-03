@@ -208,7 +208,7 @@ async function createAuthOptions(): Promise<NextAuthOptions> {
       // OAuth 로그인 처리
       if (account?.provider !== 'credentials' && user?.email) {
         try {
-          // 기존 사용자 확인
+          // Check 기존 사용자
           const existingUser = await userRepository.findByEmail(user.email);
           
           if (existingUser) {
@@ -218,7 +218,7 @@ async function createAuthOptions(): Promise<NextAuthOptions> {
             user.name = existingUser.username;
             return true;
           } else {
-            // 새 사용자 생성
+            // Create 새 사용자
             const allUsers = await userRepository.findAll();
             const isFirstUser = allUsers.length === 0;
             const userRole = isFirstUser ? 'admin' : 'user';

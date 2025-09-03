@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { userRepository, adminSettingsRepository } from '@/lib/db/repository';
+import { userRepository, adminSettingsRepository, groupRepository } from '@/lib/db/repository';
 import { hashPassword } from '@/lib/auth';
 
 export async function POST(request: Request) {
@@ -7,10 +7,10 @@ export async function POST(request: Request) {
     const body = await request.json();
     const { email, password, username } = body;
 
-    // 유효성 검사
+    // Validation check
     if (!email || !password) {
       return NextResponse.json(
-        { error: '이메일과 비밀번호를 입력해주세요.' },
+        { error: 'Please enter email and password.' },
         { status: 400 }
       );
     }
@@ -30,7 +30,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // 기존 사용자 확인
+    // Check 기존 사용자
     const existingUser = await userRepository.findByEmail(email);
     if (existingUser) {
       return NextResponse.json(
@@ -39,15 +39,15 @@ export async function POST(request: Request) {
       );
     }
 
-    // 첫 번째 사용자인지 확인
+    // Check if first user
     const allUsers = await userRepository.findAll();
     const isFirstUser = allUsers.length === 0;
 
-    // 회원가입 활성화 설정 확인
+    // Check signup enabled setting
     const signupEnabledSetting = await adminSettingsRepository.findByKey('auth.signupEnabled');
     const signupEnabled = signupEnabledSetting?.[0]?.value === 'true';
 
-    // 사용자 생성
+    // Create 사용자
     const hashedPassword = hashPassword(password);
     
     // 첫 번째 사용자는 항상 admin, 그 외에는 signupEnabled 설정에 따라 결정
@@ -65,6 +65,31 @@ export async function POST(request: Request) {
       role: userRole
     });
 
+    // If user is admin, add to admin group
+    if (userRole === 'admin') {
+      try {
+        const adminGroup = await groupRepository.findByName('admin');
+        if (adminGroup) {
+          await groupRepository.addUser(adminGroup.id, newUser.id, 'system');
+          console.log(`Added admin user ${newUser.email} to admin group`);
+        } else {
+          console.log('Admin group not found, creating one...');
+          // Create admin group if it doesn't exist
+          const [createdGroup] = await groupRepository.create({
+            name: 'admin',
+            description: 'System administrators with full access',
+            isSystem: true,
+            isActive: true
+          });
+          await groupRepository.addUser(createdGroup.id, newUser.id, 'system');
+          console.log(`Created admin group and added user ${newUser.email}`);
+        }
+      } catch (error) {
+        console.error('Failed to add user to admin group:', error);
+        // Don't fail the registration if group assignment fails
+      }
+    }
+
     return NextResponse.json({
       success: true,
       user: {
@@ -80,7 +105,7 @@ export async function POST(request: Request) {
   } catch (error) {
     console.error('Registration error:', error);
     return NextResponse.json(
-      { error: '회원가입 중 오류가 발생했습니다.' },
+      { error: '회원가입 중 An error occurred.' },
       { status: 500 }
     );
   }

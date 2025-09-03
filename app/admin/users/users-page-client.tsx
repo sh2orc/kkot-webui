@@ -13,7 +13,8 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { useTranslation } from "@/lib/i18n"
 import { toast } from "sonner"
-import { UserManagementDialog } from "./user-management-dialog"
+import { useTimezone } from "@/components/providers/timezone-provider"
+
 
 interface User {
   id: string
@@ -25,7 +26,7 @@ interface User {
   status?: 'active' | 'inactive' | 'suspended'
   email_verified: boolean
   last_login_at?: string
-  // OAuth 정보 추가
+  // OAuth information added
   oauth_provider?: string
   google_id?: string
   oauth_linked_at?: string
@@ -37,17 +38,16 @@ interface User {
 interface UsersPageClientProps {
   initialUsers: User[]
   allTranslations?: Record<string, any>
+  emailVerificationEnabled?: boolean
 }
 
-export default function UsersPageClient({ initialUsers, allTranslations }: UsersPageClientProps) {
+export default function UsersPageClient({ initialUsers, allTranslations, emailVerificationEnabled = false }: UsersPageClientProps) {
   const { lang, language } = useTranslation('admin.users')
   const router = useRouter()
+  const { formatDate, formatTime } = useTimezone()
   const [users, setUsers] = useState<User[]>(initialUsers)
   const [loading, setLoading] = useState(false)
   const [searchTerm, setSearchTerm] = useState("")
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
-  const [isDialogOpen, setIsDialogOpen] = useState(false)
-  const [isCreating, setIsCreating] = useState(false)
   const [selectedUsers, setSelectedUsers] = useState<string[]>([])
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [roleFilter, setRoleFilter] = useState<string>("all")
@@ -93,42 +93,14 @@ export default function UsersPageClient({ initialUsers, allTranslations }: Users
   }
 
   const handleEditUser = (user: User) => {
-    setSelectedUser(user)
-    setIsCreating(false)
-    setIsDialogOpen(true)
+    router.push(`/admin/users/${user.id}`)
   }
 
   const handleCreateUser = () => {
-    setSelectedUser(null)
-    setIsCreating(true)
-    setIsDialogOpen(true)
+    router.push('/admin/users/new')
   }
 
-  const handleSaveUser = async (userData: any) => {
-    try {
-      const url = isCreating ? "/api/users" : `/api/users/${selectedUser?.id}`
-      const method = isCreating ? "POST" : "PUT"
-      
-      const response = await fetch(url, {
-        method,
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(userData)
-      })
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || "Failed to save user")
-      }
-      
-      toast.success(isCreating ? lang('createSuccess') : lang('updateSuccess'))
-      setIsDialogOpen(false)
-      fetchUsers()
-    } catch (error: any) {
-      toast.error(error.message || lang('errors.saveFailed'))
-    }
-  }
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
@@ -177,6 +149,14 @@ export default function UsersPageClient({ initialUsers, allTranslations }: Users
   }
 
   const handleRoleChange = async (userId: string, newRole: string) => {
+    // Optimistic update - immediate UI update
+    const previousUsers = [...users]
+    setUsers(prevUsers => 
+      prevUsers.map(user => 
+        user.id === userId ? { ...user, role: newRole } : user
+      )
+    )
+
     try {
       const response = await fetch(`/api/users/${userId}`, {
         method: 'PUT',
@@ -188,10 +168,11 @@ export default function UsersPageClient({ initialUsers, allTranslations }: Users
 
       if (!response.ok) throw new Error('Failed to update role')
       
-      toast.success('권한이 성공적으로 변경되었습니다.')
-      fetchUsers()
+      toast.success(lang('roleChangeSuccess') || '권한이 성공적으로 변경되었습니다.')
     } catch (error) {
-      toast.error('권한 변경에 실패했습니다.')
+      // Rollback on failure
+      setUsers(previousUsers)
+      toast.error(lang('roleChangeFailed') || '권한 변경에 실패했습니다.')
     }
   }
 
@@ -201,8 +182,7 @@ export default function UsersPageClient({ initialUsers, allTranslations }: Users
     const matchesSearch = 
       (user.name?.toLowerCase().includes(searchLower) ?? false) ||
       (user.username?.toLowerCase().includes(searchLower) ?? false) ||
-      user.email.toLowerCase().includes(searchLower) ||
-      (user.department?.toLowerCase().includes(searchLower) ?? false)
+      user.email.toLowerCase().includes(searchLower)
     
     // Status filter
     const matchesStatus = statusFilter === "all" || (user.status || 'active') === statusFilter
@@ -340,7 +320,6 @@ export default function UsersPageClient({ initialUsers, allTranslations }: Users
                   </TableHead>
                   <TableHead>{lang('fields.name')}</TableHead>
                   <TableHead>{lang('fields.email')}</TableHead>
-                  <TableHead>{lang('fields.department')}</TableHead>
                   <TableHead>{lang('fields.role')}</TableHead>
                   <TableHead>{lang('fields.status')}</TableHead>
                   <TableHead>OAuth</TableHead>
@@ -371,14 +350,13 @@ export default function UsersPageClient({ initialUsers, allTranslations }: Users
                         )}
                         <div>
                           <div className="text-sm">{user.name || user.username}</div>
-                          {!user.email_verified && (
+                          {emailVerificationEnabled && !user.email_verified && (
                             <span className="text-xs text-yellow-600">{lang('unverified')}</span>
                           )}
                         </div>
                       </div>
                     </TableCell>
                     <TableCell>{user.email}</TableCell>
-                    <TableCell>{user.department || '-'}</TableCell>
                     <TableCell>
                       <Select
                         value={user.role}
@@ -389,14 +367,14 @@ export default function UsersPageClient({ initialUsers, allTranslations }: Users
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="admin">
-                            <span className="text-sm text-gray-900">관리자</span>
+                            <span className="text-sm text-gray-900">{lang('roles.admin')}</span>
                           </SelectItem>
                           <SelectItem value="user">
-                            <span className="text-sm text-gray-700">사용자</span>
+                            <span className="text-sm text-gray-700">{lang('roles.user')}</span>
                           </SelectItem>
                           <SelectItem value="guest">
                             <span className="flex items-center gap-2">
-                              <span className="text-sm text-gray-600">게스트</span>
+                              <span className="text-sm text-gray-600">{lang('roles.guest')}</span>
                             </span>
                           </SelectItem>
                         </SelectContent>
@@ -421,7 +399,21 @@ export default function UsersPageClient({ initialUsers, allTranslations }: Users
                           </Badge>
                           {user.oauth_linked_at && (
                             <div className="text-xs text-gray-500">
-                              연결: {new Date(user.oauth_linked_at).toLocaleDateString()}
+                              {lang('connected') || '연결'}: {(() => {
+                                try {
+                                  const date = new Date(user.oauth_linked_at);
+                                  if (isNaN(date.getTime())) {
+                                    return lang('dateError') || '날짜 오류';
+                                  }
+                                  return formatDate(date, 'ko-KR', { 
+                                    year: 'numeric', 
+                                    month: '2-digit', 
+                                    day: '2-digit' 
+                                  });
+                                } catch (error) {
+                                  return lang('dateError') || '날짜 오류';
+                                }
+                              })()}
                             </div>
                           )}
                         </div>
@@ -431,21 +423,61 @@ export default function UsersPageClient({ initialUsers, allTranslations }: Users
                     </TableCell>
                                     <TableCell className="text-sm text-gray-600 dark:text-gray-300">
                   {user.last_login_at ? (() => {
-                    let timestamp = user.last_login_at;
-                    
-                    // 문자열인 경우 숫자로 변환
-                    if (typeof timestamp === 'string') {
-                      timestamp = parseInt(timestamp);
+                    try {
+
+                      let date: Date;
+                      
+                      // Create Date object based on type
+                      if (typeof user.last_login_at === 'string') {
+                        // Can be ISO string or numeric string
+                        const numericValue = parseInt(user.last_login_at);
+                        if (!isNaN(numericValue) && user.last_login_at === numericValue.toString()) {
+                          // Process as Unix timestamp if numeric string
+                          // Validate timestamp range
+                          if (numericValue > 1000000000000) {
+                            // Millisecond timestamp (13 digits)
+                            date = new Date(numericValue);
+                          } else if (numericValue > 1000000000) {
+                            // Second timestamp (10 digits)
+                            date = new Date(numericValue * 1000);
+                          } else {
+                            console.error('Invalid timestamp range:', numericValue);
+                            return lang('dateError') || '날짜 오류';
+                          }
+                        } else {
+                          // Process as ISO string
+                          date = new Date(user.last_login_at);
+                        }
+                      } else {
+                        // Process as timestamp if numeric
+                        if (user.last_login_at > 1000000000000) {
+                          // Millisecond timestamp (13 digits)
+                          date = new Date(user.last_login_at);
+                        } else if (user.last_login_at > 1000000000) {
+                          // Second timestamp (10 digits)
+                          date = new Date(user.last_login_at * 1000);
+                        } else {
+                          console.error('Invalid timestamp range:', user.last_login_at);
+                          return lang('dateError') || '날짜 오류';
+                        }
+                      }
+                      
+                      if (isNaN(date.getTime())) {
+                        return lang('dateError') || '날짜 오류';
+                      }
+                      
+                      // Format date based on UTC settings
+                      return formatDate(date, 'ko-KR', { 
+                        year: 'numeric', 
+                        month: '2-digit', 
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit'
+                      });
+                    } catch (error) {
+                      console.error('Date parsing error:', error);
+                      return lang('dateError') || '날짜 오류';
                     }
-                    
-                    // Unix timestamp (초)를 밀리초로 변환
-                    const date = new Date(timestamp * 1000);
-                    
-                    if (isNaN(date.getTime())) {
-                      return '날짜 오류';
-                    }
-                    
-                    return date.toLocaleDateString('ko-KR');
                   })() : lang('never')}
                 </TableCell>
                     <TableCell className="text-right">
@@ -483,13 +515,7 @@ export default function UsersPageClient({ initialUsers, allTranslations }: Users
         </CardContent>
       </Card>
 
-      <UserManagementDialog
-        isOpen={isDialogOpen}
-        onClose={() => setIsDialogOpen(false)}
-        onSave={handleSaveUser}
-        user={selectedUser}
-        isCreating={isCreating}
-      />
+
     </div>
   )
 }

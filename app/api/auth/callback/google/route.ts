@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // DB에서 Google OAuth 설정 가져오기 (Repository → Service → Web layer)
+    // Get Google OAuth settings from DB (Repository → Service → Web layer)
     const googleClientIdSetting = await adminSettingsRepository.findByKey('auth.oauth.google.clientId');
     const googleClientSecretSetting = await adminSettingsRepository.findByKey('auth.oauth.google.clientSecret');
     
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
 
     console.log('🔍 Using Client ID from:', googleClientIdSetting?.[0]?.value ? 'DB' : 'Environment/Default');
     console.log('🔍 Using Client Secret from:', googleClientSecretSetting?.[0]?.value ? 'DB' : 'Environment/Default');
-    // 액세스 토큰 교환
+    // Exchange access token
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${BASE_URL}/auth?error=token_exchange`);
     }
 
-    // 사용자 정보 가져오기
+    // Get user information
     const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: {
         Authorization: `Bearer ${tokenData.access_token}`,
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${BASE_URL}/auth?error=user_info`);
     }
 
-    // 사용자 처리
+    // Handle user
     console.log('🚀 Processing user:', { email: userData.email, name: userData.name });
     
     try {
@@ -87,11 +87,11 @@ export async function GET(request: NextRequest) {
       if (existingUser) {
         console.log('🚀 Existing user found:', userData.email);
         
-        // OAuth 연동 여부 확인
+        // Check OAuth integration status
         if (!existingUser.googleId) {
           console.log('🚀 User exists but not linked to Google, redirecting to link page');
           
-          // OAuth 데이터를 안전하게 인코딩하여 URL로 전달
+          // Safely encode OAuth data and pass it via URL
           const oauthData = {
             id: userData.id,
             email: userData.email,
@@ -108,7 +108,7 @@ export async function GET(request: NextRequest) {
       } else {
         console.log('🚀 No existing user, redirecting to link page for new account creation');
         
-        // OAuth 데이터를 안전하게 인코딩하여 URL로 전달
+        // Safely encode OAuth data and pass it via URL
         const oauthData = {
           id: userData.id,
           email: userData.email,
@@ -121,7 +121,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${BASE_URL}/auth/link-account?data=${encodedData}`);
       }
       
-      // NextAuth JWT 토큰 생성
+      // Generate NextAuth JWT token
       console.log('🚀 Creating NextAuth JWT token');
       
       const authUser = {
@@ -132,7 +132,7 @@ export async function GET(request: NextRequest) {
       };
       
       const secret = process.env.NEXTAUTH_SECRET;
-      const maxAge = 30 * 24 * 60 * 60; // 30일
+      const maxAge = 30 * 24 * 60 * 60; // 30 days
       
       const token = await encode({
       token: {
@@ -150,7 +150,7 @@ export async function GET(request: NextRequest) {
       
       console.log('🚀 NextAuth JWT token created:', !!token);
       
-      // 세션 쿠키 설정
+      // Set session cookie
       const cookieStore = await cookies();
       const isLocalhost = request.nextUrl.hostname === 'localhost' || request.nextUrl.hostname === '127.0.0.1';
       cookieStore.set('next-auth.session-token', token, {

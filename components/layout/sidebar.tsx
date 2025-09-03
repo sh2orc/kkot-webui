@@ -208,7 +208,7 @@ export default function Sidebar({
 
   // Fetch chat sessions list (CSR fallback)
   const fetchChatSessions = useCallback(async () => {
-    // 세션 상태 확인
+    // Check session state
     if (status === 'loading') {
       console.log('Session still loading, skipping chat sessions fetch')
       return
@@ -229,12 +229,12 @@ export default function Sidebar({
       console.log('Fetching chat sessions for user:', session.user.email)
       console.log('Session status:', status)
       
-      // 헤더 설정
+      // Header configuration
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
       }
       
-      // NextAuth 토큰이 있다면 Authorization 헤더에 포함
+      // Include NextAuth token in Authorization header if available
       if ((session as any)?.accessToken) {
         headers['Authorization'] = `Bearer ${(session as any).accessToken}`
         console.log('Including access token in Authorization header')
@@ -244,7 +244,7 @@ export default function Sidebar({
       
       const response = await fetch(`/api/chat`, {
         method: 'GET',
-        credentials: 'include', // 쿠키 포함하여 전송
+        credentials: 'include', // Include cookies in request
         headers
       })
       

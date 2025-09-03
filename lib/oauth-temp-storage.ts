@@ -1,5 +1,5 @@
-// OAuth 임시 데이터 저장소
-// 실제 환경에서는 Redis 등을 사용해야 합니다
+// OAuth temporary data storage
+// In production environments, Redis etc. should be used
 
 interface OAuthData {
   id: string;
@@ -17,7 +17,7 @@ export function storeOAuthData(data: OAuthData): string {
   
   console.log('🚀 OAuth data stored with token:', token);
   
-  // 10분 후 자동 삭제
+  // Auto-delete after 10 minutes
   setTimeout(() => {
     tempOAuthData.delete(token);
     console.log('🚀 OAuth token expired and deleted:', token);

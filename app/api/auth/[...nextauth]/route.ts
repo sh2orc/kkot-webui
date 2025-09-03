@@ -152,7 +152,7 @@ export async function createAuthOptions(): Promise<NextAuthOptions> {
               return true;
             } else {
               console.log('Creating new user for Google OAuth:', userEmail);
-              // 새 사용자 생성
+              // Create 새 사용자
               const newUser = await userRepository.create({
                 email: userEmail,
                 name: user.name || userEmail.split('@')[0],
@@ -439,7 +439,7 @@ export async function GET(req: Request, context: { params: Promise<{ nextauth: s
   try {
     const response = await handler(req, context);
     
-    // 에러 응답인 경우 상세 로깅
+    // Error response인 경우 상세 로깅
     if (response.status >= 300) {
       console.log('🔥 NextAuth response status:', response.status);
       console.log('🔥 NextAuth response headers:', Object.fromEntries(response.headers));

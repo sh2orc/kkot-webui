@@ -39,6 +39,7 @@ export default function GroupUsersPage() {
   const [allUsers, setAllUsers] = useState<User[]>([])
   const [selectedUserId, setSelectedUserId] = useState<string>("")
   const [adding, setAdding] = useState(false)
+  const [optimisticUsers, setOptimisticUsers] = useState<string[]>([])
 
   // Preload translation module
   useEffect(() => {
@@ -96,20 +97,23 @@ export default function GroupUsersPage() {
   }
 
   const availableUsers = allUsers.filter(
-    user => !groupUsers.some(gu => gu.id === user.id)
+    user => !groupUsers.some(gu => gu.id === user.id) && !optimisticUsers.includes(user.id)
   )
 
   const handleAddUser = async () => {
     if (!selectedUserId) return
 
+    const currentUserId = selectedUserId
     setAdding(true)
+    setOptimisticUsers(prev => [...prev, currentUserId])
+    
     try {
       const response = await fetch(`/api/groups/${groupId}/users`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ userId: selectedUserId })
+        body: JSON.stringify({ userId: currentUserId })
       })
 
       if (!response.ok) {
@@ -117,12 +121,26 @@ export default function GroupUsersPage() {
         throw new Error(error.error || 'Failed to add user')
       }
       
+      // Get the added user data from allUsers
+      const addedUser = allUsers.find(user => user.id === currentUserId)
+      if (addedUser) {
+        // Add user to groupUsers with current timestamp
+        const newGroupUser = {
+          ...addedUser,
+          assignedAt: new Date().toISOString()
+        }
+        setGroupUsers(prev => [...prev, newGroupUser])
+      }
+      
       toast.success(lang('addUserSuccess'))
       setSelectedUserId("")
-      fetchGroupUsers()
     } catch (error: any) {
+      // Remove from optimistic users on error
+      setOptimisticUsers(prev => prev.filter(id => id !== currentUserId))
       toast.error(error.message || lang('errors.addUserFailed'))
     } finally {
+      // Remove from optimistic users on success
+      setOptimisticUsers(prev => prev.filter(id => id !== currentUserId))
       setAdding(false)
     }
   }
@@ -137,8 +155,10 @@ export default function GroupUsersPage() {
 
       if (!response.ok) throw new Error('Failed to remove user')
       
+      // Remove user from groupUsers state
+      setGroupUsers(prev => prev.filter(user => user.id !== userId))
+      
       toast.success(lang('removeUserSuccess'))
-      fetchGroupUsers()
     } catch (error) {
       toast.error(lang('errors.removeUserFailed'))
     }

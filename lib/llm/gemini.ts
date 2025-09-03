@@ -336,7 +336,7 @@ export class GeminiLLM extends BaseLLM {
         
         // Return text-only response without any test image
         return {
-          content: textContent || "이미지 생성에 실패했습니다.",
+          content: textContent || "이미지 생성에 failed했습니다.",
           imageUrl: null
         };
       }

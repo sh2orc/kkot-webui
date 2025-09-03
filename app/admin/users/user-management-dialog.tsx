@@ -56,7 +56,6 @@ export function UserManagementDialog({
     name: "",
     password: "",
     role: "user",
-    department: "",
     phone_number: "",
     status: "active" as "active" | "inactive" | "suspended",
     roles: [] as string[],
@@ -83,7 +82,6 @@ export function UserManagementDialog({
         name: user.name,
         password: "",
         role: user.role,
-        department: user.department || "",
         phone_number: user.phone_number || "",
         status: user.status || "active",
         roles: user.roles?.map(r => r.id) || [user.role],
@@ -99,7 +97,6 @@ export function UserManagementDialog({
         name: "",
         password: "",
         role: "user",
-        department: "",
         phone_number: "",
         status: "active",
         roles: ["user"],
@@ -154,7 +151,6 @@ export function UserManagementDialog({
       email: formData.email,
       name: formData.name,
       role: formData.role,
-      department: formData.department,
       phone_number: formData.phone_number,
       status: formData.status,
       roles: formData.roles,
@@ -230,15 +226,7 @@ export function UserManagementDialog({
                   )}
                 </div>
 
-                <div className="col-span-2 sm:col-span-1">
-                  <Label htmlFor="department">{lang('fields.department')}</Label>
-                  <Input
-                    id="department"
-                    value={formData.department}
-                    onChange={(e) => setFormData({ ...formData, department: e.target.value })}
-                    placeholder={lang('placeholders.department')}
-                  />
-                </div>
+
 
                 <div className="col-span-2 sm:col-span-1">
                   <Label htmlFor="phone">{lang('fields.phoneNumber')}</Label>

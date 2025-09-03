@@ -93,7 +93,7 @@ export function CleansingForm({ initialData, isEdit = false }: CleansingFormProp
         body: JSON.stringify(formData),
       });
 
-      // 더 상세한 에러 처리
+      // Handle 더 상세한 에러
       if (!response.ok) {
         const errorData = await response.json().catch(() => null);
         const errorMessage = errorData?.error || `${response.status} ${response.statusText}`;

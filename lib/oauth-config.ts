@@ -12,7 +12,7 @@ export interface OAuthConfig {
 
 let cachedConfig: OAuthConfig | null = null;
 let lastFetchTime = 0;
-const CACHE_DURATION = 60000; // 1분
+const CACHE_DURATION = 60000; // 1 minute
 
 export async function loadOAuthConfig(): Promise<OAuthConfig> {
   const now = Date.now();

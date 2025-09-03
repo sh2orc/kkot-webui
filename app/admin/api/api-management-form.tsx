@@ -34,6 +34,8 @@ const apiManagementSchema = z.object({
   rateLimitRequests: z.number().min(1, "At least 1 request is required."),
   rateLimitWindow: z.number().min(60, "Must be at least 60 seconds."),
   requireAuth: z.boolean(),
+  apiKeyEnabled: z.boolean(),
+  apiKeyEndpointLimited: z.boolean(),
 })
 
 type ApiManagementFormData = z.infer<typeof apiManagementSchema>
@@ -59,6 +61,8 @@ export default function ApiManagementForm({ initialSettings }: ApiManagementForm
       rateLimitRequests: initialSettings?.rateLimitRequests ?? 1000,
       rateLimitWindow: initialSettings?.rateLimitWindow ?? 3600,
       requireAuth: initialSettings?.requireAuth ?? true,
+      apiKeyEnabled: initialSettings?.apiKeyEnabled ?? false,
+      apiKeyEndpointLimited: initialSettings?.apiKeyEndpointLimited ?? false,
     },
   })
 
@@ -80,6 +84,8 @@ export default function ApiManagementForm({ initialSettings }: ApiManagementForm
             rateLimitRequests: settings.rateLimitRequests,
             rateLimitWindow: settings.rateLimitWindow,
             requireAuth: settings.requireAuth,
+            apiKeyEnabled: settings.apiKeyEnabled ?? false,
+            apiKeyEndpointLimited: settings.apiKeyEndpointLimited ?? false,
           })
         }
       } catch (error) {
@@ -117,7 +123,7 @@ export default function ApiManagementForm({ initialSettings }: ApiManagementForm
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}))
-        const errorMessage = errorData.details || errorData.error || `HTTP ${response.status}: API 설정 저장에 실패했습니다.`
+        const errorMessage = errorData.details || errorData.error || `HTTP ${response.status}: API 설정 저장에 failed했습니다.`
         throw new Error(errorMessage)
       }
 
@@ -493,6 +499,61 @@ export default function ApiManagementForm({ initialSettings }: ApiManagementForm
                     <FormLabel className="text-base font-medium">{lang('apiService.authentication.requireAuth.label')}</FormLabel>
                     <FormDescription>
                       {lang('apiService.authentication.requireAuth.description')}
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+          </CardContent>
+        </Card>
+
+        {/* API Key Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle>{lang('apiKey.title')}</CardTitle>
+            <CardDescription>
+              {lang('apiKey.description')}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-6">
+            <FormField
+              control={form.control}
+              name="apiKeyEnabled"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between">
+                  <div>
+                    <FormLabel className="text-base font-medium">{lang('apiKey.enabled.label')}</FormLabel>
+                    <FormDescription>
+                      {lang('apiKey.enabled.description')}
+                    </FormDescription>
+                  </div>
+                  <FormControl>
+                    <Switch
+                      checked={field.value}
+                      onCheckedChange={field.onChange}
+                    />
+                  </FormControl>
+                </FormItem>
+              )}
+            />
+            
+            <Separator />
+            
+            <FormField
+              control={form.control}
+              name="apiKeyEndpointLimited"
+              render={({ field }) => (
+                <FormItem className="flex items-center justify-between">
+                  <div>
+                    <FormLabel className="text-base font-medium">{lang('apiKey.endpointLimited.label')}</FormLabel>
+                    <FormDescription>
+                      {lang('apiKey.endpointLimited.description')}
                     </FormDescription>
                   </div>
                   <FormControl>

@@ -85,7 +85,7 @@ pgvector 연결 문제 해결 방법:
 
       return NextResponse.json(
         { 
-          error: `연결 테스트 실패: ${errorMessage}`,
+          error: `연결 테스트 failed: ${errorMessage}`,
           troubleshooting: troubleshooting || undefined
         },
         { status: 400 }

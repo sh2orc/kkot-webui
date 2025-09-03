@@ -28,6 +28,8 @@ export async function GET() {
       rateLimitRequests: apiManagement.rateLimitRequests,
       rateLimitWindow: apiManagement.rateLimitWindow,
       requireAuth: apiManagement.requireAuth,
+      apiKeyEnabled: apiManagement.apiKeyEnabled,
+      apiKeyEndpointLimited: apiManagement.apiKeyEndpointLimited,
     })
   } catch (error) {
     console.error('API Management GET error:', error)
@@ -56,6 +58,8 @@ export async function PUT(request: NextRequest) {
       rateLimitRequests,
       rateLimitWindow,
       requireAuth,
+      apiKeyEnabled,
+      apiKeyEndpointLimited,
     } = body
 
     // Save data using Drizzle ORM
@@ -68,6 +72,8 @@ export async function PUT(request: NextRequest) {
       rateLimitRequests,
       rateLimitWindow,
       requireAuth,
+      apiKeyEnabled,
+      apiKeyEndpointLimited,
     })
 
     return NextResponse.json({ 

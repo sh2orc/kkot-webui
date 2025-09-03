@@ -15,7 +15,7 @@ export async function GET(request: NextRequest) {
     googleAuthUrl.searchParams.set('access_type', 'offline');
     googleAuthUrl.searchParams.set('prompt', 'consent');
     
-    // 상태값 생성 (보안을 위해)
+    // Create 상태값 (보안을 위해)
     const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15);
     googleAuthUrl.searchParams.set('state', state);
 

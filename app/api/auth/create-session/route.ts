@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { 
         success: false,
-        error: '세션 생성 중 오류가 발생했습니다.' 
+        error: '세션 생성 중 An error occurred.' 
       },
       { status: 500 }
     );

@@ -76,19 +76,19 @@ export default function AuthPage() {
       
       switch(error) {
         case 'OAuthSignin':
-          errorMessage = 'OAuth 로그인 시작 중 오류가 발생했습니다.';
+          errorMessage = 'OAuth 로그인 시작 중 An error occurred.';
           break;
         case 'OAuthCallback':
-          errorMessage = 'OAuth 콜백 처리 중 오류가 발생했습니다. Google Console에서 콜백 URL을 확인하세요.';
+          errorMessage = 'OAuth 콜백 처리 중 An error occurred. Google Console에서 콜백 URL을 확인하세요.';
           break;
         case 'OAuthCreateAccount':
-          errorMessage = 'OAuth 계정 생성 중 오류가 발생했습니다.';
+          errorMessage = 'OAuth 계정 생성 중 An error occurred.';
           break;
         case 'EmailCreateAccount':
-          errorMessage = '이메일 계정 생성 중 오류가 발생했습니다.';
+          errorMessage = '이메일 계정 생성 중 An error occurred.';
           break;
         case 'Callback':
-          errorMessage = 'OAuth 인증 콜백 오류가 발생했습니다.';
+          errorMessage = 'OAuth 인증 콜백 An error occurred.';
           break;
         case 'OAuthAccountNotLinked':
           errorMessage = '이미 다른 방법으로 가입된 이메일입니다.';
@@ -100,10 +100,10 @@ export default function AuthPage() {
           errorMessage = 'Google OAuth 설정 오류. Authorized redirect URIs를 확인하세요: http://localhost:3000/api/auth/callback/google';
           break;
         case 'email_required':
-          errorMessage = '카카오 로그인을 위해서는 이메일 동의가 필요합니다. 카카오 개발자 콘솔에서 account_email 동의항목을 설정해주세요.';
+          errorMessage = '카카오 로그인을 위해서는 이메일 동의가 is required. 카카오 개발자 콘솔에서 account_email 동의항목을 설정해주세요.';
           break;
         case 'kakao_oauth':
-          errorMessage = '카카오 OAuth 인증 중 오류가 발생했습니다. 카카오 개발자 콘솔 설정을 확인해주세요.';
+          errorMessage = '카카오 OAuth 인증 중 An error occurred. 카카오 개발자 콘솔 설정을 확인해주세요.';
           break;
         case 'GUEST_ACCOUNT':
           errorMessage = '게스트 계정은 로그인할 수 없습니다. 관리자에게 문의하여 권한을 요청하세요.';
@@ -237,14 +237,14 @@ export default function AuthPage() {
       
       if (result?.error) {
         console.error('OAuth error:', result.error);
-        toast.error(`OAuth 로그인 실패: ${result.error}`);
+        toast.error(`OAuth 로그인 failed: ${result.error}`);
       } else if (result?.url) {
         console.log('Redirecting to:', result.url);
         window.location.href = result.url;
       }
     } catch (error) {
       console.error('OAuth login error:', error);
-      toast.error('OAuth 로그인에 실패했습니다.');
+      toast.error('OAuth 로그인에 failed했습니다.');
     } finally {
       setOauthLoading('');
     }
@@ -307,7 +307,7 @@ export default function AuthPage() {
         data = text ? JSON.parse(text) : {};
       } catch (parseError) {
         console.error('Failed to parse login response:', parseError);
-        toast.error('서버 응답 파싱 실패');
+        toast.error('서버 응답 파싱 failed');
         setIsLoading(false);
         setLoadingMessage('');
         return;
@@ -319,12 +319,12 @@ export default function AuthPage() {
         setLoginError(errorMessage);
         toast.error(errorMessage);
         setIsLoading(false);  // 버튼 활성화
-        setLoadingMessage('');  // 로딩 메시지 초기화
+        setLoadingMessage('');  // Initialize 로딩 메시지
         return;
       }
 
       // Step 2: Show success message first
-      toast.success(data.message || '로그인 검증 성공!');
+      toast.success(data.message || '로그인 검증 successful!');
       setLoadingMessage('세션 생성 중...');
       
       // Step 3: Create session using custom API
@@ -350,7 +350,7 @@ export default function AuthPage() {
             sessionData = text ? JSON.parse(text) : {};
           } catch (parseError) {
             console.error('Failed to parse session response:', parseError);
-            toast.error('세션 응답 파싱 실패');
+            toast.error('세션 응답 파싱 failed');
             setIsLoading(false);
             setLoadingMessage('');
             return;
@@ -358,15 +358,15 @@ export default function AuthPage() {
           console.log('Session creation response:', sessionData);
 
           if (!sessionData.success) {
-            const errorMessage = sessionData.error || '세션 생성에 실패했습니다.';
+            const errorMessage = sessionData.error || '세션 생성에 failed했습니다.';
             setLoginError(errorMessage);
             toast.error(errorMessage);
             setIsLoading(false);  // 버튼 활성화
-            setLoadingMessage('');  // 로딩 메시지 초기화
+            setLoadingMessage('');  // Initialize 로딩 메시지
             return;
           }
 
-          toast.success('로그인 성공! 리다이렉트 중...');
+          toast.success('로그인 successful! 리다이렉트 중...');
           setLoadingMessage('페이지 이동 중...');
           
           // Verify session is created
@@ -390,7 +390,7 @@ export default function AuthPage() {
           
         } catch (sessionError) {
           console.error('Session creation error:', sessionError);
-          toast.error('세션 생성 중 오류가 발생했습니다.');
+          toast.error('세션 생성 중 An error occurred.');
         } finally {
           setIsLoading(false);
           setLoadingMessage('');
@@ -456,7 +456,7 @@ export default function AuthPage() {
         data = text ? JSON.parse(text) : {};
       } catch (parseError) {
         console.error('Failed to parse register response:', parseError);
-        toast.error('서버 응답 파싱 실패');
+        toast.error('서버 응답 파싱 failed');
         setIsLoading(false);
         return;
       }

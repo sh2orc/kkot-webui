@@ -55,6 +55,18 @@
       }
     }
   },
+  "apiKey": {
+    "title": "API Key Settings",
+    "description": "API key activation and restriction settings",
+    "enabled": {
+      "label": "Enable API Keys",
+      "description": "Allow users to generate and use API keys"
+    },
+    "endpointLimited": {
+      "label": "Limit API Key Endpoints",
+      "description": "Restrict API keys to specific endpoints only"
+    }
+  },
   "apiKeys": {
     "title": "API Key Management",
     "description": "Create and manage API keys for access",

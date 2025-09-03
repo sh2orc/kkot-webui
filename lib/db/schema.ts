@@ -336,6 +336,8 @@ export const apiManagement = getDbType() === 'sqlite'
       rateLimitRequests: integer('rate_limit_requests').default(1000),
       rateLimitWindow: integer('rate_limit_window').default(3600),
       requireAuth: integer('require_auth', { mode: 'boolean' }).default(true),
+      apiKeyEnabled: integer('api_key_enabled', { mode: 'boolean' }).default(false),
+      apiKeyEndpointLimited: integer('api_key_endpoint_limited', { mode: 'boolean' }).default(false),
       createdAt: integer('created_at', { mode: 'timestamp' }),
       updatedAt: integer('updated_at', { mode: 'timestamp' }),
     })
@@ -349,6 +351,8 @@ export const apiManagement = getDbType() === 'sqlite'
       rateLimitRequests: integer('rate_limit_requests').default(1000),
       rateLimitWindow: integer('rate_limit_window').default(3600),
       requireAuth: boolean('require_auth').default(true),
+      apiKeyEnabled: boolean('api_key_enabled').default(false),
+      apiKeyEndpointLimited: boolean('api_key_endpoint_limited').default(false),
       createdAt: timestamp('created_at').defaultNow(),
       updatedAt: timestamp('updated_at').defaultNow(),
     });

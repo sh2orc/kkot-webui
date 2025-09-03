@@ -74,7 +74,7 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
                 height={24} 
                 className="h-6 w-6"
               />
-              <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{branding.appName}</span>
+              <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{lang('adminSettings')}</span>
             </div>
           )}
           {isChatPage && (

@@ -5,20 +5,17 @@ import { initDatabase } from '../lib/db/setup';
 async function setupOAuth() {
   console.log('Setting up OAuth configuration...\n');
   
-  // 데이터베이스 초기화
+  // Initialize database
   await initDatabase();
   
-  // 예제 OAuth 설정 (실제 값으로 변경 필요)
+  // Example OAuth settings (need to be changed to actual values)
   const oauthSettings = [
     // Google OAuth
     { key: 'auth.oauth.google.enabled', value: 'false' },
     { key: 'auth.oauth.google.clientId', value: '' },
     { key: 'auth.oauth.google.clientSecret', value: '' },
     
-    // GitHub OAuth
-    { key: 'auth.oauth.github.enabled', value: 'false' },
-    { key: 'auth.oauth.github.clientId', value: '' },
-    { key: 'auth.oauth.github.clientSecret', value: '' },
+
     
     // Microsoft OAuth
     { key: 'auth.oauth.microsoft.enabled', value: 'false' },

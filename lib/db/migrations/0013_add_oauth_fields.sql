@@ -3,7 +3,7 @@
 
 -- Add OAuth related columns
 ALTER TABLE users ADD COLUMN google_id TEXT;
-ALTER TABLE users ADD COLUMN oauth_provider TEXT; -- 'google', 'github', etc.
+ALTER TABLE users ADD COLUMN oauth_provider TEXT; -- 'google', 'kakao', 'naver', etc.
 ALTER TABLE users ADD COLUMN oauth_linked_at TIMESTAMP;
 ALTER TABLE users ADD COLUMN oauth_profile_picture TEXT;
 

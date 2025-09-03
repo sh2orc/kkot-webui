@@ -2,7 +2,6 @@
   "title": "User Management",
   "userList": "User List",
   "addUser": "Add User",
-  "createUser": "Create User",
   "editUser": "Edit User",
   "userDetail": "User Details",
   "searchPlaceholder": "Search by name, email or department",
@@ -56,7 +55,10 @@
   },
   "placeholders": {
     "department": "e.g. Development Team",
-    "phoneNumber": "e.g. +1 234 567 8900"
+    "phone": "e.g. +1 234 567 8900",
+    "email": "Enter user email",
+    "name": "Enter user name",
+    "password": "Enter password"
   },
   "roles": {
     "user": "User",
@@ -71,9 +73,10 @@
   },
   "tabs": {
     "info": "Basic Info",
+    "basic": "Basic Info",
     "permissions": "Permissions",
     "activity": "Activity Log",
-    "basicInfo": "Basic Info"
+    "groups": "Groups"
   },
   "activity": {
     "action": "Action",
@@ -110,6 +113,10 @@
     "passwordResetFailed": "Failed to reset password",
     "unlockFailed": "Failed to unlock account"
   },
+  "roleChangeSuccess": "Role changed successfully",
+  "roleChangeFailed": "Failed to change role",
+  "connected": "Connected",
+  "dateError": "Date Error",
   "permissionManagement": "Permission Management",
   "confirmDeleteRole": "Are you sure you want to delete this role?",
   "system": "System",
@@ -126,5 +133,18 @@
     "select": "Select Permissions",
     "count": "Permission Count",
     "permissions": "permissions"
-  }
+  },
+  "createUser": "Create User",
+  "createUserDescription": "Add a new user to the system",
+  "createUserSubDescription": "Enter user information and set permissions and groups",
+  "newUser": "New User",
+  "creating": "Creating...",
+  "warnings": {
+    "guestAccount": "Guest accounts cannot log in."
+  },
+  "descriptions": {
+    "selectRoles": "Select roles to assign to the user",
+    "selectGroups": "Select groups for the user to belong to"
+  },
+  "noActivityLogs": "No activity logs found."
 }

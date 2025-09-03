@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // DB에서 Google OAuth 설정 가져오기
+    // Get Google OAuth settings from DB
     const googleClientIdSetting = await adminSettingsRepository.findByKey('auth.oauth.google.clientId');
     const googleClientSecretSetting = await adminSettingsRepository.findByKey('auth.oauth.google.clientSecret');
     
@@ -39,7 +39,7 @@ export async function GET(request: NextRequest) {
     
     console.log('🔍 Using Client ID from:', googleClientIdSetting?.[0]?.value ? 'DB' : 'Environment');
     console.log('🔍 Using Client Secret from:', googleClientSecretSetting?.[0]?.value ? 'DB' : 'Environment');
-    // 액세스 토큰 교환
+    // Exchange access token
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
       headers: {
@@ -62,7 +62,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${BASE_URL}/auth?error=token_exchange`);
     }
 
-    // 사용자 정보 가져오기
+    // Get user information
     const userResponse = await fetch('https://www.googleapis.com/oauth2/v2/userinfo', {
       headers: {
         Authorization: `Bearer ${tokenData.access_token}`,
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(`${BASE_URL}/auth?error=user_info`);
     }
 
-    // 사용자 처리
+    // Handle user
     console.log('🚀 Processing user:', { email: userData.email, name: userData.name });
     
     try {
@@ -90,12 +90,12 @@ export async function GET(request: NextRequest) {
         console.log('🚀 googleId field:', existingUser.googleId);
         console.log('🚀 google_id field:', existingUser.google_id);
         
-        // OAuth 연동 여부 확인 (googleId 또는 google_id 모두 체크)
+        // Check OAuth integration status (check both googleId and google_id)
         const hasGoogleId = existingUser.googleId || existingUser.google_id;
         if (!hasGoogleId) {
           console.log('🚀 User exists but not linked to Google, redirecting to link page');
           
-          // OAuth 데이터를 임시 저장
+          // Store OAuth data temporarily
           const { storeOAuthData } = await import('@/lib/oauth-temp-storage');
           const linkToken = storeOAuthData({
             id: userData.id,
@@ -112,7 +112,7 @@ export async function GET(request: NextRequest) {
       } else {
         console.log('🚀 No existing user, redirecting to link page for new account creation');
         
-        // OAuth 데이터를 임시 저장
+        // Store OAuth data temporarily
         const { storeOAuthData } = await import('@/lib/oauth-temp-storage');
         const linkToken = storeOAuthData({
           id: userData.id,
@@ -129,7 +129,7 @@ export async function GET(request: NextRequest) {
       await userRepository.updateLastLogin(user.id);
       console.log('🚀 Updated last login time for user:', user.id);
 
-      // NextAuth JWT 토큰 생성
+      // Generate NextAuth JWT token
       console.log('🚀 Creating NextAuth JWT token');
       
       const authUser = {
@@ -140,7 +140,7 @@ export async function GET(request: NextRequest) {
       };
       
       const secret = process.env.NEXTAUTH_SECRET;
-      const maxAge = 30 * 24 * 60 * 60; // 30일
+      const maxAge = 30 * 24 * 60 * 60; // 30 days
       
       const token = await encode({
         token: {
@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
       
       console.log('🚀 NextAuth JWT token created:', !!token);
       
-      // 세션 쿠키 설정
+      // Set session cookie
       const cookieStore = await cookies();
       const isLocalhost = request.nextUrl.hostname === 'localhost' || request.nextUrl.hostname === '127.0.0.1';
       cookieStore.set('next-auth.session-token', token, {

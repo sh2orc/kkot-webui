@@ -112,7 +112,7 @@ export default function LinkAccountPage() {
         setOauthData(data.oauthData);
         setExistingUser(data.existingUser);
       } catch (error) {
-        setError('연동 정보를 가져오는 중 오류가 발생했습니다.');
+        setError('연동 정보를 가져오는 중 An error occurred.');
       } finally {
         setLoading(false);
       }
@@ -152,18 +152,18 @@ export default function LinkAccountPage() {
         if (response.status === 403 && data.message) {
           setGuestMessage(data.message);
         } else {
-          setError(data.error || '계정 연동에 실패했습니다.');
+          setError(data.error || '계정 연동에 failed했습니다.');
         }
         return;
       }
 
-      // 연동 성공 - 로그인 처리
+      // 연동 successful - 로그인 처리
       if (data.success) {
         // 세션 새로고침을 위해 페이지 전체 새로고침
         window.location.href = '/chat';
       }
     } catch (error) {
-      setError('계정 연동 중 오류가 발생했습니다.');
+      setError('계정 연동 중 An error occurred.');
     } finally {
       setLinking(false);
     }
@@ -200,18 +200,18 @@ export default function LinkAccountPage() {
         if (response.status === 403 && data.message) {
           setGuestMessage(data.message);
         } else {
-          setError(data.error || '새 계정 생성에 실패했습니다.');
+          setError(data.error || '새 계정 생성에 failed했습니다.');
         }
         return;
       }
 
-      // 계정 생성 성공 - 로그인 처리
+      // Create 계정 successful - 로그인 처리
       if (data.success) {
         // 세션 새로고침을 위해 페이지 전체 새로고침
         window.location.href = '/chat';
       }
     } catch (error) {
-      setError('새 계정 생성 중 오류가 발생했습니다.');
+      setError('새 계정 생성 중 An error occurred.');
     } finally {
       setLinking(false);
     }

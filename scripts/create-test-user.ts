@@ -6,7 +6,7 @@ import { users } from '../lib/db/schema';
 async function createTestUser() {
   console.log('Creating test user...\n');
   
-  // 데이터베이스 초기화
+  // Initialize database
   const db = await initDatabase();
   
   const testEmail = 'test@example.com';
@@ -14,7 +14,7 @@ async function createTestUser() {
   const testUsername = 'Test User';
   
   try {
-    // 기존 사용자 확인
+    // Check existing user
     const existingUsers = await db.select().from(users).where(sql`${users.email} = ${testEmail}`);
     
     if (existingUsers.length > 0) {
@@ -26,10 +26,10 @@ async function createTestUser() {
         role: existingUsers[0].role
       });
     } else {
-      // 새 사용자 생성
+      // Create new user
       const hashedPassword = hashPassword(testPassword);
       
-      // 첫 번째 사용자인지 확인
+      // Check if first user
       const allUsers = await db.select().from(users);
       const isFirstUser = allUsers.length === 0;
       const userRole = isFirstUser ? 'admin' : 'user';

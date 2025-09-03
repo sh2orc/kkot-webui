@@ -32,7 +32,6 @@ export async function POST(request: NextRequest) {
 
         'kakao': 'auth.oauth.kakao.clientSecret',
         'naver': 'auth.oauth.naver.clientSecret',
-        'github': 'auth.oauth.github.clientSecret',
       }
       
       const secretKey = secretKeyMap[provider]
@@ -75,9 +74,6 @@ export async function POST(request: NextRequest) {
         break
       case 'naver':
         testResult = await testNaverOAuth(clientId, actualClientSecret)
-        break
-      case 'github':
-        testResult = await testGithubOAuth(clientId, actualClientSecret)
         break
       default:
         return NextResponse.json(
@@ -123,7 +119,7 @@ async function testGoogleOAuth(clientId: string, clientSecret: string) {
       }
     }
 
-    // Client credentials가 유효하면 성공으로 간주
+    // Client credentials가 유효하면 successful으로 간주
     return {
       success: true,
       message: 'Google OAuth configuration is valid',
@@ -149,7 +145,7 @@ async function testKakaoOAuth(clientId: string, clientSecret: string) {
       grant_type: 'authorization_code',
       client_id: clientId,
       redirect_uri: 'http://localhost:3000/api/auth/callback/kakao',
-      code: 'invalid_test_code', // 의도적으로 잘못된 코드 사용
+      code: 'invalid_test_code', // 의도적으로 Invalid 코드 사용
     })
 
     // Client Secret이 있으면 추가
@@ -167,7 +163,7 @@ async function testKakaoOAuth(clientId: string, clientSecret: string) {
 
     const result = await response.json()
 
-    // Client ID가 잘못된 경우 (400 with invalid_client)
+    // Client ID가 Invalid 경우 (400 with invalid_client)
     if (result.error === 'invalid_client') {
       return {
         success: false,
@@ -176,7 +172,7 @@ async function testKakaoOAuth(clientId: string, clientSecret: string) {
       }
     }
 
-    // Redirect URI가 잘못된 경우
+    // Redirect URI가 Invalid 경우
     if (result.error === 'invalid_grant' && result.error_description?.includes('redirect_uri')) {
       return {
         success: false,
@@ -185,7 +181,7 @@ async function testKakaoOAuth(clientId: string, clientSecret: string) {
       }
     }
 
-    // Authorization code가 잘못된 경우 (예상되는 정상적인 에러)
+    // Authorization code가 Invalid 경우 (예상되는 정상적인 에러)
     if (result.error === 'invalid_grant' && !result.error_description?.includes('redirect_uri')) {
       return {
         success: true,
@@ -260,39 +256,4 @@ async function testNaverOAuth(clientId: string, clientSecret: string) {
   }
 }
 
-// GitHub OAuth 테스트
-async function testGithubOAuth(clientId: string, clientSecret: string) {
-  try {
-    // GitHub API를 통한 앱 정보 조회
-    const response = await fetch(`https://api.github.com/applications/${clientId}/token`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Basic ${Buffer.from(`${clientId}:${clientSecret}`).toString('base64')}`,
-        'Accept': 'application/vnd.github.v3+json',
-      },
-      body: JSON.stringify({
-        access_token: 'dummy_token_for_validation'
-      }),
-    })
 
-    if (response.status === 401) {
-      return {
-        success: false,
-        message: 'Invalid client credentials',
-        details: 'GitHub Client ID 또는 Client Secret이 올바르지 않습니다.'
-      }
-    }
-
-    return {
-      success: true,
-      message: 'GitHub OAuth configuration is valid',
-      details: 'GitHub OAuth 설정이 올바르게 구성되었습니다.'
-    }
-  } catch (error) {
-    return {
-      success: false,
-      message: 'Connection failed',
-      details: 'GitHub OAuth 서버에 연결할 수 없습니다.'
-    }
-  }
-}

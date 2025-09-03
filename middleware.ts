@@ -4,7 +4,7 @@ import { getToken } from 'next-auth/jwt'
 
 export async function middleware(request: NextRequest) {
   // Get JWT token
-  // localhost에서는 production 모드라도 secure cookie를 사용하지 않음
+  // Don't use secure cookies for localhost even in production mode
   const isLocalhost = request.nextUrl.hostname === 'localhost' || request.nextUrl.hostname === '127.0.0.1'
   const token = await getToken({ 
     req: request, 

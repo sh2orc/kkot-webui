@@ -1277,7 +1277,7 @@ Parallel Processing Plan:
               });
               
               // Fallback to normal text generation
-              const errorContent = `🚨 이미지 ${hasUploadedImages ? '편집' : '생성'} 중 오류가 발생했습니다: ${imageError instanceof Error ? imageError.message : String(imageError)}\n\n대신 텍스트로 설명해드리겠습니다.\n\n`;
+              const errorContent = `🚨 이미지 ${hasUploadedImages ? '편집' : '생성'} 중 An error occurred: ${imageError instanceof Error ? imageError.message : String(imageError)}\n\n대신 텍스트로 설명해드리겠습니다.\n\n`;
               
               safeEnqueue(
                 new TextEncoder().encode(

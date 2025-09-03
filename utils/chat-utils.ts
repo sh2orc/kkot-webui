@@ -30,7 +30,7 @@ export const scrollToBottomInstant = (
     container.scrollTop = Math.max(0, maxScrollTop);
     lastScrollHeight.current = container.scrollHeight;
     
-    // 즉시 스크롤 완료 플래그 리셋 (instant이므로 바로 완료됨)
+    // Reset scrolling flag immediately (instant scroll completes right away)
     setTimeout(() => {
       isScrollingToBottom.current = false;
     }, 50);
@@ -58,7 +58,7 @@ export const scrollToBottomSmooth = (
       return;
     }
     
-    // 스크롤 시작
+    // Start scrolling
     isScrollingToBottom.current = true;
     lastScrollHeight.current = newScrollHeight;
     
@@ -71,20 +71,20 @@ export const scrollToBottomSmooth = (
       behavior: 'smooth'
     });
     
-    // 스크롤 완료 후 플래그 리셋
+    // Reset flag after scroll completion
     setTimeout(() => {
       const currentMaxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
       if (container.scrollTop < currentMaxScrollTop - 20) {
         container.scrollTop = currentMaxScrollTop;
       }
       
-      // 최종 확인 후 플래그 리셋
+      // Final check and flag reset
       setTimeout(() => {
         const finalMaxScrollTop = Math.max(0, container.scrollHeight - container.clientHeight);
         if (container.scrollTop < finalMaxScrollTop - 20) {
           container.scrollTop = finalMaxScrollTop;
         }
-        // 스크롤 완료
+        // Scroll completed
         isScrollingToBottom.current = false;
       }, 300);
     }, 600); // Wait for animation completion

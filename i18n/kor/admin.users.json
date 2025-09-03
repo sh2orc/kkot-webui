@@ -2,7 +2,6 @@
   "title": "사용자 관리",
   "userList": "사용자 목록",
   "addUser": "사용자 추가",
-  "createUser": "사용자 생성",
   "editUser": "사용자 편집",
   "userDetail": "사용자 상세정보",
   "searchPlaceholder": "이름, 이메일 또는 부서로 검색",
@@ -56,7 +55,10 @@
   },
   "placeholders": {
     "department": "예: 개발팀",
-    "phoneNumber": "예: 010-1234-5678"
+    "phone": "예: 010-1234-5678",
+    "email": "사용자 이메일을 입력하세요",
+    "name": "사용자 이름을 입력하세요",
+    "password": "비밀번호를 입력하세요"
   },
   "roles": {
     "user": "사용자",
@@ -71,9 +73,10 @@
   },
   "tabs": {
     "info": "기본 정보",
+    "basic": "기본 정보",
     "permissions": "권한",
     "activity": "활동 로그",
-    "basicInfo": "기본 정보"
+    "groups": "그룹"
   },
   "activity": {
     "action": "작업",
@@ -110,6 +113,10 @@
     "passwordResetFailed": "비밀번호 재설정에 실패했습니다",
     "unlockFailed": "계정 잠금 해제에 실패했습니다"
   },
+  "roleChangeSuccess": "권한이 성공적으로 변경되었습니다",
+  "roleChangeFailed": "권한 변경에 실패했습니다",
+  "connected": "연결",
+  "dateError": "날짜 오류",
   "permissionManagement": "권한 관리",
   "confirmDeleteRole": "이 역할을 삭제하시겠습니까?",
   "system": "시스템",
@@ -126,5 +133,18 @@
     "select": "권한 선택",
     "count": "권한 수",
     "permissions": "개 권한"
-  }
+  },
+  "createUser": "사용자 생성",
+  "createUserDescription": "새로운 사용자를 시스템에 추가합니다",
+  "createUserSubDescription": "사용자 정보를 입력하고 권한과 그룹을 설정하세요",
+  "newUser": "새 사용자",
+  "creating": "생성 중...",
+  "warnings": {
+    "guestAccount": "게스트 계정은 로그인할 수 없습니다."
+  },
+  "descriptions": {
+    "selectRoles": "사용자에게 할당할 역할을 선택하세요",
+    "selectGroups": "사용자가 속할 그룹을 선택하세요"
+  },
+  "noActivityLogs": "활동 로그가 없습니다."
 }

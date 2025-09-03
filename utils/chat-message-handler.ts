@@ -65,19 +65,6 @@ export const sendMessageToAI = async (
   const finalDeepResearch = urlDeepResearch || localDeepResearch || !!isDeepResearchActive;
   const finalGlobe = urlGlobe || localGlobe || !!isGlobeActive;
   
-  // 디버깅 로그 추가 (개발 환경에서만)
-  if (process.env.NODE_ENV === 'development') {
-    console.log('📨 메시지 전송 시 딥리서치 상태 확인:');
-    console.log('  URL 파라미터:', urlDeepResearch);
-    console.log('  localStorage:', localDeepResearch);
-    console.log('  React State:', !!isDeepResearchActive);
-    console.log('  === 최종 결과 ===');
-    console.log('  finalDeepResearch:', finalDeepResearch);
-    console.log('  finalGlobe:', finalGlobe);
-    console.log('  chatId:', chatId);
-    console.log('  message preview:', message.substring(0, 50) + '...');
-  }
-  
   if (!session?.user?.email) {
     return;
   }
@@ -167,10 +154,7 @@ export const sendMessageToAI = async (
         formData.append('fromMessageId', fromMessageId);
       }
       
-      // 디버깅: multipart 전송 시 딥리서치 값 확인
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🚀 multipart로 서버에 전송되는 딥리서치 값:', finalDeepResearch);
-      }
+
       
       response = await fetch(`/api/chat/${chatId}`, {
         method: 'POST',
@@ -190,11 +174,7 @@ export const sendMessageToAI = async (
         ...(fromMessageId && { fromMessageId })
       };
       
-      // 디버깅: JSON 전송 시 딥리서치 값 확인
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🚀 JSON으로 서버에 전송되는 딥리서치 값:', finalDeepResearch);
-        console.log('🚀 전체 요청 body:', requestBody);
-      }
+
       
       response = await fetch(`/api/chat/${chatId}`, {
         method: 'POST',
@@ -314,24 +294,14 @@ export const sendMessageToAI = async (
                   }
                   
                   if (data.parallelProcessingStarted && data.chatId) {
-                    console.log('🚀 Received parallel processing start signal:', {
-                      chatId: data.chatId,
-                      hasStoredData: !!storedDeepResearchData,
-                      storedDataSubQuestions: storedDeepResearchData?.stepInfo?.subQuestions?.length || 0
-                    });
+
                     
                     // Save chatId for later use in parallel processing
                     storedChatId = data.chatId;
                     
                     // Start parallel processing if stored deep research data exists
                     if (storedDeepResearchData && storedDeepResearchData.stepInfo?.useParallelProcessing && storedDeepResearchData.stepInfo?.subQuestions) {
-                      console.log('🎯 Starting parallel processing with stored data:', {
-                        subQuestionsCount: storedDeepResearchData.stepInfo.subQuestions.length,
-                        originalQuery: storedDeepResearchData.stepInfo.originalQuery,
-                        modelId: storedDeepResearchData.stepInfo.modelId,
-                        assistantMessageId,
-                        storedChatId
-                      });
+
                       
                       // Save sub-questions to message content
                       assistantContent += storedDeepResearchData.content;
@@ -365,14 +335,7 @@ export const sendMessageToAI = async (
 
                   // Process deep research streaming
                   if (data.deepResearchStream) {
-                    console.log('🔍 Deep research streaming data:', {
-                      stepType: data.stepType,
-                      stepInfo: data.stepInfo,
-                      hasSubQuestions: !!data.stepInfo?.subQuestions,
-                      useParallelProcessing: data.stepInfo?.useParallelProcessing,
-                      subQuestionsCount: data.stepInfo?.subQuestions?.length || 0,
-                      content: data.content?.substring(0, 100)
-                    });
+
                     
                     // Save data for parallel processing
                     if (data.stepInfo?.useParallelProcessing && data.stepInfo?.subQuestions) {
@@ -381,14 +344,7 @@ export const sendMessageToAI = async (
                     
                     // Check parallel processing mode
                     if (data.stepInfo?.useParallelProcessing && data.stepInfo?.subQuestions) {
-                      console.log('🎯 Direct parallel processing started:', {
-                        subQuestionsCount: data.stepInfo.subQuestions.length,
-                        originalQuery: data.stepInfo.originalQuery,
-                        modelId: data.stepInfo.modelId,
-                        assistantMessageId,
-                        storedChatId,
-                        dataChatId: data.chatId
-                      });
+
                       
                       // Save sub-questions to message content
                       assistantContent += data.content;
@@ -528,11 +484,7 @@ export const sendMessageToAI = async (
                   }
 
                   if (data.done) {
-                    console.log('=== Streaming completed (data.done=true) ===');
-                    console.log('Final content length:', assistantContent.length);
-                    
                     // Reset streaming state immediately
-                    console.log('=== Reset streaming state immediately ===');
                     setIsStreaming(false);
                     if (setRegeneratingMessageId) setRegeneratingMessageId(null);
                     setStreamingMessageId(null);

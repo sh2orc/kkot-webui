@@ -70,7 +70,7 @@ export async function PUT(
   } catch (error) {
     console.error('Failed to update agent:', error);
     return NextResponse.json(
-      { error: '에이전트 정보를 업데이트하는 중 오류가 발생했습니다.' },
+      { error: '에이전트 정보를 업데이트하는 중 An error occurred.' },
       { status: 500 }
     );
   }
@@ -88,7 +88,7 @@ export async function DELETE(
   } catch (error) {
     console.error('Failed to delete agent:', error);
     return NextResponse.json(
-      { error: '에이전트를 삭제하는 중 오류가 발생했습니다.' },
+      { error: '에이전트를 삭제하는 중 An error occurred.' },
       { status: 500 }
     );
   }

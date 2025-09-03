@@ -64,7 +64,7 @@ export const ChatInput = memo(function ChatInput({
 
   // Clear images function
   const clearImagesHandler = () => {
-    console.log('🖼️ Clearing images in ChatInput')
+
     setUploadedImages([])
     setImagePreviews([])
     
@@ -77,7 +77,6 @@ export const ChatInput = memo(function ChatInput({
   // Clear images when clearImages prop changes (skip initial render)
   const isFirstRender = useRef(true)
   useEffect(() => {
-    console.log('📸 clearImages prop changed:', clearImages, 'isFirstRender:', isFirstRender.current)
     
     // Skip the first render to avoid clearing images on mount
     if (isFirstRender.current) {
@@ -86,7 +85,7 @@ export const ChatInput = memo(function ChatInput({
     }
     
     // Clear images on any change of clearImages prop (toggle behavior)
-    console.log('✨ Clearing images due to clearImages prop change')
+
     clearImagesHandler()
   }, [clearImages])
 
@@ -235,11 +234,10 @@ export const ChatInput = memo(function ChatInput({
       return
     }
 
-    console.log('🚀 Submit clicked, current images:', uploadedImages.length)
+
     handleSubmit()
     
     // Always clear images after submitting (whether there are images or not)
-    console.log('🧹 Clearing images after submit')
     clearImagesHandler()
   }
 
@@ -361,7 +359,7 @@ export const ChatInput = memo(function ChatInput({
                       const newState = !isDeepResearchActive;
                       setIsDeepResearchActive(newState);
                       
-                      // localStorage 업데이트 (현재 채팅 ID가 있는 경우만)
+                      // Update localStorage (only if current chat ID exists)
                       if (typeof window !== 'undefined') {
                         const currentChatId = window.location.pathname.split('/').pop();
                         if (currentChatId && currentChatId !== 'chat') {
@@ -373,7 +371,7 @@ export const ChatInput = memo(function ChatInput({
                         }
                       }
                       
-                      console.log('🧠 딥리서치 토글:', { newState, localStorage: newState });
+
                     }}
                   >
                     <Brain className="h-4 w-4" />

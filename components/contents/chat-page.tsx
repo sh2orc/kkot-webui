@@ -87,26 +87,26 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     }
   }, [isMobile])
 
-  // 딥리서치 상태 완전 초기화 함수
+  // Initialize deep research state completely
   const resetDeepResearchState = () => {
     if (typeof window !== 'undefined' && chatId) {
-      // localStorage 초기화
+      // Initialize localStorage
       localStorage.removeItem(`chat_${chatId}_deepResearch`)
       localStorage.removeItem(`chat_${chatId}_globe`)
       
-      // URL 파라미터 초기화
+      // Initialize URL parameters
       const newUrl = window.location.pathname
       window.history.replaceState({}, '', newUrl)
       
-      // React state 초기화
+      // Initialize React state
       setIsDeepResearchActive(false)
       setIsGlobeActive(false)
       
-      console.log('🔄 딥리서치 상태가 완전히 초기화되었습니다')
+
     }
   }
 
-  // 딥리서치 상태 디버깅 정보
+  // Deep research state debugging information
   const getDeepResearchDebugInfo = () => {
     if (typeof window === 'undefined' || !chatId) return null
     
@@ -114,7 +114,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     const urlDeepResearch = urlParams.get('deepResearch') === 'true'
     const localDeepResearch = localStorage.getItem(`chat_${chatId}_deepResearch`) === 'true'
     
-    // localStorage의 모든 딥리서치 관련 키 확인
+    // Check all deep research related keys in localStorage
     const allDeepResearchKeys = []
     for (let i = 0; i < localStorage.length; i++) {
       const key = localStorage.key(i)
@@ -151,13 +151,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       const finalDeepResearch = urlDeepResearch || localDeepResearch
       const finalGlobe = urlGlobe || localGlobe
       
-      // 디버깅 로그 추가
-      console.log('🔍 딥리서치 상태 확인:', {
-        urlParam: urlDeepResearch,
-        localStorage: localDeepResearch,
-        finalResult: finalDeepResearch,
-        chatId
-      })
+
       
       if (finalDeepResearch) {
         setIsDeepResearchActive(true)
@@ -249,7 +243,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   }
 
   const handleAbort = () => {
-    console.log('🔴 handleAbort called - cleaning up all states')
+
     
     if (abortControllerRef.current) {
       abortControllerRef.current.abort()
@@ -264,16 +258,14 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     setRegeneratingMessageId(null)
     setStreamingMessageId(null)
     
-    // Try resetting state multiple times to ensure it's applied
+    // Reset state multiple times to ensure it's applied
     setTimeout(() => {
-      console.log('=== handleAbort - First safety check ===')
       setRegeneratingMessageId(null)
       setIsStreaming(false)
       setIsSubmitting(false)
     }, 100)
     
     setTimeout(() => {
-      console.log('=== handleAbort - Final safety check ===')
       setRegeneratingMessageId(null)
       setIsStreaming(false)
       setIsSubmitting(false)
@@ -351,18 +343,40 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   useEffect(() => {
     let isCancelled = false
     
-    // Initialize loading state
-    setHistoryLoaded(false)
-    setShowSkeleton(true)
+            // Initialize loading state
+    // Show skeleton for shorter time when coming from empty chat
+    const hasInitialMessage = chatId && localStorage.getItem(`chat_${chatId}_agent`)
+    const hasOptimisticData = chatId && sessionStorage.getItem(`chat_${chatId}_optimistic`)
     
-    // Ensure minimum skeleton UI display time (300ms)
-    const minSkeletonDisplayTime = 300
+    // Display optimistic data first if available
+    if (hasOptimisticData && !isCancelled) {
+      try {
+        const optimisticMessages = JSON.parse(hasOptimisticData)
+        setMessages(optimisticMessages.map((msg: any) => ({
+          ...msg,
+          timestamp: new Date(msg.timestamp)
+        })))
+        sessionStorage.removeItem(`chat_${chatId}_optimistic`) // Remove after use
+      } catch (e) {
+        console.error('Failed to parse optimistic data:', e)
+      }
+    }
+    
+    setHistoryLoaded(false)
+    setShowSkeleton(!hasInitialMessage && !hasOptimisticData) // Skip skeleton if agent info or optimistic data exists
+    
+    // Ensure minimum skeleton UI display time (100ms for faster transition)
+    // Set shorter time when coming from empty chat since there's only 1 message in history
+    const isFromEmptyChat = messages.length === 0 // Check initial state
+    const minSkeletonDisplayTime = isFromEmptyChat ? 100 : 200
     const skeletonStartTime = Date.now()
     
     if (chatId && session?.user?.email) {
       // Get chat history from API
       const loadChatHistory = async () => {
         if (isCancelled) return
+        
+        let messageCount = 0 // Variable to track message count
 
         try {
           const response = await fetch(`/api/chat/${chatId}`)
@@ -377,6 +391,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           
           if (response.ok) {
             const data = await response.json()
+            messageCount = data?.messages?.length || 0 // Store message count
             if (isCancelled) return
             
             // Convert timestamp to Date object and process rating info
@@ -539,21 +554,30 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             const elapsedTime = Date.now() - skeletonStartTime
             const remainingTime = Math.max(0, minSkeletonDisplayTime - elapsedTime)
             
-            setTimeout(() => {
+            // Show immediately without waiting time when coming from empty chat
+            if (messageCount <= 1 && remainingTime > 0) {
+              // Complete loading immediately if message count is 1 or less
               if (!isCancelled) {
-                // Prevent render blocking when there are many messages
                 requestAnimationFrame(() => {
-                  setHistoryLoaded(true) // Mark history load as completed
-                  setShowSkeleton(false) // Hide skeleton UI
-                  
-                  // Move to bottom immediately after content is loaded (without animation)                  
-                  // Final scroll processing
-                  setTimeout(() => {
-                    scrollToBottomInstantLocal()
-                  }, 100)
+                  setHistoryLoaded(true)
+                  setShowSkeleton(false)
+                  scrollToBottomInstantLocal()
                 })
               }
-            }, remainingTime)
+            } else {
+              // Maintain existing logic
+              setTimeout(() => {
+                if (!isCancelled) {
+                  requestAnimationFrame(() => {
+                    setHistoryLoaded(true)
+                    setShowSkeleton(false)
+                    setTimeout(() => {
+                      scrollToBottomInstantLocal()
+                    }, 100)
+                  })
+                }
+              }, remainingTime)
+            }
           }
         }
       }
@@ -749,43 +773,43 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     }
   }, [])
 
-  // 이미지 관련 이벤트 리스너 추가
+  // Add image-related event listeners
   useEffect(() => {
-    // 이미지가 추가될 때 처리
+    // Handle when images are added
     const handleImageAdded = (event: CustomEvent) => {
-      console.log('🖼️ Image added event received:', event.detail);
+
       
-      // 현재 스트리밍 중이거나 최근 메시지에 대한 이미지인 경우 스크롤
+      // Scroll only for recent messages during streaming
       const messageId = event.detail.messageId;
       const isRecentMessage = messages.some(msg => msg.id === messageId);
       
       if (isRecentMessage) {
-        // 사용자가 수동으로 스크롤하지 않았거나 스트리밍 중인 경우에만 스크롤
+        // Scroll only if user hasn't manually scrolled or is currently streaming
         const container = messagesContainerRef.current;
         const userScrolled = (container as any)?.userScrolled?.() || false;
         
         if (!userScrolled || isStreaming || event.detail.isStreaming) {
-          // 이벤트는 이미 300ms 지연 후 발생하므로 바로 스크롤
+          // Scroll immediately since event already has 300ms delay
           scrollToBottomSmoothLocal(true); // force scroll
         }
       }
     };
 
-    // 이미지가 로드 완료될 때 처리 (백업)
+    // Handle when images are loaded (backup)
     const handleImageLoaded = (event: CustomEvent) => {
-      console.log('🖼️ Image loaded event received:', event.detail);
+
       
-      // 현재 스트리밍 중이거나 최근 메시지에 대한 이미지인 경우 스크롤
+      // Scroll only for recent messages during streaming
       const messageId = event.detail.messageId;
       const isRecentMessage = messages.some(msg => msg.id === messageId);
       
       if (isRecentMessage) {
-        // 사용자가 수동으로 스크롤하지 않았거나 스트리밍 중인 경우에만 스크롤
+        // Scroll only if user hasn't manually scrolled or is currently streaming
         const container = messagesContainerRef.current;
         const userScrolled = (container as any)?.userScrolled?.() || false;
         
         if (!userScrolled || isStreaming) {
-          // 이미지 렌더링 완료 후 스크롤하도록 약간의 지연 추가
+          // Add slight delay for image rendering completion
           setTimeout(() => {
             scrollToBottomSmoothLocal(true); // force scroll
           }, 100);
@@ -793,11 +817,11 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       }
     };
 
-    // 이벤트 리스너 등록
+    // Register event listeners
     window.addEventListener('chat-image-added', handleImageAdded as EventListener);
     window.addEventListener('chat-image-loaded', handleImageLoaded as EventListener);
 
-    // 클린업
+    // Cleanup
     return () => {
       window.removeEventListener('chat-image-added', handleImageAdded as EventListener);
       window.removeEventListener('chat-image-loaded', handleImageLoaded as EventListener);
@@ -981,7 +1005,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       // Set regeneration state for the user message
       setRegeneratingMessageId(messageId)
       
-      console.log(`🗑️ Edit mode: Deleting from message '${messageId}' onwards (including the edited message)`)
+      
       
       try {
         // Delete the edited message and all subsequent messages from the database
@@ -995,11 +1019,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         }
         
         const deleteResult = await response.json();
-        console.log(`🗑️ Edit delete result:`, deleteResult)
-        
-        if (deleteResult.success && deleteResult.deletedCount > 0) {
-          console.log(`✅ Successfully deleted ${deleteResult.deletedCount} messages from database (including edited message)`)
-        }
+
       } catch (error) {
         console.error('🚨 Error deleting messages during edit:', error);
         // Continue anyway, the UI will proceed
@@ -1063,7 +1083,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                       type: 'image/jpeg',
                       lastModified: Date.now()
                     })
-                    console.log(`🔧 Edit resize: ${file.name} ${file.size} bytes → ${compressedFile.size} bytes (${((compressedFile.size / file.size) * 100).toFixed(1)}%)`)
+
                     resolve(compressedFile)
                   } else {
                     resolve(file) // Return original if compression fails
@@ -1087,7 +1107,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             if (originalMessage?.content) {
               const parsedContent = JSON.parse(originalMessage.content)
               if (parsedContent.hasImages && parsedContent.images) {
-                console.log(`🖼️ Edit mode: Found ${parsedContent.images.length} original images`)
+
                 
                 // Convert base64 images back to File objects and resize them
                 for (const imageInfo of parsedContent.images) {
@@ -1102,7 +1122,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                       // Resize the image to 200px max for edit mode
                       const resizedFile = await resizeImageForEdit(file)
                       originalImages.push(resizedFile)
-                      console.log(`🖼️ Edit mode: Added resized image: ${resizedFile.name}`)
+
                     } catch (error) {
                       console.warn(`Failed to recreate/resize image file for ${imageInfo.name}:`, error)
                     }
@@ -1112,11 +1132,10 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             }
           } catch (e) {
             // Not JSON or no images, continue with text only
-            console.log(`🖼️ Edit mode: No images found or failed to parse, sending text only`)
+
           }
           
-          console.log(`🔄 Edit mode: Creating new user message with ${originalImages.length} images`)
-          console.log(`🔄 Edit content: "${savedContent.substring(0, 50)}..."`)
+
           
           // Create new user message and add to UI immediately (like in handleSubmit)
           const newUserMessageId = generateUniqueId('msg')
@@ -1241,11 +1260,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         
         if (messagesAfterUser.length > 0) {
           const nextMessage = messagesAfterUser[0]
-          console.log(`🗑️ Attempting to delete ${messagesAfterUser.length} messages after user message`)
-          console.log(`🗑️ User message ID: ${messageId}`)
-          console.log(`🗑️ Next message ID (fromMessageId): ${nextMessage.id}`)
-          console.log(`🗑️ Messages after user:`, messagesAfterUser.map(m => ({id: m.id, role: m.role})))
-          console.log(`🗑️ DELETE URL: /api/chat/${chatId}?userId=${session.user.email}&fromMessageId=${nextMessage.id}`)
+
           
           try {
             // Delete all messages after the user message from the database
@@ -1259,12 +1274,12 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             }
             
             const deleteResult = await response.json();
-            console.log(`🗑️ Delete result:`, deleteResult)
+
             
             if (deleteResult.success) {
               // Verify that the messages were actually deleted after the deletion operation is complete
               if (deleteResult.deletedCount > 0) {
-                console.log(`✅ Successfully deleted ${deleteResult.deletedCount} messages from database`)
+
                 
                 // Check if the messages were actually deleted after the deletion operation is complete
                 setTimeout(async () => {
@@ -1279,16 +1294,12 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                       
                       if (deletedMessageStillExists) {
                         console.error('🚨 ERROR: Deleted message still exists in database!');
-                      } else {
-                        console.log('✅ Verified: Messages successfully deleted from database')
                       }
                     }
                   } catch (verifyError) {
                     console.error('Failed to verify deletion:', verifyError);
                   }
                 }, 1000);
-              } else {
-                console.log('ℹ️ No messages were deleted (already clean)')
               }
             }
           } catch (error) {
@@ -1299,8 +1310,6 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             
             // Even if the database deletion fails, the UI will proceed
           }
-        } else {
-          console.log('ℹ️ No messages after user message to delete')
         }
         
         // Remove all messages after the user message (user message is kept)
@@ -1376,22 +1385,15 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                 type: 'image/png' 
               })
               imagesToSend.push(file)
-              console.log(`🖼️ Added LLM generated image to regeneration context: ${lastLLMImageUrl}`)
+
             } catch (error) {
               console.warn('Failed to convert generated image for regeneration:', error)
             }
           }
           
-          console.log(`🖼️ Regeneration context:`)
-          console.log(`  - User has images: ${hasUserImages}`)
-          console.log(`  - LLM generated image exists: ${hasLLMGeneratedImage}`)
-          console.log(`  - Total context images: ${imagesToSend.length}`)
-          console.log(`  - Message content: "${messageContent.substring(0, 50)}..."`)
+
           
-          // If no LLM image was generated, just use user's original message
-          if (!hasLLMGeneratedImage) {
-            console.log(`🖼️ No LLM generated image found, sending original user content only`)
-          }
+
           
           // Determine fromMessageId for cleanup (first message after user message)
           const nextMessageAfterUser = messagesAfterUser.length > 0 ? messagesAfterUser[0].id : undefined
@@ -1713,7 +1715,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                           <button
                             onClick={() => {
                               if (typeof window !== 'undefined') {
-                                // 모든 딥리서치 관련 localStorage 키 삭제
+                                // Delete all deep research related localStorage keys
                                 const keysToRemove = []
                                 for (let i = 0; i < localStorage.length; i++) {
                                   const key = localStorage.key(i)
@@ -1723,15 +1725,15 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                                 }
                                 keysToRemove.forEach(key => localStorage.removeItem(key))
                                 
-                                // URL 파라미터 초기화
+                                // Initialize URL parameters
                                 const newUrl = window.location.pathname
                                 window.history.replaceState({}, '', newUrl)
                                 
-                                // React state 초기화
+                                // Initialize React state
                                 setIsDeepResearchActive(false)
                                 setIsGlobeActive(false)
                                 
-                                console.log('🔄 모든 딥리서치 상태가 완전히 초기화되었습니다')
+
                               }
                             }}
                             className="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs"

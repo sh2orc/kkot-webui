@@ -31,10 +31,7 @@
       "search": "Search GMT",
       "noResults": "No results found"
     },
-    "enableSignup": {
-      "label": "Enable New User Registration",
-      "description": "Allow new users to register."
-    },
+
     "enableApiKey": {
       "label": "Enable API Key",
       "description": "Allow access through API keys."
@@ -44,18 +41,31 @@
       "description": "Restrict API key usage to specific endpoints."
     }
   },
-  "jwt": {
-    "title": "JWT Settings",
-    "description": "Manage JSON Web Token related settings.",
-    "expiry": {
-      "label": "JWT Expiry Time (seconds)",
-      "description": "If the value is -1, it will not expire. Example: You can enter in formats like '3h', '2d', '1w'."
-    }
-  },
+
   "authentication": {
     "title": "Authentication",
     "description": "Configure user authentication methods.",
+    "basic": {
+      "title": "Basic Authentication Settings",
+      "description": "Manage basic settings for user registration and JWT tokens."
+    },
+    "enableSignup": {
+      "label": "Enable New User Registration",
+      "description": "Allow new users to register."
+    },
+    "emailVerification": {
+      "label": "Require Email Verification",
+      "description": "Require email verification for new user registrations."
+    },
+    "jwt": {
+      "expiry": {
+        "label": "JWT Expiry Time (seconds)",
+        "description": "If the value is -1, it will not expire. Example: You can enter in formats like '3h', '2d', '1w'."
+      }
+    },
     "ldap": {
+      "title": "LDAP Authentication",
+      "description": "Configure user authentication through LDAP server.",
       "label": "LDAP",
       "labelField": "Label",
       "host": "Host",
@@ -73,6 +83,7 @@
     },
     "oauth": {
       "title": "OAuth Authentication",
+      "description": "Configure social login through external services.",
       "google": {
         "label": "Google Authentication",
         "clientId": "Client ID",
@@ -100,13 +111,6 @@
         "clientIdPlaceholder": "Enter Naver OAuth Client ID",
         "clientSecret": "Client Secret",
         "clientSecretPlaceholder": "Enter Naver OAuth Client Secret"
-      },
-      "github": {
-        "label": "GitHub Authentication",
-        "clientId": "Client ID",
-        "clientIdPlaceholder": "Enter GitHub OAuth Client ID",
-        "clientSecret": "Client Secret",
-        "clientSecretPlaceholder": "Enter GitHub OAuth Client Secret"
       }
     }
   },

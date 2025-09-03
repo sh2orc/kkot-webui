@@ -11,42 +11,42 @@ export async function POST(request: Request) {
 
     console.log('Custom login API called with email:', email);
 
-    // 유효성 검사
+    // Validation check
     if (!email || !password) {
       return NextResponse.json(
         { 
           success: false,
-          error: '이메일과 비밀번호를 입력해주세요.' 
+          error: 'Please enter email and password.' 
         },
         { status: 400 }
       );
     }
 
-    // 사용자 확인
+    // User verification
     const user = await userRepository.findByEmail(email);
     if (!user) {
       return NextResponse.json(
         { 
           success: false,
-          error: '존재하지 않는 이메일입니다.' 
+          error: 'Email does not exist.' 
         },
         { status: 401 }
       );
     }
 
-    // 비밀번호 확인
+    // Password verification
     const isValidPassword = verifyPassword(password, user.password);
     if (!isValidPassword) {
       return NextResponse.json(
         { 
           success: false,
-          error: '비밀번호가 올바르지 않습니다.' 
+          error: 'Incorrect password.' 
         },
         { status: 401 }
       );
     }
 
-    // JWT 토큰 생성
+    // Generate JWT token
     const token = await encode({
       token: {
         id: user.id,
@@ -58,7 +58,7 @@ export async function POST(request: Request) {
       maxAge: 30 * 24 * 60 * 60, // 30 days
     });
 
-    // 쿠키 설정
+    // Cookie setup
     const cookieStore = cookies();
     const url = new URL(request.url);
     const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
@@ -66,7 +66,7 @@ export async function POST(request: Request) {
     const shouldUseSecure = isProduction && !isLocalhost;
     
     cookieStore.set({
-      name: 'next-auth.session-token',  // 항상 동일한 이름 사용
+      name: 'next-auth.session-token',  // Always use the same name
       value: token,
       httpOnly: true,
       sameSite: 'lax',
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
 
     return NextResponse.json({
       success: true,
-      message: '로그인 성공!',
+      message: 'Login successful!',
       user: {
         id: user.id,
         email: user.email,
@@ -92,7 +92,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { 
         success: false,
-        error: '로그인 중 오류가 발생했습니다.' 
+        error: 'An error occurred during login.' 
       },
       { status: 500 }
     );

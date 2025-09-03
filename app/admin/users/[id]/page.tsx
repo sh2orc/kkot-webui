@@ -15,6 +15,7 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 import { toast } from "sonner"
+import { useTimezone } from "@/components/providers/timezone-provider"
 import { 
   ArrowLeft, 
   Edit, 
@@ -44,7 +45,7 @@ interface UserDetail {
   email_verified: boolean
   failed_login_attempts: number
   locked_until: string | null
-  // OAuth 정보 추가
+  // OAuth information added
   oauth_provider?: string
   google_id?: string
   oauth_linked_at?: string
@@ -82,6 +83,7 @@ export default function UserDetailPage() {
   const params = useParams()
   const router = useRouter()
   const { lang, language } = useTranslation('admin.users')
+  const { formatDate, formatTime } = useTimezone()
   const userId = params.id as string
 
   const [user, setUser] = useState<UserDetail | null>(null)
@@ -441,13 +443,105 @@ export default function UserDetailPage() {
                   <div className="flex items-center gap-2">
                     <Clock className="h-4 w-4 text-gray-400" />
                     <span className="text-sm text-gray-600">
-                      {lang('fields.lastLogin')}: {user.last_login_at ? new Date(user.last_login_at).toLocaleString() : lang('never')}
+                      {lang('fields.lastLogin')}: {user.last_login_at ? (() => {
+                        try {
+                          let date: Date;
+                          
+                          if (typeof user.last_login_at === 'string') {
+                            const numericValue = parseInt(user.last_login_at);
+                            if (!isNaN(numericValue) && user.last_login_at === numericValue.toString()) {
+                              // Validate timestamp range
+                              if (numericValue > 1000000000000) {
+                                // Millisecond timestamp (13 digits)
+                                date = new Date(numericValue);
+                              } else if (numericValue > 1000000000) {
+                                // 초 단위 timestamp (10자리)
+                                date = new Date(numericValue * 1000);
+                              } else {
+                                return lang('dateError') || '날짜 오류';
+                              }
+                            } else {
+                              date = new Date(user.last_login_at);
+                            }
+                          } else {
+                            // 숫자인 경우 timestamp 처리
+                            if (user.last_login_at > 1000000000000) {
+                              // 밀리초 단위 timestamp (13자리)
+                              date = new Date(user.last_login_at);
+                            } else if (user.last_login_at > 1000000000) {
+                              // 초 단위 timestamp (10자리)
+                              date = new Date(user.last_login_at * 1000);
+                            } else {
+                              return lang('dateError') || '날짜 오류';
+                            }
+                          }
+                          
+                          if (isNaN(date.getTime())) {
+                            return lang('dateError') || '날짜 오류';
+                          }
+                          return formatDate(date, 'ko-KR', { 
+                            year: 'numeric', 
+                            month: '2-digit', 
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          });
+                        } catch (error) {
+                          return lang('dateError') || '날짜 오류';
+                        }
+                      })() : lang('never')}
                     </span>
                   </div>
                   <div className="flex items-center gap-2">
                     <Calendar className="h-4 w-4 text-gray-400" />
                     <span className="text-sm text-gray-600">
-                      {lang('fields.createdAt')}: {new Date(user.created_at).toLocaleString()}
+                      {lang('fields.createdAt')}: {(() => {
+                        try {
+                          let date: Date;
+                          
+                          if (typeof user.created_at === 'string') {
+                            const numericValue = parseInt(user.created_at);
+                            if (!isNaN(numericValue) && user.created_at === numericValue.toString()) {
+                              // Validate timestamp range
+                              if (numericValue > 1000000000000) {
+                                // Millisecond timestamp (13 digits)
+                                date = new Date(numericValue);
+                              } else if (numericValue > 1000000000) {
+                                // 초 단위 timestamp (10자리)
+                                date = new Date(numericValue * 1000);
+                              } else {
+                                return lang('dateError') || '날짜 오류';
+                              }
+                            } else {
+                              date = new Date(user.created_at);
+                            }
+                          } else {
+                            // 숫자인 경우 timestamp 처리
+                            if (user.created_at > 1000000000000) {
+                              // 밀리초 단위 timestamp (13자리)
+                              date = new Date(user.created_at);
+                            } else if (user.created_at > 1000000000) {
+                              // 초 단위 timestamp (10자리)
+                              date = new Date(user.created_at * 1000);
+                            } else {
+                              return lang('dateError') || '날짜 오류';
+                            }
+                          }
+                          
+                          if (isNaN(date.getTime())) {
+                            return lang('dateError') || '날짜 오류';
+                          }
+                          return formatDate(date, 'ko-KR', { 
+                            year: 'numeric', 
+                            month: '2-digit', 
+                            day: '2-digit',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                          });
+                        } catch (error) {
+                          return lang('dateError') || '날짜 오류';
+                        }
+                      })()}
                     </span>
                   </div>
                 </div>
@@ -532,15 +626,60 @@ export default function UserDetailPage() {
                         </TableCell>
                         <TableCell className="font-mono text-sm">{activity.ipAddress || '-'}</TableCell>
                         <TableCell className="text-sm">
-                          {typeof activity.createdAt === 'number' 
-                            ? new Date(activity.createdAt * 1000).toLocaleString()
-                            : new Date(activity.createdAt).toLocaleString()}
+                          {(() => {
+                            try {
+                              let date: Date;
+                              
+                              if (typeof activity.createdAt === 'number') {
+                                // Validate timestamp range
+                                if (activity.createdAt > 1000000000000) {
+                                  // Millisecond timestamp (13 digits)
+                                  date = new Date(activity.createdAt);
+                                } else if (activity.createdAt > 1000000000) {
+                                  // 초 단위 timestamp (10자리)
+                                  date = new Date(activity.createdAt * 1000);
+                                } else {
+                                  return lang('dateError') || '날짜 오류';
+                                }
+                              } else {
+                                const numericValue = parseInt(activity.createdAt);
+                                if (!isNaN(numericValue) && activity.createdAt === numericValue.toString()) {
+                                  // Validate timestamp range
+                                  if (numericValue > 1000000000000) {
+                                    // Millisecond timestamp (13 digits)
+                                    date = new Date(numericValue);
+                                  } else if (numericValue > 1000000000) {
+                                    // 초 단위 timestamp (10자리)
+                                    date = new Date(numericValue * 1000);
+                                  } else {
+                                    return lang('dateError') || '날짜 오류';
+                                  }
+                                } else {
+                                  date = new Date(activity.createdAt);
+                                }
+                              }
+                              
+                              if (isNaN(date.getTime())) {
+                                return lang('dateError') || '날짜 오류';
+                              }
+                              
+                              return formatDate(date, 'ko-KR', { 
+                                year: 'numeric', 
+                                month: '2-digit', 
+                                day: '2-digit',
+                                hour: '2-digit',
+                                minute: '2-digit'
+                              });
+                            } catch (error) {
+                              return lang('dateError') || '날짜 오류';
+                            }
+                          })()}
                         </TableCell>
                       </TableRow>
                     )) : (
                       <TableRow>
                         <TableCell colSpan={4} className="text-center text-gray-500">
-                          활동 로그가 없습니다.
+                          {lang('noActivityLogs') || '활동 로그가 없습니다.'}
                         </TableCell>
                       </TableRow>
                     )}

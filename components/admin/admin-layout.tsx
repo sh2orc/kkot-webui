@@ -66,7 +66,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
       {/* Sidebar */}
       <div className="w-64 bg-white dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 overflow-y-auto">
         <div className="p-4">
-          <h2 className="text-lg font-semibold mb-4 dark:text-gray-200">{lang('title')}</h2>
           <nav className="space-y-1">
             {menuItems
               .filter(item => !item.disabled) // Filter out disabled menu items

@@ -33,6 +33,14 @@ export const groupRepository = {
   },
 
   /**
+   * Find group by name
+   */
+  findByName: async (name: string) => {
+    const result = await db.select().from(schema.groups).where(eq(schema.groups.name, name)).limit(1);
+    return result[0] || null;
+  },
+
+  /**
    * Create a new group
    */
   create: async (groupData: { name: string; description?: string; isSystem?: boolean; isActive?: boolean }) => {

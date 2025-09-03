@@ -29,21 +29,21 @@ export function AccountMenu({ children, align = "start", side = "top" }: Account
 
   const handleLogout = async () => {
     try {
-      // 먼저 /auth로 이동 (logout 파라미터 추가)
+      // First navigate to /auth (add logout parameter)
       router.push('/auth?logout=true')
       
-      // 그 다음 로그아웃 처리
+      // Then handle logout
       await signOut({
         redirect: false
       })
       
-      toast.success('로그아웃되었습니다.')
+      toast.success('Logged out successfully.')
       
     } catch (error) {
       console.error('Logout error:', error)
-      toast.error('로그아웃 중 오류가 발생했습니다.')
+      toast.error('An error occurred during logout.')
       
-      // 에러가 발생해도 /auth로 이동
+      // Navigate to /auth even if error occurs
       router.push('/auth?logout=true')
     }
   }

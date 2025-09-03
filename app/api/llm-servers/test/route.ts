@@ -87,7 +87,7 @@ export async function POST(request: NextRequest) {
         
         // SSL 인증서 문제 해결을 위한 Agent 설정
         // 주의: rejectUnauthorized: false는 보안상 위험할 수 있습니다.
-        // 프로덕션 환경에서는 올바른 인증서를 사용하거나 프록시 설정을 확인하세요.
+        // 프로덕션 환경에서는 올바른 인증서를 사용하거나 프록시 configuration을 확인하세요.
         const shouldVerifySSL = process.env.SSL_VERIFY !== 'false' && process.env.NODE_ENV !== 'development';
         const httpsAgent = new https.Agent({
           rejectUnauthorized: shouldVerifySSL

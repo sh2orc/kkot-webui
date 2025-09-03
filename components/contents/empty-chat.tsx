@@ -9,6 +9,7 @@ import { useRouter } from "next/navigation"
 import { useSession } from "next-auth/react"
 import { useTranslation } from "@/lib/i18n"
 import { useModel, type Agent, type PublicModel } from "@/components/providers/model-provider"
+import { generateUniqueId } from "@/utils/chat-utils"
 
 // Types are imported from model-provider
 interface EmptyChatProps {
@@ -70,10 +71,13 @@ export default function Component({
     setIsInitialLoading(false)
     setShowSkeleton(false)
     
+    // Prefetch chat page in advance for faster transitions
+    router.prefetch('/chat/[id]')
+    
     return () => {
       // Cleanup function
     }
-  }, [initialAgents, initialPublicModels, defaultModel, setInitialData])
+  }, [initialAgents, initialPublicModels, defaultModel, setInitialData, router])
 
 
   const adjustTextareaHeight = useCallback((textarea: HTMLTextAreaElement) => {
@@ -118,18 +122,11 @@ export default function Component({
   }, [adjustTextareaHeight])
 
   const handleSubmit = useCallback(async () => {
-    console.log('=== Client: handleSubmit called ===')
-    console.log('Input value:', inputValue)
-    console.log('Is submitting:', isSubmitting)
-    console.log('Selected model:', selectedModel)
-    console.log('Current session user ID:', currentSession?.user?.id)
-    
 
-    
     if ((inputValue.trim() || uploadedImages.length > 0) && !isSubmitting && selectedModel && currentSession?.user?.email) {
       // Stop if already submitting
       if (submitInProgress.current) {
-        console.log('Submit already in progress, skipping duplicate call')
+
         return
       }
 
@@ -140,21 +137,8 @@ export default function Component({
       const actualDeepResearchState = isDeepResearchActive;
       
       try {
-        console.log('=== Client: Chat session creation request started ===')
-        console.log('Selected model:', selectedModel)
-        console.log('Initial message:', inputValue)
-        console.log('Images:', uploadedImages.length)
-        console.log('🔍🔍🔍 Deep research state check on submit:')
-        console.log('  React state isDeepResearchActive:', isDeepResearchActive)
-        console.log('  Using deep research state:', actualDeepResearchState)
-        console.log('  isGlobeActive:', isGlobeActive)
-        console.log('  selectedModel:', selectedModel)
-        console.log('  selectedModel.type:', selectedModel?.type)
-        console.log('  selectedModel.id:', selectedModel?.id)
-        
         // Additional debugging: Check if the model supports deep research
         const supportsDeepResearch = selectedModel?.type === 'agent' ? (selectedModel as any).supportsDeepResearch ?? true : true
-        console.log('  supportsDeepResearch:', supportsDeepResearch)
         
         let response: Response
 
@@ -201,23 +185,16 @@ export default function Component({
           })
         }
 
-        console.log('=== Client: Response received ===')
-        console.log('Response status:', response.status)
-        console.log('Response OK:', response.ok)
-        console.log('Response headers:', response.headers)
+
 
         if (!response.ok) {
           const errorText = await response.text()
-          console.log('Error response content:', errorText)
+
           throw new Error(`${lang('error.chat_creation_failed')} (${response.status}: ${errorText})`)
         }
 
         const data = await response.json()
-        console.log('=== Client: Response data ===')
-        console.log('Response data:', data)
-        
         const chatId = data.chatId
-        console.log('Chat ID:', chatId)
 
         // Save agent information and deep research state to localStorage (for streaming response)
         if (typeof window !== 'undefined') {
@@ -263,13 +240,42 @@ export default function Component({
           if ((window as any).refreshSidebar) {
             (window as any).refreshSidebar()
           }
+          
+          // Optimistic update: Pre-store message data in sessionStorage
+          const optimisticMessage = {
+            id: generateUniqueId('msg'),
+            role: 'user',
+            content: inputValue || '',
+            timestamp: new Date().toISOString()
+          }
+          
+          // Include images in message if present
+          if (uploadedImages.length > 0) {
+            const imageInfos = await Promise.all(
+              uploadedImages.map(async (image) => {
+                const arrayBuffer = await image.arrayBuffer()
+                const base64 = Buffer.from(arrayBuffer).toString('base64')
+                return {
+                  type: 'image',
+                  name: image.name,
+                  size: image.size,
+                  mimeType: image.type,
+                  data: `data:${image.type};base64,${base64}`
+                }
+              })
+            )
+            
+            optimisticMessage.content = JSON.stringify({
+              text: inputValue || '',
+              images: imageInfos,
+              hasImages: true
+            })
+          }
+          
+          sessionStorage.setItem(`chat_${chatId}_optimistic`, JSON.stringify([optimisticMessage]))
         }
 
-        console.log('=== Client: Navigating to chat page ===')
-        console.log('Navigating to:', `/chat/${chatId}`)
-        console.log('Deep research active:', isDeepResearchActive)
-        console.log('Globe active:', isGlobeActive)
-        console.log('Response data:', data)
+
         
         if (!chatId) {
           console.error('Chat ID is missing, cannot navigate')
@@ -286,12 +292,12 @@ export default function Component({
         }
         
         const targetUrl = `/chat/${chatId}${urlParams.toString() ? '?' + urlParams.toString() : ''}`
-        console.log('🚀 Navigating with URL:', targetUrl)
-        console.log('🚀 Deep research state stored in localStorage:', actualDeepResearchState)
-        console.log('🚀 Globe state stored in localStorage:', isGlobeActive)
+
         
+        // Prefetch for faster transition while using Next.js router.push
+        router.prefetch(`/chat/${chatId}`)
         router.push(targetUrl)
-        console.log('Navigation command sent')
+
         
         // Reset input field and images
         setInputValue("")
@@ -318,11 +324,7 @@ export default function Component({
         submitInProgress.current = false
       }
     } else {
-      console.log('=== Client: Submit conditions not met ===')
-      if (!inputValue.trim() && uploadedImages.length === 0) console.log('- Input value is empty and no images')
-      if (isSubmitting) console.log('- Already submitting')
-      if (!selectedModel) console.log('- No model selected')
-      if (!currentSession?.user?.email) console.log('- No user session')
+
     }
   }, [inputValue, router, isSubmitting, selectedModel, currentSession?.user?.email, isDeepResearchActive, isGlobeActive, uploadedImages])
 
@@ -378,13 +380,6 @@ export default function Component({
   // Check if agent supports features
   const supportsDeepResearch = selectedModel?.type === 'agent' ? (selectedModel as Agent).supportsDeepResearch ?? true : true
   const supportsWebSearch = selectedModel?.type === 'agent' ? (selectedModel as Agent).supportsWebSearch ?? true : true
-  
-  // Debug: Log deep research support
-  console.log('🔍 Deep research support check:')
-  console.log('  selectedModel:', selectedModel)
-  console.log('  selectedModel.type:', selectedModel?.type)
-  console.log('  supportsDeepResearch:', supportsDeepResearch)
-  console.log('  agent.supportsDeepResearch:', selectedModel?.type === 'agent' ? (selectedModel as Agent).supportsDeepResearch : 'N/A')
 
   // Image resize and compression function
   const resizeAndCompressImage = (file: File): Promise<File> => {
@@ -753,12 +748,10 @@ export default function Component({
                           data-active={isDeepResearchActive}
                           onClick={() => {
                             const newState = !isDeepResearchActive;
-                            console.log('🧠 Deep research button clicked!')
-                            console.log('  Current state:', isDeepResearchActive)
-                            console.log('  New state will be:', newState)
+
                             setIsDeepResearchActive(newState)
                             
-                            // localStorage 업데이트 (현재 채팅 ID가 있는 경우만)
+                            // Update localStorage (only if current chat ID exists)
                             if (typeof window !== 'undefined') {
                               const currentChatId = window.location.pathname.split('/').pop();
                               if (currentChatId && currentChatId !== 'chat') {
@@ -770,7 +763,7 @@ export default function Component({
                               }
                             }
                             
-                            console.log('  localStorage 업데이트됨:', newState)
+
                           }}
                           title={isDeepResearchActive ? lang("tooltips.deepResearchActive") : lang("tooltips.deepResearchInactive")}
                         >
@@ -892,9 +885,7 @@ export default function Component({
                             size="icon"
                             className={`h-8 w-8 sm:h-9 sm:w-9 rounded-full hover:bg-gray-100 dark:hover:bg-gray-700 touch-manipulation ${isDeepResearchActive ? "bg-cyan-700 text-white hover:bg-cyan-800 hover:text-white dark:bg-cyan-600 dark:hover:bg-cyan-700" : ""}`}
                             onClick={() => {
-                              console.log('🧠 Deep research button clicked! (Mobile)')
-                              console.log('  Current state:', isDeepResearchActive)
-                              console.log('  New state will be:', !isDeepResearchActive)
+
                               setIsDeepResearchActive(!isDeepResearchActive)
                             }}
                             title={isDeepResearchActive ? lang("tooltips.deepResearchActive") : lang("tooltips.deepResearchInactive")}

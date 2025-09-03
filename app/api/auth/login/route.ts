@@ -11,18 +11,18 @@ export async function POST(request: Request) {
 
     console.log('Login API called with email:', email);
 
-    // 유효성 검사
+    // Validation check
     if (!email || !password) {
       return NextResponse.json(
         { 
           success: false,
-          error: '이메일과 비밀번호를 입력해주세요.' 
+          error: 'Please enter email and password.' 
         },
         { status: 400 }
       );
     }
 
-    // 사용자 확인
+    // User verification
     const user = await userRepository.findByEmail(email);
     console.log('User found:', user ? 'Yes' : 'No');
     
@@ -30,13 +30,13 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { 
           success: false,
-          error: '존재하지 않는 이메일입니다.' 
+          error: 'Email does not exist.' 
         },
         { status: 401 }
       );
     }
 
-    // 비밀번호 확인
+    // Password verification
     console.log('Input password:', password);
     console.log('Stored password hash length:', user.password.length);
     const isValidPassword = verifyPassword(password, user.password);
@@ -46,7 +46,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         { 
           success: false,
-          error: '비밀번호가 올바르지 않습니다.' 
+          error: 'Incorrect password.' 
         },
         { status: 401 }
       );
@@ -63,10 +63,10 @@ export async function POST(request: Request) {
       );
     }
 
-    // 로그인 성공 - 사용자 정보 반환
+    // 로그인 successful - 사용자 정보 반환
     return NextResponse.json({
       success: true,
-      message: '로그인 검증 성공! NextAuth 세션을 생성합니다...',
+      message: '로그인 검증 successful! NextAuth 세션을 생성합니다...',
       user: {
         id: user.id,
         email: user.email,
@@ -79,7 +79,7 @@ export async function POST(request: Request) {
     return NextResponse.json(
       { 
         success: false,
-        error: '로그인 중 오류가 발생했습니다.' 
+        error: '로그인 중 An error occurred.' 
       },
       { status: 500 }
     );

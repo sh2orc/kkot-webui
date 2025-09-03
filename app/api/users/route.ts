@@ -100,6 +100,34 @@ export async function POST(req: NextRequest) {
       await groupRepository.setUserGroups(newUser[0].id, groups, session.user.id)
     }
 
+    // If user is admin, add to admin group automatically
+    if (role === 'admin') {
+      try {
+        const adminGroup = await groupRepository.findByName('admin');
+        if (adminGroup) {
+          // Check if admin group is already in the groups list
+          if (!groups.includes(adminGroup.id)) {
+            await groupRepository.addUser(adminGroup.id, newUser[0].id, session.user.id);
+            console.log(`Added admin user ${newUser[0].email} to admin group`);
+          }
+        } else {
+          console.log('Admin group not found, creating one...');
+          // Create admin group if it doesn't exist
+          const [createdGroup] = await groupRepository.create({
+            name: 'admin',
+            description: 'System administrators with full access',
+            isSystem: true,
+            isActive: true
+          });
+          await groupRepository.addUser(createdGroup.id, newUser[0].id, session.user.id);
+          console.log(`Created admin group and added user ${newUser[0].email}`);
+        }
+      } catch (error) {
+        console.error('Failed to add user to admin group:', error);
+        // Don't fail the user creation if group assignment fails
+      }
+    }
+
     return NextResponse.json({
       id: newUser[0].id,
       email: newUser[0].email,

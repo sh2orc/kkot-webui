@@ -34,6 +34,7 @@ import {
 const SETTING_KEYS = {
   APP_NAME: 'app.name',
   SIGNUP_ENABLED: 'auth.signupEnabled',
+  EMAIL_VERIFICATION_ENABLED: 'auth.emailVerificationEnabled',
   JWT_EXPIRY: 'auth.jwtExpiry',
   LDAP_ENABLED: 'auth.ldapEnabled',
   LDAP_LABEL: 'auth.ldap.label',
@@ -55,19 +56,13 @@ const SETTING_KEYS = {
   OAUTH_NAVER_ENABLED: 'auth.oauth.naver.enabled',
   OAUTH_NAVER_CLIENT_ID: 'auth.oauth.naver.clientId',
   OAUTH_NAVER_CLIENT_SECRET: 'auth.oauth.naver.clientSecret',
-  OAUTH_GITHUB_ENABLED: 'auth.oauth.github.enabled',
-  OAUTH_GITHUB_CLIENT_ID: 'auth.oauth.github.clientId',
-  OAUTH_GITHUB_CLIENT_SECRET: 'auth.oauth.github.clientSecret',
-  API_KEY_ENABLED: 'auth.apiKeyEnabled',
-  API_KEY_ENDPOINT_LIMITED: 'auth.apiKeyEndpointLimited',
 };
 
 // Zod schema definition
 const formSchema = z.object({
   appName: z.string().min(1, "App name is required"),
   signupEnabled: z.boolean(),
-  apiKeyEnabled: z.boolean().optional(),
-  apiKeyEndpointLimited: z.boolean().optional(),
+  emailVerificationEnabled: z.boolean(),
   jwtExpiry: z.string(),
   ldapEnabled: z.boolean(),
   ldapLabel: z.string().optional(),
@@ -89,9 +84,6 @@ const formSchema = z.object({
   naverEnabled: z.boolean(),
   naverClientId: z.string().optional(),
   naverClientSecret: z.string().optional(),
-  githubEnabled: z.boolean(),
-  githubClientId: z.string().optional(),
-  githubClientSecret: z.string().optional(),
   gmtOffsetMinutes: z.number().optional(),
 })
 
@@ -115,7 +107,6 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
 
     kakaoClientSecret: false,
     naverClientSecret: false,
-    githubClientSecret: false,
   })
 
   // OAuth test state
@@ -124,7 +115,6 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
 
     kakao: false,
     naver: false,
-    github: false,
   })
   
   // React Hook Form initialization
@@ -133,8 +123,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
     defaultValues: {
       appName: initialSettings[SETTING_KEYS.APP_NAME] || "kkot-webui",
       signupEnabled: initialSettings[SETTING_KEYS.SIGNUP_ENABLED] === 'true',
-      apiKeyEnabled: initialSettings[SETTING_KEYS.API_KEY_ENABLED] === 'true',
-      apiKeyEndpointLimited: initialSettings[SETTING_KEYS.API_KEY_ENDPOINT_LIMITED] === 'true',
+      emailVerificationEnabled: initialSettings[SETTING_KEYS.EMAIL_VERIFICATION_ENABLED] === 'true',
       jwtExpiry: initialSettings[SETTING_KEYS.JWT_EXPIRY] || "-1",
       ldapEnabled: initialSettings[SETTING_KEYS.LDAP_ENABLED] === 'true',
       ldapLabel: initialSettings[SETTING_KEYS.LDAP_LABEL] || "LDAP Server",
@@ -156,9 +145,6 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
       naverEnabled: initialSettings[SETTING_KEYS.OAUTH_NAVER_ENABLED] === 'true',
       naverClientId: initialSettings[SETTING_KEYS.OAUTH_NAVER_CLIENT_ID] || "",
       naverClientSecret: initialSettings[SETTING_KEYS.OAUTH_NAVER_CLIENT_SECRET] ? "******" : "",
-      githubEnabled: initialSettings[SETTING_KEYS.OAUTH_GITHUB_ENABLED] === 'true',
-      githubClientId: initialSettings[SETTING_KEYS.OAUTH_GITHUB_CLIENT_ID] || "",
-      githubClientSecret: initialSettings[SETTING_KEYS.OAUTH_GITHUB_CLIENT_SECRET] ? "******" : "",
       gmtOffsetMinutes: initialSettings['system.gmtOffsetMinutes'] ? parseInt(initialSettings['system.gmtOffsetMinutes'], 10) : gmtOffsetMinutes,
     },
   })
@@ -192,8 +178,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
       const settings = [
         { key: SETTING_KEYS.APP_NAME, value: data.appName },
         { key: SETTING_KEYS.SIGNUP_ENABLED, value: data.signupEnabled ? 'true' : 'false' },
-        { key: SETTING_KEYS.API_KEY_ENABLED, value: data.apiKeyEnabled ? 'true' : 'false' },
-        { key: SETTING_KEYS.API_KEY_ENDPOINT_LIMITED, value: data.apiKeyEndpointLimited ? 'true' : 'false' },
+        { key: SETTING_KEYS.EMAIL_VERIFICATION_ENABLED, value: data.emailVerificationEnabled ? 'true' : 'false' },
         { key: SETTING_KEYS.JWT_EXPIRY, value: data.jwtExpiry },
         { key: SETTING_KEYS.LDAP_ENABLED, value: data.ldapEnabled ? 'true' : 'false' },
         { key: SETTING_KEYS.LDAP_LABEL, value: data.ldapLabel || '' },
@@ -216,9 +201,6 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
         { key: SETTING_KEYS.OAUTH_NAVER_ENABLED, value: data.naverEnabled ? 'true' : 'false' },
         { key: SETTING_KEYS.OAUTH_NAVER_CLIENT_ID, value: data.naverClientId || '' },
         ...(data.naverClientSecret && !data.naverClientSecret.startsWith('******') ? [{ key: SETTING_KEYS.OAUTH_NAVER_CLIENT_SECRET, value: data.naverClientSecret }] : []),
-        { key: SETTING_KEYS.OAUTH_GITHUB_ENABLED, value: data.githubEnabled ? 'true' : 'false' },
-        { key: SETTING_KEYS.OAUTH_GITHUB_CLIENT_ID, value: data.githubClientId || '' },
-        ...(data.githubClientSecret && !data.githubClientSecret.startsWith('******') ? [{ key: SETTING_KEYS.OAUTH_GITHUB_CLIENT_SECRET, value: data.githubClientSecret }] : []),
         ...(typeof data.gmtOffsetMinutes === 'number' ? [{ key: 'system.gmtOffsetMinutes', value: String(data.gmtOffsetMinutes) }] : []),
       ]
       
@@ -303,14 +285,10 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
         clientId = formData.naverClientId || ''
         clientSecret = formData.naverClientSecret || ''
         break
-      case 'github':
-        clientId = formData.githubClientId || ''
-        clientSecret = formData.githubClientSecret || ''
-        break
     }
 
     if (!clientId) {
-      toast.error('테스트 연결 실패', {
+      toast.error('테스트 연결 failed', {
         description: 'Client ID를 입력해주세요.'
       })
       return
@@ -320,7 +298,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
     const isSecretMasked = clientSecret.startsWith('******')
     
     if (!clientSecret && !isSecretMasked) {
-      toast.error('테스트 연결 실패', {
+      toast.error('테스트 연결 failed', {
         description: 'Client Secret을 입력해주세요.'
       })
       return
@@ -345,17 +323,17 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
       const result = await response.json()
 
       if (result.success) {
-        toast.success('연결 테스트 성공', {
+        toast.success('연결 테스트 successful', {
           description: result.details || `${provider.toUpperCase()} OAuth 설정이 올바릅니다.`
         })
       } else {
-        toast.error('연결 테스트 실패', {
-          description: result.details || result.message || '연결에 실패했습니다.'
+        toast.error('연결 테스트 failed', {
+          description: result.details || result.message || '연결에 failed했습니다.'
         })
       }
     } catch (error) {
-      toast.error('연결 테스트 실패', {
-        description: '서버와의 통신 중 오류가 발생했습니다.'
+      toast.error('연결 테스트 failed', {
+        description: '서버와의 통신 중 An error occurred.'
       })
     } finally {
       setTestingOAuth(prev => ({ ...prev, [provider]: false }))
@@ -425,14 +403,27 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
                   </FormItem>
                 )}
               />
+
+            </CardContent>
+          </Card>
+
+
+
+          {/* 기본 인증 설정 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{lang('authentication.basic.title')}</CardTitle>
+              <CardDescription>{lang('authentication.basic.description')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
               <FormField
                 control={form.control}
                 name="signupEnabled"
                 render={({ field }) => (
                   <FormItem className="flex items-center justify-between">
                     <div>
-                      <FormLabel className="text-base font-medium">{lang('basicSystem.enableSignup.label')}</FormLabel>
-                      <FormDescription>{lang('basicSystem.enableSignup.description')}</FormDescription>
+                      <FormLabel className="text-base font-medium">{lang('authentication.enableSignup.label')}</FormLabel>
+                      <FormDescription>{lang('authentication.enableSignup.description')}</FormDescription>
                     </div>
                     <FormControl>
                       <Switch
@@ -443,64 +434,37 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
                   </FormItem>
                 )}
               />
-              <Separator />
-              <FormField
-                control={form.control}
-                name="apiKeyEnabled"
-                render={({ field }) => (
-                  <FormItem className="flex items-center justify-between">
-                    <div>
-                      <FormLabel className="text-base font-medium">{lang('basicSystem.enableApiKey.label')}</FormLabel>
-                      <FormDescription>{lang('basicSystem.enableApiKey.description')}</FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-              <Separator />
-              <FormField
-                control={form.control}
-                name="apiKeyEndpointLimited"
-                render={({ field }) => (
-                  <FormItem className="flex items-center justify-between">
-                    <div>
-                      <FormLabel className="text-base font-medium">{lang('basicSystem.limitApiKeyEndpoint.label')}</FormLabel>
-                      <FormDescription>{lang('basicSystem.limitApiKeyEndpoint.description')}</FormDescription>
-                    </div>
-                    <FormControl>
-                      <Switch
-                        checked={field.value}
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </CardContent>
-          </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{lang('jwt.title')}</CardTitle>
-              <CardDescription>{lang('jwt.description')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="emailVerificationEnabled"
+                render={({ field }) => (
+                  <FormItem className="flex items-center justify-between">
+                    <div>
+                      <FormLabel className="text-base font-medium">{lang('authentication.emailVerification.label')}</FormLabel>
+                      <FormDescription>{lang('authentication.emailVerification.description')}</FormDescription>
+                    </div>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
+                  </FormItem>
+                )}
+              />
+
               <FormField
                 control={form.control}
                 name="jwtExpiry"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>{lang('jwt.expiry.label')}</FormLabel>
+                    <FormLabel>{lang('authentication.jwt.expiry.label')}</FormLabel>
                     <FormControl>
                       <Input type="number" {...field} />
                     </FormControl>
                     <FormDescription>
-                      {lang('jwt.expiry.description')}
+                      {lang('authentication.jwt.expiry.description')}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -509,31 +473,32 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
             </CardContent>
           </Card>
 
+          {/* LDAP 인증 */}
           <Card>
             <CardHeader>
-              <CardTitle>{lang('authentication.title')}</CardTitle>
-              <CardDescription>{lang('authentication.description')}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="space-y-4">
+              <CardTitle className="flex items-center justify-between">
+                <div>
+                  <div className="text-lg font-semibold">{lang('authentication.ldap.title')}</div>
+                  <div className="text-sm text-muted-foreground mt-1">{lang('authentication.ldap.description')}</div>
+                </div>
+
                 <FormField
                   control={form.control}
                   name="ldapEnabled"
                   render={({ field }) => (
-                    <FormItem className="flex items-center justify-between">
-                      <FormLabel className="text-base font-medium">{lang('authentication.ldap.label')}</FormLabel>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
+                    <FormControl>
+                      <Switch
+                        checked={field.value}
+                        onCheckedChange={field.onChange}
+                      />
+                    </FormControl>
                   )}
                 />
-
-                {form.watch("ldapEnabled") && (
-                  <div className="space-y-4 pl-4 border-l-2 border-gray-200">
+              </CardTitle>
+            </CardHeader>
+            
+            {form.watch("ldapEnabled") && (
+              <CardContent className="space-y-4">
                     <FormField
                       control={form.control}
                       name="ldapLabel"
@@ -676,36 +641,45 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
                         </FormItem>
                       )}
                     />
-                  </div>
-                )}
-              </div>
+              </CardContent>
+            )}
+          </Card>
 
-              <Separator />
-
-              {/* OAuth Authentication Providers */}
-              <div className="space-y-6">
-                <h4 className="text-base font-semibold">{lang('authentication.oauth.title')}</h4>
+          {/* OAuth 인증 */}
+          <Card>
+            <CardHeader>
+              <CardTitle>{lang('authentication.oauth.title')}</CardTitle>
+              <CardDescription>{lang('authentication.oauth.description')}</CardDescription>
+            </CardHeader>
+            <CardContent className="space-y-4">
                 
                 {/* Google OAuth */}
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="googleEnabled"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between">
-                        <FormLabel className="text-base font-medium">{lang('authentication.oauth.google.label')}</FormLabel>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                <Card className="border border-gray-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center justify-between text-base">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center">
+                          <span className="text-xs font-bold text-white">G</span>
+                        </div>
+                        <span>{lang('authentication.oauth.google.label')}</span>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="googleEnabled"
+                        render={({ field }) => (
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        )}
+                      />
+                    </CardTitle>
+                  </CardHeader>
 
                   {form.watch("googleEnabled") && (
-                    <div className="space-y-4 pl-4 border-l-2 border-gray-200">
+                    <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
@@ -776,32 +750,39 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
                           </Tooltip>
                         </TooltipProvider>
                       </div>
-                    </div>
+                    </CardContent>
                   )}
-                </div>
+                </Card>
 
 
 
                 {/* Kakao OAuth */}
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="kakaoEnabled"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between">
-                        <FormLabel className="text-base font-medium">{lang('authentication.oauth.kakao.label')}</FormLabel>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                <Card className="border border-gray-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center justify-between text-base">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-6 h-6 bg-yellow-400 rounded-full flex items-center justify-center">
+                          <span className="text-xs font-bold text-black">K</span>
+                        </div>
+                        <span>{lang('authentication.oauth.kakao.label')}</span>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="kakaoEnabled"
+                        render={({ field }) => (
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        )}
+                      />
+                    </CardTitle>
+                  </CardHeader>
 
                   {form.watch("kakaoEnabled") && (
-                    <div className="space-y-4 pl-4 border-l-2 border-gray-200">
+                    <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
@@ -861,30 +842,37 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
                           {testingOAuth.kakao ? '테스트 중...' : '연결 테스트'}
                         </Button>
                       </div>
-                    </div>
+                    </CardContent>
                   )}
-                </div>
+                </Card>
 
                 {/* Naver OAuth */}
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="naverEnabled"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between">
-                        <FormLabel className="text-base font-medium">{lang('authentication.oauth.naver.label')}</FormLabel>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
+                <Card className="border border-gray-200">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="flex items-center justify-between text-base">
+                      <div className="flex items-center space-x-2">
+                        <div className="w-6 h-6 bg-green-500 rounded-full flex items-center justify-center">
+                          <span className="text-xs font-bold text-white">N</span>
+                        </div>
+                        <span>{lang('authentication.oauth.naver.label')}</span>
+                      </div>
+                      <FormField
+                        control={form.control}
+                        name="naverEnabled"
+                        render={({ field }) => (
+                          <FormControl>
+                            <Switch
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                        )}
+                      />
+                    </CardTitle>
+                  </CardHeader>
 
                   {form.watch("naverEnabled") && (
-                    <div className="space-y-4 pl-4 border-l-2 border-gray-200">
+                    <CardContent className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <FormField
                           control={form.control}
@@ -944,94 +932,9 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
                           {testingOAuth.naver ? '테스트 중...' : '연결 테스트'}
                         </Button>
                       </div>
-                    </div>
+                    </CardContent>
                   )}
-                </div>
-
-                {/* GitHub OAuth */}
-                <div className="space-y-4">
-                  <FormField
-                    control={form.control}
-                    name="githubEnabled"
-                    render={({ field }) => (
-                      <FormItem className="flex items-center justify-between">
-                        <FormLabel className="text-base font-medium">{lang('authentication.oauth.github.label')}</FormLabel>
-                        <FormControl>
-                          <Switch
-                            checked={field.value}
-                            onCheckedChange={field.onChange}
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-
-                  {form.watch("githubEnabled") && (
-                    <div className="space-y-4 pl-4 border-l-2 border-gray-200">
-                      <div className="grid grid-cols-2 gap-4">
-                        <FormField
-                          control={form.control}
-                          name="githubClientId"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{lang('authentication.oauth.github.clientId')}</FormLabel>
-                              <FormControl>
-                                <Input placeholder={lang('authentication.oauth.github.clientIdPlaceholder')} {...field} />
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                        <FormField
-                          control={form.control}
-                          name="githubClientSecret"
-                          render={({ field }) => (
-                            <FormItem>
-                              <FormLabel>{lang('authentication.oauth.github.clientSecret')}</FormLabel>
-                              <FormControl>
-                                <div className="relative">
-                                  <Input
-                                    type={showPasswords.githubClientSecret ? "text" : "password"}
-                                    placeholder={lang('authentication.oauth.github.clientSecretPlaceholder')}
-                                    {...field}
-                                  />
-                                  <Button
-                                    type="button"
-                                    variant="ghost"
-                                    size="icon"
-                                    className="absolute right-2 top-1/2 -translate-y-1/2 h-8 w-8"
-                                    onClick={() => setShowPasswords(prev => ({ ...prev, githubClientSecret: !prev.githubClientSecret }))}
-                                  >
-                                    {showPasswords.githubClientSecret ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
-                                  </Button>
-                                </div>
-                              </FormControl>
-                              <FormMessage />
-                            </FormItem>
-                          )}
-                        />
-                      </div>
-                      <div className="flex justify-end">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={testingOAuth.github}
-                          onClick={() => testOAuthConnection('github')}
-                        >
-                          {testingOAuth.github ? (
-                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          ) : (
-                            <Network className="h-4 w-4 mr-2" />
-                          )}
-                          {testingOAuth.github ? '테스트 중...' : '연결 테스트'}
-                        </Button>
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-              </div>
+                </Card>
             </CardContent>
           </Card>
 

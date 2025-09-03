@@ -15,28 +15,28 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
     const { userId, userMessage, assistantMessage } = body
 
     if (!userId) {
-      return NextResponse.json({ error: '사용자 인증이 필요합니다' }, { status: 401 })
+      return NextResponse.json({ error: '사용자 인증이 is required' }, { status: 401 })
     }
 
     if (!userMessage || !assistantMessage) {
-      return NextResponse.json({ error: '사용자 메시지와 어시스턴트 응답이 필요합니다' }, { status: 400 })
+      return NextResponse.json({ error: '사용자 메시지와 어시스턴트 응답이 is required' }, { status: 400 })
     }
 
     // Check chat session existence and permissions
     const session = await chatSessionRepository.findById(chatId)
     if (!session || session.length === 0) {
-      return NextResponse.json({ error: '채팅 세션을 찾을 수 없습니다' }, { status: 404 })
+      return NextResponse.json({ error: '채팅 세션을 not found' }, { status: 404 })
     }
 
     // Verify session owner
     if (session[0].userId !== userId) {
-      return NextResponse.json({ error: '이 채팅에 대한 접근 권한이 없습니다' }, { status: 403 })
+      return NextResponse.json({ error: '이 채팅에 대한 접근 No permission' }, { status: 403 })
     }
 
     // Get default model information (for title generation)
     const publicModels = await llmModelRepository.findPublic()
     if (!publicModels || publicModels.length === 0) {
-      return NextResponse.json({ error: '제목 생성용 모델을 찾을 수 없습니다' }, { status: 404 })
+      return NextResponse.json({ error: '제목 생성용 모델을 not found' }, { status: 404 })
     }
 
     // Use first public model
