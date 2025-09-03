@@ -1,11 +1,16 @@
 import { userRepository, adminSettingsRepository } from "@/lib/db/repository"
 import UsersPageClient from "./users-page-client"
-import { loadTranslationModule, supportedLanguages } from "@/lib/i18n-server"
+import { loadTranslationModule, supportedLanguages, defaultLanguage } from "@/lib/i18n-server"
+import { cookies } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 export const revalidate = 0
 
 export default async function UsersPage() {
+  // Get current language from cookies or use default
+  const cookieStore = await cookies()
+  const currentLanguage = cookieStore.get('language')?.value || defaultLanguage
+  
   // Fetch users data and admin settings with SSR
   const [rawUsers, emailVerificationSetting] = await Promise.all([
     userRepository.findAll(),
@@ -39,5 +44,6 @@ export default async function UsersPage() {
     initialUsers={users} 
     allTranslations={allTranslations}
     emailVerificationEnabled={emailVerificationEnabled}
+    initialLanguage={currentLanguage}
   />
 }

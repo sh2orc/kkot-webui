@@ -210,14 +210,12 @@ export default function Sidebar({
   const fetchChatSessions = useCallback(async () => {
     // Check session state
     if (status === 'loading') {
-      console.log('Session still loading, skipping chat sessions fetch')
+
       return
     }
     
     if (status === 'unauthenticated' || !session?.user?.id) {
-      console.log('No valid session available, skipping chat sessions fetch')
-      console.log('Session status:', status)
-      console.log('Session data:', session)
+
       setIsLoading(false)
       setRawChatSessions([])
       setChatGroups([])
@@ -226,9 +224,6 @@ export default function Sidebar({
 
     try {
       setIsLoading(true)
-      console.log('Fetching chat sessions for user:', session.user.email)
-      console.log('Session status:', status)
-      
       // Header configuration
       const headers: HeadersInit = {
         'Content-Type': 'application/json',
@@ -237,9 +232,7 @@ export default function Sidebar({
       // Include NextAuth token in Authorization header if available
       if ((session as any)?.accessToken) {
         headers['Authorization'] = `Bearer ${(session as any).accessToken}`
-        console.log('Including access token in Authorization header')
-      } else {
-        console.log('No access token found, relying on cookies')
+
       }
       
       const response = await fetch(`/api/chat`, {
@@ -248,29 +241,27 @@ export default function Sidebar({
         headers
       })
       
-      console.log('API Response status:', response.status)
-      console.log('API Response ok:', response.ok)
+
       
       if (response.status === 401 || response.status === 404) {
-        console.error('Authentication error or resource not found, status:', response.status)
+
         // Redirect to homepage on authentication error or resource not found
         router.push('/')
         return
       }
       
       const data = await response.json()
-      console.log('API Response data:', data)
+
       
       if (data.sessions) {
-        console.log('Successfully loaded', data.sessions.length, 'chat sessions')
+
         // Store raw sessions for language switching
         setRawChatSessions(data.sessions)
         // Group by date
         const groups = groupChatSessionsByDate(data.sessions)
         setChatGroups(groups)
       } else if (data.error) {
-        console.error('Chat session load error:', data.error)
-        console.error('Full error response:', data)
+
         // Redirect to homepage on "Invalid user" error
         if (data.error === 'Invalid user') {
           router.push('/')
@@ -279,12 +270,12 @@ export default function Sidebar({
         setRawChatSessions([])
         setChatGroups([])
       } else {
-        console.error('Unexpected API response format:', data)
+
         setRawChatSessions([])
         setChatGroups([])
       }
     } catch (error) {
-      console.error('Error fetching chat sessions:', error)
+
       setRawChatSessions([])
       setChatGroups([])
     } finally {
@@ -475,12 +466,9 @@ export default function Sidebar({
 
     // Add event listener for new chat creation
     const handleNewChatCreated = (event: CustomEvent) => {
-      console.log('=== New chat created event received ===')
-      console.log('Event detail:', event.detail)
       const { chat } = event.detail
       
       if (chat) {
-        console.log(`Adding new chat ${chat.id} with title: ${chat.title}`)
         // Instead of using lang function inside the handler, refresh the entire sidebar
         if (session?.user?.id) {
           fetchChatSessions()
@@ -490,21 +478,12 @@ export default function Sidebar({
 
     // Add event listener for chat title updates
     const handleChatTitleUpdate = (event: CustomEvent) => {
-      console.log('=== Chat title update event received ===')
-      console.log('Event detail:', event.detail)
-      console.log('Event type:', event.type)
-      console.log('Current chat groups count:', chatGroups.length)
+
       
       const { chatId, title } = event.detail
       
       if (chatId && title) {
-        console.log(`Updating title for chat ${chatId} to: ${title}`)
-        
-        // Log current groups before update
-        console.log('Current groups before update:', chatGroups.map(g => ({
-          label: g.label,
-          items: g.items.map(i => ({ id: i.id, title: i.title }))
-        })))
+
         
         // Update specific chat title in current state
         setChatGroups(prevGroups => {
@@ -512,23 +491,14 @@ export default function Sidebar({
             ...group,
             items: group.items.map(item => {
               const matches = String(item.id) === String(chatId)
-              console.log(`Comparing item ${item.id} with chatId ${chatId}: ${matches}`)
               return matches ? { ...item, title: title } : item
             })
           }))
           
-          console.log('Updated chat groups:', updatedGroups.map(g => ({
-            label: g.label,
-            items: g.items.map(i => ({ id: i.id, title: i.title }))
-          })))
-          
           return updatedGroups
         })
-        
-        console.log('Title update completed')
       } else {
-        console.log('Missing chatId or title, refreshing entire list')
-        console.log('chatId:', chatId, 'title:', title)
+
         // Fallback: refresh entire list
         if (session?.user?.id) {
           fetchChatSessions()
@@ -537,7 +507,7 @@ export default function Sidebar({
     }
 
     if (typeof window !== 'undefined') {
-      console.log('Adding event listeners for chat management')
+
       window.addEventListener('newChatCreated', handleNewChatCreated as EventListener)
       window.addEventListener('chatTitleUpdated', handleChatTitleUpdate as EventListener)
     }
@@ -545,7 +515,7 @@ export default function Sidebar({
     // Cleanup function
     return () => {
       if (typeof window !== 'undefined') {
-        console.log('Cleaning up sidebar event listeners')
+
         delete (window as any).refreshSidebar
         window.removeEventListener('newChatCreated', handleNewChatCreated as EventListener)
         window.removeEventListener('chatTitleUpdated', handleChatTitleUpdate as EventListener)

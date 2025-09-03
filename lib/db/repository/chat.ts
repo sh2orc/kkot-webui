@@ -1,7 +1,7 @@
 // This file is for server-side only
 import 'server-only';
 
-import { eq, inArray, and, gte } from 'drizzle-orm';
+import { eq, inArray, and, gte, sql, desc, lt } from 'drizzle-orm';
 import { getDb } from '../config';
 import * as schema from '../schema';
 import { generateId } from './utils';
@@ -80,6 +80,75 @@ export const chatMessageRepository = {
    */
   findBySessionId: async (sessionId: string | number) => {
     return await db.select().from(schema.chatMessages).where(eq(schema.chatMessages.sessionId, sessionId as any));
+  },
+  
+  /**
+   * Find messages for a session with pagination (reverse chronological order)
+   * @param sessionId - Chat session ID
+   * @param limit - Number of messages to fetch
+   * @param beforeMessageId - Fetch messages before this message ID (for cursor-based pagination)
+   * @returns Messages in ascending order (oldest to newest)
+   */
+  findBySessionIdPaginated: async (
+    sessionId: string | number, 
+    limit: number = 50, 
+    beforeMessageId?: string | number
+  ) => {
+    let query = db.select().from(schema.chatMessages)
+      .where(eq(schema.chatMessages.sessionId, sessionId as any));
+    
+    // If beforeMessageId is provided, get messages before that message
+    if (beforeMessageId) {
+      // First, get the timestamp of the reference message
+      const referenceMessage = await db.select()
+        .from(schema.chatMessages)
+        .where(and(
+          eq(schema.chatMessages.sessionId, sessionId as any),
+          eq(schema.chatMessages.id, beforeMessageId as any)
+        ))
+        .limit(1);
+      
+      if (referenceMessage.length > 0) {
+        const referenceTimestamp = referenceMessage[0].createdAt;
+        
+        // Get messages created before the reference timestamp
+        // Order by createdAt DESC to get the most recent messages first
+        // Then limit and reverse to return in ascending order
+        const messages = await db.select()
+          .from(schema.chatMessages)
+          .where(and(
+            eq(schema.chatMessages.sessionId, sessionId as any),
+            // Use less than (not less than or equal) to exclude the reference message
+            lt(schema.chatMessages.createdAt, referenceTimestamp)
+          ))
+          .orderBy(desc(schema.chatMessages.createdAt))
+          .limit(limit);
+        
+        // Reverse to return messages in ascending order (oldest to newest)
+        return messages.reverse();
+      }
+    }
+    
+    // If no beforeMessageId, get the most recent messages
+    // Order by DESC to get newest first, then reverse
+    const messages = await query
+      .orderBy(desc(schema.chatMessages.createdAt))
+      .limit(limit);
+    
+    // Reverse to return messages in ascending order (oldest to newest)
+    return messages.reverse();
+  },
+  
+  /**
+   * Count total messages in a session
+   */
+  countBySessionId: async (sessionId: string | number) => {
+    const result = await db.select({ 
+      count: sql<number>`count(*)` 
+    })
+      .from(schema.chatMessages)
+      .where(eq(schema.chatMessages.sessionId, sessionId as any));
+    return Number(result[0]?.count || 0);
   },
   
   /**

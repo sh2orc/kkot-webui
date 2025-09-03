@@ -4,6 +4,7 @@ import { Copy, Edit, Check, X, RefreshCw, Image, ZoomIn } from "lucide-react"
 import { useRef, useEffect, useCallback, useMemo, useState } from "react"
 import { useTranslation } from "@/lib/i18n"
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { VisuallyHidden } from "@radix-ui/react-visually-hidden"
 import { useTimezone } from "@/components/providers/timezone-provider"
 
 interface UserRequestProps {
@@ -46,21 +47,7 @@ export function UserRequest({
 
   // Debug: Tracking regeneration state changes
   useEffect(() => {
-    // Always output logs to track all state changes
-    console.log(`=== UserRequest ${id.substring(0, 8)}... - State Change ===`)
-    console.log('messageId:', id)
-    console.log('regeneratingMessageId:', regeneratingMessageId)
-    console.log('isStreaming:', isStreaming)
-    console.log('Is this message being regenerated:', regeneratingMessageId === id)
-    console.log('Button should be disabled:', regeneratingMessageId !== null)
-    console.log('Button should be enabled:', regeneratingMessageId === null)
-    
-    // Also check the actual DOM element state
-    const buttonElement = document.querySelector(`[data-message-id="${id}"] button[title*="Generate"]`)
-    if (buttonElement) {
-      console.log('DOM Button disabled:', buttonElement.hasAttribute('disabled'))
-      console.log('DOM Button classes:', buttonElement.className)
-    }
+
   }, [regeneratingMessageId, isStreaming, id])
 
   // Parse message content to extract text and image information
@@ -142,7 +129,7 @@ export function UserRequest({
   }
 
   return (
-    <div className={`flex items-start leading-relaxed gap-3 ${editingMessageId === id ? "w-full" : "max-w-[80%]"}`}>
+    <div className={`flex items-start leading-relaxed gap-3 ${editingMessageId === id ? "w-full" : "max-w-[80%] ml-auto"}`}>
       <div className="w-full">
         {editingMessageId === id ? (
           <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 w-full">
@@ -177,18 +164,18 @@ export function UserRequest({
             </div>
           </div>
         ) : (
-          <div className="flex flex-col">
-            <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3">
-              {/* Display images if present */}
-              {parsedContent.hasImages && parsedContent.images.length > 0 && (
-                <div className="flex flex-wrap gap-2 mb-3">
+          <div className="flex flex-col items-end">
+            {/* Display images if present - White background */}
+            {parsedContent.hasImages && parsedContent.images.length > 0 && (
+              <div className="bg-white dark:bg-gray-900 rounded-lg border-0 border-gray-200 dark:border-gray-700 mb-2 inline-block">
+                <div className="flex flex-wrap gap-2 justify-end">
                   {parsedContent.images.map((image: any, index: number) => (
                     <div key={index} className="relative group">
                       {image.data ? (
                         /* Image thumbnail */
                         <div 
-                          className="relative cursor-pointer rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 transition-colors w-full sm:w-[400px]"
-                          style={{ width: '20vw' }}
+                          className="relative cursor-pointer rounded-lg overflow-hidden border-0 border-gray-300 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-500 transition-colors"
+                          style={{ width: '200px', maxWidth: '200px' }}
                           onClick={() => setSelectedImage({src: image.data, name: image.name || `Image ${index + 1}`})}
                         >
                           <img
@@ -203,7 +190,7 @@ export function UserRequest({
                         </div>
                       ) : (
                         /* Fallback for images without data */
-                        <div className="flex items-center gap-2 bg-gray-200 dark:bg-gray-700 rounded-lg px-2 py-1">
+                        <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-lg px-2 py-1">
                           <Image className="h-4 w-4 text-gray-600 dark:text-gray-400" />
                           <span className="text-sm text-gray-600 dark:text-gray-400">
                             {image.name || `Image ${index + 1}`}
@@ -216,16 +203,20 @@ export function UserRequest({
                     </div>
                   ))}
                 </div>
-              )}
-              {/* Display text content only if there's actual text */}
-              {displayText && displayText.trim() && (
+              </div>
+            )}
+            {/* Display text content only if there's actual text - Gray background */}
+            {displayText && displayText.trim() && (
+              <div className="bg-gray-100 dark:bg-gray-800 rounded-lg p-3 inline-block">
                 <div className="whitespace-pre-wrap break-words" style={{ overflowWrap: 'break-word', wordBreak: 'break-word' }}>
                   {displayText}
                 </div>
-              )}
-            </div>
-            <div className="flex items-center justify-between mt-2 sm:gap-2">
-              <div className="text-xs text-gray-400 dark:text-gray-500">
+              </div>
+            )}
+            {/* If no text but has images, don't show empty gray box */}
+            {(!displayText || !displayText.trim()) && parsedContent.hasImages && parsedContent.images.length > 0 && null}
+            <div className="flex items-center justify-end mt-2 sm:gap-2 w-full">
+              <div className="text-xs text-gray-400 dark:text-gray-500 order-2">
               {(() => {
                   let displayTime: Date;
                   if (timestamp instanceof Date && !isNaN(timestamp.getTime())) {
@@ -241,7 +232,7 @@ export function UserRequest({
                   return formatTime(displayTime, language === 'kor' ? 'ko-KR' : 'en-US', { hour: '2-digit', minute: '2-digit' })
                 })()}
               </div>
-              <div className="flex sm:gap-1 space-x-3 sm:space-x-1 md:space-x-0">
+              <div className="flex sm:gap-1 space-x-3 sm:space-x-1 md:space-x-0 order-1 mr-2">
                 <button
                   onClick={handleCopy}
                   className={`sm:p-1 rounded-full transition-all duration-200 ${
@@ -261,19 +252,10 @@ export function UserRequest({
                 <button
                   data-message-id={id}
                   onClick={() => {
-                    console.log('=== Regenerate button clicked ===')
-                    console.log('messageId:', id)
-                    console.log('regeneratingMessageId:', regeneratingMessageId)
-                    console.log('isStreaming:', isStreaming)
-                    console.log('Button disabled state:', regeneratingMessageId !== null)
-                    
                     // Prevent multiple clicks during regeneration or when this specific message is being regenerated
                     if (regeneratingMessageId === id || regeneratingMessageId !== null) {
-                      console.log('Regeneration already in progress, blocking click')
                       return;
                     }
-                    
-                    console.log('Calling onRegenerate with messageId:', id)
                     onRegenerate(id);
                   }}
                   disabled={regeneratingMessageId !== null}
@@ -303,12 +285,10 @@ export function UserRequest({
       {/* Image Modal */}
       <Dialog open={!!selectedImage} onOpenChange={() => setSelectedImage(null)}>
         <DialogContent className="max-w-4xl w-full p-0">
-          <DialogHeader className="p-6 pb-0">
-            <DialogTitle className="text-lg font-semibold">
-              {selectedImage?.name}
-            </DialogTitle>
-          </DialogHeader>
-          <div className="p-6 pt-2">
+          <VisuallyHidden>
+            <DialogTitle>{selectedImage?.name || "Image"}</DialogTitle>
+          </VisuallyHidden>
+          <div className="p-6">
             {selectedImage && (
               <div className="flex justify-center">
                 <img

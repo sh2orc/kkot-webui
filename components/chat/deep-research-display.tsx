@@ -50,60 +50,20 @@ export function DeepResearchDisplay({
   const [lastMessageId, setLastMessageId] = useState<string>('')
   const [processedStepInfoHash, setProcessedStepInfoHash] = useState<string>('')
 
-  // Component mount log
-  useEffect(() => {
-    console.log('🔷 DeepResearchDisplay MOUNTED:', {
-      messageId,
-      contentLength: content.length,
-      contentPreview: content.substring(0, 100),
-      plannedStepsFromInfo: deepResearchStepInfo?.plannedSteps?.map(s => s.title),
-      stepType: deepResearchStepType,
-      isComplete: isDeepResearchComplete,
-      isStreaming
-    })
-  }, [])
-
+ 
   // Track all props changes
   useEffect(() => {
-    console.log('🔄 DeepResearchDisplay props changed:', {
-      messageId,
-      lastMessageId,
-      contentLength: content.length,
-      contentPreview: content.substring(0, 50),
-      plannedStepsCount: deepResearchStepInfo?.plannedSteps?.length || 0,
-      plannedStepsTitles: deepResearchStepInfo?.plannedSteps?.map(s => s.title.substring(0, 30)),
-      currentStepsCount: steps.length,
-      currentStepsTitles: steps.map(s => s.title.substring(0, 30)),
-      stepType: deepResearchStepType,
-      isComplete: isDeepResearchComplete,
-      isStreaming,
-      // More detailed stepInfo debugging
-      stepInfoKeys: deepResearchStepInfo ? Object.keys(deepResearchStepInfo) : [],
-      hasPlannedSteps: !!(deepResearchStepInfo?.plannedSteps),
-      rawPlannedSteps: deepResearchStepInfo?.plannedSteps
-    })
+
   }, [messageId, content, deepResearchStepInfo, deepResearchStepType, isDeepResearchComplete, isStreaming, steps.length])
 
   // Message ID change detection and complete state initialization
   useEffect(() => {
-    console.log('DeepResearchDisplay - useEffect triggered:', { 
-      messageId, 
-      lastMessageId, 
-      hasSteps: steps.length,
-      plannedStepsLength: plannedSteps.length,
-      contentPreview: content.substring(0, 50)
-    })
+
     
     // Complete initialization when a new message starts
     if (messageId && messageId !== lastMessageId) {
-      console.log('🔄 NEW MESSAGE DETECTED - Completely resetting all states:', { 
-        newMessageId: messageId, 
-        oldMessageId: lastMessageId,
-        currentStepsCount: steps.length,
-        currentPlannedStepsCount: plannedSteps.length
-      })
       
-              // Immediately reset all states
+        // Immediately reset all states
         setSteps([])
         setOpenSteps(new Set())
         setCurrentStepId(null)
@@ -120,11 +80,7 @@ export function DeepResearchDisplay({
       const currentPlannedStepsHash = plannedSteps.map(s => s.title).join('|')
       
       if (newPlannedStepsHash !== currentPlannedStepsHash && newPlannedStepsHash.length > 0) {
-        console.log('📋 NEW PLANNED STEPS DETECTED - Resetting for same message:', {
-          messageId,
-          newPlannedStepsHash: newPlannedStepsHash.substring(0, 100),
-          currentPlannedStepsHash: currentPlannedStepsHash.substring(0, 100)
-        })
+
         
         // Immediately reset all states
         setSteps([])
@@ -143,12 +99,12 @@ export function DeepResearchDisplay({
   useEffect(() => {
     // Use content hash based detection for new deep research when messageId is not available
     if (!messageId) {
-      console.log('⚠️ No messageId provided, using content-based detection')
+
       const contentHash = content.substring(0, 100) + (deepResearchStepInfo?.title || '')
       
-              // Reset states if content has changed significantly (new question)
+        // Reset states if content has changed significantly (new question)
         if (lastContentHash && contentHash !== lastContentHash && content.length < 50) {
-          console.log('📝 Content changed significantly (no messageId), resetting states')
+
           setSteps([])
           setOpenSteps(new Set())
           setCurrentStepId(null)
@@ -169,21 +125,11 @@ export function DeepResearchDisplay({
       const newPlannedStepsHash = newPlannedSteps.map(s => s.title).join('|')
       const currentPlannedStepsHash = plannedSteps.map(s => s.title).join('|')
       
-      console.log('🔍 Planned steps comparison:', {
-        newCount: newPlannedSteps.length,
-        currentCount: plannedSteps.length,
-        newHash: newPlannedStepsHash.substring(0, 100),
-        currentHash: currentPlannedStepsHash.substring(0, 100),
-        areEqual: newPlannedStepsHash === currentPlannedStepsHash
-      })
+
       
       // Always complete reset when new plannedSteps arrive
       if (newPlannedStepsHash !== currentPlannedStepsHash) {
-        console.log('📋 NEW PLANNED STEPS - Complete reset and initialization:', {
-          messageId,
-          from: currentPlannedStepsHash.substring(0, 50),
-          to: newPlannedStepsHash.substring(0, 50)
-        })
+
         
         // Complete state reset and new state initialization
         setSteps([])
@@ -202,7 +148,7 @@ export function DeepResearchDisplay({
           stepType: plannedStep.type as 'step' | 'synthesis' | 'final'
         }))
         
-        console.log('🆕 Created fresh initial steps:', initialSteps.map(s => ({ id: s.id, title: s.title.substring(0, 30) })))
+
         setSteps(initialSteps)
         return
       }
@@ -232,17 +178,8 @@ export function DeepResearchDisplay({
           console.log('🔍 Step info unchanged, skipping processing');
           return
         }
-        
-        console.log('🔍 Processing parallel deep research data:');
-        console.log('🔍 Keys in stepInfo:', Object.keys(deepResearchStepInfo));
-        console.log('🔍 Current steps before processing:', steps.map(s => ({ id: s.id, title: s.title.substring(0, 30), type: s.stepType })));
-        
         setProcessedStepInfoHash(stepInfoHash)
         const newSteps: DeepResearchStep[] = []
-        
-        // Iterate through all keys in deepResearchStepInfo to collect results
-        console.log('🔍 deepResearchStepInfo keys:', Object.keys(deepResearchStepInfo));
-        console.log('🔍 deepResearchStepInfo entries:', Object.entries(deepResearchStepInfo));
         
         // Force display final answer if it exists in deepResearchStepInfo
         const finalAnswerKeys = Object.keys(deepResearchStepInfo).filter(key => 
@@ -251,12 +188,12 @@ export function DeepResearchDisplay({
            ((deepResearchStepInfo[key] as any).isFinalAnswer || (deepResearchStepInfo[key] as any).title === 'Final Answer'))
         );
         
-        console.log('🔍 Final answer keys found:', finalAnswerKeys);
+
         
         // If we have final answer keys, force add them to steps
         finalAnswerKeys.forEach(key => {
           const stepData = deepResearchStepInfo[key] as any;
-          console.log('🎯 Force adding final answer step:', key, stepData);
+
           
           newSteps.push({
             id: key,
@@ -268,11 +205,11 @@ export function DeepResearchDisplay({
         });
         
         Object.entries(deepResearchStepInfo).forEach(([key, value]) => {
-          console.log('🔍 Processing key:', key, 'value type:', typeof value, 'value:', value);
+
           
           if (typeof value === 'object' && value !== null && 'content' in value) {
             const stepData = value as any
-            console.log('🔍 Valid stepData for key:', key, 'stepData:', stepData);
+
             
             // Sub-question analysis result processing
             if (key.startsWith('subq_')) {
@@ -296,14 +233,7 @@ export function DeepResearchDisplay({
             }
             // Final answer processing
             else if (key.startsWith('final_answer_') || stepData.isFinalAnswer) {
-              console.log('🎯 Processing final answer:', {
-                key,
-                title: stepData.title,
-                contentLength: stepData.content?.length || 0,
-                contentPreview: stepData.content?.substring(0, 100) || '',
-                isComplete: stepData.isComplete,
-                isFinalAnswer: stepData.isFinalAnswer
-              })
+
               newSteps.push({
                 id: key,
                 title: stepData.title || 'Final Answer',
@@ -314,14 +244,7 @@ export function DeepResearchDisplay({
             }
             // Additional catch-all for final answer (in case key doesn't match expected patterns)
             else if (stepData.title === 'Final Answer' || stepData.isFinalAnswer === true) {
-              console.log('🎯 Processing final answer (catch-all):', {
-                key,
-                title: stepData.title,
-                contentLength: stepData.content?.length || 0,
-                contentPreview: stepData.content?.substring(0, 100) || '',
-                isComplete: stepData.isComplete,
-                isFinalAnswer: stepData.isFinalAnswer
-              })
+
               newSteps.push({
                 id: key,
                 title: stepData.title || 'Final Answer',
@@ -344,16 +267,6 @@ export function DeepResearchDisplay({
             (existingStep.title === step.title && existingStep.stepType === step.stepType)
           )
         })
-        
-        console.log('🔄 Removed duplicates:', newSteps.length, '->', uniqueSteps.length)
-        if (newSteps.length !== uniqueSteps.length) {
-          console.log('🔄 Duplicates found:', newSteps.filter((step, index, array) => 
-            array.slice(0, index).some(existingStep => 
-              (existingStep.id === step.id) ||
-              (existingStep.title === step.title && existingStep.stepType === step.stepType)
-            )
-          ).map(s => ({ id: s.id, title: s.title.substring(0, 30), type: s.stepType })))
-        }
         
         // Sort steps in appropriate order
         const sortedSteps = uniqueSteps.sort((a, b) => {
@@ -382,17 +295,7 @@ export function DeepResearchDisplay({
           return 0
         })
         
-                 console.log('📊 Processed parallel steps:', sortedSteps.map(s => ({ 
-           id: s.id, 
-           title: s.title.substring(0, 30), 
-           status: s.status, 
-           type: s.stepType 
-         })))
-         
-         console.log('📊 Steps by type:');
-         console.log('- Sub-questions:', sortedSteps.filter(s => s.stepType === 'step').length);
-         console.log('- Synthesis:', sortedSteps.filter(s => s.stepType === 'synthesis').length);
-         console.log('- Final answers:', sortedSteps.filter(s => s.stepType === 'final').length);
+
          
          // Replace with new steps (already deduplicated)
          setSteps(sortedSteps)
@@ -822,22 +725,7 @@ export function DeepResearchDisplay({
   if (isDeepResearchComplete && completedSteps < totalSteps) {
     completedSteps = totalSteps
   }
-  console.log('🔢 Progress calculation:', {
-    completedSteps,
-    totalSteps,
-    plannedStepsCount: plannedSteps.length,
-    actualStepsCount: steps.length,
-    isComplete: isDeepResearchComplete,
-    stepsDetails: steps.map(s => ({ 
-      title: s.title.substring(0, 50), 
-      status: s.status, 
-      type: s.stepType 
-    })),
-    plannedStepsDetails: plannedSteps.map(p => ({ 
-      title: p.title?.substring(0, 50), 
-      type: p.type 
-    }))
-  })
+  
 
   return (
     <div className="space-y-2">
@@ -981,17 +869,7 @@ export function DeepResearchDisplay({
           return false
         })
         
-        console.log('🎯 Final answer display check:', {
-          hasFinalStep: !!finalStep,
-          finalStepId: finalStep?.id,
-          finalStepTitle: finalStep?.title,
-          finalStepStatus: finalStep?.status,
-          finalStepContentLength: finalStep?.content?.length || 0,
-          finalStepContentPreview: finalStep?.content?.substring(0, 100) || '',
-          hasFinalAnswerFromStepInfo: !!finalAnswerFromStepInfo,
-          finalAnswerFromStepInfoKey: finalAnswerFromStepInfo?.[0],
-          finalAnswerFromStepInfoContent: finalAnswerFromStepInfo?.[1] ? (finalAnswerFromStepInfo[1] as any).content?.substring(0, 100) : ''
-        })
+
         
         return !!finalStep || !!finalAnswerFromStepInfo
       })() && (

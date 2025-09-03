@@ -67,6 +67,11 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     return window.innerWidth < 768 ? 320 : 160
   })
   
+  // Pagination states
+  const [isLoadingMore, setIsLoadingMore] = useState(false)
+  const [hasMoreMessages, setHasMoreMessages] = useState(false)
+  const [oldestLoadedMessageId, setOldestLoadedMessageId] = useState<string | null>(null)
+  
   // Ref to prevent React Strict Mode duplicate execution
   const streamingInProgress = useRef(false)
   const abortControllerRef = useRef<AbortController | null>(null)
@@ -78,6 +83,111 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   
   // Add ref to prevent duplicate deep research calls
   const deepResearchInProgress = useRef<Set<string>>(new Set())
+  
+  // Load more messages function for pagination
+  const loadMoreMessages = useCallback(async () => {
+    if (isLoadingMore || !hasMoreMessages || !chatId || !oldestLoadedMessageId) return
+    
+    setIsLoadingMore(true)
+    
+    // Save current scroll position and first visible message
+    const container = messagesContainerRef.current
+    if (!container) return
+    
+    const previousScrollHeight = container.scrollHeight
+    const previousScrollTop = container.scrollTop
+    
+    // Find the first visible message to use as anchor
+    const messageElements = container.querySelectorAll('[data-message-id]')
+    let anchorMessageId: string | null = null
+    let anchorOffsetTop = 0
+    
+    for (const element of messageElements) {
+      const rect = element.getBoundingClientRect()
+      const containerRect = container.getBoundingClientRect()
+      if (rect.top >= containerRect.top && rect.top <= containerRect.bottom) {
+        anchorMessageId = element.getAttribute('data-message-id')
+        anchorOffsetTop = rect.top - containerRect.top
+        break
+      }
+    }
+    
+    try {
+      const response = await fetch(
+        `/api/chat/${chatId}?paginated=true&limit=20&beforeMessageId=${oldestLoadedMessageId}`
+      )
+      
+      if (response.ok) {
+        const data = await response.json()
+        
+        if (data.messages && data.messages.length > 0) {
+          // Convert timestamps and process messages
+          const newMessages = data.messages.map((msg: any) => {
+            let timestamp: Date;
+            if (msg.timestamp) {
+              timestamp = new Date(msg.timestamp);
+              if (isNaN(timestamp.getTime())) {
+                timestamp = new Date();
+              }
+            } else {
+              timestamp = new Date();
+            }
+            
+            return {
+              ...msg,
+              timestamp
+            };
+          })
+          
+          // Temporarily disable smooth scrolling during update
+          container.style.scrollBehavior = 'auto'
+          
+          // Prepend new messages to existing messages
+          setMessages(prevMessages => [...newMessages, ...prevMessages])
+          
+          // Update oldest message ID
+          setOldestLoadedMessageId(newMessages[0].id)
+          
+          // Update hasMore status
+          setHasMoreMessages(data.pagination?.hasMore || false)
+          
+          // Restore scroll position after DOM update
+          requestAnimationFrame(() => {
+            if (container) {
+              // Method 1: If we have an anchor element, scroll to maintain its position
+              if (anchorMessageId) {
+                const anchorElement = container.querySelector(`[data-message-id="${anchorMessageId}"]`)
+                if (anchorElement) {
+                  const newRect = anchorElement.getBoundingClientRect()
+                  const containerRect = container.getBoundingClientRect()
+                  const currentOffsetTop = newRect.top - containerRect.top
+                  const scrollAdjustment = currentOffsetTop - anchorOffsetTop
+                  container.scrollTop = container.scrollTop + scrollAdjustment
+                }
+              } else {
+                // Method 2: Fallback to height difference calculation
+                const newScrollHeight = container.scrollHeight
+                const scrollDiff = newScrollHeight - previousScrollHeight
+                container.scrollTop = previousScrollTop + scrollDiff
+              }
+              
+              // Re-enable smooth scrolling after position is restored
+              setTimeout(() => {
+                container.style.scrollBehavior = 'smooth'
+              }, 0)
+            }
+          })
+        } else {
+          setHasMoreMessages(false)
+        }
+      }
+    } catch (error) {
+      console.error('Error loading more messages:', error)
+      toast.error('Failed to load more messages')
+    } finally {
+      setIsLoadingMore(false)
+    }
+  }, [chatId, isLoadingMore, hasMoreMessages, oldestLoadedMessageId])
 
   // Reset padding when isMobile changes
   useEffect(() => {
@@ -178,7 +288,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       const scrollTop = container.scrollTop
       
       // Only adjust padding when scroll is near bottom
-      const isNearBottom = scrollHeight - scrollTop - containerHeight < 80
+      const isNearBottom = scrollHeight - scrollTop - containerHeight < 30
       
       if (isNearBottom) {
         // Check only code blocks in the last message (to prevent excessive padding)
@@ -379,7 +489,8 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         let messageCount = 0 // Variable to track message count
 
         try {
-          const response = await fetch(`/api/chat/${chatId}`)
+          // Use paginated API for initial load
+          const response = await fetch(`/api/chat/${chatId}?paginated=true&limit=20`)
           if (isCancelled) return
           
           if (response.status === 401 || response.status === 404) {
@@ -392,6 +503,10 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           if (response.ok) {
             const data = await response.json()
             messageCount = data?.messages?.length || 0 // Store message count
+            
+            // Set pagination info
+            setHasMoreMessages(data.pagination?.hasMore || false)
+            setIsInitialLoad(false)
             if (isCancelled) return
             
             // Convert timestamp to Date object and process rating info
@@ -445,6 +560,11 @@ export default function ChatPage({ chatId }: ChatPageProps) {
                 // Process messages consistently regardless of count
                 // Set messages directly instead of initializing with empty array
                 setMessages(messagesWithDateTimestamp)
+                
+                // Set oldest message ID for pagination
+                if (messagesWithDateTimestamp.length > 0) {
+                  setOldestLoadedMessageId(messagesWithDateTimestamp[0].id)
+                }
                 
                 // Auto-generate AI response if last message is user message AND there's agent info in localStorage
                 // This only happens for newly created chats where user message was just sent
@@ -630,12 +750,18 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         // On initial load, scroll to bottom regardless of user scroll state
         setTimeout(() => scrollToBottomInstantLocal(), 100)
         setIsInitialLoad(false)
-      } else if (!userScrolled || isStreaming) {
-        // Scroll only if user didn't scroll or streaming is in progress
-        setTimeout(() => scrollToBottomSmoothLocal(true), 100)
-        // If not streaming, minimize additional scroll
-        if (isStreaming) {
+      } else if (isStreaming) {
+        // During streaming, scroll if user hasn't manually scrolled
+        if (!userScrolled) {
+          setTimeout(() => scrollToBottomSmoothLocal(true), 100)
           setTimeout(() => scrollToBottomInstantLocal(), 100)
+        }
+      } else if (!userScrolled) {
+        // For non-streaming, only scroll if user is exactly at bottom
+        const { scrollTop, scrollHeight, clientHeight } = container || {};
+        const isAtBottom = scrollHeight && scrollTop !== undefined && clientHeight !== undefined && (scrollHeight - scrollTop - clientHeight < 30);
+        if (isAtBottom) {
+          setTimeout(() => scrollToBottomSmoothLocal(true), 100)
         }
       }
       
@@ -654,6 +780,11 @@ export default function ChatPage({ chatId }: ChatPageProps) {
     setIsInitialLoad(true)
     const basePadding = isMobile !== undefined ? (isMobile ? 320 : 160) : 240
     setDynamicPadding(basePadding) // Reset padding too
+    
+    // Reset pagination states
+    setHasMoreMessages(false)
+    setOldestLoadedMessageId(null)
+    setIsLoadingMore(false)
   }, [chatId, isMobile])
 
   // Check if selected model supports multimodal input
@@ -694,12 +825,25 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         clearTimeout(scrollTimeout)
       }
       
-      scrollTimeout = setTimeout(() => {
-        const { scrollTop, scrollHeight, clientHeight } = container
-        const isAtBottom = scrollHeight - scrollTop - clientHeight < 80
+            scrollTimeout = setTimeout(() => {
+                const { scrollTop, scrollHeight, clientHeight } = container
+        const isAtBottom = scrollHeight !== undefined && scrollTop !== undefined && clientHeight !== undefined && (scrollHeight - scrollTop - clientHeight < 30)
         
+        // Calculate scroll percentage from top
+        const scrollPercentage = scrollTop !== undefined && scrollHeight !== undefined && clientHeight !== undefined
+          ? scrollTop / (scrollHeight - clientHeight)
+          : 1
+        
+        // Load more messages when scrolled to top 50% of the scrollable area
+        const shouldLoadMore = scrollPercentage < 0.5 && scrollTop !== undefined && scrollTop < scrollHeight * 0.5
+
         // Set userScrolled flag based on scroll position
         userScrolledRef.current = !isAtBottom
+        
+        // Load more messages when scrolled near top (within 50% of scroll area)
+        if (shouldLoadMore && hasMoreMessages && !isLoadingMore) {
+          loadMoreMessages()
+        }
         
         // Ensure rendering stability
         if (!isAtBottom) {
@@ -719,7 +863,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
         clearTimeout(scrollTimeout)
       }
     }
-  }, [])
+  }, [hasMoreMessages, isLoadingMore, loadMoreMessages])
 
   // Use ResizeObserver to detect content size changes and auto-scroll
   useEffect(() => {
@@ -735,11 +879,11 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           return
         }
         
-        // Auto-scroll if user is near bottom when content size changes
+        // Auto-scroll only if user is exactly at bottom when content size changes
         const { scrollTop, scrollHeight, clientHeight } = container
-        const isNearBottom = scrollHeight - scrollTop - clientHeight < 200
+        const isAtBottom = scrollHeight - scrollTop - clientHeight < 50
         
-        if (isNearBottom && !isScrollingToBottom.current) {
+        if (isAtBottom && !isScrollingToBottom.current) {
           // Short delay before scrolling (wait for DOM updates)
           setTimeout(() => {
             scrollToBottomInstantLocal()
@@ -784,13 +928,22 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       const isRecentMessage = messages.some(msg => msg.id === messageId);
       
       if (isRecentMessage) {
-        // Scroll only if user hasn't manually scrolled or is currently streaming
+        // Scroll only if user is at bottom and streaming is active
         const container = messagesContainerRef.current;
         const userScrolled = (container as any)?.userScrolled?.() || false;
         
-        if (!userScrolled || isStreaming || event.detail.isStreaming) {
-          // Scroll immediately since event already has 300ms delay
-          scrollToBottomSmoothLocal(true); // force scroll
+        // Only auto-scroll during streaming or if user is exactly at bottom
+        if (isStreaming || event.detail.isStreaming) {
+          if (!userScrolled) {
+            scrollToBottomSmoothLocal(true); // force scroll
+          }
+        } else {
+          // For non-streaming cases, only scroll if user is exactly at bottom
+          const { scrollTop, scrollHeight, clientHeight } = container || {};
+          const isAtBottom = scrollHeight && scrollTop !== undefined && clientHeight !== undefined && (scrollHeight - scrollTop - clientHeight < 30);
+          if (isAtBottom && !userScrolled) {
+            scrollToBottomSmoothLocal(true);
+          }
         }
       }
     };
@@ -804,15 +957,26 @@ export default function ChatPage({ chatId }: ChatPageProps) {
       const isRecentMessage = messages.some(msg => msg.id === messageId);
       
       if (isRecentMessage) {
-        // Scroll only if user hasn't manually scrolled or is currently streaming
+        // Scroll only if user is at bottom and streaming is active
         const container = messagesContainerRef.current;
         const userScrolled = (container as any)?.userScrolled?.() || false;
         
-        if (!userScrolled || isStreaming) {
-          // Add slight delay for image rendering completion
-          setTimeout(() => {
-            scrollToBottomSmoothLocal(true); // force scroll
-          }, 100);
+        // Only auto-scroll during streaming or if user is exactly at bottom
+        if (isStreaming) {
+          if (!userScrolled) {
+            setTimeout(() => {
+              scrollToBottomSmoothLocal(true); // force scroll
+            }, 100);
+          }
+        } else {
+          // For non-streaming cases, only scroll if user is exactly at bottom
+          const { scrollTop, scrollHeight, clientHeight } = container || {};
+          const isAtBottom = scrollHeight && scrollTop !== undefined && clientHeight !== undefined && (scrollHeight - scrollTop - clientHeight < 30);
+          if (isAtBottom && !userScrolled) {
+            setTimeout(() => {
+              scrollToBottomSmoothLocal(true);
+            }, 100);
+          }
         }
       }
     };
@@ -1587,28 +1751,29 @@ export default function ChatPage({ chatId }: ChatPageProps) {
   const renderedMessages = useMemo(() => {
     
     return messages.map((message, index) => (
-      <ChatMessageWrapper
-        key={`${message.id}-${forceUpdateCounter}-${regeneratingMessageId || 'none'}`}
-        message={message}
-        isNewMessage={newMessageIds.has(message.id)}
-        copiedMessageId={copiedMessageId}
-        likedMessages={likedMessages}
-        dislikedMessages={dislikedMessages}
-        isStreaming={isStreaming}
-        editingMessageId={editingMessageId}
-        editingContent={editingContent}
-        regeneratingMessageId={regeneratingMessageId}
-        streamingMessageId={streamingMessageId}
-        onCopy={handleCopyMessage}
-        onLike={handleLikeMessage}
-        onDislike={handleDislikeMessage}
-        onRegenerate={handleRegenerateResponse}
-        onEdit={handleEditMessage}
-        onSave={handleSaveEdit}
-        onCancel={handleCancelEdit}
-        onRegenerateFromUser={handleRegenerateFromUserMessage}
-        setEditingContent={setEditingContent}
-      />
+      <div key={`${message.id}-${forceUpdateCounter}-${regeneratingMessageId || 'none'}`} data-message-id={message.id}>
+        <ChatMessageWrapper
+          message={message}
+          isNewMessage={newMessageIds.has(message.id)}
+          copiedMessageId={copiedMessageId}
+          likedMessages={likedMessages}
+          dislikedMessages={dislikedMessages}
+          isStreaming={isStreaming}
+          editingMessageId={editingMessageId}
+          editingContent={editingContent}
+          regeneratingMessageId={regeneratingMessageId}
+          streamingMessageId={streamingMessageId}
+          onCopy={handleCopyMessage}
+          onLike={handleLikeMessage}
+          onDislike={handleDislikeMessage}
+          onRegenerate={handleRegenerateResponse}
+          onEdit={handleEditMessage}
+          onSave={handleSaveEdit}
+          onCancel={handleCancelEdit}
+          onRegenerateFromUser={handleRegenerateFromUserMessage}
+          setEditingContent={setEditingContent}
+        />
+      </div>
     ))
   }, [messages, newMessageIds, copiedMessageId, likedMessages, dislikedMessages, isStreaming, editingMessageId, editingContent, regeneratingMessageId, streamingMessageId, forceUpdateCounter]
   )
@@ -1629,10 +1794,17 @@ export default function ChatPage({ chatId }: ChatPageProps) {
           style={{ 
             scrollBehavior: 'smooth',
             paddingBottom: `${dynamicPadding}px`,
-            overflowAnchor: 'none'
+            overflowAnchor: 'auto' // Enable scroll anchoring to prevent jumps
           }}
         >
           <div className="px-3 max-w-full sm:max-w-2xl md:max-w-3xl lg:max-w-4xl mx-auto">
+            {/* Loading indicator for pagination */}
+            {isLoadingMore && (
+              <div className="flex justify-center py-4">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+              </div>
+            )}
+            
             {(() => {
               
               if (!historyLoaded && showSkeleton) {
@@ -1670,84 +1842,6 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             selectedAgent={selectedModel?.type === 'agent' ? selectedModel : null}
           />
 
-          {/* 딥리서치 디버깅 도구 (임시) */}
-          {process.env.NODE_ENV === 'development' && (
-            <div className="p-4 bg-yellow-50 dark:bg-yellow-900/20 border-t border-yellow-200 dark:border-yellow-800">
-              <details className="text-sm">
-                <summary className="cursor-pointer font-medium mb-2 text-yellow-800 dark:text-yellow-200">
-                  🔍 딥리서치 디버깅 정보
-                </summary>
-                <div className="space-y-2 text-xs text-yellow-700 dark:text-yellow-300">
-                  {(() => {
-                    const debugInfo = getDeepResearchDebugInfo()
-                    if (!debugInfo) return <div>디버깅 정보를 가져올 수 없습니다.</div>
-                    
-                    return (
-                      <>
-                        <div>URL 파라미터: {debugInfo.urlParam ? '✅ true' : '❌ false'}</div>
-                        <div>현재 채팅 localStorage ({debugInfo.currentChatKey}): {debugInfo.localStorage ? '✅ true' : '❌ false'}</div>
-                        <div>React State: {debugInfo.reactState ? '✅ true' : '❌ false'}</div>
-                        
-                        <div className="pt-1 border-t border-yellow-300 dark:border-yellow-700">
-                          <div className="font-medium">
-                            최종 결과: {debugInfo.final ? '🔴 딥리서치 활성화됨' : '🟢 딥리서치 비활성화됨'}
-                          </div>
-                        </div>
-                        
-                        {debugInfo.allLocalStorageKeys.length > 0 && (
-                          <div className="pt-1 border-t border-yellow-300 dark:border-yellow-700">
-                            <div className="font-medium mb-1">모든 딥리서치 localStorage 키:</div>
-                            {debugInfo.allLocalStorageKeys.map((item, index) => (
-                              <div key={index} className="pl-2 text-xs">
-                                • {item.key}: {item.value}
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        
-                        <div className="pt-2 space-x-2">
-                          <button
-                            onClick={resetDeepResearchState}
-                            className="px-3 py-1 bg-red-500 hover:bg-red-600 text-white rounded text-xs"
-                          >
-                            🔄 현재 채팅 초기화
-                          </button>
-                          <button
-                            onClick={() => {
-                              if (typeof window !== 'undefined') {
-                                // Delete all deep research related localStorage keys
-                                const keysToRemove = []
-                                for (let i = 0; i < localStorage.length; i++) {
-                                  const key = localStorage.key(i)
-                                  if (key && key.includes('deepResearch')) {
-                                    keysToRemove.push(key)
-                                  }
-                                }
-                                keysToRemove.forEach(key => localStorage.removeItem(key))
-                                
-                                // Initialize URL parameters
-                                const newUrl = window.location.pathname
-                                window.history.replaceState({}, '', newUrl)
-                                
-                                // Initialize React state
-                                setIsDeepResearchActive(false)
-                                setIsGlobeActive(false)
-                                
-
-                              }
-                            }}
-                            className="px-3 py-1 bg-orange-500 hover:bg-orange-600 text-white rounded text-xs"
-                          >
-                            🗑️ 전체 초기화
-                          </button>
-                        </div>
-                      </>
-                    )
-                  })()}
-                </div>
-              </details>
-            </div>
-          )}
       </div>
     </>
   )

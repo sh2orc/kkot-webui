@@ -95,5 +95,11 @@
   "saving": "저장 중...",
   "delete": "삭제",
   "chat": "채팅",
-  "goToChat": "채팅하기"
+  "goToChat": "채팅하기",
+  "admin": {
+    "dashboard": "관리자 대시보드",
+    "console": "시스템 관리",
+    "controlCenter": "제어센터",
+    "settings": "관리자 설정"
+  }
 } 

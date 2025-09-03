@@ -1692,6 +1692,14 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     const chatId = resolvedParams.id
     console.log('Chat ID:', chatId)
     
+    // Parse query parameters for pagination
+    const { searchParams } = new URL(request.url)
+    const limit = parseInt(searchParams.get('limit') || '50', 10)
+    const beforeMessageId = searchParams.get('beforeMessageId') || undefined
+    const usePagination = searchParams.get('paginated') === 'true'
+    
+    console.log('Pagination params:', { limit, beforeMessageId, usePagination })
+    
     // Check chat session existence and verify permissions
     const chatSession = await chatSessionRepository.findById(chatId)
     console.log('Session query result:', chatSession)
@@ -1705,12 +1713,39 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
     }
 
     // Retrieve messages for the chat session
-    const messages = await chatMessageRepository.findBySessionId(chatId)
-    console.log('Retrieved message count:', messages.length)
+    let messages;
+    let totalCount = 0;
+    let hasMore = false;
+    
+    if (usePagination) {
+      // Use paginated query
+      messages = await chatMessageRepository.findBySessionIdPaginated(chatId, limit, beforeMessageId)
+      totalCount = await chatMessageRepository.countBySessionId(chatId)
+      
+      // Check if there are more messages to load
+      if (messages.length > 0) {
+        const oldestMessage = messages[0]
+        const olderMessagesCount = await chatMessageRepository.countBySessionId(chatId)
+        // Simple check: if we have messages and total count is more than what we've loaded so far
+        hasMore = messages.length === limit
+      }
+      
+      console.log('Paginated retrieval - count:', messages.length, 'total:', totalCount, 'hasMore:', hasMore)
+    } else {
+      // Use traditional full load (for backward compatibility)
+      messages = await chatMessageRepository.findBySessionId(chatId)
+      totalCount = messages.length
+      console.log('Full retrieval - message count:', messages.length)
+    }
 
     return NextResponse.json({ 
       messages,
-      session: chatSession[0]
+      session: chatSession[0],
+      pagination: usePagination ? {
+        totalCount,
+        hasMore,
+        limit
+      } : undefined
     })
   } catch (error) {
     console.error('Chat history retrieval error:', error)

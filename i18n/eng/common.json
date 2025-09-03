@@ -95,5 +95,11 @@
   "saving": "Saving...",
   "delete": "Delete",
   "chat": "Chat",
-  "goToChat": "Go to Chat"
+  "goToChat": "Go to Chat",
+  "admin": {
+    "dashboard": "Admin Dashboard",
+    "console": "System Console",
+    "controlCenter": "Control Center",
+    "settings": "Admin Settings"
+  }
 } 

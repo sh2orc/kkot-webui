@@ -46,6 +46,8 @@ export default function LanguageProvider({ children }: LanguageProviderProps) {
     'admin.image',
     'admin.audio',
     'admin.pipeline',
+    'admin.users',
+    'admin.groups',
     'navbar',
     'settings',
     'chat',

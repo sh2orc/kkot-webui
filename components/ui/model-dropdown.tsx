@@ -75,13 +75,7 @@ export function ModelDropdown() {
     }
   }
 
-  // Debug logging
-  useEffect(() => {
-    console.log('ModelDropdown - selectedModel:', selectedModel)
-    console.log('ModelDropdown - selectedModel type:', selectedModel?.type)
-    console.log('ModelDropdown - fallback text:', getFallbackText(selectedModel))
-    console.log('ModelDropdown - avatar background:', getAvatarBackground(selectedModel))
-  }, [selectedModel])
+
 
   return (
     <Popover open={open} onOpenChange={setOpen}>

@@ -77,7 +77,7 @@ export function LlmResponse({
   // Trigger scroll event when new images are added
   useEffect(() => {
     if (hasImages && !prevHasImages) {
-      console.log('🖼️ New image detected in content, triggering scroll event');
+
       
       // Trigger scroll event after 300ms (considering image rendering time)
       setTimeout(() => {
@@ -164,11 +164,11 @@ export function LlmResponse({
             },
             // Handle broken images gracefully - simplified without hooks
             img: ({ node, src, alt, ...props }: any) => {
-              console.log('🖼️ Image component rendered:', { src, alt, props });
+
               
               // Check if src is empty or undefined
               if (!src || src.trim() === '') {
-                console.log('🖼️ Empty src detected');
+
                 return (
                   <span className="inline-flex items-center gap-2 px-3 py-2 bg-gray-100 dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg text-sm text-gray-600 dark:text-gray-400">
                     <span className="text-yellow-500">⚠️</span>
@@ -197,7 +197,7 @@ export function LlmResponse({
                 ? src.replace('/temp-images/', '/api/images/')
                 : src;
               
-              console.log('🖼️ Image URL conversion:', { original: src, converted: convertedSrc });
+
               
               return (
                 <span className="relative block group">
@@ -208,13 +208,7 @@ export function LlmResponse({
                     className="max-w-[20vw] min-w-[200px] h-auto rounded-lg border-2 border-gray-200 dark:border-gray-600 cursor-pointer hover:opacity-90 transition-opacity"
                     loading="lazy"
                     onLoad={(e: any) => {
-                      console.log('✅ Image loaded successfully:', {
-                        src: convertedSrc,
-                        naturalWidth: e.target.naturalWidth,
-                        naturalHeight: e.target.naturalHeight,
-                        displayWidth: e.target.width,
-                        displayHeight: e.target.height
-                      });
+
                       
                       // Dispatch custom event when image loading is completed
                       const event = new CustomEvent('chat-image-loaded', {
@@ -229,12 +223,7 @@ export function LlmResponse({
                       window.dispatchEvent(event);
                     }}
                     onError={(e: any) => {
-                      console.error('🚨 Image load error:', {
-                        src: convertedSrc,
-                        originalSrc: src,
-                        error: e,
-                        target: e.target
-                      });
+
                       
                       // Replace with placeholder on error
                       const img = e.target as HTMLImageElement;
@@ -397,8 +386,7 @@ export function LlmResponse({
 
   // Function to extract only the final answer
   const extractFinalAnswer = (text: string): string => {
-    console.log('🔍 Extracting final answer from text:', text.length, 'characters');
-    console.log('🔍 Text preview:', text.substring(0, 200));
+
     
     // 1. First try to find and extract #[final answer]# marker
     const finalAnswerMarker = '#[final answer]#';
@@ -407,14 +395,14 @@ export function LlmResponse({
     if (markerIndex !== -1) {
       // Extract content after marker
       const afterMarker = text.substring(markerIndex + finalAnswerMarker.length).trim();
-      console.log('🔍 Found final answer marker, extracted:', afterMarker.substring(0, 100));
+
       return afterMarker;
     }
     
     // 2. Look for "## Final Answer" pattern (commonly used in parallel deep research)
     const finalAnswerSectionMatch = text.match(/## Final Answer\s*\n\n([\s\S]*?)$/);
     if (finalAnswerSectionMatch && finalAnswerSectionMatch[1]) {
-      console.log('🔍 Found "## Final Answer" section, extracted:', finalAnswerSectionMatch[1].substring(0, 100));
+
       return finalAnswerSectionMatch[1].trim();
     }
     
@@ -468,7 +456,7 @@ export function LlmResponse({
     for (const pattern of finalAnswerPatterns) {
       const match = text.match(pattern);
       if (match && match[1]) {
-        console.log('🔍 Found pattern match:', pattern, 'extracted:', match[1].substring(0, 100));
+
         return match[1].trim();
       }
     }
@@ -482,7 +470,7 @@ export function LlmResponse({
     for (const pattern of coreAnswerPatterns) {
       const match = text.match(pattern);
       if (match && match[1]) {
-        console.log('🔍 Found core answer pattern:', pattern);
+
         return `### 1. Core Answer${match[1]}`.trim();
       }
     }
@@ -496,14 +484,14 @@ export function LlmResponse({
       // Find content after first markdown header (##)
       const firstHeaderMatch = afterAnalysisProcess.match(/## ([^\n]+)\s*\n([\s\S]*?)$/);
       if (firstHeaderMatch && firstHeaderMatch[2] && firstHeaderMatch[2].trim().length > 50) {
-        console.log('🔍 Found content after "Analysis Process and Additional Explanations":', firstHeaderMatch[0].substring(0, 100));
+
         return firstHeaderMatch[0].trim();
       }
       
       // If no header found, get content after newline
       const contentAfterNewline = afterAnalysisProcess.substring(afterAnalysisProcess.indexOf('\n') + 1).trim();
       if (contentAfterNewline.length > 50) {
-        console.log('🔍 Found content after analysis process (no header):', contentAfterNewline.substring(0, 100));
+
         return contentAfterNewline;
       }
     }
@@ -517,33 +505,20 @@ export function LlmResponse({
         const fallback = text.split('### 1. Core Answer').slice(-1)[0] || 
                         text.split('### 1. Core Answer').slice(-1)[0] || 
                         text;
-        console.log('🔍 Using fallback pattern:', fallback.substring(0, 100));
+
         return fallback;
       }
-      console.log('🔍 Using last section:', lastSection.substring(0, 100));
+
       return lastSection;
     }
     
-    console.log('🔍 No pattern found, returning full text');
+
     return text;
   };
 
   const contentParts = parseContent(content);
 
-  // Debug logging for deep research final answer
-  console.log('🔍 LlmResponse render:', {
-    id,
-    contentLength: content.length,
-    contentPreview: content.substring(0, 100),
-    fullContent: content,
-    isDeepResearch,
-    deepResearchStepType,
-    isDeepResearchComplete,
-    isStreaming,
-    contentParts: contentParts.length,
-    hasImages,
-    isImageProcessingLoading
-  });
+
 
   return (
     <div className="leading-[1.7]">
@@ -735,7 +710,7 @@ export function LlmResponse({
                 setCopiedRendered(true)
                 setTimeout(() => setCopiedRendered(false), 2000)
               } catch (err) {
-                console.error('Failed to copy formatted content:', err)
+  
               }
             }}
             className={`p-1 rounded-full transition-all duration-200 ${

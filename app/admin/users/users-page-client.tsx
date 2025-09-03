@@ -39,9 +39,34 @@ interface UsersPageClientProps {
   initialUsers: User[]
   allTranslations?: Record<string, any>
   emailVerificationEnabled?: boolean
+  initialLanguage?: string
 }
 
-export default function UsersPageClient({ initialUsers, allTranslations, emailVerificationEnabled = false }: UsersPageClientProps) {
+export default function UsersPageClient({ 
+  initialUsers, 
+  allTranslations, 
+  emailVerificationEnabled = false,
+  initialLanguage = 'kor'
+}: UsersPageClientProps) {
+  // Create initial translation function that works immediately with SSR data
+  const getInitialTranslation = (key: string): string => {
+    if (allTranslations && allTranslations[initialLanguage]) {
+      const keys = key.split('.')
+      let result = allTranslations[initialLanguage]
+      
+      for (const k of keys) {
+        if (result && typeof result === 'object' && k in result) {
+          result = result[k]
+        } else {
+          return key // Return original key if key doesn't exist
+        }
+      }
+      
+      return typeof result === 'string' ? result : key
+    }
+    return key
+  }
+
   const { lang, language } = useTranslation('admin.users')
   const router = useRouter()
   const { formatDate, formatTime } = useTimezone()
@@ -52,15 +77,27 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
   const [statusFilter, setStatusFilter] = useState<string>("all")
   const [roleFilter, setRoleFilter] = useState<string>("all")
   const [showFilters, setShowFilters] = useState(false)
+  const [isTranslationReady, setIsTranslationReady] = useState(false)
 
   // Cache all translations when component mounts
   useEffect(() => {
     if (allTranslations) {
       import('@/lib/i18n').then(({ cacheAllLanguageTranslations }) => {
         cacheAllLanguageTranslations('admin.users', allTranslations)
+        setIsTranslationReady(true)
       })
+    } else {
+      setIsTranslationReady(true)
     }
   }, [allTranslations])
+
+  // Use hybrid translation function - SSR first, then CSR
+  const t = (key: string): string => {
+    if (isTranslationReady) {
+      return lang(key) // Use CSR translation when ready
+    }
+    return getInitialTranslation(key) // Use SSR translation initially
+  }
 
   const fetchUsers = async () => {
     setLoading(true)
@@ -70,14 +107,14 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
       const data = await response.json()
       setUsers(data)
     } catch (error) {
-      toast.error(lang('errors.fetchFailed'))
+      toast.error(t('errors.fetchFailed'))
     } finally {
       setLoading(false)
     }
   }
 
   const handleDeleteUser = async (userId: string) => {
-    if (!confirm(lang('confirmDelete'))) return
+    if (!confirm(t('confirmDelete'))) return
 
     try {
       const response = await fetch(`/api/users/${userId}`, {
@@ -85,10 +122,10 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
       })
       if (!response.ok) throw new Error("Failed to delete user")
       
-      toast.success(lang('deleteSuccess'))
+      toast.success(t('deleteSuccess'))
       fetchUsers()
     } catch (error) {
-      toast.error(lang('errors.deleteFailed'))
+      toast.error(t('errors.deleteFailed'))
     }
   }
 
@@ -120,11 +157,11 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
 
   const handleBulkAction = async (action: string) => {
     if (selectedUsers.length === 0) {
-      toast.error(lang('errors.noUsersSelected'))
+      toast.error(t('errors.noUsersSelected'))
       return
     }
 
-    if (!confirm(lang(`confirmBulk.${action}`))) return
+    if (!confirm(t(`confirmBulk.${action}`))) return
 
     try {
       const response = await fetch("/api/users/bulk", {
@@ -140,11 +177,11 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
 
       if (!response.ok) throw new Error("Failed to perform bulk action")
       
-      toast.success(lang(`bulkSuccess.${action}`))
+      toast.success(t(`bulkSuccess.${action}`))
       setSelectedUsers([])
       fetchUsers()
     } catch (error) {
-      toast.error(lang('errors.bulkActionFailed'))
+      toast.error(t('errors.bulkActionFailed'))
     }
   }
 
@@ -168,11 +205,11 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
 
       if (!response.ok) throw new Error('Failed to update role')
       
-      toast.success(lang('roleChangeSuccess') || '권한이 성공적으로 변경되었습니다.')
+      toast.success(t('roleChangeSuccess'))
     } catch (error) {
       // Rollback on failure
       setUsers(previousUsers)
-      toast.error(lang('roleChangeFailed') || '권한 변경에 실패했습니다.')
+      toast.error(t('roleChangeFailed'))
     }
   }
 
@@ -209,34 +246,34 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold">{lang('title')}</h1>
+        <h1 className="text-3xl font-bold">{t('title')}</h1>
         <div className="flex gap-2">
           {selectedUsers.length > 0 && (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
                   <MoreHorizontal className="h-4 w-4 mr-2" />
-                  {lang('bulkActionsTitle')} ({selectedUsers.length})
+                  {t('bulkActionsTitle')} ({selectedUsers.length})
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent>
-                <DropdownMenuLabel>{lang('bulkActionsTitle')}</DropdownMenuLabel>
+                <DropdownMenuLabel>{t('bulkActionsTitle')}</DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem onClick={() => handleBulkAction('activate')}>
-                  {lang('bulkActions.activate')}
+                  {t('bulkActions.activate')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleBulkAction('deactivate')}>
-                  {lang('bulkActions.deactivate')}
+                  {t('bulkActions.deactivate')}
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => handleBulkAction('suspend')}>
-                  {lang('bulkActions.suspend')}
+                  {t('bulkActions.suspend')}
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem 
                   onClick={() => handleBulkAction('delete')}
                   className="text-red-600"
                 >
-                  {lang('bulkActions.delete')}
+                  {t('bulkActions.delete')}
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
@@ -246,11 +283,11 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
             onClick={() => router.push('/admin/users/permissions')}
           >
             <Shield className="h-4 w-4 mr-2" />
-            {lang('permissionManagement')}
+            {t('permissionManagement')}
           </Button>
           <Button onClick={handleCreateUser}>
             <UserPlus className="h-4 w-4 mr-2" />
-            {lang('addUser')}
+            {t('addUser')}
           </Button>
         </div>
       </div>
@@ -258,21 +295,21 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
       <Card>
         <CardHeader>
           <div className="flex justify-between items-center">
-            <CardTitle>{lang('userList')}</CardTitle>
+            <CardTitle>{t('userList')}</CardTitle>
             <Button
               variant="ghost"
               size="sm"
               onClick={() => setShowFilters(!showFilters)}
             >
               <Filter className="h-4 w-4 mr-2" />
-              {lang('filters')}
+              {t('filters')}
             </Button>
           </div>
           <div className="space-y-4 mt-4">
             <div className="flex items-center gap-2">
               <Search className="h-4 w-4 text-gray-400 dark:text-gray-500" />
               <Input
-                placeholder={lang('searchPlaceholder')}
+                placeholder={t('searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 className="max-w-sm"
@@ -282,23 +319,23 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
               <div className="flex gap-2">
                 <Select value={statusFilter} onValueChange={setStatusFilter}>
                   <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder={lang('filterByStatus')} />
+                    <SelectValue placeholder={t('filterByStatus')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">{lang('allStatuses')}</SelectItem>
-                    <SelectItem value="active">{lang('status.active')}</SelectItem>
-                    <SelectItem value="inactive">{lang('status.inactive')}</SelectItem>
-                    <SelectItem value="suspended">{lang('status.suspended')}</SelectItem>
+                    <SelectItem value="all">{t('allStatuses')}</SelectItem>
+                    <SelectItem value="active">{t('status.active')}</SelectItem>
+                    <SelectItem value="inactive">{t('status.inactive')}</SelectItem>
+                    <SelectItem value="suspended">{t('status.suspended')}</SelectItem>
                   </SelectContent>
                 </Select>
                 <Select value={roleFilter} onValueChange={setRoleFilter}>
                   <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder={lang('filterByRole')} />
+                    <SelectValue placeholder={t('filterByRole')} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">{lang('allRoles')}</SelectItem>
-                    <SelectItem value="admin">{lang('roles.admin')}</SelectItem>
-                    <SelectItem value="user">{lang('roles.user')}</SelectItem>
+                    <SelectItem value="all">{t('allRoles')}</SelectItem>
+                    <SelectItem value="admin">{t('roles.admin')}</SelectItem>
+                    <SelectItem value="user">{t('roles.user')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -307,7 +344,7 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
         </CardHeader>
         <CardContent>
           {loading ? (
-            <div className="text-center py-4">{lang('loading')}</div>
+            <div className="text-center py-4">{t('loading')}</div>
           ) : (
             <Table>
               <TableHeader>
@@ -318,13 +355,13 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
                       onCheckedChange={handleSelectAll}
                     />
                   </TableHead>
-                  <TableHead>{lang('fields.name')}</TableHead>
-                  <TableHead>{lang('fields.email')}</TableHead>
-                  <TableHead>{lang('fields.role')}</TableHead>
-                  <TableHead>{lang('fields.status')}</TableHead>
+                  <TableHead>{t('fields.name')}</TableHead>
+                  <TableHead>{t('fields.email')}</TableHead>
+                  <TableHead>{t('fields.role')}</TableHead>
+                  <TableHead>{t('fields.status')}</TableHead>
                   <TableHead>OAuth</TableHead>
-                  <TableHead>{lang('fields.lastLogin')}</TableHead>
-                  <TableHead className="text-right">{lang('actions')}</TableHead>
+                  <TableHead>{t('fields.lastLogin')}</TableHead>
+                  <TableHead className="text-right">{t('actions')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -351,7 +388,7 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
                         <div>
                           <div className="text-sm">{user.name || user.username}</div>
                           {emailVerificationEnabled && !user.email_verified && (
-                            <span className="text-xs text-yellow-600">{lang('unverified')}</span>
+                            <span className="text-xs text-yellow-600">{t('unverified')}</span>
                           )}
                         </div>
                       </div>
@@ -367,14 +404,14 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="admin">
-                            <span className="text-sm text-gray-900">{lang('roles.admin')}</span>
+                            <span className="text-sm text-gray-900">{t('roles.admin')}</span>
                           </SelectItem>
                           <SelectItem value="user">
-                            <span className="text-sm text-gray-700">{lang('roles.user')}</span>
+                            <span className="text-sm text-gray-700">{t('roles.user')}</span>
                           </SelectItem>
                           <SelectItem value="guest">
                             <span className="flex items-center gap-2">
-                              <span className="text-sm text-gray-600">{lang('roles.guest')}</span>
+                              <span className="text-sm text-gray-600">{t('roles.guest')}</span>
                             </span>
                           </SelectItem>
                         </SelectContent>
@@ -382,7 +419,7 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
                     </TableCell>
                     <TableCell>
                       <Badge variant={getStatusBadgeVariant(user.status || 'active')}>
-                        {lang(`status.${user.status || 'active'}`)}
+                        {t(`status.${user.status || 'active'}`)}
                       </Badge>
                     </TableCell>
                     <TableCell>
@@ -399,11 +436,11 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
                           </Badge>
                           {user.oauth_linked_at && (
                             <div className="text-xs text-gray-500">
-                              {lang('connected') || '연결'}: {(() => {
+                              {t('connected')}: {(() => {
                                 try {
                                   const date = new Date(user.oauth_linked_at);
                                   if (isNaN(date.getTime())) {
-                                    return lang('dateError') || '날짜 오류';
+                                    return t('dateError');
                                   }
                                   return formatDate(date, 'ko-KR', { 
                                     year: 'numeric', 
@@ -411,7 +448,7 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
                                     day: '2-digit' 
                                   });
                                 } catch (error) {
-                                  return lang('dateError') || '날짜 오류';
+                                  return t('dateError');
                                 }
                               })()}
                             </div>
@@ -442,7 +479,7 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
                             date = new Date(numericValue * 1000);
                           } else {
                             console.error('Invalid timestamp range:', numericValue);
-                            return lang('dateError') || '날짜 오류';
+                            return t('dateError');
                           }
                         } else {
                           // Process as ISO string
@@ -458,12 +495,12 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
                           date = new Date(user.last_login_at * 1000);
                         } else {
                           console.error('Invalid timestamp range:', user.last_login_at);
-                          return lang('dateError') || '날짜 오류';
+                          return t('dateError');
                         }
                       }
                       
                       if (isNaN(date.getTime())) {
-                        return lang('dateError') || '날짜 오류';
+                        return t('dateError');
                       }
                       
                       // Format date based on UTC settings
@@ -476,9 +513,9 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
                       });
                     } catch (error) {
                       console.error('Date parsing error:', error);
-                      return lang('dateError') || '날짜 오류';
+                      return t('dateError');
                     }
-                  })() : lang('never')}
+                  })() : t('never')}
                 </TableCell>
                     <TableCell className="text-right">
                       <DropdownMenu>
@@ -490,11 +527,11 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
                         <DropdownMenuContent align="end">
                           <DropdownMenuItem onClick={() => router.push(`/admin/users/${user.id}`)}>
                             <Eye className="h-4 w-4 mr-2" />
-                            {lang('viewDetails')}
+                            {t('viewDetails')}
                           </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => handleEditUser(user)}>
                             <Edit className="h-4 w-4 mr-2" />
-                            {lang('edit')}
+                            {t('edit')}
                           </DropdownMenuItem>
                           <DropdownMenuSeparator />
                           <DropdownMenuItem 
@@ -502,7 +539,7 @@ export default function UsersPageClient({ initialUsers, allTranslations, emailVe
                             className="text-red-600"
                           >
                             <Trash2 className="h-4 w-4 mr-2" />
-                            {lang('delete')}
+                            {t('delete')}
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
