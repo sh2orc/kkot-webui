@@ -62,13 +62,20 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
           >
             <Menu className="h-4 w-4" />
           </Button>
-          {isAdminPage && (
+          {isAdminPage ? (
             <div 
               className="flex items-center gap-2 flex-shrink-0 cursor-pointer group"
               onClick={() => router.push("/admin")}
             >
               <div className="relative">
-                <Shield className="h-5 w-5 text-blue-600 dark:text-blue-400 group-hover:text-blue-700 dark:group-hover:text-blue-300 transition-colors" />
+                <Image
+                  src="/images/logo.svg"
+                  alt="Logo"
+                  width={32}
+                  height={32}
+                  priority
+                  className="h-8 w-8"
+                />
                 <div className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
               </div>
               <div className="flex flex-col">
@@ -80,6 +87,25 @@ export default function Navbar({ title, onMobileMenuClick }: NavbarProps) {
                 </span>
               </div>
             </div>
+          ) : (
+            !isChatPage && (
+              <div 
+                className="flex items-center gap-2 flex-shrink-0 cursor-pointer"
+                onClick={() => router.push("/")}
+              >
+                <Image
+                  src="/images/logo.svg"
+                  alt="Logo"
+                  width={32}
+                  height={32}
+                  priority
+                  className="h-8 w-8"
+                />
+                <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">
+                  {branding.appName || 'KKOT WebUI'}
+                </span>
+              </div>
+            )
           )}
           {isChatPage && (
             <div className="flex-1 min-w-0 max-w-[200px] sm:max-w-[240px] md:max-w-[240px] lg:w-60">
