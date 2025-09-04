@@ -105,9 +105,6 @@ export default function AuthPage() {
         case 'kakao_oauth':
           errorMessage = '카카오 OAuth 인증 중 An error occurred. 카카오 개발자 콘솔 설정을 확인해주세요.';
           break;
-        case 'GUEST_ACCOUNT':
-          errorMessage = '게스트 계정은 로그인할 수 없습니다. 관리자에게 문의하여 권한을 요청하세요.';
-          break;
         default:
           errorMessage = `인증 오류: ${error}`;
       }
@@ -382,11 +379,18 @@ export default function AuthPage() {
           }
           console.log('Verified session:', session);
           
-          // Redirect after a short delay
-          setTimeout(() => {
-            console.log('Redirecting to /chat...');
-            window.location.href = '/chat';
-          }, 1000);
+          // Check user role and redirect accordingly
+          if (session?.user?.role === 'guest') {
+            setTimeout(() => {
+              console.log('Redirecting guest to /auth/pending...');
+              window.location.href = '/auth/pending';
+            }, 1000);
+          } else {
+            setTimeout(() => {
+              console.log('Redirecting to /chat...');
+              window.location.href = '/chat';
+            }, 1000);
+          }
           
         } catch (sessionError) {
           console.error('Session creation error:', sessionError);
@@ -472,11 +476,25 @@ export default function AuthPage() {
       const successMessage = data.message || await t('messages.registerSuccess');
       toast.success(successMessage);
       
-      // If guest account, show additional warning
+      // If guest account, redirect to pending page
       if (data.user?.role === 'guest') {
-        toast.warning('게스트 계정은 로그인할 수 없습니다. 관리자에게 문의하여 권한을 요청하세요.', {
-          duration: 8000 // 8초 동안 표시
+        toast.success('계정이 생성되었습니다. 관리자 승인을 기다려주세요.');
+        
+        // Auto login as guest and redirect to pending page
+        const signInResult = await signIn('credentials', {
+          email: registerForm.email,
+          password: registerForm.password,
+          redirect: false
         });
+        
+        if (signInResult?.ok) {
+          router.push('/auth/pending');
+          return;
+        } else {
+          // If auto login fails, redirect to pending page with message
+          router.push('/auth/pending');
+          return;
+        }
       }
       
       // Pre-fill email in login form

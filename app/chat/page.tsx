@@ -19,6 +19,11 @@ export default async function Page() {
     redirect('/auth')
   }
   
+  // 게스트 사용자는 안내 페이지로 리다이렉트
+  if (session.user.role === 'guest') {
+    redirect('/auth/pending')
+  }
+  
   // Extract language information from Accept-Language header (default: 'kor')
   const headersList = await headers()
   const acceptLanguage = headersList.get('accept-language') || ''

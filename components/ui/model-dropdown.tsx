@@ -34,7 +34,7 @@ export function ModelDropdown() {
   const [open, setOpen] = useState(false)
   const { lang } = useTranslation("chat")
 
-  // Function to get first letter
+  // Function to get provider-specific icon text
   const getFallbackText = (model: ModelOrAgent | null) => {
     if (!model) return 'AI'
     
@@ -43,6 +43,17 @@ export function ModelDropdown() {
       return (agent.name || '').charAt(0).toUpperCase() || 'A'
     } else {
       const publicModel = model as PublicModel
+      const provider = (publicModel.provider || '').toLowerCase()
+      
+      // Provider-specific icons
+      if (provider.includes('openai')) return 'O'
+      if (provider.includes('google') || provider.includes('gemini')) return 'G'
+      if (provider.includes('anthropic') || provider.includes('claude')) return 'C'
+      if (provider.includes('ollama')) return 'L'
+      if (provider.includes('azure')) return 'A'
+      if (provider.includes('cohere')) return 'C'
+      
+      // Fallback to first letter of provider or server name
       return (publicModel.serverName || publicModel.provider || '').charAt(0).toUpperCase() || 'M'
     }
   }
@@ -55,10 +66,14 @@ export function ModelDropdown() {
       case 'agent':
         return 'bg-green-500'
       case 'model':
-        if ((model as PublicModel).provider?.toLowerCase().includes('openai')) return 'bg-blue-500'
-        if ((model as PublicModel).provider?.toLowerCase().includes('google')) return 'bg-yellow-500'
-        if ((model as PublicModel).provider?.toLowerCase().includes('gemini')) return 'bg-teal-500'
-        return 'bg-purple-500'
+        const provider = (model as PublicModel).provider?.toLowerCase() || ''
+        if (provider.includes('openai')) return 'bg-blue-500'
+        if (provider.includes('google') || provider.includes('gemini')) return 'bg-amber-500'
+        if (provider.includes('anthropic') || provider.includes('claude')) return 'bg-orange-500'
+        if (provider.includes('ollama')) return 'bg-slate-500'
+        if (provider.includes('azure')) return 'bg-cyan-500'
+        if (provider.includes('cohere')) return 'bg-purple-500'
+        return 'bg-gray-500'
       default:
         return 'bg-red-500'
     }
@@ -100,12 +115,15 @@ export function ModelDropdown() {
                 ) : null}
                 <AvatarFallback 
                   delayMs={0}
-                  className={`${getAvatarBackground(selectedModel)} text-white text-xs flex items-center justify-center font-medium`}
+                  className={`${getAvatarBackground(selectedModel)} text-white text-xs font-medium rounded-full`}
                   style={{ 
-                    minHeight: '24px', 
-                    minWidth: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
                     fontSize: '12px',
-                    lineHeight: '1'
+                    lineHeight: '1',
+                    height: '100%',
+                    width: '100%'
                   }}
                 >
                   {getFallbackText(selectedModel)}
@@ -150,7 +168,18 @@ export function ModelDropdown() {
                           alt={agent.name || ''} 
                         />
                       )}
-                      <AvatarFallback className={`${getAvatarBackground(agent)} text-white text-xs`}>
+                      <AvatarFallback 
+                        className={`${getAvatarBackground(agent)} text-white text-xs font-medium rounded-full`}
+                        style={{ 
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '12px',
+                          lineHeight: '1',
+                          height: '100%',
+                          width: '100%'
+                        }}
+                      >
                         {getFallbackText(agent)}
                       </AvatarFallback>
                     </Avatar>
@@ -188,12 +217,15 @@ export function ModelDropdown() {
                     >
                       <Avatar className="h-6 w-6 flex-shrink-0">
                         <AvatarFallback 
-                          className={`${getAvatarBackground(model)} text-white text-xs flex items-center justify-center font-medium`}
+                          className={`${getAvatarBackground(model)} text-white text-xs font-medium rounded-full`}
                           style={{ 
-                            minHeight: '24px', 
-                            minWidth: '24px',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
                             fontSize: '12px',
-                            lineHeight: '1'
+                            lineHeight: '1',
+                            height: '100%',
+                            width: '100%'
                           }}
                         >
                           {getFallbackText(model)}

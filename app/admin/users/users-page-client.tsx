@@ -122,8 +122,9 @@ export default function UsersPageClient({
       })
       if (!response.ok) throw new Error("Failed to delete user")
       
+      // Update local state instead of refetching
+      setUsers(prev => prev.filter(user => user.id !== userId))
       toast.success(t('deleteSuccess'))
-      fetchUsers()
     } catch (error) {
       toast.error(t('errors.deleteFailed'))
     }

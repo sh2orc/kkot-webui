@@ -86,13 +86,7 @@ async function createProviders() {
             return null;
           }
           
-          // Check if user is guest
-          if (user.role === 'guest') {
-            console.log('Guest user attempted login');
-            throw new Error('GUEST_ACCOUNT');
-          }
-          
-          // Return user data
+          // Allow guest users to login but they will be redirected later
           console.log('Returning user:', { id: user.id, email: user.email, name: user.name, role: user.role });
           return {
             id: user.id,
@@ -358,19 +352,36 @@ export const authOptions: NextAuthOptions = {
             return true;
           } else {
             console.log('Creating new user from Google OAuth');
+            
+            // Check signup enabled setting
+            const signupEnabledSetting = await adminSettingsRepository.findByKey('auth.signupEnabled');
+            const signupEnabled = signupEnabledSetting?.[0]?.value === 'true';
+            
+            // Check if first user
+            const allUsers = await userRepository.findAll();
+            const isFirstUser = allUsers.length === 0;
+            
+            // Determine user role
+            let userRole = 'user';
+            if (isFirstUser) {
+              userRole = 'admin';
+            } else if (!signupEnabled) {
+              userRole = 'guest';
+            }
+            
             // Create new user
             const newUser = await userRepository.create({
               username: user.name || user.email.split('@')[0],
               email: user.email,
               password: await hashPassword(Math.random().toString(36).slice(-8)), // Random password for OAuth users
-              role: 'user'
+              role: userRole
             });
             
             if (newUser && newUser.length > 0) {
               user.id = newUser[0].id;
               user.name = newUser[0].username;
               user.role = newUser[0].role;
-              console.log('New user created successfully');
+              console.log('New user created successfully with role:', userRole);
               return true;
             } else {
               console.error('Failed to create new user');

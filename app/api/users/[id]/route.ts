@@ -115,6 +115,17 @@ export async function PUT(req: NextRequest, { params }: Params) {
     const updatedUsers = await userRepository.update(resolvedParams.id, updateData)
     const updatedUser = updatedUsers[0]
 
+    // Check if role is being changed to 'user' and user has never logged in
+    if (role === 'user' && !user.lastLoginAt) {
+      // Get current user groups
+      const currentGroups = await groupRepository.getUserGroups(resolvedParams.id)
+      
+      // If user has no groups or only has empty groups, assign default group
+      if (currentGroups.length === 0) {
+        await groupRepository.addUser('default', resolvedParams.id, session.user.id)
+      }
+    }
+
     // Update roles if provided
     if (roles && Array.isArray(roles)) {
       await userRepository.updateUserRoles(resolvedParams.id, roles)

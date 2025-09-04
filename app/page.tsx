@@ -16,8 +16,13 @@ export default function Page() {
     }
 
     if (status === "authenticated" && session?.user) {
-      // If authenticated successfully, smoothly navigate to chat page
-      router.replace("/chat")
+      // Check if user is guest, redirect to pending page
+      if (session.user.role === "guest") {
+        router.replace("/auth/pending")
+      } else {
+        // If authenticated successfully, smoothly navigate to chat page
+        router.replace("/chat")
+      }
     } else if (status === "unauthenticated") {
       // If not authenticated, redirect to auth page
       router.replace("/auth")

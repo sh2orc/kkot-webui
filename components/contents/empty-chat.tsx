@@ -600,12 +600,23 @@ export default function Component({
       return <img src={imageSrc} alt={(model as Agent).name || ''} />
     }
     
-    // Get first character
-    const letter = model.type === 'agent' 
-      ? ((model as Agent).name || '').charAt(0).toUpperCase()
-      : ((model as PublicModel).provider || '').charAt(0).toUpperCase()
+    // Get provider-specific icon text
+    if (model.type === 'agent') {
+      return ((model as Agent).name || '').charAt(0).toUpperCase() || 'A'
+    } else {
+      const provider = ((model as PublicModel).provider || '').toLowerCase()
       
-    return letter || 'AI'
+      // Provider-specific icons
+      if (provider.includes('openai')) return 'O'
+      if (provider.includes('google') || provider.includes('gemini')) return 'G'
+      if (provider.includes('anthropic') || provider.includes('claude')) return 'C'
+      if (provider.includes('ollama')) return 'L'
+      if (provider.includes('azure')) return 'A'
+      if (provider.includes('cohere')) return 'C'
+      
+      // Fallback to first letter of provider
+      return ((model as PublicModel).provider || '').charAt(0).toUpperCase() || 'M'
+    }
   }
   
   // Background color determination function
@@ -616,11 +627,14 @@ export default function Component({
       case 'agent':
         return 'bg-green-500'
       case 'model':
-        const provider = (model as PublicModel).provider?.toLowerCase()
-        if (provider?.includes('openai')) return 'bg-blue-500'
-        if (provider?.includes('google')) return 'bg-yellow-500'
-        if (provider?.includes('gemini')) return 'bg-teal-500'
-        return 'bg-purple-500'
+        const provider = (model as PublicModel).provider?.toLowerCase() || ''
+        if (provider.includes('openai')) return 'bg-blue-500'
+        if (provider.includes('google') || provider.includes('gemini')) return 'bg-amber-500'
+        if (provider.includes('anthropic') || provider.includes('claude')) return 'bg-orange-500'
+        if (provider.includes('ollama')) return 'bg-slate-500'
+        if (provider.includes('azure')) return 'bg-cyan-500'
+        if (provider.includes('cohere')) return 'bg-purple-500'
+        return 'bg-gray-500'
       default:
         return 'bg-red-500'
     }
