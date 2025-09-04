@@ -38,6 +38,7 @@ export const agentManageRepository = {
         imageData: schema.agentManage.imageData,
         description: schema.agentManage.description,
         enabled: schema.agentManage.enabled,
+        isPublic: schema.agentManage.isPublic,
         parameterEnabled: schema.agentManage.parameterEnabled,
         supportsMultimodal: schema.agentManage.supportsMultimodal,
         supportsDeepResearch: schema.agentManage.supportsDeepResearch,
@@ -138,6 +139,7 @@ export const agentManageRepository = {
     imageData?: string;
     description?: string;
     enabled?: boolean;
+    isPublic?: boolean;
     parameterEnabled?: boolean;
     supportsDeepResearch?: boolean;
     supportsWebSearch?: boolean;
@@ -180,6 +182,7 @@ export const agentManageRepository = {
       imageData: agentData.imageData,
       description: agentData.description,
       enabled: agentData.enabled === false ? 0 : 1 as any,
+      isPublic: agentData.isPublic === true ? 1 : 0 as any,
       parameterEnabled: agentData.parameterEnabled === false ? 0 : 1 as any,
       supportsDeepResearch: agentData.supportsDeepResearch === false ? 0 : 1 as any,
       supportsWebSearch: agentData.supportsWebSearch === false ? 0 : 1 as any,
@@ -211,6 +214,7 @@ export const agentManageRepository = {
     imageData: string;
     description: string;
     enabled: boolean;
+    isPublic: boolean;
     parameterEnabled: boolean;
     supportsDeepResearch: boolean;
     supportsWebSearch: boolean;
@@ -254,6 +258,7 @@ export const agentManageRepository = {
     if (agentData.imageData !== undefined) data.imageData = agentData.imageData;
     if (agentData.description !== undefined) data.description = agentData.description;
     if (typeof agentData.enabled === 'boolean') data.enabled = agentData.enabled ? 1 : 0;
+    if (typeof agentData.isPublic === 'boolean') data.isPublic = agentData.isPublic ? 1 : 0;
     if (typeof agentData.parameterEnabled === 'boolean') data.parameterEnabled = agentData.parameterEnabled ? 1 : 0;
     if (typeof agentData.supportsDeepResearch === 'boolean') data.supportsDeepResearch = agentData.supportsDeepResearch ? 1 : 0;
     if (typeof agentData.supportsWebSearch === 'boolean') data.supportsWebSearch = agentData.supportsWebSearch ? 1 : 0;

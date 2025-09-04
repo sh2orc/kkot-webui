@@ -1,6 +1,7 @@
 "use client"
 
 import type React from "react"
+import { useState, useEffect } from "react"
 
 import { useRouter } from "next/navigation"
 import { signOut, useSession } from "next-auth/react"
@@ -26,6 +27,21 @@ export function AccountMenu({ children, align = "start", side = "top" }: Account
   const router = useRouter()
   const { data: session } = useSession()
   const { lang } = useTranslation("common")
+  const [userGroups, setUserGroups] = useState<string[]>([])
+  
+  useEffect(() => {
+    if (session?.user?.id) {
+      // Fetch user's groups
+      fetch(`/api/users/${session.user.id}/groups`)
+        .then(res => res.json())
+        .then(data => {
+          if (data.groups) {
+            setUserGroups(data.groups.map((g: any) => g.name))
+          }
+        })
+        .catch(err => console.error("Failed to fetch user groups:", err))
+    }
+  }, [session?.user?.id])
 
   const handleLogout = async () => {
     try {
@@ -62,9 +78,13 @@ export function AccountMenu({ children, align = "start", side = "top" }: Account
                 <p className="!text-xs leading-none text-muted-foreground">
                   {session.user.email}
                 </p>
-                {session.user.role && (
+                {(session.user.role || userGroups.length > 0) && (
                   <p className="!text-xs leading-none text-muted-foreground">
-                    {session.user.role === 'admin' ? lang("roles.admin") : lang("roles.user")}
+                    {session.user.role === 'admin' 
+                      ? lang("roles.admin") 
+                      : userGroups.length > 0 
+                        ? userGroups.join(", ")
+                        : lang("roles.user")}
                   </p>
                 )}
               </div>

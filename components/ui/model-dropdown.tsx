@@ -32,7 +32,31 @@ export function ModelDropdown() {
   } = useModel()
   
   const [open, setOpen] = useState(false)
+  const [search, setSearch] = useState("")
   const { lang } = useTranslation("chat")
+  
+  // Reset search when dropdown opens
+  useEffect(() => {
+    if (open) {
+      setSearch(""); // Reset search when opening
+    }
+  }, [open])
+  
+  // Filter models based on search
+  const filteredModels = publicModels.filter(model => {
+    if (!search) return true;
+    const searchLower = search.toLowerCase();
+    return model.modelId.toLowerCase().includes(searchLower) ||
+           (model.provider || '').toLowerCase().includes(searchLower) ||
+           (model.serverName || '').toLowerCase().includes(searchLower);
+  });
+  
+  const filteredAgents = agents.filter(agent => {
+    if (!search) return true;
+    const searchLower = search.toLowerCase();
+    return agent.name.toLowerCase().includes(searchLower) ||
+           agent.agentId.toLowerCase().includes(searchLower);
+  });
 
   // Function to get provider-specific icon text
   const getFallbackText = (model: ModelOrAgent | null) => {
@@ -137,8 +161,12 @@ export function ModelDropdown() {
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-[280px] p-0">
-        <Command>
-          <CommandInput placeholder={lang("searchModels")} />
+        <Command shouldFilter={false}>
+          <CommandInput 
+            placeholder={lang("searchModels")} 
+            value={search}
+            onValueChange={setSearch}
+          />
           <CommandList>
             <CommandEmpty>{lang("noResults")}</CommandEmpty>
             
@@ -149,9 +177,9 @@ export function ModelDropdown() {
             )}
 
             {/* Agent group */}
-            {agents.length > 0 && (
+            {filteredAgents.length > 0 && (
               <CommandGroup heading={lang("agents")}>
-                {agents.map((agent) => (
+                {filteredAgents.map((agent) => (
                   <CommandItem
                     key={agent.id}
                     value={`agent-${agent.id}-${agent.name}`}
@@ -201,14 +229,19 @@ export function ModelDropdown() {
             )}
 
             {/* Model group */}
-            {publicModels.length > 0 && (
+            {filteredModels.length > 0 && (
               <>
-                {agents.length > 0 && <CommandSeparator />}
+                {filteredAgents.length > 0 && <CommandSeparator />}
                 <CommandGroup heading={lang("publicModels")}>
-                  {publicModels.map((model) => (
+                  {filteredModels.map((model) => {
+                    // Ensure provider is always defined for CommandItem value
+                    const safeProvider = model.provider || 'unknown';
+                    const searchValue = `${model.modelId} ${safeProvider} ${model.serverName || ''}`.toLowerCase();
+                    
+                    return (
                     <CommandItem
                       key={model.id}
-                      value={`model-${model.id}-${model.modelId}-${model.provider}`}
+                      value={searchValue}
                       onSelect={() => {
                         setSelectedModel(model)
                         setOpen(false)
@@ -244,7 +277,8 @@ export function ModelDropdown() {
                         )}
                       />
                     </CommandItem>
-                  ))}
+                    )
+                  })}
                 </CommandGroup>
               </>
             )}

@@ -41,6 +41,7 @@ interface AgentData {
   frequencyPenalty: string
   description: string
   enabled: boolean
+  isPublic: boolean
   parameterEnabled: boolean
   imageData?: string
   supportsDeepResearch?: boolean
@@ -92,6 +93,7 @@ export default function AgentRegisterForm({
     imageData: '',
     description: '',
     enabled: true,
+    isPublic: false,
     parameterEnabled: false,
     supportsDeepResearch: true,
     supportsWebSearch: true,
@@ -707,6 +709,20 @@ export default function AgentRegisterForm({
                   </Label>
                   <span className="text-xs text-gray-500 ml-2">
                     {lang('form.enableAgentHelp')}
+                  </span>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="isPublic"
+                    checked={formData.isPublic}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, isPublic: checked }))}
+                  />
+                  <Label htmlFor="isPublic" className="text-sm">
+                    {lang('form.publicAgent', '공개 에이전트')}
+                  </Label>
+                  <span className="text-xs text-gray-500 ml-2">
+                    {lang('form.publicAgentHelp', '모든 사용자가 이 에이전트를 사용할 수 있습니다')}
                   </span>
                 </div>
                 

@@ -1,6 +1,6 @@
 "use client"
 
-import { createContext, useContext, useState, useEffect, ReactNode } from "react"
+import { createContext, useContext, useState, useEffect, useRef, useCallback, ReactNode } from "react"
 import { 
   clearSessionAndRedirect, 
   isAuthError, 
@@ -65,6 +65,7 @@ export function ModelProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isInitialized, setIsInitialized] = useState(false)
+  const prevModelListRef = useRef<{ agents: Agent[], publicModels: PublicModel[] }>({ agents: [], publicModels: [] })
 
   // Function to fetch agents and public models list
   const fetchModelsAndAgents = async () => {
@@ -79,7 +80,6 @@ export function ModelProvider({ children }: { children: ReactNode }) {
       
       // Ensure data is an object before accessing properties
       if (!data || typeof data !== 'object') {
-        console.log('Invalid data format received, setting empty arrays')
         setAgents([])
         setPublicModels([])
         return
@@ -89,7 +89,6 @@ export function ModelProvider({ children }: { children: ReactNode }) {
       if (isValidArray(data.agents)) {
         setAgents(data.agents)
       } else {
-        console.log('No agents data or invalid format, setting empty array')
         setAgents([])
       }
       
@@ -97,7 +96,6 @@ export function ModelProvider({ children }: { children: ReactNode }) {
       if (isValidArray(data.publicModels)) {
         setPublicModels(data.publicModels)
       } else {
-        console.log('No public models data or invalid format, setting empty array')
         setPublicModels([])
       }
       
@@ -109,15 +107,38 @@ export function ModelProvider({ children }: { children: ReactNode }) {
           
           if (savedModelId && savedModelType) {
             // Find model by saved model ID
+            let modelFound = false
+            
             if (savedModelType === 'agent' && isValidArray(data.agents)) {
               const savedAgent = data.agents.find((agent: Agent) => agent && agent.id === savedModelId)
               if (savedAgent) {
                 setSelectedModel(savedAgent)
+                modelFound = true
               }
             } else if (savedModelType === 'model' && isValidArray(data.publicModels)) {
               const savedModel = data.publicModels.find((model: PublicModel) => model && model.id === savedModelId)
               if (savedModel) {
                 setSelectedModel(savedModel)
+                modelFound = true
+              }
+            }
+            
+            // If saved model not found, select first available agent or model
+            if (!modelFound) {
+              if (isValidArray(data.agents) && data.agents.length > 0) {
+                // Prefer agents over models
+                const firstAgent = data.agents[0]
+                if (firstAgent) {
+                  setSelectedModel(firstAgent)
+                  saveSelectedModelToLocalStorage(firstAgent)
+                }
+              } else if (isValidArray(data.publicModels) && data.publicModels.length > 0) {
+                // Select first public model if no agents
+                const firstModel = data.publicModels[0]
+                if (firstModel) {
+                  setSelectedModel(firstModel)
+                  saveSelectedModelToLocalStorage(firstModel)
+                }
               }
             }
           } else if (isValidArray(data.agents) && data.agents.length > 0) {
@@ -176,10 +197,10 @@ export function ModelProvider({ children }: { children: ReactNode }) {
   }
 
   // Wrap model selection handler to also save to localStorage
-  const handleSetSelectedModel = (model: ModelOrAgent | null) => {
+  const handleSetSelectedModel = useCallback((model: ModelOrAgent | null) => {
     setSelectedModel(model)
     saveSelectedModelToLocalStorage(model)
-  }
+  }, [])
 
   // Initial data setup function
   const setInitialData = (initialAgents: Agent[], initialPublicModels: PublicModel[], defaultModel?: ModelOrAgent | null) => {
@@ -196,25 +217,56 @@ export function ModelProvider({ children }: { children: ReactNode }) {
       
       if (savedModelId && savedModelType) {
         // Find model by saved model ID
+        let modelFound = false
+        
         if (savedModelType === 'agent') {
           const savedAgent = initialAgents.find(agent => agent.id === savedModelId)
           if (savedAgent) {
             setSelectedModel(savedAgent)
-            return
+            modelFound = true
           }
         } else if (savedModelType === 'model') {
           const savedModel = initialPublicModels.find(model => model.id === savedModelId)
           if (savedModel) {
             setSelectedModel(savedModel)
+            modelFound = true
+          }
+        }
+        
+        // If saved model not found, select first available agent or model
+        if (!modelFound) {
+          if (initialAgents.length > 0) {
+            // Prefer agents over models
+            const firstAgent = initialAgents[0]
+            setSelectedModel(firstAgent)
+            saveSelectedModelToLocalStorage(firstAgent)
+            return
+          } else if (initialPublicModels.length > 0) {
+            // Select first public model if no agents
+            const firstModel = initialPublicModels[0]
+            setSelectedModel(firstModel)
+            saveSelectedModelToLocalStorage(firstModel)
             return
           }
+        } else {
+          return // Model found and selected, exit
         }
       }
       
-      // Select default model if no saved model or can't find it
+      // Select default model if no saved model
       if (defaultModel) {
         setSelectedModel(defaultModel)
         saveSelectedModelToLocalStorage(defaultModel)
+      } else if (initialAgents.length > 0) {
+        // No default model provided, prefer agents
+        const firstAgent = initialAgents[0]
+        setSelectedModel(firstAgent)
+        saveSelectedModelToLocalStorage(firstAgent)
+      } else if (initialPublicModels.length > 0) {
+        // No agents, select first model
+        const firstModel = initialPublicModels[0]
+        setSelectedModel(firstModel)
+        saveSelectedModelToLocalStorage(firstModel)
       }
     }
   }
@@ -233,6 +285,44 @@ export function ModelProvider({ children }: { children: ReactNode }) {
       fetchModelsAndAgents()
     }
   }, []) // Empty dependency array - runs once on mount
+
+  // Check if selected model still exists when agents/models list changes
+  useEffect(() => {
+    if (!isInitialized || isLoading) return
+    
+    // Check if lists have actually changed
+    const listsChanged = 
+      prevModelListRef.current.agents.length !== agents.length ||
+      prevModelListRef.current.publicModels.length !== publicModels.length ||
+      !prevModelListRef.current.agents.every(a => agents.some(b => b.id === a.id)) ||
+      !prevModelListRef.current.publicModels.every(a => publicModels.some(b => b.id === a.id))
+    
+    if (!listsChanged) return
+    
+    // Update ref with new lists
+    prevModelListRef.current = { agents, publicModels }
+    
+    if (!selectedModel) return
+    
+    // Check if current selected model exists in the lists
+    const modelExists = selectedModel.type === 'agent' 
+      ? agents.some(agent => agent.id === selectedModel.id)
+      : publicModels.some(model => model.id === selectedModel.id)
+    
+    if (!modelExists) {
+      // Select first available agent or model
+      if (agents.length > 0) {
+        const firstAgent = agents[0]
+        handleSetSelectedModel(firstAgent)
+      } else if (publicModels.length > 0) {
+        const firstModel = publicModels[0]
+        handleSetSelectedModel(firstModel)
+      } else {
+        // No models available
+        handleSetSelectedModel(null)
+      }
+    }
+  }, [agents, publicModels, selectedModel, isInitialized, isLoading, handleSetSelectedModel])
 
   return (
     <ModelContext.Provider

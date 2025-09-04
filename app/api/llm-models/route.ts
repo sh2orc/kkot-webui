@@ -24,6 +24,7 @@ export async function GET(request: NextRequest) {
     const publicOnly = url.searchParams.get('publicOnly') === 'true';
     const embeddingOnly = url.searchParams.get('embeddingOnly') === 'true';
     const chatOnly = url.searchParams.get('chatOnly') === 'true';
+    const adminView = url.searchParams.get('adminView') === 'true';
     
     let models;
     
@@ -52,11 +53,17 @@ export async function GET(request: NextRequest) {
       capabilities: model.capabilities ? JSON.parse(model.capabilities) : null
     }));
     
+    // Skip permission filtering for admin view (admin users viewing all models for permission management)
+    if (adminView && session.user.role === 'admin') {
+      return NextResponse.json(parsedModels);
+    }
+    
     // Filter models based on user permissions
+    // For models, we use 'enabled' permission instead of 'read'
     const accessibleModels = await filterResourcesByPermission(
       parsedModels,
       'model',
-      'read'
+      'enabled'
     );
     
     return NextResponse.json(accessibleModels);

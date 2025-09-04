@@ -8,7 +8,7 @@
   "selectModel": "Select Model",
   "loadingAgents": "Loading agents and models...",
   "agents": "Agents",
-  "publicModels": "Public Models",
+  "publicModels": "Available Models",
   "noAgentsOrModels": "No agents or public models available",
   "searchModels": "Search models or agents",
   "noResults": "No results found",

@@ -53,6 +53,7 @@ export default async function AgentRegisterPage({
           frequencyPenalty: agent.frequencyPenalty || '0.0',
           description: agent.description || '',
           enabled: agent.enabled,
+          isPublic: agent.isPublic || false,
           supportsDeepResearch: agent.supportsDeepResearch,
           supportsWebSearch: agent.supportsWebSearch,
           compressImage: agent.compressImage,

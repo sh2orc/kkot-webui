@@ -148,6 +148,7 @@ export interface AgentManage {
   imageData?: Buffer | string; // BLOB for SQLite, Base64 text for PostgreSQL
   description?: string;
   enabled: boolean;
+  isPublic: boolean;
   parameterEnabled: boolean;
   supportsMultimodal: boolean;
   supportsDeepResearch: boolean;

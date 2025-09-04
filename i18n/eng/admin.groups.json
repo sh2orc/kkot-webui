@@ -76,7 +76,9 @@
   "permissions": {
     "read": "Read",
     "write": "Write",
-    "delete": "Delete"
+    "delete": "Delete",
+    "access": "Access",
+    "enabled": "Enabled"
   },
   "resourceTypes": {
     "agent": "Agents",

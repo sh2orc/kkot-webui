@@ -153,9 +153,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${BASE_URL}/auth/link-account?data=${encodedData}`);
       }
       
-      // NextAuth JWT 토큰 생성
-      console.log('🚀 Creating NextAuth JWT token for Kakao user');
-      
+      // NextAuth JWT 토큰 생성      
       const authUser = {
         id: user.id.toString(),
         email: user.email,
@@ -179,9 +177,7 @@ export async function GET(request: NextRequest) {
         secret: secret!,
         maxAge,
       });
-      
-      console.log('🚀 NextAuth JWT token created:', !!token);
-      
+            
       // Set session cookie
       const cookieStore = await cookies();
       cookieStore.set('next-auth.session-token', token, {
@@ -192,7 +188,6 @@ export async function GET(request: NextRequest) {
         path: '/',
       });
       
-      console.log('🚀 NextAuth session cookie set, redirecting to chat');
       return NextResponse.redirect(`${BASE_URL}/chat`);
       
     } catch (userError) {

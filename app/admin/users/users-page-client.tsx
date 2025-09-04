@@ -11,6 +11,7 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useTranslation } from "@/lib/i18n"
 import { toast } from "sonner"
 import { useTimezone } from "@/components/providers/timezone-provider"
@@ -78,6 +79,8 @@ export default function UsersPageClient({
   const [roleFilter, setRoleFilter] = useState<string>("all")
   const [showFilters, setShowFilters] = useState(false)
   const [isTranslationReady, setIsTranslationReady] = useState(false)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [userToDelete, setUserToDelete] = useState<string | null>(null)
 
   // Cache all translations when component mounts
   useEffect(() => {
@@ -113,20 +116,28 @@ export default function UsersPageClient({
     }
   }
 
-  const handleDeleteUser = async (userId: string) => {
-    if (!confirm(t('confirmDelete'))) return
+  const handleDeleteUser = (userId: string) => {
+    setUserToDelete(userId)
+    setDeleteDialogOpen(true)
+  }
+
+  const confirmDeleteUser = async () => {
+    if (!userToDelete) return
 
     try {
-      const response = await fetch(`/api/users/${userId}`, {
+      const response = await fetch(`/api/users/${userToDelete}`, {
         method: "DELETE"
       })
       if (!response.ok) throw new Error("Failed to delete user")
       
       // Update local state instead of refetching
-      setUsers(prev => prev.filter(user => user.id !== userId))
+      setUsers(prev => prev.filter(user => user.id !== userToDelete))
       toast.success(t('deleteSuccess'))
     } catch (error) {
       toast.error(t('errors.deleteFailed'))
+    } finally {
+      setDeleteDialogOpen(false)
+      setUserToDelete(null)
     }
   }
 
@@ -553,6 +564,28 @@ export default function UsersPageClient({
         </CardContent>
       </Card>
 
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{t('delete')}</AlertDialogTitle>
+            <AlertDialogDescription>
+              {t('confirmDelete')}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setDeleteDialogOpen(false)}>
+              {t('cancel')}
+            </AlertDialogCancel>
+            <AlertDialogAction
+              onClick={confirmDeleteUser}
+              className="bg-red-600 hover:bg-red-700 focus:ring-red-600"
+            >
+              {t('delete')}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </div>
   )

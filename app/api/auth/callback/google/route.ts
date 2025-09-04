@@ -12,15 +12,11 @@ export async function GET(request: NextRequest) {
   const state = searchParams.get('state');
   const error = searchParams.get('error');
 
-  console.log('🚀 Google OAuth callback:', { code: !!code, state, error });
-
   if (error) {
-    console.error('🚀 Google OAuth error:', error);
     return NextResponse.redirect(`${BASE_URL}/auth?error=google_oauth`);
   }
 
   if (!code) {
-    console.error('🚀 No authorization code received');
     return NextResponse.redirect(`${BASE_URL}/auth?error=no_code`);
   }
 
@@ -33,12 +29,9 @@ export async function GET(request: NextRequest) {
     const GOOGLE_CLIENT_SECRET = googleClientSecretSetting?.[0]?.value || process.env.GOOGLE_CLIENT_SECRET;
     
     if (!GOOGLE_CLIENT_ID || !GOOGLE_CLIENT_SECRET) {
-      console.error('❌ Google OAuth credentials not configured');
       return NextResponse.redirect(new URL('/auth?error=OAuthNotConfigured', request.url));
     }
 
-    console.log('🔍 Using Client ID from:', googleClientIdSetting?.[0]?.value ? 'DB' : 'Environment/Default');
-    console.log('🔍 Using Client Secret from:', googleClientSecretSetting?.[0]?.value ? 'DB' : 'Environment/Default');
     // Exchange access token
     const tokenResponse = await fetch('https://oauth2.googleapis.com/token', {
       method: 'POST',
@@ -55,10 +48,8 @@ export async function GET(request: NextRequest) {
     });
 
     const tokenData = await tokenResponse.json();
-    console.log('🚀 Token exchange result:', { success: tokenResponse.ok, hasAccessToken: !!tokenData.access_token });
 
     if (!tokenResponse.ok) {
-      console.error('🚀 Token exchange failed:', tokenData);
       return NextResponse.redirect(`${BASE_URL}/auth?error=token_exchange`);
     }
 
@@ -70,27 +61,19 @@ export async function GET(request: NextRequest) {
     });
 
     const userData = await userResponse.json();
-    console.log('🚀 User data received:', { email: userData.email, name: userData.name });
 
     if (!userResponse.ok) {
-      console.error('🚀 User info fetch failed:', userData);
       return NextResponse.redirect(`${BASE_URL}/auth?error=user_info`);
     }
 
-    // Handle user
-    console.log('🚀 Processing user:', { email: userData.email, name: userData.name });
-    
+    // Handle user    
     try {
       let user;
       const existingUser = await userRepository.findByEmail(userData.email);
       
-      if (existingUser) {
-        console.log('🚀 Existing user found:', userData.email);
-        
+      if (existingUser) {        
         // Check OAuth integration status
-        if (!existingUser.googleId) {
-          console.log('🚀 User exists but not linked to Google, redirecting to link page');
-          
+        if (!existingUser.googleId) {          
           // Safely encode OAuth data and pass it via URL
           const oauthData = {
             id: userData.id,
@@ -105,9 +88,7 @@ export async function GET(request: NextRequest) {
         }
         
         user = existingUser;
-      } else {
-        console.log('🚀 No existing user, redirecting to link page for new account creation');
-        
+      } else {        
         // Safely encode OAuth data and pass it via URL
         const oauthData = {
           id: userData.id,
@@ -121,18 +102,14 @@ export async function GET(request: NextRequest) {
         return NextResponse.redirect(`${BASE_URL}/auth/link-account?data=${encodedData}`);
       }
       
-      // Generate NextAuth JWT token
-      console.log('🚀 Creating MSA 호환 JWT token');
-      
+      // Generate NextAuth JWT token      
       const token = await createJWTToken({
         id: user.id.toString(),
         email: user.email,
         name: user.username,
         role: user.role,
       });
-      
-      console.log('🚀 MSA JWT token created:', !!token);
-      
+            
       // Set session cookie
       const cookieStore = await cookies();
       const isLocalhost = request.nextUrl.hostname === 'localhost' || request.nextUrl.hostname === '127.0.0.1';
@@ -144,16 +121,13 @@ export async function GET(request: NextRequest) {
         path: '/',
       });
       
-      console.log('🚀 NextAuth session cookie set, redirecting to chat');
       return NextResponse.redirect(`${BASE_URL}/chat`);
       
     } catch (userError) {
-      console.error('🚀 User processing error:', userError);
       return NextResponse.redirect(`${BASE_URL}/auth?error=user_processing`);
     }
 
   } catch (error) {
-    console.error('🚀 OAuth process error:', error);
     return NextResponse.redirect(`${BASE_URL}/auth?error=oauth_process`);
   }
 }

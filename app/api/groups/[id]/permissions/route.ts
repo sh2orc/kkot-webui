@@ -94,7 +94,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     // Validate permissions
-    const validPermissions = ['read', 'write', 'delete'];
+    const validPermissions = ['read', 'write', 'delete', 'enabled'];
     if (!Array.isArray(permissions) || !permissions.every(p => validPermissions.includes(p))) {
       return NextResponse.json(
         { error: "Invalid permissions" },
@@ -151,7 +151,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 
     // Validate permissions
     const validResourceTypes = ['agent', 'model', 'rag_collection', 'vector_store'];
-    const validPermissions = ['read', 'write', 'delete'];
+    const validPermissions = ['read', 'write', 'delete', 'enabled'];
 
     for (const perm of permissions) {
       if (!perm.resourceType || !perm.resourceId || !perm.permissions) {

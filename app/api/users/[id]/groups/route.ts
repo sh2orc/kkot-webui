@@ -18,15 +18,23 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     // Check authentication
     const authOptions = await createAuthOptions()
     const session = await getServerSession(authOptions);
-    if (!session || session.user.role !== 'admin') {
+    if (!session) {
       return NextResponse.json(
         { error: "Unauthorized" },
         { status: 401 }
       );
     }
+    
+    // Allow users to view their own groups or admins to view any user's groups
+    if (session.user.id !== resolvedParams.id && session.user.role !== 'admin') {
+      return NextResponse.json(
+        { error: "Forbidden" },
+        { status: 403 }
+      );
+    }
 
     const groups = await groupRepository.getUserGroups(resolvedParams.id);
-    return NextResponse.json(groups);
+    return NextResponse.json({ groups });
   } catch (error) {
     console.error("Error fetching user groups:", error);
     return NextResponse.json(

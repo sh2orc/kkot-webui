@@ -4,6 +4,7 @@ import { getServerSession } from "next-auth"
 import { getAuthOptions } from "@/app/api/auth/[...nextauth]/route"
 import { loadTranslationModule } from "@/lib/i18n-server"
 import { headers } from "next/headers"
+import { filterResourcesByPermission } from "@/lib/auth/permissions"
 
 export const dynamic = 'force-dynamic'
 
@@ -30,14 +31,28 @@ export default async function Page() {
   const preferredLanguage = acceptLanguage.includes('en') ? 'eng' : 'kor'
   
   // Get agent and public model lists via SSR
-  const [agents, publicModels, chatTranslations] = await Promise.all([
+  const [agents, allModels, chatTranslations] = await Promise.all([
     agentManageRepository.findAllWithModelAndServer(),
-    llmModelRepository.findPublic(),
+    llmModelRepository.findAllChatModelsWithServer(), // Get all models, not just public
     loadTranslationModule(preferredLanguage, 'chat')
   ])
   
+  // Filter models based on user permissions
+  const publicModels = await filterResourcesByPermission(
+    allModels,
+    'model',
+    'enabled'
+  )
+  
+  // Filter agents based on user permissions
+  const accessibleAgents = await filterResourcesByPermission(
+    agents,
+    'agent',
+    'enabled'
+  )
+  
   // Transform agent data (including images)
-  const processedAgents = agents
+  const processedAgents = accessibleAgents
     .filter((agent: any) => agent.enabled) // Only enabled agents
     .map((agent: any) => {
       let imageData: string | null = null
@@ -56,8 +71,10 @@ export default async function Page() {
       }
     })
   
-  // Transform public model data
-  const processedPublicModels = publicModels.map((model: any) => ({
+  // Transform public model data  
+  const processedPublicModels = publicModels
+    .filter((model: any) => model.enabled) // Only enabled models
+    .map((model: any) => ({
     ...model,
     capabilities: model.capabilities ? JSON.parse(model.capabilities) : null,
     type: 'model' as const // Field for type distinction

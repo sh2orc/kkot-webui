@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
 import { ArrowLeft, Save, Shield, Bot, Brain, Database, HardDrive, Loader2 } from "lucide-react"
@@ -29,7 +30,7 @@ interface Permission {
   permissions: string[]
 }
 
-const PERMISSION_TYPES = ['read', 'write', 'delete'] as const
+const PERMISSION_TYPES = ['enabled'] as const
 
 export default function GroupPermissionsPage() {
   const router = useRouter()
@@ -97,8 +98,8 @@ export default function GroupPermissionsPage() {
         })))
       }
 
-      // Fetch models
-      const modelsRes = await fetch('/api/llm-models')
+      // Fetch models - for admin permission management, we need all models
+      const modelsRes = await fetch('/api/llm-models?adminView=true')
       if (modelsRes.ok) {
         const data = await modelsRes.json()
         setModels(data.map((m: any) => ({
@@ -260,26 +261,19 @@ export default function GroupPermissionsPage() {
         <ScrollArea className="h-[400px] pr-4">
           <div className="space-y-4">
             {resources.map(resource => (
-              <div key={resource.id} className="border rounded-lg p-4">
-                <div className="mb-3">
+              <div key={resource.id} className="border rounded-lg p-4 flex items-center gap-4">
+                <Switch
+                  checked={hasPermission(resourceType, resource.id, 'enabled')}
+                  onCheckedChange={(checked) => 
+                    handlePermissionChange(resourceType, resource.id, 'enabled', checked as boolean)
+                  }
+                  disabled={groupId === 'admin'}
+                />
+                <div className="flex-1">
                   <h4 className="font-medium">{resource.name}</h4>
                   {resource.description && (
                     <p className="text-sm text-muted-foreground">{resource.description}</p>
                   )}
-                </div>
-                <div className="flex gap-4">
-                  {PERMISSION_TYPES.map(permType => (
-                    <label key={permType} className="flex items-center space-x-2">
-                      <Checkbox
-                        checked={hasPermission(resourceType, resource.id, permType)}
-                        onCheckedChange={(checked) => 
-                          handlePermissionChange(resourceType, resource.id, permType, checked as boolean)
-                        }
-                        disabled={groupId === 'admin'}
-                      />
-                      <span className="text-sm">{lang(`permissions.${permType}`)}</span>
-                    </label>
-                  ))}
                 </div>
               </div>
             ))}

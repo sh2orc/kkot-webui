@@ -22,6 +22,7 @@ interface Agent {
   serverName?: string
   description?: string
   enabled: boolean
+  isPublic: boolean
   hasImage: boolean
   imageData?: string // Image data passed via SSR
   supportsDeepResearch?: boolean
@@ -78,6 +79,47 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
       })
     } catch (error) {
       console.error('Agent toggle error:', error)
+      toast({
+        title: lang('toggleError'),
+        description: lang('toggleFailureMessage'),
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Toggle agent public status
+  const handleTogglePublic = async (id: string, isPublic: boolean) => {
+    try {
+      setIsLoading(true)
+      
+      const response = await fetch('/api/agents', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          isPublic: !isPublic
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Agent public toggle failed')
+      }
+      
+      // Update state
+      setAgents(prevAgents => 
+        prevAgents.map(agent => 
+          agent.id === id ? { ...agent, isPublic: !isPublic } : agent
+        )
+      )
+      
+      toast({
+        title: !isPublic ? lang('publicSuccess') : lang('privateSuccess'),
+        description: !isPublic ? lang('publicSuccessMessage') : lang('privateSuccessMessage')
+      })
+    } catch (error) {
+      console.error('Agent public toggle error:', error)
       toast({
         title: lang('toggleError'),
         description: lang('toggleFailureMessage'),
@@ -236,6 +278,7 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
                     <TableHead>기능</TableHead>
                     <TableHead>딥리서치</TableHead>
                     <TableHead>이미지 압축</TableHead>
+                    <TableHead>{lang('form.status')}</TableHead>
                     <TableHead>{lang('table.status')}</TableHead>
                     <TableHead className="w-[120px]">{lang('table.actions')}</TableHead>
                   </TableRow>
@@ -313,6 +356,15 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
                           <Switch
                             checked={agent.compressImage ?? true}
                             onCheckedChange={() => handleToggleImageCompression(agent.id, agent.compressImage ?? true)}
+                            disabled={isLoading}
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Switch
+                            checked={agent.isPublic}
+                            onCheckedChange={() => handleTogglePublic(agent.id, agent.isPublic)}
                             disabled={isLoading}
                           />
                         </div>

@@ -294,6 +294,7 @@ export const agentManage = getDbType() === 'sqlite'
       imageData: blob('image_data'),
       description: text('description'),
       enabled: integer('enabled', { mode: 'boolean' }).default(true),
+      isPublic: integer('is_public', { mode: 'boolean' }).default(false), // Whether to expose to general users
       parameterEnabled: integer('parameter_enabled', { mode: 'boolean' }).default(true),
       supportsMultimodal: integer('supports_multimodal', { mode: 'boolean' }).default(false), // Multimodal support
       supportsDeepResearch: integer('supports_deep_research', { mode: 'boolean' }).default(true), // Deep Research support
@@ -317,6 +318,7 @@ export const agentManage = getDbType() === 'sqlite'
       imageData: text('image_data'), // PostgreSQL uses bytea type, but stores as base64 text
       description: pgText('description'),
       enabled: boolean('enabled').default(true),
+      isPublic: boolean('is_public').default(false), // Whether to expose to general users
       parameterEnabled: boolean('parameter_enabled').default(true),
       supportsMultimodal: boolean('supports_multimodal').default(false), // Multimodal support
       supportsDeepResearch: boolean('supports_deep_research').default(true), // Deep Research support

@@ -1,5 +1,5 @@
 {
-  "title": "그룹 권한 관리",
+  "title": "그룹 관리",
   "addGroup": "그룹 추가",
   "groupList": "그룹 목록",
   "searchPlaceholder": "그룹 검색...",
@@ -76,7 +76,9 @@
   "permissions": {
     "read": "읽기",
     "write": "쓰기",
-    "delete": "삭제"
+    "delete": "삭제",
+    "access": "접근",
+    "enabled": "사용"
   },
   "resourceTypes": {
     "agent": "에이전트",

@@ -168,7 +168,6 @@ export async function createAuthOptions(): Promise<NextAuthOptions> {
         return true;
       },
       async jwt({ token, user }) {
-        console.log('JWT callback - user:', user ? 'exists' : 'null');
         if (user) {
           token.id = user.id;
           token.email = user.email;
@@ -188,11 +187,9 @@ export async function createAuthOptions(): Promise<NextAuthOptions> {
             console.error('Error refreshing user data in JWT callback:', error);
           }
         }
-        console.log('JWT token:', { ...token, iat: 'hidden', exp: 'hidden' });
         return token;
       },
       async session({ session, token }) {
-        console.log('Session callback - token:', token ? 'exists' : 'null');
         if (token && session.user) {
           session.user.id = token.id as string;
           session.user.email = token.email as string;
@@ -203,7 +200,6 @@ export async function createAuthOptions(): Promise<NextAuthOptions> {
             const user = await userRepository.findByEmail(token.email as string);
             if (user) {
               session.user.role = user.role; // DB에서 가져온 최신 권한 사용
-              console.log('Updated role from DB:', user.role);
             } else {
               session.user.role = token.role as string; // 사용자가 없으면 토큰의 권한 사용
             }
@@ -212,7 +208,6 @@ export async function createAuthOptions(): Promise<NextAuthOptions> {
             session.user.role = token.role as string; // 에러 시 토큰의 권한 사용
           }
         }
-        console.log('Final session:', session);
         return session;
       },
     },
@@ -275,17 +270,14 @@ export const authOptions: NextAuthOptions = {
         password: { label: 'Password', type: 'password' },
       },
       async authorize(credentials) {
-        console.log('Authorize function called with:', credentials?.email);
         
         if (!credentials?.email || !credentials?.password) {
-          console.log('Missing credentials');
           return null;
         } you 
 
         try {
           // Find user by email
           const user = await userRepository.findByEmail(credentials.email);
-          console.log('Found user:', user ? 'Yes' : 'No');
           
           if (!user) {
             console.log('User not found');
@@ -294,7 +286,6 @@ export const authOptions: NextAuthOptions = {
           
           // Verify password
           const isValid = await verifyPassword(credentials.password, user.password);
-          console.log('Password valid:', isValid);
           
           if (!isValid) {
             console.log('Invalid password');
@@ -303,10 +294,8 @@ export const authOptions: NextAuthOptions = {
           
           // Update last login time
           await userRepository.updateLastLogin(user.id);
-          console.log('Updated last login time for user:', user.id);
 
           // Return user data
-          console.log('Returning user:', { id: user.id, email: user.email, name: user.username, role: user.role });
           return {
             id: user.id,
             email: user.email,
@@ -344,15 +333,12 @@ export const authOptions: NextAuthOptions = {
           const existingUser = await userRepository.findByEmail(user.email);
           
           if (existingUser) {
-            console.log('Existing user found, allowing sign-in');
             // Update user info from Google if needed
             user.id = existingUser.id;
             user.name = existingUser.username;
             user.role = existingUser.role;
             return true;
-          } else {
-            console.log('Creating new user from Google OAuth');
-            
+          } else {            
             // Check signup enabled setting
             const signupEnabledSetting = await adminSettingsRepository.findByKey('auth.signupEnabled');
             const signupEnabled = signupEnabledSetting?.[0]?.value === 'true';
@@ -381,7 +367,6 @@ export const authOptions: NextAuthOptions = {
               user.id = newUser[0].id;
               user.name = newUser[0].username;
               user.role = newUser[0].role;
-              console.log('New user created successfully with role:', userRole);
               return true;
             } else {
               console.error('Failed to create new user');
@@ -397,7 +382,6 @@ export const authOptions: NextAuthOptions = {
       return true;
     },
     async jwt({ token, user }) {
-      console.log('JWT callback - user:', user ? 'exists' : 'null');
       if (user) {
         token.id = user.id;
         token.email = user.email;
@@ -417,11 +401,9 @@ export const authOptions: NextAuthOptions = {
           console.error('Error refreshing user data in JWT callback:', error);
         }
       }
-      console.log('JWT token:', { ...token, iat: 'hidden', exp: 'hidden' });
       return token;
     },
     async session({ session, token }) {
-      console.log('Session callback - token:', token ? 'exists' : 'null');
       if (token && session.user) {
         session.user.id = token.id as string;
         session.user.email = token.email as string;
@@ -445,15 +427,12 @@ const handler = NextAuth(authOptions);
 // NextAuth 핸들러 export
 export async function GET(req: Request, context: { params: Promise<{ nextauth: string[] }> }) {
   const params = await context.params;
-  console.log('🔥 Static NextAuth GET request:', params.nextauth);
   
   try {
     const response = await handler(req, context);
     
     // Error response인 경우 상세 로깅
     if (response.status >= 300) {
-      console.log('🔥 NextAuth response status:', response.status);
-      console.log('🔥 NextAuth response headers:', Object.fromEntries(response.headers));
       
       // 리다이렉트 URL에서 에러 확인
       const location = response.headers.get('location');
@@ -470,8 +449,6 @@ export async function GET(req: Request, context: { params: Promise<{ nextauth: s
 }
 
 export async function POST(req: Request, context: { params: Promise<{ nextauth: string[] }> }) {
-  const params = await context.params;
-  console.log('🔥 Static NextAuth POST request:', params.nextauth);
-  
+  const params = await context.params;  
   return handler(req, context);
 }

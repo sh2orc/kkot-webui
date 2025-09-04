@@ -19,6 +19,8 @@ CREATE TABLE IF NOT EXISTS agent_manage (
   supports_multimodal INTEGER DEFAULT 0, -- 멀티모달 지원 여부
   supports_deep_research INTEGER DEFAULT 1, -- Deep Research 지원 여부
   supports_web_search INTEGER DEFAULT 1, -- Web Search 지원 여부
+  is_public INTEGER DEFAULT 0, -- 공용 여부
+  compress_image INTEGER DEFAULT 1, -- 이미지 압축 여부
   created_at INTEGER DEFAULT (unixepoch()),
   updated_at INTEGER DEFAULT (unixepoch()),
   FOREIGN KEY (model_id) REFERENCES llm_models(id) ON DELETE CASCADE
@@ -41,3 +43,9 @@ CREATE INDEX IF NOT EXISTS idx_agent_manage_deep_research ON agent_manage(suppor
 
 -- Create index for web search support
 CREATE INDEX IF NOT EXISTS idx_agent_manage_web_search ON agent_manage(supports_web_search); 
+
+-- Create index for is_public field
+CREATE INDEX IF NOT EXISTS idx_agent_manage_is_public ON agent_manage(is_public);
+
+-- Create index for the new column
+CREATE INDEX IF NOT EXISTS idx_agent_manage_compress_image ON agent_manage(compress_image);
