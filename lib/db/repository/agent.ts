@@ -42,6 +42,7 @@ export const agentManageRepository = {
         supportsMultimodal: schema.agentManage.supportsMultimodal,
         supportsDeepResearch: schema.agentManage.supportsDeepResearch,
         supportsWebSearch: schema.agentManage.supportsWebSearch,
+        compressImage: schema.agentManage.compressImage,
         createdAt: schema.agentManage.createdAt,
         updatedAt: schema.agentManage.updatedAt,
         modelName: schema.llmModels.modelId,
@@ -140,6 +141,7 @@ export const agentManageRepository = {
     parameterEnabled?: boolean;
     supportsDeepResearch?: boolean;
     supportsWebSearch?: boolean;
+    compressImage?: boolean;
   }) => {
     const id = generateId();
     const now = new Date();
@@ -181,6 +183,7 @@ export const agentManageRepository = {
       parameterEnabled: agentData.parameterEnabled === false ? 0 : 1 as any,
       supportsDeepResearch: agentData.supportsDeepResearch === false ? 0 : 1 as any,
       supportsWebSearch: agentData.supportsWebSearch === false ? 0 : 1 as any,
+      compressImage: agentData.compressImage === false ? 0 : 1 as any,
       createdAt: now as any,
       updatedAt: now as any
     }).returning();
@@ -211,6 +214,7 @@ export const agentManageRepository = {
     parameterEnabled: boolean;
     supportsDeepResearch: boolean;
     supportsWebSearch: boolean;
+    compressImage: boolean;
   }>) => {
     const data: any = { updatedAt: new Date() };
     
@@ -253,6 +257,7 @@ export const agentManageRepository = {
     if (typeof agentData.parameterEnabled === 'boolean') data.parameterEnabled = agentData.parameterEnabled ? 1 : 0;
     if (typeof agentData.supportsDeepResearch === 'boolean') data.supportsDeepResearch = agentData.supportsDeepResearch ? 1 : 0;
     if (typeof agentData.supportsWebSearch === 'boolean') data.supportsWebSearch = agentData.supportsWebSearch ? 1 : 0;
+    if (typeof agentData.compressImage === 'boolean') data.compressImage = agentData.compressImage ? 1 : 0;
     
     const result = await db.update(schema.agentManage)
       .set(data)

@@ -298,6 +298,7 @@ export const agentManage = getDbType() === 'sqlite'
       supportsMultimodal: integer('supports_multimodal', { mode: 'boolean' }).default(false), // Multimodal support
       supportsDeepResearch: integer('supports_deep_research', { mode: 'boolean' }).default(true), // Deep Research support
       supportsWebSearch: integer('supports_web_search', { mode: 'boolean' }).default(true), // Web Search support
+      compressImage: integer('compress_image', { mode: 'boolean' }).default(true), // Image compression
       createdAt: integer('created_at', { mode: 'timestamp' }),
       updatedAt: integer('updated_at', { mode: 'timestamp' }),
     })
@@ -320,6 +321,7 @@ export const agentManage = getDbType() === 'sqlite'
       supportsMultimodal: boolean('supports_multimodal').default(false), // Multimodal support
       supportsDeepResearch: boolean('supports_deep_research').default(true), // Deep Research support
       supportsWebSearch: boolean('supports_web_search').default(true), // Web Search support
+      compressImage: boolean('compress_image').default(true), // Image compression
       createdAt: timestamp('created_at').defaultNow(),
       updatedAt: timestamp('updated_at').defaultNow(),
     });

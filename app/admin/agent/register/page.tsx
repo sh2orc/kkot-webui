@@ -55,6 +55,7 @@ export default async function AgentRegisterPage({
           enabled: agent.enabled,
           supportsDeepResearch: agent.supportsDeepResearch,
           supportsWebSearch: agent.supportsWebSearch,
+          compressImage: agent.compressImage,
           parameterEnabled: agent.parameterEnabled
         }
       } else {
@@ -87,6 +88,7 @@ export default async function AgentRegisterPage({
             enabled: agent.enabled,
             supportsDeepResearch: agent.supportsDeepResearch,
             supportsWebSearch: agent.supportsWebSearch,
+            compressImage: agent.compressImage,
             parameterEnabled: agent.parameterEnabled
           }
         }

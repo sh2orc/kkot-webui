@@ -78,7 +78,8 @@ export async function GET() {
         type: 'agent', // Field added for type distinction
         supportsMultimodal: agent.supportsMultimodal || agent.modelSupportsMultimodal, // Include multimodal support info
         supportsDeepResearch: agent.supportsDeepResearch,
-        supportsWebSearch: agent.supportsWebSearch
+        supportsWebSearch: agent.supportsWebSearch,
+        compressImage: agent.compressImage
       }
     })
     
@@ -218,7 +219,8 @@ export async function POST(request: NextRequest) {
       enabled: body.enabled,
       parameterEnabled: body.parameterEnabled,
       supportsDeepResearch: body.supportsDeepResearch ?? true,
-      supportsWebSearch: body.supportsWebSearch ?? true
+      supportsWebSearch: body.supportsWebSearch ?? true,
+      compressImage: body.compressImage ?? true
     })
     
     // Fetch the created agent with model and server info
@@ -299,6 +301,7 @@ export async function PUT(request: NextRequest) {
     if (body.parameterEnabled !== undefined) updateData.parameterEnabled = body.parameterEnabled
     if (body.supportsDeepResearch !== undefined) updateData.supportsDeepResearch = body.supportsDeepResearch
     if (body.supportsWebSearch !== undefined) updateData.supportsWebSearch = body.supportsWebSearch
+    if (body.compressImage !== undefined) updateData.compressImage = body.compressImage
     
     // Process image data
     if (body.imageData !== undefined) {

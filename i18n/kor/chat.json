@@ -67,7 +67,12 @@
     "image_too_large": "압축 후에도 이미지가 너무 큽니다. 다른 이미지를 선택해주세요.",
     "max_images_exceeded": "최대 3개의 이미지까지 업로드할 수 있습니다.",
     "only_images_allowed": "이미지 파일만 업로드할 수 있습니다.",
-    "chat_id_missing": "서버 응답에서 채팅 ID가 누락되어 탐색할 수 없습니다"
+    "chat_id_missing": "서버 응답에서 채팅 ID가 누락되어 탐색할 수 없습니다",
+    "multimodal_not_supported": "선택된 모델은 이미지를 지원하지 않습니다.",
+    "paste_image_failed": "이미지 붙여넣기 중 오류가 발생했습니다."
+  },
+  "success": {
+    "images_pasted": "{count}개의 이미지가 붙여넣기되었습니다."
   },
   "welcome": {
     "greeting": "안녕하세요, {name}님! 👋",

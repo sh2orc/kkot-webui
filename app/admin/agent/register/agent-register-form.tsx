@@ -45,6 +45,7 @@ interface AgentData {
   imageData?: string
   supportsDeepResearch?: boolean
   supportsWebSearch?: boolean
+  compressImage?: boolean
 }
 
 interface AgentRegisterFormProps {
@@ -93,7 +94,8 @@ export default function AgentRegisterForm({
     enabled: true,
     parameterEnabled: false,
     supportsDeepResearch: true,
-    supportsWebSearch: true
+    supportsWebSearch: true,
+    compressImage: true
   }
   
   // Form state
@@ -719,6 +721,20 @@ export default function AgentRegisterForm({
                   </Label>
                   <span className="text-xs text-gray-500 ml-2">
                     에이전트가 Deep Research 기능을 사용할 수 있습니다
+                  </span>
+                </div>
+                
+                <div className="flex items-center space-x-2">
+                  <Switch
+                    id="compressImage"
+                    checked={formData.compressImage ?? true}
+                    onCheckedChange={(checked) => setFormData(prev => ({ ...prev, compressImage: checked }))}
+                  />
+                  <Label htmlFor="compressImage" className="text-sm">
+                    채팅 이미지 압축
+                  </Label>
+                  <span className="text-xs text-gray-500 ml-2">
+                    채팅에서 업로드한 이미지의 최대 크기를 800px로 제한하여 전송합니다
                   </span>
                 </div>
                 

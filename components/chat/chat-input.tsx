@@ -30,6 +30,7 @@ interface ChatInputProps {
   clearImages?: boolean
   supportsMultimodal?: boolean
   selectedAgent?: Agent | null
+  uploadedImages?: File[]
 }
 
 export const ChatInput = memo(function ChatInput({
@@ -52,15 +53,25 @@ export const ChatInput = memo(function ChatInput({
   clearImages,
   supportsMultimodal = false,
   selectedAgent = null,
+  uploadedImages: parentUploadedImages,
 }: ChatInputProps) {
   const { lang } = useTranslation("chat")
-  const [uploadedImages, setUploadedImages] = useState<File[]>([])
+  const [uploadedImages, setUploadedImages] = useState<File[]>(parentUploadedImages || [])
   const [imagePreviews, setImagePreviews] = useState<string[]>([])
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   // Check if agent features are supported
   const supportsDeepResearch = selectedAgent?.supportsDeepResearch ?? true
   const supportsWebSearch = selectedAgent?.supportsWebSearch ?? true
+
+  // Sync with parent uploadedImages
+  useEffect(() => {
+    if (parentUploadedImages && parentUploadedImages.length === 0) {
+      // Parent cleared images, so clear internal state too
+      setUploadedImages([])
+      setImagePreviews([])
+    }
+  }, [parentUploadedImages])
 
   // Clear images function
   const clearImagesHandler = () => {
@@ -136,6 +147,92 @@ export const ChatInput = memo(function ChatInput({
       
       img.src = URL.createObjectURL(file)
     })
+  }
+
+  // Handle paste event for images
+  const handlePaste = async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    console.log('[ChatInput] Paste event triggered')
+    
+    const items = Array.from(e.clipboardData.items)
+    console.log('[ChatInput] Clipboard items:', items.length, items.map(item => ({ type: item.type, kind: item.kind })))
+    
+    const imageItems = items.filter(item => item.type.indexOf('image') !== -1)
+    console.log('[ChatInput] Image items found:', imageItems.length)
+    
+    // If no images, let default paste behavior handle text
+    if (imageItems.length === 0) return
+    
+    // Only prevent default if we have images
+    e.preventDefault()
+    
+    // Check if model supports multimodal
+    console.log('[ChatInput] supportsMultimodal:', supportsMultimodal)
+    if (!supportsMultimodal) {
+      toast.error("선택된 모델은 이미지를 지원하지 않습니다.")
+      return
+    }
+    
+    // Check total image count limit
+    if (uploadedImages.length + imageItems.length > 3) {
+      toast.error("최대 3개의 이미지까지 업로드할 수 있습니다.")
+      return
+    }
+    
+    try {
+      const newImages: File[] = []
+      const newPreviews: string[] = []
+      
+      // Process each pasted image
+      for (const item of imageItems) {
+        const blob = item.getAsFile()
+        if (!blob) continue
+        
+        // Create a File object from the blob
+        const file = new File([blob], `pasted-image-${Date.now()}.${blob.type.split('/')[1]}`, {
+          type: blob.type
+        })
+        
+        // Resize and compress the image
+        const processedFile = await resizeAndCompressImage(file)
+        
+        // Check file size after compression (2MB limit)
+        const maxSize = 2 * 1024 * 1024
+        if (processedFile.size > maxSize) {
+          toast.error("압축 후에도 이미지가 너무 큽니다. 다른 이미지를 선택해주세요.")
+          continue
+        }
+        
+        // Add to arrays
+        newImages.push(processedFile)
+        
+        // Create preview
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const result = e.target?.result as string
+          newPreviews.push(result)
+          
+          // Update state when all images are processed
+          if (newPreviews.length === newImages.length) {
+            const allImages = [...uploadedImages, ...newImages]
+            const allPreviews = [...imagePreviews, ...newPreviews]
+            
+            setUploadedImages(allImages)
+            setImagePreviews(allPreviews)
+            
+            // Notify parent component of image upload
+            if (onImageUpload) {
+              onImageUpload(allImages)
+            }
+            
+            toast.success(`${newImages.length}개의 이미지가 붙여넣기되었습니다.`)
+          }
+        }
+        reader.readAsDataURL(processedFile)
+      }
+    } catch (error) {
+      console.error('Paste image error:', error)
+      toast.error("이미지 붙여넣기 중 오류가 발생했습니다.")
+    }
   }
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -239,6 +336,11 @@ export const ChatInput = memo(function ChatInput({
     
     // Always clear images after submitting (whether there are images or not)
     clearImagesHandler()
+    
+    // Also notify parent to clear images
+    if (onImageUpload) {
+      onImageUpload([])
+    }
   }
 
   return (
@@ -284,6 +386,10 @@ export const ChatInput = memo(function ChatInput({
                 onKeyUp={handleKeyUp}
                 onCompositionStart={handleCompositionStart}
                 onCompositionEnd={handleCompositionEnd}
+                onPaste={(e) => {
+                  console.log('[ChatInput] onPaste event directly on textarea');
+                  handlePaste(e);
+                }}
                 onInput={(e) => {
                   const target = e.target as HTMLTextAreaElement;
                   target.style.height = 'auto';

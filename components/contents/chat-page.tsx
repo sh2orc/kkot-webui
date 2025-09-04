@@ -1840,6 +1840,7 @@ export default function ChatPage({ chatId }: ChatPageProps) {
             clearImages={clearImagesTrigger}
             supportsMultimodal={supportsMultimodal}
             selectedAgent={selectedModel?.type === 'agent' ? selectedModel : null}
+            uploadedImages={uploadedImages}
           />
 
       </div>

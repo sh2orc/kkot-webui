@@ -35,9 +35,6 @@ export default function RagLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="space-y-6">
       <div className="flex items-start gap-3">
-        <div className="p-2 bg-blue-50 rounded-lg">
-          <BookOpen className="h-6 w-6 text-blue-600" />
-        </div>
         <div className="flex-1">
           <h1 className="text-2xl font-bold">{lang('title')}</h1>
           <p className="text-gray-600 mt-1">{lang('description')}</p>

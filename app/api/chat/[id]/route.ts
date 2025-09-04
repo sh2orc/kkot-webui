@@ -9,11 +9,17 @@ import * as fs from 'fs'
 import * as path from 'path'
 import sharp from 'sharp'
 
-// Function to resize image to max 300px width/height while maintaining aspect ratio
-async function resizeImageToBase64(base64Data: string, mimeType: string, maxSize: number = 500): Promise<string> {
+// Function to resize image to max width/height while maintaining aspect ratio
+async function resizeImageToBase64(base64Data: string, mimeType: string, maxSize: number = 800, shouldCompress: boolean = true): Promise<string> {
   try {
     // Remove data URL prefix if present
     const cleanBase64 = base64Data.replace(/^data:image\/[^;]+;base64,/, '');
+    
+    // If compression is disabled, return original
+    if (!shouldCompress) {
+      console.log(`🔧 Image compression disabled, returning original image`);
+      return cleanBase64;
+    }
     
     // Convert base64 to buffer
     const buffer = Buffer.from(cleanBase64, 'base64');
@@ -420,38 +426,44 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         try {
           const parsed = JSON.parse(historyMessage.content)
           if (parsed.hasImages && parsed.images && Array.isArray(parsed.images)) {
-            // For image generation context, include both text and images
+            // Check model capabilities first
+            const supportsMultimodal = model?.supportsMultimodal || agent?.supportsMultimodal
+            const isImageGenerationModel = model?.supportsImageGeneration
             const textContent = parsed.text || ''
-            const imageContents = await Promise.all(
-              parsed.images.map(async (imageInfo: any) => {
-                if (imageInfo.data) {
-                  // Image is already in base64 format, extract just the data part
-                  const base64Data = imageInfo.data.includes(',') 
-                    ? imageInfo.data.split(',')[1] 
-                    : imageInfo.data
-                  
-                  return {
-                    type: 'image_url',
-                    image_url: {
-                      url: imageInfo.data // Use full data URL
+            
+            // Only process images if model actually needs them
+            if ((supportsMultimodal || isImageGenerationModel) && parsed.images.length > 0) {
+              console.log(`✅ Processing user images - multimodal: ${supportsMultimodal}, imageGen: ${isImageGenerationModel}`)
+              const imageContents = await Promise.all(
+                parsed.images.map(async (imageInfo: any) => {
+                  if (imageInfo.data) {
+                    // Image is already in base64 format, extract just the data part
+                    const base64Data = imageInfo.data.includes(',') 
+                      ? imageInfo.data.split(',')[1] 
+                      : imageInfo.data
+                    
+                    return {
+                      type: 'image_url',
+                      image_url: {
+                        url: imageInfo.data // Use full data URL
+                      }
                     }
                   }
-                }
-                return null
-              })
-            ).then(contents => contents.filter(content => content !== null))
-            
-            // Create multimodal content if either model or agent support it
-            const supportsMultimodal = model?.supportsMultimodal || agent?.supportsMultimodal
-            if (supportsMultimodal && imageContents.length > 0) {
-              console.log('✅ Including user images - model or agent supports multimodal')
-              historyContent = [
-                { type: 'text', text: textContent },
-                ...imageContents
-              ]
+                  return null
+                })
+              ).then(contents => contents.filter(content => content !== null))
+              
+              if (imageContents.length > 0) {
+                historyContent = [
+                  { type: 'text', text: textContent },
+                  ...imageContents
+                ]
+              } else {
+                historyContent = textContent
+              }
             } else {
-              console.log(`🚫 Excluding user images - multimodal not supported (model: ${model?.supportsMultimodal}, agent: ${agent?.supportsMultimodal})`)
-              historyContent = textContent // Text only
+              console.log(`🚫 Skipping user image processing - multimodal: ${supportsMultimodal}, imageGen: ${isImageGenerationModel}`)
+              historyContent = textContent // Text only, no image processing
             }
           }
         } catch (e) {
@@ -463,65 +475,86 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         if (historyMessage.content.includes('![Generated Image](')) {
           const imageMatches = historyMessage.content.match(/!\[Generated Image\]\((\/api\/images\/generated-[a-f0-9-]+\.png)\)/g)
           if (imageMatches) {
-            try {
-              // Extract text and image parts
-              let textPart = historyMessage.content
-              const imageParts = []
-              
-              for (const match of imageMatches) {
-                const urlMatch = match.match(/!\[Generated Image\]\((\/api\/images\/generated-[a-f0-9-]+\.png)\)/)
-                if (urlMatch) {
-                  const imageUrl = urlMatch[1]
-                  // Convert image URL to base64 using file system (more efficient than fetch)
-                  const imagePath = imageUrl.replace('/api/images/', '')
-                  const fullPath = path.join(process.cwd(), 'public', 'temp-images', imagePath)
-                  
-                  let base64 = ''
-                  if (fs.existsSync(fullPath)) {
-                    const imageBuffer = fs.readFileSync(fullPath)
-                    base64 = `data:image/png;base64,${imageBuffer.toString('base64')}`
-                  } else {
-                    console.warn(`Generated image not found: ${fullPath}`)
-                    continue
-                  }
-                  
-                  imageParts.push({
-                    type: 'image_url',
-                    image_url: {
-                      url: base64
+            // Check model capabilities first
+            const supportsMultimodal = model?.supportsMultimodal || agent?.supportsMultimodal
+            const isImageGenerationModel = model?.supportsImageGeneration
+            const isOpenAI = model?.provider === 'openai' || server?.provider === 'openai'
+            
+            // Only process images if model actually needs them
+            if (supportsMultimodal || isImageGenerationModel) {
+              console.log(`✅ Processing assistant images - multimodal: ${supportsMultimodal}, imageGen: ${isImageGenerationModel}`)
+              try {
+                // Extract text and image parts
+                let textPart = historyMessage.content
+                const imageParts = []
+                
+                for (const match of imageMatches) {
+                  const urlMatch = match.match(/!\[Generated Image\]\((\/api\/images\/generated-[a-f0-9-]+\.png)\)/)
+                  if (urlMatch) {
+                    const imageUrl = urlMatch[1]
+                    // Convert image URL to base64 using file system (more efficient than fetch)
+                    const imagePath = imageUrl.replace('/api/images/', '')
+                    const fullPath = path.join(process.cwd(), 'public', 'temp-images', imagePath)
+                    
+                    let base64 = ''
+                    if (fs.existsSync(fullPath)) {
+                      const imageBuffer = fs.readFileSync(fullPath)
+                      base64 = `data:image/png;base64,${imageBuffer.toString('base64')}`
+                    } else {
+                      console.warn(`Generated image not found: ${fullPath}`)
+                      continue
                     }
-                  })
-                  
-                  // Remove image markdown from text
-                  textPart = textPart.replace(match, '')
+                    
+                    imageParts.push({
+                      type: 'image_url',
+                      image_url: {
+                        url: base64
+                      }
+                    })
+                    
+                    // Remove image markdown from text
+                    textPart = textPart.replace(match, '')
+                  }
                 }
-              }
-              
-              // Handle assistant images based on provider
-              const supportsMultimodal = model?.supportsMultimodal || agent?.supportsMultimodal
-              const isOpenAI = model?.provider === 'openai' || server?.provider === 'openai'
-              
-              if (imageParts.length > 0 && supportsMultimodal) {
-                if (!isOpenAI) {
-                  console.log('✅ Including assistant images - non-OpenAI model supports multimodal')
-                  historyContent = [
-                    { type: 'text', text: textPart.trim() },
-                    ...imageParts
-                  ]
+                
+                // Include images only if model supports multimodal or is an image generation model
+                if (imageParts.length > 0) {
+                  if (!isOpenAI) {
+                    console.log(`✅ Including assistant images - non-OpenAI model, multimodal: ${supportsMultimodal}, imageGen: ${isImageGenerationModel}`)
+                    historyContent = [
+                      { type: 'text', text: textPart.trim() },
+                      ...imageParts
+                    ]
+                  } else if (supportsMultimodal) {
+                    // For OpenAI: Convert assistant message with images to user message with tag
+                    console.log('🔄 Converting assistant images to user message for OpenAI compatibility')
+                    const taggedText = `[Assistant 응답] ${textPart.trim()}`
+                    historyContent = [
+                      { type: 'text', text: taggedText },
+                      ...imageParts
+                    ]
+                    // Mark this message to be converted to user role later
+                    historyMessage._convertToUser = true
+                  } else {
+                    // OpenAI doesn't support multimodal and isn't image gen - exclude images
+                    console.log('🚫 Excluding assistant images - OpenAI model without multimodal support')
+                    historyContent = textPart.trim()
+                  }
                 } else {
-                  // For OpenAI: Convert assistant message with images to user message with tag
-                  console.log('🔄 Converting assistant images to user message for OpenAI compatibility')
-                  const taggedText = `[Assistant 응답] ${textPart.trim()}`
-                  historyContent = [
-                    { type: 'text', text: taggedText },
-                    ...imageParts
-                  ]
-                  // Mark this message to be converted to user role later
-                  historyMessage._convertToUser = true
+                  historyContent = textPart.trim()
                 }
+              } catch (error) {
+                console.warn('Failed to process assistant image in history:', error)
+                historyContent = historyMessage.content
               }
-            } catch (error) {
-              console.warn('Failed to process assistant image in history:', error)
+            } else {
+              // Model doesn't support images - just extract text
+              console.log(`🚫 Skipping assistant image processing - multimodal: ${supportsMultimodal}, imageGen: ${isImageGenerationModel}`)
+              let textOnly = historyMessage.content
+              for (const match of imageMatches) {
+                textOnly = textOnly.replace(match, '')
+              }
+              historyContent = textOnly.trim()
             }
           }
         }
@@ -546,18 +579,31 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
       console.log('Processing multimodal message with', images.length, 'images')
       
       const supportsMultimodal = model?.supportsMultimodal || agent?.supportsMultimodal
-      if (supportsMultimodal) {
-        console.log('✅ Including current user images - model or agent supports multimodal')
+      const isImageGenerationModel = model?.supportsImageGeneration
+      
+      // Include images only if model supports multimodal or is an image generation model
+      if (supportsMultimodal || isImageGenerationModel) {
+        console.log(`✅ Including current user images - multimodal: ${supportsMultimodal}, imageGen: ${isImageGenerationModel}`)
         // Convert images to base64 for multimodal message
+        const shouldCompressImages = agent?.compressImage ?? true // Default to true if not set
+        console.log(`🖼️ Image compression setting: ${shouldCompressImages}`)
+        
         const imageContents = await Promise.all(
           images.map(async (image) => {
             const arrayBuffer = await image.arrayBuffer()
             const base64 = Buffer.from(arrayBuffer).toString('base64')
-            console.log(`Converted image ${image.name} to base64, size: ${base64.length} chars`)
+            
+            // Resize image if compression is enabled
+            const processedBase64 = shouldCompressImages
+              ? await resizeImageToBase64(base64, image.type, 800, true)
+              : base64
+              
+            console.log(`Converted image ${image.name} to base64, original size: ${base64.length} chars, processed size: ${processedBase64.length} chars`)
+            
             return {
               type: 'image_url',
               image_url: {
-                url: `data:${image.type};base64,${base64}`
+                url: `data:${image.type};base64,${processedBase64}`
               }
             }
           })
@@ -576,7 +622,7 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
         })))
         messages.push({ role: 'user', content: multimodalContent })
       } else {
-        console.log(`🚫 Excluding current user images - multimodal not supported (model: ${model?.supportsMultimodal}, agent: ${agent?.supportsMultimodal})`)
+        console.log(`🚫 Excluding current user images - multimodal: ${model?.supportsMultimodal}, imageGen: ${model?.supportsImageGeneration})`)
         messages.push({ role: 'user', content: message || '' }) // Text only
       }
     } else {
@@ -1020,10 +1066,12 @@ Parallel Processing Plan:
 
             
             // Determine if this is an image request
-            const isImageRequest = model?.supportsImageGeneration || 
+            const isImageGenerationModel = model?.supportsImageGeneration;
+            const isImageRequest = isImageGenerationModel && (
                                  hasUploadedImages || 
                                  hasGenerationKeywords || 
-                                 shouldEditPreviousImage;
+                                 shouldEditPreviousImage || 
+                                 true); // Always true for image generation models
             
             if (isImageRequest) {
               const requestType = (hasUploadedImages || shouldEditPreviousImage) ? 'Image Editing' : 'Image Generation';
@@ -1074,6 +1122,7 @@ Parallel Processing Plan:
               console.log('🖼️ Collecting images from recent conversation history for Gemini image model');
               const recentMessages = messages.slice(-3); // Only last 3 messages
               const addedImageHashes = new Set(); // Track unique images to avoid duplicates
+              const shouldCompressImagesHistory = agent?.compressImage ?? true // Use agent's compression setting
               
               for (const msg of recentMessages) {
                 if (msg.role === 'user' && Array.isArray(msg.content)) {
@@ -1089,8 +1138,8 @@ Parallel Processing Plan:
                         const [mimeInfo] = imageUrl.split(';');
                         const mimeType = mimeInfo.split(':')[1] || 'image/jpeg';
                         
-                        // Resize image to 300px max for history context
-                        const resizedData = await resizeImageToBase64(mimeAndData, mimeType, 300);
+                        // Resize image to 800px max for history context
+                        const resizedData = await resizeImageToBase64(mimeAndData, mimeType, 800, shouldCompressImagesHistory);
                         
                         allInputImages.push({
                           data: resizedData,
@@ -1115,7 +1164,7 @@ Parallel Processing Plan:
                         const mimeType = mimeInfo.split(':')[1] || 'image/png';
                         
                         // Resize image to 300px max for history context
-                        const resizedData = await resizeImageToBase64(mimeAndData, mimeType, 300);
+                        const resizedData = await resizeImageToBase64(mimeAndData, mimeType, 300, shouldCompressImagesHistory);
                         
                         allInputImages.push({
                           data: resizedData,
@@ -1141,8 +1190,8 @@ Parallel Processing Plan:
                     const base64 = imageBuffer.toString('base64');
                     const mimeType = previousGeneratedImagePath.endsWith('.png') ? 'image/png' : 'image/jpeg';
                     
-                    // Resize previous generated image to 300px max for history context
-                    const resizedData = await resizeImageToBase64(base64, mimeType, 300);
+                    // Resize previous generated image to 800px max for history context
+                    const resizedData = await resizeImageToBase64(base64, mimeType, 800, shouldCompressImagesHistory);
                     
                     allInputImages.push({
                       data: resizedData,

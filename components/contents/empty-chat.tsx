@@ -351,36 +351,6 @@ export default function Component({
     }
   }, [])
 
-  const handlePromptClick = useCallback((prompt: string) => {
-    setInputValue(prompt)
-    setIsExpanded(true)
-    
-    // Set focus to textarea
-    if (textareaRef.current) {
-      textareaRef.current.focus()
-      // Adjust height
-      adjustTextareaHeight(textareaRef.current)
-    }
-  }, [adjustTextareaHeight])
-
-  // Check if selected model supports multimodal input
-  const supportsMultimodal = selectedModel ? (() => {
-    if (selectedModel.type === 'agent') {
-      // For agents, check both agent's supportsMultimodal and underlying model's supportsMultimodal
-      const agentSupports = selectedModel.supportsMultimodal === true || selectedModel.supportsMultimodal === 1
-      const modelSupports = selectedModel.modelSupportsMultimodal === true || selectedModel.modelSupportsMultimodal === 1
-      return agentSupports || modelSupports
-    } else if (selectedModel.type === 'model') {
-      // For public models, check supportsMultimodal field
-      return selectedModel.supportsMultimodal === true || selectedModel.supportsMultimodal === 1
-    }
-    return false
-  })() : false
-
-  // Check if agent supports features
-  const supportsDeepResearch = selectedModel?.type === 'agent' ? (selectedModel as Agent).supportsDeepResearch ?? true : true
-  const supportsWebSearch = selectedModel?.type === 'agent' ? (selectedModel as Agent).supportsWebSearch ?? true : true
-
   // Image resize and compression function
   const resizeAndCompressImage = (file: File): Promise<File> => {
     return new Promise((resolve) => {
@@ -429,6 +399,114 @@ export default function Component({
       img.src = URL.createObjectURL(file)
     })
   }
+
+  // Handle paste event for images
+  const handlePaste = useCallback(async (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const items = Array.from(e.clipboardData.items)
+    const imageItems = items.filter(item => item.type.indexOf('image') !== -1)
+    
+    if (imageItems.length === 0) return
+    
+    // Prevent default paste behavior for images
+    e.preventDefault()
+    
+    // Check if model supports multimodal (calculate here to avoid initialization error)
+    const modelSupportsMultimodal = selectedModel ? (() => {
+      if (selectedModel.type === 'agent') {
+        const agentSupports = selectedModel.supportsMultimodal === true || selectedModel.supportsMultimodal === 1
+        const modelSupports = selectedModel.modelSupportsMultimodal === true || selectedModel.modelSupportsMultimodal === 1
+        return agentSupports || modelSupports
+      } else if (selectedModel.type === 'model') {
+        return selectedModel.supportsMultimodal === true || selectedModel.supportsMultimodal === 1
+      }
+      return false
+    })() : false
+    
+    if (!modelSupportsMultimodal) {
+      alert(lang("error.multimodal_not_supported"))
+      return
+    }
+    
+    // Check total image count limit
+    if (uploadedImages.length + imageItems.length > 3) {
+      alert(lang("error.max_images_exceeded"))
+      return
+    }
+    
+    try {
+      const newImages: File[] = []
+      const newPreviews: string[] = []
+      
+      // Process each pasted image
+      for (const item of imageItems) {
+        const blob = item.getAsFile()
+        if (!blob) continue
+        
+        // Create a File object from the blob
+        const file = new File([blob], `pasted-image-${Date.now()}.${blob.type.split('/')[1]}`, {
+          type: blob.type
+        })
+        
+        // Resize and compress the image
+        const processedFile = await resizeAndCompressImage(file)
+        
+        // Check file size after compression (2MB limit)
+        const maxSize = 2 * 1024 * 1024
+        if (processedFile.size > maxSize) {
+          alert(lang("error.image_too_large"))
+          continue
+        }
+        
+        // Create preview
+        const reader = new FileReader()
+        reader.onload = (e) => {
+          const result = e.target?.result as string
+          newPreviews.push(result)
+          newImages.push(processedFile)
+          
+          // Update state when all images are processed
+          if (newImages.length === imageItems.length || newImages.length + uploadedImages.length >= 3) {
+            setUploadedImages(prev => [...prev, ...newImages])
+            setImagePreviews(prev => [...prev, ...newPreviews])
+          }
+        }
+        reader.readAsDataURL(processedFile)
+      }
+    } catch (error) {
+      console.error('Paste image error:', error)
+      alert(lang("error.paste_image_failed"))
+    }
+  }, [selectedModel, uploadedImages, resizeAndCompressImage, lang])
+
+  const handlePromptClick = useCallback((prompt: string) => {
+    setInputValue(prompt)
+    setIsExpanded(true)
+    
+    // Set focus to textarea
+    if (textareaRef.current) {
+      textareaRef.current.focus()
+      // Adjust height
+      adjustTextareaHeight(textareaRef.current)
+    }
+  }, [adjustTextareaHeight])
+
+  // Check if selected model supports multimodal input
+  const supportsMultimodal = selectedModel ? (() => {
+    if (selectedModel.type === 'agent') {
+      // For agents, check both agent's supportsMultimodal and underlying model's supportsMultimodal
+      const agentSupports = selectedModel.supportsMultimodal === true || selectedModel.supportsMultimodal === 1
+      const modelSupports = selectedModel.modelSupportsMultimodal === true || selectedModel.modelSupportsMultimodal === 1
+      return agentSupports || modelSupports
+    } else if (selectedModel.type === 'model') {
+      // For public models, check supportsMultimodal field
+      return selectedModel.supportsMultimodal === true || selectedModel.supportsMultimodal === 1
+    }
+    return false
+  })() : false
+
+  // Check if agent supports features
+  const supportsDeepResearch = selectedModel?.type === 'agent' ? (selectedModel as Agent).supportsDeepResearch ?? true : true
+  const supportsWebSearch = selectedModel?.type === 'agent' ? (selectedModel as Agent).supportsWebSearch ?? true : true
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = Array.from(e.target.files || [])
@@ -679,6 +757,7 @@ export default function Component({
                       onInput={handleInput}
                       onKeyDown={handleKeyDown}
                       onKeyUp={handleKeyUp}
+                      onPaste={handlePaste}
                       disabled={!selectedModel}
                     />
                     {/* Hidden file input */}

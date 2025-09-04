@@ -26,6 +26,7 @@ interface Agent {
   imageData?: string // Image data passed via SSR
   supportsDeepResearch?: boolean
   supportsWebSearch?: boolean
+  compressImage?: boolean
 }
 
 interface AgentManagementFormProps {
@@ -80,6 +81,88 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
       toast({
         title: lang('toggleError'),
         description: lang('toggleFailureMessage'),
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Toggle image compression
+  const handleToggleImageCompression = async (id: string, compressImage: boolean) => {
+    try {
+      setIsLoading(true)
+      
+      const response = await fetch('/api/agents', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          compressImage: !compressImage
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Image compression toggle failed')
+      }
+      
+      // Update state
+      setAgents(prevAgents => 
+        prevAgents.map(agent => 
+          agent.id === id ? { ...agent, compressImage: !compressImage } : agent
+        )
+      )
+      
+      toast({
+        title: !compressImage ? '이미지 압축 활성화' : '이미지 압축 비활성화',
+        description: !compressImage ? '이미지 압축이 활성화되었습니다.' : '이미지 압축이 비활성화되었습니다.'
+      })
+    } catch (error) {
+      console.error('Image compression toggle error:', error)
+      toast({
+        title: '설정 변경 실패',
+        description: '이미지 압축 설정을 변경하는 중 오류가 발생했습니다.',
+        variant: "destructive"
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  // Toggle deep research
+  const handleToggleDeepResearch = async (id: string, supportsDeepResearch: boolean) => {
+    try {
+      setIsLoading(true)
+      
+      const response = await fetch('/api/agents', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id,
+          supportsDeepResearch: !supportsDeepResearch
+        })
+      })
+      
+      if (!response.ok) {
+        throw new Error('Deep research toggle failed')
+      }
+      
+      // Update state
+      setAgents(prevAgents => 
+        prevAgents.map(agent => 
+          agent.id === id ? { ...agent, supportsDeepResearch: !supportsDeepResearch } : agent
+        )
+      )
+      
+      toast({
+        title: !supportsDeepResearch ? '딥리서치 활성화' : '딥리서치 비활성화',
+        description: !supportsDeepResearch ? '딥리서치 기능이 활성화되었습니다.' : '딥리서치 기능이 비활성화되었습니다.'
+      })
+    } catch (error) {
+      console.error('Deep research toggle error:', error)
+      toast({
+        title: '설정 변경 실패',
+        description: '딥리서치 설정을 변경하는 중 오류가 발생했습니다.',
         variant: "destructive"
       })
     } finally {
@@ -151,6 +234,8 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
                     <TableHead>{lang('table.model')}</TableHead>
                     <TableHead>{lang('table.description')}</TableHead>
                     <TableHead>기능</TableHead>
+                    <TableHead>딥리서치</TableHead>
+                    <TableHead>이미지 압축</TableHead>
                     <TableHead>{lang('table.status')}</TableHead>
                     <TableHead className="w-[120px]">{lang('table.actions')}</TableHead>
                   </TableRow>
@@ -204,19 +289,32 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
                       </TableCell>
                       <TableCell>
                         <div className="flex flex-wrap gap-1">
-                          {agent.supportsDeepResearch && (
-                            <Badge variant="outline" className="text-xs">
-                              Deep Research
-                            </Badge>
-                          )}
                           {agent.supportsWebSearch && (
                             <Badge variant="outline" className="text-xs">
                               Web Search
                             </Badge>
                           )}
-                          {!agent.supportsDeepResearch && !agent.supportsWebSearch && (
+                          {!agent.supportsWebSearch && (
                             <span className="text-xs text-muted-foreground">없음</span>
                           )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center">
+                          <Switch
+                            checked={agent.supportsDeepResearch ?? true}
+                            onCheckedChange={() => handleToggleDeepResearch(agent.id, agent.supportsDeepResearch ?? true)}
+                            disabled={isLoading}
+                          />
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center justify-center">
+                          <Switch
+                            checked={agent.compressImage ?? true}
+                            onCheckedChange={() => handleToggleImageCompression(agent.id, agent.compressImage ?? true)}
+                            disabled={isLoading}
+                          />
                         </div>
                       </TableCell>
                       <TableCell>
@@ -226,9 +324,6 @@ export default function AgentManagementForm({ initialAgents, enabledModels }: Ag
                             onCheckedChange={() => handleToggleAgent(agent.id, agent.enabled)}
                             disabled={isLoading}
                           />
-                          <Badge variant={agent.enabled ? "default" : "secondary"}>
-                            {agent.enabled ? lang('status.enabled') : lang('status.disabled')}
-                          </Badge>
                         </div>
                       </TableCell>
                       <TableCell>

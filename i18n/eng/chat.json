@@ -67,7 +67,12 @@
     "image_too_large": "Image is still too large after compression. Please select a different image.",
     "max_images_exceeded": "You can upload up to 3 images.",
     "only_images_allowed": "Only image files can be uploaded.",
-    "chat_id_missing": "Chat ID is missing from server response, cannot navigate"
+    "chat_id_missing": "Chat ID is missing from server response, cannot navigate",
+    "multimodal_not_supported": "The selected model does not support images.",
+    "paste_image_failed": "An error occurred while pasting the image."
+  },
+  "success": {
+    "images_pasted": "{count} image(s) pasted successfully."
   },
   "welcome": {
     "greeting": "Hello, {name}! 👋",

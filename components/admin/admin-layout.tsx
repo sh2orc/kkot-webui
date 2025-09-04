@@ -42,6 +42,7 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { id: "agent", label: lang('menu.agent'), icon: Bot, path: "/admin/agent" },    
     { id: "rag", label: lang('menu.rag'), icon: Library, path: "/admin/rag" },
     { id: "api", label: lang('menu.api'), icon: Terminal, path: "/admin/api" },
+    { id: "pipeline", label: lang('menu.pipeline'), icon: GitBranch, path: "/admin/pipeline", disabled: true },
     { id: "database", label: lang('menu.database'), icon: Database, path: "/admin/database" },
     { id: "mcp", label: lang('menu.mcp'), icon: Server, path: "/admin/mcp", disabled: true },
     { id: "evaluation", label: lang('menu.evaluation'), icon: BarChart3, path: "/admin/evaluation", disabled: true },
@@ -50,7 +51,6 @@ export default function AdminLayout({ children }: AdminLayoutProps) {
     { id: "websearch", label: lang('menu.websearch'), icon: Search, path: "/admin/websearch", disabled: true },
     { id: "image", label: lang('menu.image'), icon: ImageIcon, path: "/admin/image", disabled: true },
     { id: "audio", label: lang('menu.audio'), icon: Volume2, path: "/admin/audio", disabled: true },
-    { id: "pipeline", label: lang('menu.pipeline'), icon: GitBranch, path: "/admin/pipeline", disabled: true },
   ]
 
   const handleMenuClick = (item: typeof menuItems[0]) => {
