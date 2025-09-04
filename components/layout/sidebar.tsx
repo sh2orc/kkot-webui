@@ -18,6 +18,8 @@ import { useProfile } from "@/components/providers/profile-provider"
 import Image from "next/image"
 import TransitionLink from "@/components/ui/transition-link"
 import { useTransitionRouter } from "@/components/providers/page-transition-provider"
+import { useTheme } from "next-themes"
+import { useStyle } from "@/components/providers/style-provider"
 
 interface SidebarProps {
   currentPage?: "chat" | "content"
@@ -60,6 +62,8 @@ export default function Sidebar({
   const { formatTime, formatDate, gmtOffsetMinutes } = useTimezone()
   const { branding } = useBranding()
   const { profileImage, userProfile } = useProfile()
+  const { theme } = useTheme()
+  const { style: styleSettings } = useStyle()
   const [hasFetchedChatSessions, setHasFetchedChatSessions] = useState(false)
 
 
@@ -527,7 +531,11 @@ export default function Sidebar({
     <>
       {/* Desktop Sidebar */}
       <div
-        className={`${sidebarCollapsed ? "w-16" : "w-60"} bg-[#f5f5f5] dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex-col transition-all duration-300 hidden md:flex overflow-hidden`}
+        className={`${sidebarCollapsed ? "w-16" : "w-60"} dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 flex-col transition-all duration-300 hidden md:flex overflow-hidden`}
+        style={theme === 'dark' ? {} : { 
+          backgroundColor: 'var(--sidebar-background-custom, #f5f5f5)',
+          color: 'var(--sidebar-text-custom, #374151)'
+        }}
       >
         {sidebarCollapsed ? (
           /* Collapsed Sidebar - Icon Only */
@@ -569,7 +577,12 @@ export default function Sidebar({
                     )}
                   </Avatar>
                   {!sidebarCollapsed && (
-                    <span className="text-sm ml-2 transition-opacity duration-300 dark:text-gray-200">{lang('sidebar.admin')}</span>
+                    <span 
+                      className="text-sm ml-2 transition-opacity duration-300"
+                      style={theme === 'dark' ? {} : { color: 'var(--sidebar-text-custom, #374151)' }}
+                    >
+                      {lang('sidebar.admin')}
+                    </span>
                   )}
                 </Button>
               </AccountMenu>
@@ -597,14 +610,22 @@ export default function Sidebar({
                   />
 
                   <div className={`overflow-hidden ml-1 transition-all duration-300 ${sidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
-                    <span className="whitespace-nowrap text-gray-500 dark:text-gray-400 text-sm">{branding.appName}</span>
+                    <span 
+                      className="whitespace-nowrap text-sm"
+                      style={theme === 'dark' ? {} : { color: 'var(--sidebar-text-custom, #374151)' }}
+                    >
+                      {branding.appName}
+                    </span>
                     {/* <span className="ml-2 text-[11px] text-gray-400">{formatGmtWithCity(gmtOffsetMinutes, getPrimaryCityForOffset(gmtOffsetMinutes) || undefined)}</span> */}
                   </div>
 
                 </div>
                 
                 <Button variant="ghost" size="icon" className="h-6 w-6 focus:outline-none focus:ring-0" onClick={() => setSidebarCollapsed(true)}>
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft 
+                    className="h-4 w-4" 
+                    style={theme === 'dark' ? {} : { color: 'var(--sidebar-text-custom, #374151)' }}
+                  />
                 </Button>
               </div>
             </div>
@@ -614,7 +635,10 @@ export default function Sidebar({
               className={`p-1 px-2 my-2 transition-opacity duration-200 ${sidebarCollapsed ? "opacity-0" : "opacity-100"}`}
             >
               <div className="relative">
-                <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                <Search 
+                  className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2"
+                  style={theme === 'dark' ? { color: '#9ca3af' } : { color: 'var(--sidebar-text-custom, #374151)' }}
+                />
                 <Input 
                   placeholder={lang('sidebar.searchPlaceholder')} 
                   className="pl-10 pr-8 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500" 
@@ -639,8 +663,11 @@ export default function Sidebar({
             {/* New Chat Button */}
             <div className="px-4 mb-2">
               <TransitionLink href="/chat" className="block" onClick={() => setSelectedChatId(null)}>
-                <div className="w-full flex px-2 py-2 justify-start items-center text-sm leading-relaxed rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 dark:text-gray-200">
-                  <Plus className="h-4 w-4 mr-2" />
+                <div 
+                  className="w-full flex px-2 py-2 justify-start items-center text-sm leading-relaxed rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800"
+                  style={theme === 'dark' ? {} : { color: 'var(--sidebar-text-custom, #374151)' }}
+                >
+                  <Plus className="h-4 w-4 mr-2" style={theme === 'dark' ? {} : { color: 'var(--sidebar-text-custom, #374151)' }} />
                   {lang('sidebar.newChat')}
                 </div>
               </TransitionLink>
@@ -654,7 +681,10 @@ export default function Sidebar({
                 ) : filteredChatGroups.length > 0 ? (
                   <>
                     {searchQuery && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-3 px-2">
+                      <div 
+                        className="text-xs mb-3 px-2"
+                        style={theme === 'dark' ? { color: '#9ca3af' } : { color: 'var(--sidebar-text-custom, #374151)' }}
+                      >
                         {lang('sidebar.searchResults').replace('{{count}}', filteredChatGroups.reduce((total, group) => total + group.items.length, 0).toString())}
                       </div>
                     )}
@@ -670,11 +700,17 @@ export default function Sidebar({
                     ))}
                   </>
                 ) : searchQuery ? (
-                  <div className="text-center text-gray-500 dark:text-gray-400 text-sm mt-8">
+                  <div 
+                    className="text-center text-sm mt-8"
+                    style={theme === 'dark' ? { color: '#9ca3af' } : { color: 'var(--sidebar-text-custom, #374151)' }}
+                  >
                     {lang('sidebar.noSearchResults')}
                   </div>
                 ) : (
-                  <div className="text-center text-gray-500 dark:text-gray-400 text-sm mt-8">
+                  <div 
+                    className="text-center text-sm mt-8"
+                    style={theme === 'dark' ? { color: '#9ca3af' } : { color: 'var(--sidebar-text-custom, #374151)' }}
+                  >
                     {lang('sidebar.noChatHistory')}
                   </div>
                 )}
@@ -699,7 +735,10 @@ export default function Sidebar({
                     )}
                   </Avatar>
                   {!sidebarCollapsed && (
-                    <span className="!text-sm ml-2 transition-opacity duration-300 dark:text-gray-200">
+                    <span 
+                      className="!text-sm ml-2 transition-opacity duration-300"
+                      style={theme === 'dark' ? {} : { color: 'var(--sidebar-text-custom, #374151)' }}
+                    >
                       {userProfile?.username || session?.user?.name || session?.user?.email?.split('@')[0] || 'User'}
                     </span>
                   )}
@@ -717,7 +756,10 @@ export default function Sidebar({
             className="absolute inset-0 bg-gray-600 bg-opacity-75 mobile-overlay" 
             onClick={() => setMobileSidebarOpen(false)}
           ></div>
-          <div className="relative flex flex-col w-64 sm:w-72 h-full bg-[#f5f5f5] dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 touch-scroll">
+          <div className="relative flex flex-col w-64 sm:w-72 h-full dark:bg-gray-900 border-r border-gray-200 dark:border-gray-700 touch-scroll" style={theme === 'dark' ? {} : { 
+            backgroundColor: 'var(--sidebar-background-custom, #f5f5f5)',
+            color: 'var(--sidebar-text-custom, #374151)'
+          }}>
             {/* Header */}
             <div className="p-0 h-[3rem] flex items-center px-4 touch-target">
               <div className="flex items-center justify-between w-full">
@@ -735,7 +777,12 @@ export default function Sidebar({
                     priority
                     className="h-8 w-auto"
                   />
-                  <span className="whitespace-nowrap font-semibold text-gray-500 dark:text-gray-400">{branding.appName}</span>
+                  <span 
+                    className="whitespace-nowrap font-semibold"
+                    style={theme === 'dark' ? { color: '#9ca3af' } : { color: 'var(--sidebar-text-custom, #374151)' }}
+                  >
+                    {branding.appName}
+                  </span>
                 </TransitionLink>
                 <Button 
                   variant="ghost" 
@@ -743,7 +790,10 @@ export default function Sidebar({
                   className="h-8 w-8 touch-target focus:outline-none focus:ring-0" 
                   onClick={() => setMobileSidebarOpen(false)}
                 >
-                  <ChevronLeft className="h-4 w-4" />
+                  <ChevronLeft 
+                    className="h-4 w-4" 
+                    style={theme === 'dark' ? {} : { color: 'var(--sidebar-text-custom, #374151)' }}
+                  />
                 </Button>
               </div>
             </div>
@@ -751,7 +801,10 @@ export default function Sidebar({
             {/* Search */}
             <div className="p-1 px-2 my-2">
               <div className="relative">
-                <Search className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 dark:text-gray-500" />
+                <Search 
+                  className="h-4 w-4 absolute left-3 top-1/2 transform -translate-y-1/2"
+                  style={theme === 'dark' ? { color: '#9ca3af' } : { color: 'var(--sidebar-text-custom, #374151)' }}
+                />
                 <Input 
                   placeholder={lang('sidebar.searchPlaceholder')} 
                   className="pl-10 pr-8 bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 focus:outline-none focus:ring-0 focus:border-gray-300 dark:focus:border-gray-600 dark:text-gray-200 dark:placeholder-gray-500 mobile-input h-10" 
@@ -779,8 +832,11 @@ export default function Sidebar({
                 setSelectedChatId(null)
                 setMobileSidebarOpen(false)
               }}>
-                <div className="w-full flex px-3 py-3 justify-start items-center text-sm leading-relaxed rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 dark:text-gray-200 touch-target">
-                  <Plus className="h-4 w-4 mr-2" />
+                <div 
+                  className="w-full flex px-3 py-3 justify-start items-center text-sm leading-relaxed rounded-lg hover:bg-gray-200 dark:hover:bg-gray-800 touch-target"
+                  style={theme === 'dark' ? {} : { color: 'var(--sidebar-text-custom, #374151)' }}
+                >
+                  <Plus className="h-4 w-4 mr-2" style={theme === 'dark' ? {} : { color: 'var(--sidebar-text-custom, #374151)' }} />
                   {lang('sidebar.newChat')}
                 </div>
               </TransitionLink>
@@ -794,7 +850,10 @@ export default function Sidebar({
                 ) : filteredChatGroups.length > 0 ? (
                   <>
                     {searchQuery && (
-                      <div className="text-xs text-gray-500 dark:text-gray-400 mb-3 px-2">
+                      <div 
+                        className="text-xs mb-3 px-2"
+                        style={theme === 'dark' ? { color: '#9ca3af' } : { color: 'var(--sidebar-text-custom, #374151)' }}
+                      >
                         {lang('sidebar.searchResults').replace('{{count}}', filteredChatGroups.reduce((total, group) => total + group.items.length, 0).toString())}
                       </div>
                     )}
@@ -812,11 +871,17 @@ export default function Sidebar({
                     ))}
                   </>
                 ) : searchQuery ? (
-                  <div className="text-center text-gray-500 dark:text-gray-400 text-sm mt-8">
+                  <div 
+                    className="text-center text-sm mt-8"
+                    style={theme === 'dark' ? { color: '#9ca3af' } : { color: 'var(--sidebar-text-custom, #374151)' }}
+                  >
                     {lang('sidebar.noSearchResults')}
                   </div>
                 ) : (
-                  <div className="text-center text-gray-500 dark:text-gray-400 text-sm mt-8">
+                  <div 
+                    className="text-center text-sm mt-8"
+                    style={theme === 'dark' ? { color: '#9ca3af' } : { color: 'var(--sidebar-text-custom, #374151)' }}
+                  >
                     {lang('sidebar.noChatHistory')}
                   </div>
                 )}

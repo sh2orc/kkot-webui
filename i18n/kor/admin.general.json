@@ -2,8 +2,8 @@
   "title": "일반 설정",
   "description": "시스템의 기본 동작을 설정합니다.",
   "branding": {
-    "title": "브랜딩 설정",
-    "description": "로고, 이름 등 브랜드 요소를 설정합니다.",
+    "title": "브랜딩 및 스타일 설정",
+    "description": "로고, 이름, 색상 등 브랜드 요소와 UI 스타일을 설정합니다.",
     "appName": {
       "label": "애플리케이션 이름",
       "description": "브라우저 탭과 UI에 표시될 이름입니다.",
@@ -21,6 +21,17 @@
       "button": "파일 선택",
       "remove": "제거"
     }
+  },
+  "style": {
+    "sidebarTextColor": {
+      "label": "사이드바 텍스트 색상",
+      "description": "사이드바의 텍스트 색상을 설정합니다. 가독성을 위해 배경색과 대비가 뚜렷한 색상을 선택하세요."
+    },
+    "sidebarBackgroundColor": {
+      "label": "사이드바 배경 색상",
+      "description": "사이드바의 배경 색상을 설정합니다. HEX 색상 코드를 입력하거나 색상 선택기를 사용하세요."
+    },
+    "resetToDefault": "기본값으로 되돌리기"
   },
   "basicSystem": {
     "title": "기본 시스템 설정",

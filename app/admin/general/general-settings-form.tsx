@@ -17,10 +17,11 @@ import TimezoneCombobox from "@/components/ui/timezone-combobox"
 import JWTExpirySelector from "@/components/ui/jwt-expiry-selector"
 import { useTimezone, formatGmtLabel } from "@/components/providers/timezone-provider"
 import { getPrimaryCityForOffset } from "@/components/ui/timezone-data"
-import { Eye, EyeOff, Upload, X, Network, Loader2 } from "lucide-react"
+import { Eye, EyeOff, Upload, X, Network, Loader2, MessageSquare, Plus, Settings, RotateCcw } from "lucide-react"
 import { useTranslation } from "@/lib/i18n"
 import { toast } from "sonner"
 import { useBranding } from "@/components/providers/branding-provider"
+import { useStyle } from "@/components/providers/style-provider"
 import {
   Form,
   FormControl,
@@ -34,6 +35,8 @@ import {
 // Setting key constants
 const SETTING_KEYS = {
   APP_NAME: 'app.name',
+  SIDEBAR_BACKGROUND_COLOR: 'style.sidebarBackgroundColor',
+  SIDEBAR_TEXT_COLOR: 'style.sidebarTextColor',
   SIGNUP_ENABLED: 'auth.signupEnabled',
   EMAIL_VERIFICATION_ENABLED: 'auth.emailVerificationEnabled',
   JWT_EXPIRY: 'auth.jwtExpiry',
@@ -62,6 +65,8 @@ const SETTING_KEYS = {
 // Zod schema definition
 const formSchema = z.object({
   appName: z.string().min(1, "App name is required"),
+  sidebarBackgroundColor: z.string().optional(),
+  sidebarTextColor: z.string().optional(),
   signupEnabled: z.boolean(),
   emailVerificationEnabled: z.boolean(),
   jwtExpiry: z.string(),
@@ -98,6 +103,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
   const router = useRouter()
   const { lang } = useTranslation('admin.general')
   const { updateBranding } = useBranding()
+  const { updateStyle } = useStyle()
   const [isSaving, setIsSaving] = useState(false)
   const { gmtOffsetMinutes, setGmtOffsetMinutes } = useTimezone()
   
@@ -123,6 +129,8 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
     resolver: zodResolver(formSchema),
     defaultValues: {
       appName: initialSettings[SETTING_KEYS.APP_NAME] || "kkot-webui",
+      sidebarBackgroundColor: initialSettings[SETTING_KEYS.SIDEBAR_BACKGROUND_COLOR] || "#f5f5f5",
+      sidebarTextColor: initialSettings[SETTING_KEYS.SIDEBAR_TEXT_COLOR] || "#374151",
       signupEnabled: initialSettings[SETTING_KEYS.SIGNUP_ENABLED] === 'true',
       emailVerificationEnabled: initialSettings[SETTING_KEYS.EMAIL_VERIFICATION_ENABLED] === 'true',
       jwtExpiry: initialSettings[SETTING_KEYS.JWT_EXPIRY] || "-1",
@@ -178,6 +186,8 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
       // Prepare settings data to save
       const settings = [
         { key: SETTING_KEYS.APP_NAME, value: data.appName },
+        { key: SETTING_KEYS.SIDEBAR_BACKGROUND_COLOR, value: data.sidebarBackgroundColor || '#f5f5f5' },
+        { key: SETTING_KEYS.SIDEBAR_TEXT_COLOR, value: data.sidebarTextColor || '#374151' },
         { key: SETTING_KEYS.SIGNUP_ENABLED, value: data.signupEnabled ? 'true' : 'false' },
         { key: SETTING_KEYS.EMAIL_VERIFICATION_ENABLED, value: data.emailVerificationEnabled ? 'true' : 'false' },
         { key: SETTING_KEYS.JWT_EXPIRY, value: data.jwtExpiry },
@@ -236,6 +246,12 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
           updateBranding({
             appName: data.appName
           })
+          
+          // Update style provider
+          updateStyle({
+            sidebarBackgroundColor: data.sidebarBackgroundColor || '#f5f5f5',
+            sidebarTextColor: data.sidebarTextColor || '#374151'
+          })
 
           if (typeof data.gmtOffsetMinutes === 'number') {
             setGmtOffsetMinutes(data.gmtOffsetMinutes)
@@ -265,13 +281,13 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
     }
   }
 
-  // OAuth 테스트 함수
+  // OAuth test function
   const testOAuthConnection = async (provider: string) => {
     const formData = form.getValues()
     let clientId = ''
     let clientSecret = ''
 
-    // 제공자별 클라이언트 정보 가져오기
+    // Get client information by provider
     switch (provider) {
       case 'google':
         clientId = formData.googleClientId || ''
@@ -289,18 +305,18 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
     }
 
     if (!clientId) {
-      toast.error('테스트 연결 failed', {
-        description: 'Client ID를 입력해주세요.'
+      toast.error('Test Connection Failed', {
+        description: 'Please enter Client ID.'
       })
       return
     }
 
-    // Client Secret이 마스킹된 경우 서버에서 실제 값을 사용하도록 처리
+    // Use actual value from server if Client Secret is masked
     const isSecretMasked = clientSecret.startsWith('******')
     
     if (!clientSecret && !isSecretMasked) {
-      toast.error('테스트 연결 failed', {
-        description: 'Client Secret을 입력해주세요.'
+      toast.error('Test Connection Failed', {
+        description: 'Please enter Client Secret.'
       })
       return
     }
@@ -316,25 +332,25 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
         body: JSON.stringify({
           provider,
           clientId,
-          clientSecret: isSecretMasked ? null : clientSecret, // 마스킹된 경우 null 전송
-          useStoredSecret: isSecretMasked, // 서버에서 저장된 값 사용 여부
+          clientSecret: isSecretMasked ? null : clientSecret, // Send null if masked
+          useStoredSecret: isSecretMasked, // Whether to use stored value from server
         }),
       })
 
       const result = await response.json()
 
       if (result.success) {
-        toast.success('연결 테스트 successful', {
-          description: result.details || `${provider.toUpperCase()} OAuth 설정이 올바릅니다.`
+        toast.success('Connection Test Successful', {
+          description: result.details || `${provider.toUpperCase()} OAuth settings are correct.`
         })
       } else {
-        toast.error('연결 테스트 failed', {
-          description: result.details || result.message || '연결에 failed했습니다.'
+        toast.error('Connection Test Failed', {
+          description: result.details || result.message || 'Connection failed.'
         })
       }
     } catch (error) {
-      toast.error('연결 테스트 failed', {
-        description: '서버와의 통신 중 An error occurred.'
+      toast.error('Connection Test Failed', {
+        description: 'An error occurred while communicating with the server.'
       })
     } finally {
       setTestingOAuth(prev => ({ ...prev, [provider]: false }))
@@ -349,7 +365,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
             <p className="text-gray-600 mt-1">{lang('description')}</p>
           </div>
 
-          {/* Branding Settings */}
+          {/* Branding & Style Settings */}
           <Card>
             <CardHeader>
               <CardTitle>{lang('branding.title')}</CardTitle>
@@ -368,6 +384,224 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
                     </FormControl>
                     <FormDescription>
                       {lang('branding.appName.description')}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Sidebar Text Color */}
+              <FormField
+                control={form.control}
+                name="sidebarTextColor"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{lang('style.sidebarTextColor.label') || 'Sidebar Text Color'}</FormLabel>
+                    <FormControl>
+                      <div className="flex items-center gap-2">
+                        <div className="relative">
+                          <Input
+                            type="color"
+                            className="w-16 h-10 p-1 cursor-pointer"
+                            {...field}
+                          />
+                        </div>
+                        <Input
+                          type="text"
+                          placeholder="#374151"
+                          className="flex-1"
+                          value={field.value}
+                          onChange={(e) => field.onChange(e.target.value)}
+                        />
+                        <div 
+                          className="w-20 h-10 rounded border border-gray-300 flex items-center justify-center"
+                          style={{ backgroundColor: '#f5f5f5' }}
+                        >
+                          <span 
+                            className="text-sm font-medium"
+                            style={{ color: field.value || '#374151' }}
+                          >
+                            ABC
+                          </span>
+                        </div>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                type="button"
+                                variant="outline"
+                                size="icon"
+                                className="h-10 w-10"
+                                onClick={() => field.onChange('#374151')}
+                              >
+                                <RotateCcw className="h-4 w-4" />
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{lang('style.resetToDefault') || 'Reset to default'}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      {lang('style.sidebarTextColor.description') || 'Set the text color of the sidebar. Choose a color with good contrast against the background for readability.'}
+                    </FormDescription>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+
+              {/* Sidebar Background Color */}
+              <FormField
+                control={form.control}
+                name="sidebarBackgroundColor"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>{lang('style.sidebarBackgroundColor.label') || 'Sidebar Background Color'}</FormLabel>
+                    <FormControl>
+                      <div className="space-y-4">
+                        <div className="flex items-center gap-2">
+                          <div className="relative">
+                            <Input
+                              type="color"
+                              className="w-16 h-10 p-1 cursor-pointer"
+                              {...field}
+                            />
+                          </div>
+                          <Input
+                            type="text"
+                            placeholder="#f5f5f5"
+                            className="flex-1"
+                            value={field.value}
+                            onChange={(e) => field.onChange(e.target.value)}
+                          />
+                          <div 
+                            className="w-20 h-10 rounded border border-gray-300"
+                            style={{ backgroundColor: field.value || '#f5f5f5' }}
+                          />
+                          <TooltipProvider>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  className="h-10 w-10"
+                                  onClick={() => field.onChange('#f5f5f5')}
+                                >
+                                  <RotateCcw className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>
+                                <p>기본값으로 되돌리기</p>
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
+                        </div>
+                        
+                        {/* Mini sidebar preview */}
+                        <div className="mt-3">
+                          <p className="text-sm text-muted-foreground mb-2">Preview</p>
+                          <div className="flex gap-4">
+                            {/* Light mode preview */}
+                            <div className="flex-1">
+                              <p className="text-xs text-muted-foreground mb-1">Light Mode</p>
+                              <div className="border border-gray-200 rounded-lg overflow-hidden h-40 flex shadow-sm">
+                                <div 
+                                  className="w-20 border-r border-gray-200 flex flex-col"
+                                  style={{ backgroundColor: field.value || '#f5f5f5' }}
+                                >
+                                  {/* Logo area */}
+                                  <div className="h-10 border-b border-gray-200 flex items-center justify-center">
+                                    <div className="w-12 h-4 rounded" style={{ backgroundColor: form.watch('sidebarTextColor') || '#374151' }} />
+                                  </div>
+                                  
+                                  {/* New chat button */}
+                                  <div className="p-2">
+                                    <div className="h-7 bg-white/80 border border-gray-300 rounded-md flex items-center justify-center">
+                                      <Plus className="h-3 w-3" style={{ color: form.watch('sidebarTextColor') || '#374151' }} />
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Chat list */}
+                                  <div className="flex-1 px-2 space-y-1">
+                                    <div className="h-6 bg-gray-300/50 rounded flex items-center px-1">
+                                      <MessageSquare className="h-2 w-2 mr-1" style={{ color: form.watch('sidebarTextColor') || '#374151' }} />
+                                      <div className="flex-1 h-1 rounded" style={{ backgroundColor: form.watch('sidebarTextColor') || '#374151', opacity: 0.8 }} />
+                                    </div>
+                                    <div className="h-6 bg-gray-300/30 rounded flex items-center px-1">
+                                      <MessageSquare className="h-2 w-2 mr-1" style={{ color: form.watch('sidebarTextColor') || '#374151', opacity: 0.6 }} />
+                                      <div className="flex-1 h-1 rounded" style={{ backgroundColor: form.watch('sidebarTextColor') || '#374151', opacity: 0.4 }} />
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Settings area */}
+                                  <div className="p-2 border-t border-gray-200">
+                                    <div className="h-6 flex items-center justify-center">
+                                      <Settings className="h-3 w-3" style={{ color: form.watch('sidebarTextColor') || '#374151' }} />
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex-1 bg-white p-3">
+                                  <div className="h-2 bg-gray-200 rounded w-3/4 mb-2" />
+                                  <div className="h-2 bg-gray-200 rounded w-full mb-2" />
+                                  <div className="h-2 bg-gray-200 rounded w-5/6" />
+                                </div>
+                              </div>
+                            </div>
+                            
+                            {/* Dark mode preview */}
+                            <div className="flex-1">
+                              <p className="text-xs text-muted-foreground mb-1">Dark Mode</p>
+                              <div className="border border-gray-700 rounded-lg overflow-hidden h-40 flex shadow-sm">
+                                <div 
+                                  className="w-20 bg-gray-900 border-r border-gray-700 flex flex-col"
+                                >
+                                  {/* Logo area */}
+                                  <div className="h-10 border-b border-gray-700 flex items-center justify-center">
+                                    <div className="w-12 h-4 bg-gray-600 rounded" />
+                                  </div>
+                                  
+                                  {/* New chat button */}
+                                  <div className="p-2">
+                                    <div className="h-7 bg-gray-800 border border-gray-700 rounded-md flex items-center justify-center">
+                                      <Plus className="h-3 w-3 text-gray-400" />
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Chat list */}
+                                  <div className="flex-1 px-2 space-y-1">
+                                    <div className="h-6 bg-gray-800 rounded flex items-center px-1">
+                                      <MessageSquare className="h-2 w-2 text-gray-400 mr-1" />
+                                      <div className="flex-1 h-1 bg-gray-600 rounded" />
+                                    </div>
+                                    <div className="h-6 bg-gray-800/50 rounded flex items-center px-1">
+                                      <MessageSquare className="h-2 w-2 text-gray-500 mr-1" />
+                                      <div className="flex-1 h-1 bg-gray-700 rounded" />
+                                    </div>
+                                  </div>
+                                  
+                                  {/* Settings area */}
+                                  <div className="p-2 border-t border-gray-700">
+                                    <div className="h-6 flex items-center justify-center">
+                                      <Settings className="h-3 w-3 text-gray-400" />
+                                    </div>
+                                  </div>
+                                </div>
+                                <div className="flex-1 bg-gray-800 p-3">
+                                  <div className="h-2 bg-gray-700 rounded w-3/4 mb-2" />
+                                  <div className="h-2 bg-gray-700 rounded w-full mb-2" />
+                                  <div className="h-2 bg-gray-700 rounded w-5/6" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </FormControl>
+                    <FormDescription>
+                      {lang('style.sidebarBackgroundColor.description') || 'Set the background color of the sidebar. The default dark theme is applied in dark mode.'}
                     </FormDescription>
                     <FormMessage />
                   </FormItem>
@@ -410,7 +644,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
 
 
 
-          {/* 기본 인증 설정 */}
+          {/* Basic Authentication Settings */}
           <Card>
             <CardHeader>
               <CardTitle>{lang('authentication.basic.title')}</CardTitle>
@@ -477,7 +711,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
             </CardContent>
           </Card>
 
-          {/* LDAP 인증 */}
+          {/* LDAP Authentication */}
           <Card>
             <CardHeader>
               <CardTitle className="flex items-center justify-between">
@@ -649,7 +883,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
             )}
           </Card>
 
-          {/* OAuth 인증 */}
+          {/* OAuth Authentication */}
           <Card>
             <CardHeader>
               <CardTitle>{lang('authentication.oauth.title')}</CardTitle>
@@ -743,12 +977,12 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
                                 ) : (
                                   <Network className="h-4 w-4 mr-2" />
                                 )}
-                                {testingOAuth.google ? '테스트 중...' : '연결 테스트'}
+                                {testingOAuth.google ? 'Testing...' : 'Test Connection'}
                               </Button>
                             </TooltipTrigger>
                             {form.watch("googleClientSecret")?.startsWith('******') && (
                               <TooltipContent>
-                                <p>저장된 Client Secret을 사용하여 테스트합니다</p>
+                                <p>Test using saved Client Secret</p>
                               </TooltipContent>
                             )}
                           </Tooltip>
@@ -843,7 +1077,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
                           ) : (
                             <Network className="h-4 w-4 mr-2" />
                           )}
-                          {testingOAuth.kakao ? '테스트 중...' : '연결 테스트'}
+                          {testingOAuth.kakao ? 'Testing...' : 'Test Connection'}
                         </Button>
                       </div>
                     </CardContent>
@@ -933,7 +1167,7 @@ export default function GeneralSettingsForm({ initialSettings }: GeneralSettings
                           ) : (
                             <Network className="h-4 w-4 mr-2" />
                           )}
-                          {testingOAuth.naver ? '테스트 중...' : '연결 테스트'}
+                          {testingOAuth.naver ? 'Testing...' : 'Test Connection'}
                         </Button>
                       </div>
                     </CardContent>

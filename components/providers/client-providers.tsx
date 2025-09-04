@@ -11,6 +11,7 @@ import { Toaster } from 'sonner'
 import Loading from '@/components/ui/loading'
 import { TimezoneProvider } from './timezone-provider'
 import { ThemeProvider } from '@/components/theme-provider'
+import { StyleProvider } from './style-provider'
 
 // Basic Loading UI Component
 const LoadingFallback = () => <Loading />
@@ -51,21 +52,23 @@ export default function ClientProviders({ children }: { children: ReactNode }) {
       >
         <Suspense fallback={<LoadingFallback />}>
           <BrandingProvider>
-            <Suspense fallback={<LoadingFallback />}>
-              <LanguageProvider>
-                <ModelProvider>
-                  <ProfileProvider>
-                    <TimezoneProvider>
-                      <PageTransitionProvider>
-                        <PreferencesInitializer />
-                        {children}
-                        <Toaster position="top-right" richColors />
-                      </PageTransitionProvider>
-                    </TimezoneProvider>
-                  </ProfileProvider>
-                </ModelProvider>
-              </LanguageProvider>
-            </Suspense>
+            <StyleProvider>
+              <Suspense fallback={<LoadingFallback />}>
+                <LanguageProvider>
+                  <ModelProvider>
+                    <ProfileProvider>
+                      <TimezoneProvider>
+                        <PageTransitionProvider>
+                          <PreferencesInitializer />
+                          {children}
+                          <Toaster position="top-right" richColors />
+                        </PageTransitionProvider>
+                      </TimezoneProvider>
+                    </ProfileProvider>
+                  </ModelProvider>
+                </LanguageProvider>
+              </Suspense>
+            </StyleProvider>
           </BrandingProvider>
         </Suspense>
       </ThemeProvider>

@@ -2,8 +2,8 @@
   "title": "General Settings",
   "description": "Configure basic system behavior.",
   "branding": {
-    "title": "Branding Settings",
-    "description": "Customize logo, name and other brand elements.",
+    "title": "Branding & Style Settings",
+    "description": "Customize logo, name, colors and other brand elements & UI style.",
     "appName": {
       "label": "Application Name",
       "description": "Name displayed in browser tab and UI.",
@@ -21,6 +21,17 @@
       "button": "Choose File",
       "remove": "Remove"
     }
+  },
+  "style": {
+    "sidebarTextColor": {
+      "label": "Sidebar Text Color",
+      "description": "Set the text color of the sidebar. Choose a color with good contrast against the background for readability."
+    },
+    "sidebarBackgroundColor": {
+      "label": "Sidebar Background Color",
+      "description": "Set the background color of the sidebar. Enter a HEX color code or use the color picker."
+    },
+    "resetToDefault": "Reset to default"
   },
   "basicSystem": {
     "title": "Basic System Settings",
