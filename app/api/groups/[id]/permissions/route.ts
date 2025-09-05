@@ -146,6 +146,10 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
 
     const data = await req.json();
     const { permissions } = data;
+    
+    console.log('PUT permissions - Group ID:', id);
+    console.log('PUT permissions - Request data:', data);
+    console.log('PUT permissions - Permissions array:', permissions);
 
     if (!Array.isArray(permissions)) {
       return NextResponse.json(
@@ -181,7 +185,8 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       }
     }
 
-    await groupRepository.bulkSetResourcePermissions(id, permissions);
+    const result = await groupRepository.bulkSetResourcePermissions(id, permissions);
+    console.log('PUT permissions - Bulk set result:', result);
 
     return NextResponse.json({ success: true });
   } catch (error) {

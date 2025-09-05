@@ -95,11 +95,25 @@ export const userRepository = {
    */
   updateLastLogin: async (id: string | number) => {
     const now = new Date();
-    console.log('🔍 Updating lastLoginAt for user:', id, 'with timestamp:', now.getTime(), 'Date:', now.toISOString());
-    return await db.update(schema.users)
-      .set({ lastLoginAt: now as any })
-      .where(eq(schema.users.id, id as any))
-      .returning();
+    console.log('🔍 Updating lastLoginAt for user:', id, 'with Date:', now.toISOString());
+    
+    try {
+      const result = await db.update(schema.users)
+        .set({ lastLoginAt: now as any })
+        .where(eq(schema.users.id, id as any))
+        .returning();
+      
+      console.log('✅ Update result:', result);
+      
+      // 업데이트 후 다시 조회해서 확인
+      const updated = await db.select().from(schema.users).where(eq(schema.users.id, id as any)).limit(1);
+      console.log('🔍 Updated user lastLoginAt:', updated[0]?.lastLoginAt);
+      
+      return result;
+    } catch (error) {
+      console.error('❌ Error updating lastLoginAt:', error);
+      throw error;
+    }
   },
 
   /**

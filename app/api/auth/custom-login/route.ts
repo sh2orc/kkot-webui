@@ -46,6 +46,15 @@ export async function POST(request: Request) {
       );
     }
 
+    // Update last login time
+    console.log('🔥 Updating last login time for user:', user.id);
+    try {
+      await userRepository.updateLastLogin(user.id);
+      console.log('✅ Successfully updated last login time');
+    } catch (error) {
+      console.error('❌ Failed to update last login time:', error);
+    }
+
     // Generate MSA 호환 JWT token
     const token = await createJWTToken({
       id: user.id,

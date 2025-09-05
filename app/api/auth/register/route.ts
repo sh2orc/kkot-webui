@@ -71,7 +71,7 @@ export async function POST(request: Request) {
         // Add admin users to admin group
         const adminGroup = await groupRepository.findByName('admin');
         if (adminGroup) {
-          await groupRepository.addUser(adminGroup.id, newUser.id, 'system');
+          await groupRepository.addUser(adminGroup.id, newUser.id);
           console.log(`Added admin user ${newUser.email} to admin group`);
         } else {
           console.log('Admin group not found, creating one...');
@@ -83,14 +83,16 @@ export async function POST(request: Request) {
             isSystem: true,
             isActive: true
           });
-          await groupRepository.addUser(createdGroup.id, newUser.id, 'system');
+          await groupRepository.addUser(createdGroup.id, newUser.id);
           console.log(`Created admin group and added user ${newUser.email}`);
         }
       } else if (userRole === 'user') {
         // Add regular users to default group
         const defaultGroup = await groupRepository.findById('default');
         if (defaultGroup) {
-          await groupRepository.addUser(defaultGroup.id, newUser.id, 'system');
+          console.log(`Adding user ${newUser.id} to default group ${defaultGroup.id}...`);
+          const result = await groupRepository.addUser(defaultGroup.id, newUser.id);
+          console.log('AddUser result:', result);
           console.log(`Added user ${newUser.email} to default group`);
         } else {
           console.log('Default group not found, creating one...');
@@ -102,7 +104,7 @@ export async function POST(request: Request) {
             isSystem: true,
             isActive: true
           });
-          await groupRepository.addUser(createdGroup.id, newUser.id, 'system');
+          await groupRepository.addUser(createdGroup.id, newUser.id);
           console.log(`Created default group and added user ${newUser.email}`);
         }
       }

@@ -8,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge"
 import { Edit, Trash2, UserPlus, Search, Shield, Users, Settings } from "lucide-react"
 import { Input } from "@/components/ui/input"
+import { Switch } from "@/components/ui/switch"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 import { toast } from "sonner"
 // Removed dialog imports - now using separate pages
@@ -84,6 +85,28 @@ export default function GroupsPage() {
     router.push(`/admin/groups/users?id=${group.id}`)
   }
 
+  const handleToggleActive = async (groupId: string, isActive: boolean) => {
+    try {
+      const response = await fetch(`/api/groups/${groupId}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ isActive })
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || "Failed to update group status")
+      }
+      
+      toast.success(lang('statusUpdateSuccess'))
+      fetchGroups()
+    } catch (error: any) {
+      toast.error(error.message || lang('errors.statusUpdateFailed'))
+    }
+  }
+
   const filteredGroups = groups.filter(group =>
     group.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     group.description?.toLowerCase().includes(searchTerm.toLowerCase())
@@ -136,12 +159,15 @@ export default function GroupsPage() {
                     <TableCell>{group.description || '-'}</TableCell>
                     <TableCell>{group.userCount || 0}</TableCell>
                     <TableCell>
-                      <Badge variant={group.isActive ? 'default' : 'secondary'}>
-                        {group.isActive ? lang('status.active') : lang('status.inactive')}
-                      </Badge>
+                      <Switch
+                        checked={group.isActive}
+                        onCheckedChange={(checked) => handleToggleActive(group.id, checked)}
+                        disabled={group.isSystem}
+                        aria-label={lang('toggleStatus')}
+                      />
                     </TableCell>
                     <TableCell>
-                      <Badge variant={group.isSystem ? 'outline' : 'secondary'}>
+                      <Badge variant={group.isSystem ? 'transparent' : 'secondary'}>
                         {group.isSystem ? lang('type.system') : lang('type.custom')}
                       </Badge>
                     </TableCell>

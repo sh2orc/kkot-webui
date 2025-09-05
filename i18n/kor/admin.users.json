@@ -36,6 +36,9 @@
   "unlockAccount": "계정 잠금 해제",
   "accountUnlocked": "계정 잠금이 해제되었습니다",
   "effectivePermissions": "유효 권한",
+  "assignedGroups": "할당된 그룹",
+  "assignedAt": "할당일",
+  "inactive": "비활성",
   "fields": {
     "name": "이름",
     "email": "이메일",
@@ -51,7 +54,8 @@
     "createdAt": "생성일",
     "updatedAt": "수정일",
     "description": "설명",
-    "type": "유형"
+    "type": "유형",
+    "groups": "그룹"
   },
   "placeholders": {
     "department": "예: 개발팀",

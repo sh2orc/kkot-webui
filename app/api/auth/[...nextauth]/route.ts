@@ -256,7 +256,7 @@ export async function createAuthOptions(): Promise<NextAuthOptions> {
         console.log('NextAuth Event - linkAccount:', message);
       },
       async session(message) {
-        console.log('NextAuth Event - session:', message);
+        // console.log('NextAuth Event - session:', message);
       },
     },
   };
@@ -308,7 +308,13 @@ export const authOptions: NextAuthOptions = {
           }
           
           // Update last login time
-          await userRepository.updateLastLogin(user.id);
+          console.log('🔥 Calling updateLastLogin for user:', user.id);
+          try {
+            await userRepository.updateLastLogin(user.id);
+            console.log('✅ Successfully updated last login time');
+          } catch (error) {
+            console.error('❌ Failed to update last login time:', error);
+          }
 
           // Return user data
           return {

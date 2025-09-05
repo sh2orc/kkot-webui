@@ -36,6 +36,9 @@
   "unlockAccount": "Unlock Account",
   "accountUnlocked": "Account unlocked successfully",
   "effectivePermissions": "Effective Permissions",
+  "assignedGroups": "Assigned Groups",
+  "assignedAt": "Assigned Date",
+  "inactive": "Inactive",
   "fields": {
     "name": "Name",
     "email": "Email",
@@ -51,7 +54,8 @@
     "createdAt": "Created At",
     "updatedAt": "Updated At",
     "description": "Description",
-    "type": "Type"
+    "type": "Type",
+    "groups": "Groups"
   },
   "placeholders": {
     "department": "e.g. Development Team",

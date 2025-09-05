@@ -100,6 +100,53 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
   }
 }
 
+// PATCH /api/groups/[id] - 그룹 부분 수정 (활성 상태 토글)
+export async function PATCH(req: NextRequest, { params }: RouteParams) {
+  try {
+    // Check authentication
+    const session = await getServerSession(authOptions);
+    if (!session || session.user.role !== 'admin') {
+      return NextResponse.json(
+        { error: "Unauthorized" },
+        { status: 401 }
+      );
+    }
+
+    const data = await req.json();
+    const { isActive } = data;
+
+    const { id } = await params;
+    const group = await groupRepository.findById(id);
+    if (!group) {
+      return NextResponse.json(
+        { error: "Group not found" },
+        { status: 404 }
+      );
+    }
+
+    // 시스템 그룹은 활성 상태를 변경할 수 없음
+    if (group.isSystem) {
+      return NextResponse.json(
+        { error: "Cannot modify system group status" },
+        { status: 403 }
+      );
+    }
+
+    // Update only isActive field
+    const updatedGroup = await groupRepository.update(id, {
+      isActive: isActive
+    });
+
+    return NextResponse.json(updatedGroup[0]);
+  } catch (error) {
+    console.error("Error updating group status:", error);
+    return NextResponse.json(
+      { error: "Failed to update group status" },
+      { status: 500 }
+    );
+  }
+}
+
 // DELETE /api/groups/[id] - 그룹 삭제
 export async function DELETE(req: NextRequest, { params }: RouteParams) {
   try {

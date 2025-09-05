@@ -693,16 +693,73 @@ const label = lang('form.label'); // Sync (when cached)
 ```
 
 ### 8. Authentication Rules
-- **NextAuth Configuration**: JWT strategy with custom credential provider
-- **Password Hashing**: Use `hashPassword()` and `verifyPassword()` from `lib/auth.ts`
-- **Route Protection**: Protected routes via middleware configuration
-- **Session Handling**: 24-hour session expiry with automatic renewal
-- **Error Handling**: Proper error messages for auth failures
-- **Admin Check**: First user registration automatically gets admin role
+
+#### Authentication System Architecture
+- **Hybrid Approach**: The project uses a combination of custom login APIs and NextAuth for authentication
+  - Custom Login APIs handle initial authentication (`/api/auth/login`, `/api/auth/custom-login`)
+  - NextAuth manages session persistence and OAuth providers
+- **JWT Strategy**: JWT-based session management with 24-hour expiry
+- **Password Security**: PBKDF2 hashing with 10,000 iterations and random salt via `hashPassword()` and `verifyPassword()`
+- **Route Protection**: Middleware-based authentication for protected routes
+- **Admin Assignment**: First user registration automatically gets admin role
+
+#### Login Flow Implementation
+The authentication flow follows these steps:
+1. **Credential Validation**: `/api/auth/login` validates user credentials
+2. **Last Login Update**: MANDATORY - Update last login time after successful authentication
+3. **Session Creation**: `/api/auth/custom-login` creates JWT session token
 
 ```typescript
-// Authentication usage example
+// ✅ CORRECT: Login endpoint with last login update
+// In /api/auth/login/route.ts and /api/auth/custom-login/route.ts
+import { userRepository } from '@/lib/db/repository'
+
+// After successful password verification
+console.log('🔥 Updating last login time for user:', user.id);
+try {
+  await userRepository.updateLastLogin(user.id);
+  console.log('✅ Successfully updated last login time');
+} catch (error) {
+  console.error('❌ Failed to update last login time:', error);
+}
+```
+
+#### Database Field Naming Convention
+- **Database Schema (Drizzle ORM)**: Use camelCase for field names
+  - Examples: `lastLoginAt`, `emailVerified`, `failedLoginAttempts`, `phoneNumber`, `profileImage`
+- **API Responses**: Convert to snake_case for frontend consistency
+  - Examples: `last_login_at`, `email_verified`, `failed_login_attempts`, `phone_number`, `profile_image`
+
+```typescript
+// API response field transformation example
+const sanitizedUser = {
+  id: user.id,
+  email: user.email,
+  name: user.username,
+  role: user.role,
+  // Convert camelCase (DB) to snake_case (API)
+  phone_number: user.phoneNumber,
+  email_verified: user.emailVerified || false,
+  last_login_at: user.lastLoginAt,
+  failed_login_attempts: user.failedLoginAttempts || 0,
+  locked_until: user.lockedUntil,
+  profile_image: user.profileImage,
+}
+```
+
+#### Authentication Implementation Rules
+- **Password Hashing**: Always use `hashPassword()` from `lib/auth.ts`
+- **Password Verification**: Use `verifyPassword()` for secure comparison
+- **Session Access**: Use NextAuth's `useSession()` hook in components
+- **API Authentication**: Use `getServerSession()` in API routes
+- **Error Messages**: Provide internationalized error messages
+- **Logging**: Add descriptive console logs with emojis for debugging
+
+```typescript
+// Authentication usage examples
 import { hashPassword, verifyPassword } from '@/lib/auth'
+import { useSession } from 'next-auth/react'
+import { getServerSession } from 'next-auth'
 
 // Password hashing
 const hashedPassword = hashPassword(plainPassword)
@@ -710,8 +767,11 @@ const hashedPassword = hashPassword(plainPassword)
 // Password verification
 const isValid = verifyPassword(plainPassword, hashedPassword)
 
-// NextAuth session access
+// Client-side session access
 const { data: session, status } = useSession()
+
+// Server-side session access
+const session = await getServerSession(authOptions)
 ```
 
 ### 9. LLM Integration Rules

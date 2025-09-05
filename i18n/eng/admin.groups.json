@@ -5,6 +5,9 @@
   "searchPlaceholder": "Search groups...",
   "loading": "Loading...",
   "fields": {
+    "groupId": "Group ID",
+    "groupIdPlaceholder": "Enter group ID (e.g., admin-team)",
+    "groupIdDescription": "Unique identifier for the group. Only letters, numbers, underscores, and hyphens are allowed.",
     "name": "Group Name",
     "description": "Description",
     "userCount": "User Count",
@@ -37,6 +40,8 @@
   "createSuccess": "Group created successfully",
   "updateSuccess": "Group updated successfully",
   "saveSuccess": "Permissions saved successfully",
+  "permissionUpdated": "Permission updated successfully",
+  "backToGroups": "Back to Groups",
   "addUserSuccess": "User added successfully",
   "removeUserSuccess": "User removed successfully",
   "confirmRemoveUser": "Are you sure you want to remove this user from the group?",
@@ -44,6 +49,8 @@
   "addUser": "Add",
   "removeUser": "Remove",
   "noUsers": "No users in this group",
+  "toggleStatus": "Toggle group status",
+  "statusUpdateSuccess": "Group status updated successfully",
   "dialog": {
     "createTitle": "Create New Group",
     "editTitle": "Edit Group",
@@ -97,13 +104,15 @@
     "deleteFailed": "Failed to delete group",
     "saveFailed": "Failed to save group",
     "nameRequired": "Group name is required",
+    "groupIdRequired": "Group ID is required",
+    "groupIdInvalid": "Group ID can only contain letters, numbers, underscores, and hyphens",
     "fetchResourcesFailed": "Failed to load resources",
     "fetchPermissionsFailed": "Failed to load permissions",
     "fetchUsersFailed": "Failed to load users",
     "addUserFailed": "Failed to add user",
-    "removeUserFailed": "Failed to remove user"
+    "removeUserFailed": "Failed to remove user",
+    "statusUpdateFailed": "Failed to update group status"
   },
-  "loading": "Loading...",
   "saving": "Saving...",
   "groupUsers": "Group Users",
   "manageGroupUsers": "Manage Group Members",
@@ -114,7 +123,9 @@
   "add": "Add",
   "currentMembers": "Current Members",
   "members": "members",
-  "managePermissions": "Manage Group Permissions",
   "permissionManagementDesc": "group permission settings",
-  "adminGroupPermissionNotice": "Administrator group automatically has full permissions for all resources."
+  "adminGroupPermissionNotice": "Administrator group automatically has full permissions for all resources.",
+  "searchResourcePlaceholder": "Search resources...",
+  "noSearchResults": "No resources found matching your search",
+  "showingItems": "Showing {{start}} - {{end}} of {{total}} items"
 }

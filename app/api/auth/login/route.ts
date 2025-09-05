@@ -69,6 +69,15 @@ export async function POST(request: Request) {
       );
     }
 
+    // Update last login time
+    console.log('🔥 Updating last login time for user:', user.id);
+    try {
+      await userRepository.updateLastLogin(user.id);
+      console.log('✅ Successfully updated last login time');
+    } catch (error) {
+      console.error('❌ Failed to update last login time:', error);
+    }
+
     // 로그인 successful - 모든 권한의 사용자 정보 반환 (게스트 포함)
     const message = user.role === 'guest' 
       ? await getServerTranslation(language, 'auth', 'guest.loginSuccess')

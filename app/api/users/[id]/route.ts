@@ -48,13 +48,13 @@ export async function GET(req: NextRequest, { params }: Params) {
       name: user.username,
       role: user.role,
       department: user.department,
-      phone_number: user.phone_number,
+      phone_number: user.phoneNumber,
       status: user.status || 'active',
-      email_verified: user.email_verified || false,
-      last_login_at: user.last_login_at,
-      failed_login_attempts: user.failed_login_attempts || 0,
-      locked_until: user.locked_until,
-      profile_image: user.profile_image,
+      email_verified: user.emailVerified || false,
+      last_login_at: user.lastLoginAt,  // DB 스키마와 일치하도록 수정
+      failed_login_attempts: user.failedLoginAttempts || 0,
+      locked_until: user.lockedUntil,
+      profile_image: user.profileImage,
       // OAuth 정보 추가
       oauth_provider: user.oauthProvider,
       google_id: user.googleId,
@@ -62,8 +62,8 @@ export async function GET(req: NextRequest, { params }: Params) {
       oauth_profile_picture: user.oauthProfilePicture,
       roles: roles,
       groups: groups,
-      createdAt: user.createdAt,
-      updatedAt: user.updatedAt
+      created_at: user.createdAt,
+      updated_at: user.updatedAt
     }
 
     return NextResponse.json(sanitizedUser)
@@ -109,7 +109,7 @@ export async function PUT(req: NextRequest, { params }: Params) {
     if (role !== undefined) updateData.role = role
     if (password !== undefined) updateData.password = hashPassword(password)
     if (department !== undefined) updateData.department = department
-    if (phone_number !== undefined) updateData.phone_number = phone_number
+    if (phone_number !== undefined) updateData.phoneNumber = phone_number
     if (status !== undefined) updateData.status = status
 
     const updatedUsers = await userRepository.update(resolvedParams.id, updateData)

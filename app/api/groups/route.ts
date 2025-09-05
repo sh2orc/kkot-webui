@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     }
 
     const data = await req.json();
-    const { name, description, isActive = true } = data;
+    const { id, name, description, isActive = true } = data;
 
     if (!name) {
       return NextResponse.json(
@@ -66,8 +66,24 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    if (!id) {
+      return NextResponse.json(
+        { error: "Group ID is required" },
+        { status: 400 }
+      );
+    }
+
+    // Validate group ID format
+    if (!/^[a-zA-Z0-9_-]+$/.test(id)) {
+      return NextResponse.json(
+        { error: "Group ID can only contain letters, numbers, underscores, and hyphens" },
+        { status: 400 }
+      );
+    }
+
     // Create new group
     const newGroup = await groupRepository.create({
+      id,
       name,
       description,
       isActive,
@@ -80,10 +96,17 @@ export async function POST(req: NextRequest) {
     
     // Handle unique constraint violation
     if (error.message?.includes('UNIQUE') || error.message?.includes('duplicate')) {
-      return NextResponse.json(
-        { error: "Group name already exists" },
-        { status: 409 }
-      );
+      if (error.message?.includes('id')) {
+        return NextResponse.json(
+          { error: "Group ID already exists" },
+          { status: 409 }
+        );
+      } else {
+        return NextResponse.json(
+          { error: "Group name already exists" },
+          { status: 409 }
+        );
+      }
     }
     
     return NextResponse.json(

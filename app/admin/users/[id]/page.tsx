@@ -30,7 +30,8 @@ import {
   Building,
   Calendar,
   AlertCircle,
-  CheckCircle
+  CheckCircle,
+  Users
 } from "lucide-react"
 
 interface UserDetail {
@@ -54,6 +55,7 @@ interface UserDetail {
   created_at: string
   updated_at: string
   roles: Role[]
+  groups?: Group[]
 }
 
 interface Role {
@@ -68,6 +70,15 @@ interface Permission {
   name: string
   description: string
   category: string
+}
+
+interface Group {
+  id: string
+  name: string
+  description?: string
+  isSystem?: boolean
+  isActive?: boolean
+  assignedAt?: string
 }
 
 interface ActivityLog {
@@ -95,6 +106,8 @@ export default function UserDetailPage() {
   const [allRoles, setAllRoles] = useState<Role[]>([])
   const [allPermissions, setAllPermissions] = useState<Permission[]>([])
   const [selectedRoles, setSelectedRoles] = useState<string[]>([])
+  const [allGroups, setAllGroups] = useState<Group[]>([])
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([])
 
   // Preload translation module
   useEffect(() => {
@@ -106,6 +119,7 @@ export default function UserDetailPage() {
     fetchRoles()
     fetchPermissions()
     fetchActivityLogs()
+    fetchGroups()
   }, [userId])
 
   const fetchUserDetail = async () => {
@@ -116,6 +130,7 @@ export default function UserDetailPage() {
       setUser(data)
       setEditedUser(data)
       setSelectedRoles(data.roles.map((r: Role) => r.id))
+      setSelectedGroups(data.groups?.map((g: Group) => g.id) || [])
     } catch (error) {
       toast.error(lang('errors.fetchFailed'))
     } finally {
@@ -156,11 +171,23 @@ export default function UserDetailPage() {
     }
   }
 
+  const fetchGroups = async () => {
+    try {
+      const response = await fetch("/api/groups")
+      if (!response.ok) throw new Error("Failed to fetch groups")
+      const data = await response.json()
+      setAllGroups(data)
+    } catch (error) {
+      console.error("Failed to fetch groups:", error)
+    }
+  }
+
   const handleSave = async () => {
     try {
       const updateData = {
         ...editedUser,
-        roles: selectedRoles
+        roles: selectedRoles,
+        groups: selectedGroups
       }
 
       const response = await fetch(`/api/users/${userId}`, {
@@ -239,6 +266,7 @@ export default function UserDetailPage() {
                 setIsEditing(false)
                 setEditedUser(user)
                 setSelectedRoles(user.roles.map(r => r.id))
+                setSelectedGroups(user.groups?.map(g => g.id) || [])
               }}>
                 <X className="h-4 w-4 mr-2" />
                 {lang('cancel')}
@@ -549,6 +577,35 @@ export default function UserDetailPage() {
               </TabsContent>
 
               <TabsContent value="permissions" className="space-y-4">
+                {/* 현재 할당된 그룹 표시 */}
+                {user.groups && user.groups.length > 0 && (
+                  <div className="mb-4 p-4 bg-gray-50 rounded-lg">
+                    <div className="flex items-center gap-2 mb-3">
+                      <Users className="h-5 w-5 text-gray-600" />
+                      <h3 className="font-medium text-gray-900">{lang('assignedGroups') || '할당된 그룹'}</h3>
+                    </div>
+                    <div className="space-y-2">
+                      {user.groups.map((group) => (
+                        <div key={group.id} className="flex items-center justify-between p-2 bg-white rounded border">
+                          <div className="flex items-center gap-3">
+                            <Badge variant={group.isActive !== false ? "default" : "secondary"}>
+                              {group.name}
+                            </Badge>
+                            {group.description && (
+                              <span className="text-sm text-gray-600">{group.description}</span>
+                            )}
+                          </div>
+                          {group.assignedAt && (
+                            <span className="text-xs text-gray-500">
+                              {lang('assignedAt') || '할당일'}: {new Date(group.assignedAt).toLocaleDateString()}
+                            </span>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
                 <div>
                   <Label>{lang('fields.roles')}</Label>
                   <div className="space-y-2 mt-2">
@@ -569,6 +626,46 @@ export default function UserDetailPage() {
                         <Label htmlFor={role.id} className="font-normal">
                           <span className="font-medium">{role.name}</span>
                           <span className="text-sm text-gray-500 ml-2">{role.description}</span>
+                        </Label>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-4 border-t">
+                  <Label>{lang('fields.groups') || '그룹'}</Label>
+                  <div className="space-y-2 mt-2">
+                    {allGroups.map((group) => (
+                      <div key={group.id} className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`group-${group.id}`}
+                          checked={selectedGroups.includes(group.id)}
+                          onCheckedChange={(checked) => {
+                            if (checked) {
+                              setSelectedGroups([...selectedGroups, group.id])
+                            } else {
+                              setSelectedGroups(selectedGroups.filter(g => g !== group.id))
+                            }
+                          }}
+                          disabled={!isEditing}
+                        />
+                        <Label htmlFor={`group-${group.id}`} className="font-normal flex-1">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <span className="font-medium">{group.name}</span>
+                              {group.description && (
+                                <span className="text-sm text-gray-500 ml-2">{group.description}</span>
+                              )}
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {group.isSystem && (
+                                <Badge variant="secondary" className="text-xs">{lang('system') || '시스템'}</Badge>
+                              )}
+                              {!group.isActive && (
+                                <Badge variant="outline" className="text-xs">{lang('inactive') || '비활성'}</Badge>
+                              )}
+                            </div>
+                          </div>
                         </Label>
                       </div>
                     ))}

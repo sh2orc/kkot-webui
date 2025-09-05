@@ -9,10 +9,19 @@ import { Checkbox } from "@/components/ui/checkbox"
 import { Switch } from "@/components/ui/switch"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { Badge } from "@/components/ui/badge"
-import { ArrowLeft, Save, Shield, Bot, Brain, Database, HardDrive, Loader2 } from "lucide-react"
+import { ArrowLeft, Shield, Bot, Brain, Database, HardDrive, Loader2, Search } from "lucide-react"
 import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
+import { Input } from "@/components/ui/input"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 
 interface Group {
   id: string
@@ -41,7 +50,7 @@ export default function GroupPermissionsPage() {
   
   const [group, setGroup] = useState<Group | null>(null)
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
+  const [savingResource, setSavingResource] = useState<string | null>(null)
   const [agents, setAgents] = useState<Resource[]>([])
   const [models, setModels] = useState<Resource[]>([])
   const [collections, setCollections] = useState<Resource[]>([])
@@ -57,6 +66,34 @@ export default function GroupPermissionsPage() {
     rag_collection: [],
     vector_store: []
   })
+  
+  // Search states for each resource type
+  const [searchTerms, setSearchTerms] = useState<{
+    agent: string
+    model: string
+    rag_collection: string
+    vector_store: string
+  }>({
+    agent: '',
+    model: '',
+    rag_collection: '',
+    vector_store: ''
+  })
+  
+  // Pagination states for each resource type
+  const [currentPages, setCurrentPages] = useState<{
+    agent: number
+    model: number
+    rag_collection: number
+    vector_store: number
+  }>({
+    agent: 1,
+    model: 1,
+    rag_collection: 1,
+    vector_store: 1
+  })
+  
+  const ITEMS_PER_PAGE = 10
 
   // Preload translation module
   useEffect(() => {
@@ -72,6 +109,16 @@ export default function GroupPermissionsPage() {
       router.push('/admin/groups')
     }
   }, [groupId])
+
+  // Reset to page 1 when search terms change
+  useEffect(() => {
+    setCurrentPages({
+      agent: 1,
+      model: 1,
+      rag_collection: 1,
+      vector_store: 1
+    })
+  }, [searchTerms])
 
   const fetchGroup = async () => {
     try {
@@ -142,12 +189,15 @@ export default function GroupPermissionsPage() {
       const response = await fetch(`/api/groups/${groupId}/permissions`)
       if (response.ok) {
         const data = await response.json()
+        console.log('Fetched permissions:', data)
         setPermissions({
           agent: data.permissions.agent || [],
           model: data.permissions.model || [],
           rag_collection: data.permissions.rag_collection || [],
           vector_store: data.permissions.vector_store || []
         })
+      } else {
+        console.error('Failed to fetch permissions:', response.status, response.statusText)
       }
     } catch (error) {
       console.error('Failed to fetch permissions:', error)
@@ -157,56 +207,66 @@ export default function GroupPermissionsPage() {
     }
   }
 
-  const handlePermissionChange = (
+  const handlePermissionChange = async (
     resourceType: keyof typeof permissions,
     resourceId: string,
     permissionType: typeof PERMISSION_TYPES[number],
     checked: boolean
   ) => {
-    setPermissions(prev => {
-      const typePermissions = [...prev[resourceType]]
-      const existingIndex = typePermissions.findIndex(p => p.resourceId === resourceId)
-      
-      if (existingIndex >= 0) {
-        const existing = typePermissions[existingIndex]
-        if (checked) {
-          if (!existing.permissions.includes(permissionType)) {
-            existing.permissions.push(permissionType)
-          }
-        } else {
-          existing.permissions = existing.permissions.filter(p => p !== permissionType)
+    // Set saving state for this specific resource
+    setSavingResource(resourceId)
+    
+    // Update local state first for immediate UI feedback
+    const updatedPermissions = { ...permissions }
+    const typePermissions = [...updatedPermissions[resourceType]]
+    const existingIndex = typePermissions.findIndex(p => p.resourceId === resourceId)
+    
+    if (existingIndex >= 0) {
+      const existing = typePermissions[existingIndex]
+      if (checked) {
+        if (!existing.permissions.includes(permissionType)) {
+          existing.permissions.push(permissionType)
         }
-        if (existing.permissions.length === 0) {
-          typePermissions.splice(existingIndex, 1)
-        }
-      } else if (checked) {
-        typePermissions.push({
-          resourceId,
-          permissions: [permissionType]
-        })
+      } else {
+        existing.permissions = existing.permissions.filter(p => p !== permissionType)
       }
-      
-      return {
-        ...prev,
-        [resourceType]: typePermissions
+      if (existing.permissions.length === 0) {
+        typePermissions.splice(existingIndex, 1)
       }
-    })
-  }
-
-  const handleSave = async () => {
-    setSaving(true)
+    } else if (checked) {
+      typePermissions.push({
+        resourceId,
+        permissions: [permissionType]
+      })
+    }
+    
+    updatedPermissions[resourceType] = typePermissions
+    setPermissions(updatedPermissions)
+    
+    // Save to API
     try {
       // Flatten permissions for API
       const flatPermissions = []
-      for (const [resourceType, perms] of Object.entries(permissions)) {
+      for (const [type, perms] of Object.entries(updatedPermissions)) {
         for (const perm of perms) {
           flatPermissions.push({
-            resourceType,
+            resourceType: type,
             resourceId: perm.resourceId,
             permissions: perm.permissions
           })
         }
       }
+
+      console.log('Saving permissions:', {
+        groupId,
+        resourceType,
+        resourceId,
+        checked,
+        flatPermissions,
+        updatedPermissions
+      })
+      
+      console.log('Current permissions state before API call:', permissions)
 
       const response = await fetch(`/api/groups/${groupId}/permissions`, {
         method: 'PUT',
@@ -216,17 +276,24 @@ export default function GroupPermissionsPage() {
         body: JSON.stringify({ permissions: flatPermissions })
       })
 
-      if (!response.ok) throw new Error('Failed to save permissions')
+      if (!response.ok) {
+        const errorData = await response.json()
+        console.error('Permission save error:', errorData)
+        throw new Error(errorData.error || 'Failed to save permissions')
+      }
       
-      toast.success(lang('saveSuccess'))
-      router.push('/admin/groups')
+      toast.success(lang('permissionUpdated'))
     } catch (error) {
       console.error('Failed to save permissions:', error)
       toast.error(lang('errors.saveFailed'))
+      
+      // Revert the change on error
+      fetchPermissions()
     } finally {
-      setSaving(false)
+      setSavingResource(null)
     }
   }
+
 
   const hasPermission = (
     resourceType: keyof typeof permissions,
@@ -245,7 +312,26 @@ export default function GroupPermissionsPage() {
     resources: Resource[],
     resourceType: keyof typeof permissions,
     icon: React.ReactNode
-  ) => (
+  ) => {
+    // Filter resources based on search term
+    const searchTerm = searchTerms[resourceType]
+    const filteredResources = resources.filter(resource => 
+      resource.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      resource.description?.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    
+    // Calculate pagination
+    const currentPage = currentPages[resourceType]
+    const totalPages = Math.ceil(filteredResources.length / ITEMS_PER_PAGE)
+    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
+    const endIndex = startIndex + ITEMS_PER_PAGE
+    const paginatedResources = filteredResources.slice(startIndex, endIndex)
+    
+    const handlePageChange = (page: number) => {
+      setCurrentPages(prev => ({ ...prev, [resourceType]: page }))
+    }
+    
+    return (
     <Card>
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
@@ -258,17 +344,40 @@ export default function GroupPermissionsPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <ScrollArea className="h-[400px] pr-4">
+        <div className="mb-4">
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
+            <Input
+              placeholder={lang('searchResourcePlaceholder')}
+              value={searchTerms[resourceType]}
+              onChange={(e) => setSearchTerms(prev => ({ ...prev, [resourceType]: e.target.value }))}
+              className="pl-10"
+            />
+          </div>
+        </div>
+        <ScrollArea className="h-[450px] pr-4">
           <div className="space-y-4">
-            {resources.map(resource => (
+            {filteredResources.length === 0 ? (
+              <div className="text-center text-muted-foreground py-8">
+                {lang('noSearchResults')}
+              </div>
+            ) : (
+              paginatedResources.map(resource => (
               <div key={resource.id} className="border rounded-lg p-4 flex items-center gap-4">
-                <Switch
-                  checked={hasPermission(resourceType, resource.id, 'enabled')}
-                  onCheckedChange={(checked) => 
-                    handlePermissionChange(resourceType, resource.id, 'enabled', checked as boolean)
-                  }
-                  disabled={groupId === 'admin'}
-                />
+                <div className="relative">
+                  <Switch
+                    checked={hasPermission(resourceType, resource.id, 'enabled')}
+                    onCheckedChange={(checked) => 
+                      handlePermissionChange(resourceType, resource.id, 'enabled', checked as boolean)
+                    }
+                    disabled={groupId === 'admin' || savingResource === resource.id}
+                  />
+                  {savingResource === resource.id && (
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                    </div>
+                  )}
+                </div>
                 <div className="flex-1">
                   <h4 className="font-medium">{resource.name}</h4>
                   {resource.description && (
@@ -276,12 +385,71 @@ export default function GroupPermissionsPage() {
                   )}
                 </div>
               </div>
-            ))}
+            ))
+            )}
           </div>
         </ScrollArea>
+        
+        {totalPages > 1 && (
+          <div className="mt-4">
+            <Pagination>
+              <PaginationContent>
+                <PaginationItem>
+                  <PaginationPrevious 
+                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+                
+                {[...Array(totalPages)].map((_, index) => {
+                  const pageNumber = index + 1
+                  // Show first page, last page, current page, and pages around current page
+                  if (
+                    pageNumber === 1 ||
+                    pageNumber === totalPages ||
+                    (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                  ) {
+                    return (
+                      <PaginationItem key={pageNumber}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(pageNumber)}
+                          isActive={currentPage === pageNumber}
+                          className="cursor-pointer"
+                        >
+                          {pageNumber}
+                        </PaginationLink>
+                      </PaginationItem>
+                    )
+                  } else if (
+                    pageNumber === currentPage - 2 ||
+                    pageNumber === currentPage + 2
+                  ) {
+                    return <PaginationItem key={pageNumber}>...</PaginationItem>
+                  }
+                  return null
+                })}
+                
+                <PaginationItem>
+                  <PaginationNext 
+                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                  />
+                </PaginationItem>
+              </PaginationContent>
+            </Pagination>
+            
+            <div className="text-center text-sm text-muted-foreground mt-2">
+              {lang('showingItems')
+                .replace('{{start}}', String(startIndex + 1))
+                .replace('{{end}}', String(Math.min(endIndex, filteredResources.length)))
+                .replace('{{total}}', String(filteredResources.length))}
+            </div>
+          </div>
+        )}
       </CardContent>
     </Card>
-  )
+    )
+  }
 
   if (loading) {
     return (
@@ -359,6 +527,9 @@ export default function GroupPermissionsPage() {
             </p>
           </div>
         </div>
+        <Button variant="outline" onClick={() => router.push('/admin/groups')}>
+          {lang('backToGroups')}
+        </Button>
       </div>
 
       <Tabs defaultValue="agent" className="space-y-4">
@@ -396,25 +567,6 @@ export default function GroupPermissionsPage() {
           </CardContent>
         </Card>
       )}
-
-      <div className="flex justify-end gap-2">
-        <Button variant="outline" onClick={() => router.push('/admin/groups')}>
-          {lang('dialog.cancel')}
-        </Button>
-        <Button onClick={handleSave} disabled={saving || groupId === 'admin'}>
-          {saving ? (
-            <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin" />
-              {lang('saving')}
-            </div>
-          ) : (
-            <div className="flex items-center gap-2">
-              <Save className="h-4 w-4" />
-              {lang('dialog.save')}
-            </div>
-          )}
-        </Button>
-      </div>
     </div>
   )
 }

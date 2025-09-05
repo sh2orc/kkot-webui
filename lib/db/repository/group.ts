@@ -166,6 +166,8 @@ export const groupRepository = {
    * Get group resource permissions
    */
   getResourcePermissions: async (groupId: string, resourceType?: string) => {
+    console.log('getResourcePermissions - groupId:', groupId, 'resourceType:', resourceType);
+    
     let query = db
       .select()
       .from(schema.groupResourcePermissions)
@@ -181,14 +183,19 @@ export const groupRepository = {
     }
     
     const results = await query;
+    console.log('getResourcePermissions - Raw results:', results);
     
-    return results.map((r: any) => ({
+    const mappedResults = results.map((r: any) => ({
       id: r.id,
       groupId: r.groupId,
       resourceType: r.resourceType,
       resourceId: r.resourceId,
       permissions: JSON.parse(r.permissions),
     }));
+    
+    console.log('getResourcePermissions - Mapped results:', mappedResults);
+    
+    return mappedResults;
   },
 
   /**
@@ -362,25 +369,34 @@ export const groupRepository = {
    * Bulk set resource permissions for a group
    */
   bulkSetResourcePermissions: async (groupId: string, permissions: GroupResourcePermission[]) => {
+    console.log('bulkSetResourcePermissions - groupId:', groupId);
+    console.log('bulkSetResourcePermissions - permissions:', permissions);
+    
     // Remove all existing permissions for the group
-    await db.delete(schema.groupResourcePermissions).where(eq(schema.groupResourcePermissions.groupId, groupId));
+    const deleteResult = await db.delete(schema.groupResourcePermissions).where(eq(schema.groupResourcePermissions.groupId, groupId));
+    console.log('bulkSetResourcePermissions - Delete result:', deleteResult);
     
-    // Add new permissions
-    if (permissions.length > 0) {
-      const now = new Date();
-      const values = permissions.map(p => ({
-        id: generateId() as any,
-        groupId: groupId,
-        resourceType: p.resourceType,
-        resourceId: p.resourceId,
-        permissions: JSON.stringify(p.permissions),
-        createdAt: now as any,
-        updatedAt: now as any
-      }));
-      
-      return await db.insert(schema.groupResourcePermissions).values(values);
+    // Add new permissions (even if array is empty, that's intentional)
+    const now = new Date();
+    const values = permissions.map(p => ({
+      id: generateId() as any,
+      groupId: groupId,
+      resourceType: p.resourceType,
+      resourceId: p.resourceId,
+      permissions: JSON.stringify(p.permissions),
+      createdAt: now as any,
+      updatedAt: now as any
+    }));
+    
+    console.log('bulkSetResourcePermissions - Insert values:', values);
+    
+    if (values.length > 0) {
+      const insertResult = await db.insert(schema.groupResourcePermissions).values(values);
+      console.log('bulkSetResourcePermissions - Insert result:', insertResult);
+      return insertResult;
+    } else {
+      console.log('bulkSetResourcePermissions - No permissions to insert (all permissions disabled)');
+      return [];
     }
-    
-    return [];
   }
 };

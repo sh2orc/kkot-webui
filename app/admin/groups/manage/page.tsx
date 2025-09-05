@@ -26,10 +26,11 @@ export default function GroupManagePage() {
   const searchParams = useSearchParams()
   const { lang, language } = useTranslation('admin.groups')
   
-  const groupId = searchParams.get('id')
-  const isCreating = !groupId
+  const editingGroupId = searchParams.get('id')
+  const isCreating = !editingGroupId
   
   const [group, setGroup] = useState<Group | null>(null)
+  const [groupId, setGroupId] = useState("")
   const [name, setName] = useState("")
   const [description, setDescription] = useState("")
   const [isActive, setIsActive] = useState(true)
@@ -43,15 +44,15 @@ export default function GroupManagePage() {
   }, [language])
 
   useEffect(() => {
-    if (groupId) {
+    if (editingGroupId) {
       fetchGroup()
     }
-  }, [groupId])
+  }, [editingGroupId])
 
   const fetchGroup = async () => {
     setLoading(true)
     try {
-      const response = await fetch(`/api/groups/${groupId}`)
+      const response = await fetch(`/api/groups/${editingGroupId}`)
       if (!response.ok) throw new Error("Failed to fetch group")
       const data = await response.json()
       setGroup(data)
@@ -69,6 +70,12 @@ export default function GroupManagePage() {
   const validate = () => {
     const newErrors: { [key: string]: string } = {}
     
+    if (isCreating && !groupId.trim()) {
+      newErrors.groupId = lang('errors.groupIdRequired')
+    } else if (isCreating && !/^[a-zA-Z0-9_-]+$/.test(groupId)) {
+      newErrors.groupId = lang('errors.groupIdInvalid')
+    }
+    
     if (!name.trim()) {
       newErrors.name = lang('errors.nameRequired')
     }
@@ -83,7 +90,7 @@ export default function GroupManagePage() {
 
     setSaving(true)
     try {
-      const url = isCreating ? "/api/groups" : `/api/groups/${groupId}`
+      const url = isCreating ? "/api/groups" : `/api/groups/${editingGroupId}`
       const method = isCreating ? "POST" : "PUT"
       
       const response = await fetch(url, {
@@ -92,6 +99,7 @@ export default function GroupManagePage() {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({
+          ...(isCreating && { id: groupId.trim() }),
           name: name.trim(),
           description: description.trim(),
           isActive
@@ -176,6 +184,31 @@ export default function GroupManagePage() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-6">
+            {isCreating && (
+              <div className="grid gap-2">
+                <Label htmlFor="groupId">{lang('fields.groupId')}</Label>
+                <Input
+                  id="groupId"
+                  value={groupId}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    // Allow only alphanumeric, underscore, and hyphen
+                    if (/^[a-zA-Z0-9_-]*$/.test(value)) {
+                      setGroupId(value);
+                    }
+                  }}
+                  placeholder={lang('fields.groupIdPlaceholder')}
+                  pattern="[a-zA-Z0-9_-]+"
+                />
+                {errors.groupId && (
+                  <p className="text-sm text-red-600">{errors.groupId}</p>
+                )}
+                <p className="text-sm text-muted-foreground">
+                  {lang('fields.groupIdDescription')}
+                </p>
+              </div>
+            )}
+            
             <div className="grid gap-2">
               <Label htmlFor="name">{lang('fields.name')}</Label>
               <Input
