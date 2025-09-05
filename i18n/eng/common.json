@@ -94,6 +94,9 @@
   "loading": "Loading...",
   "saving": "Saving...",
   "delete": "Delete",
+  "deleting": "Deleting...",
+  "confirmDelete": "Are you sure you want to delete this? This action cannot be undone.",
+  "cancel": "Cancel",
   "chat": "Chat",
   "goToChat": "Go to Chat",
   "admin": {

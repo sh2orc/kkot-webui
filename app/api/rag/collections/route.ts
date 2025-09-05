@@ -98,6 +98,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Check if collection already exists in database first
+    const existingCollections = await ragCollectionRepository.findByVectorStoreId(vectorStoreId);
+    const existingDbCollection = existingCollections.find(c => c.name === name);
+    
+    if (existingDbCollection) {
+      return NextResponse.json(
+        { 
+          error: 'Collection already exists in database',
+          troubleshooting: 'A collection with this name already exists. Please use a different name or edit the existing collection.'
+        },
+        { status: 409 }
+      );
+    }
+
     // Create collection in vector store
     const config: VectorStoreConfig = {
       type: vectorStore.type as any,
@@ -106,9 +120,39 @@ export async function POST(request: NextRequest) {
       settings: vectorStore.settings ? JSON.parse(vectorStore.settings) : undefined,
     };
 
+    let store;
     try {
       console.log('Creating vector store with config:', { type: config.type, connectionString: config.connectionString?.substring(0, 20) + '...' });
-      const store = await VectorStoreFactory.create(config);
+      store = await VectorStoreFactory.create(config);
+      
+      // Check if collection already exists in vector store
+      const existingVectorCollections = await store.listCollections();
+      const existingVectorCollection = existingVectorCollections.find(c => c.name === name);
+      
+      if (existingVectorCollection) {
+        console.log('Collection exists in vector store but not in database, syncing...');
+        
+        // Sync the existing collection to database
+        const result = await ragCollectionRepository.create({
+          vectorStoreId,
+          name,
+          description,
+          embeddingModel: embeddingModel || 'text-embedding-ada-002',
+          embeddingDimensions: embeddingDimensions || 1536,
+          defaultChunkingStrategyId: defaultChunkingStrategyId || null,
+          defaultCleansingConfigId: defaultCleansingConfigId || null,
+          defaultRerankingStrategyId: defaultRerankingStrategyId || null,
+          metadata: metadata ? JSON.parse(metadata) : undefined,
+          isActive: true,
+        });
+        
+        await store.disconnect();
+        return NextResponse.json({ 
+          collection: result[0],
+          message: 'Collection already existed in vector store and has been synced to database'
+        });
+      }
+      
       console.log('Vector store created successfully, creating collection...');
       await store.createCollection(
         name, 
@@ -116,9 +160,17 @@ export async function POST(request: NextRequest) {
         metadata ? JSON.parse(metadata) : undefined
       );
       console.log('Collection created in vector store successfully');
-      await store.disconnect();
+      
     } catch (error) {
       console.error('Vector store operation failed:', error);
+      
+      if (store) {
+        try {
+          await store.disconnect();
+        } catch (disconnectError) {
+          console.warn('Failed to disconnect from vector store:', disconnectError);
+        }
+      }
       
       let errorMessage = 'Failed to create collection in vector store';
       let troubleshooting = '';
@@ -132,7 +184,7 @@ export async function POST(request: NextRequest) {
         } else if (error.message.includes('authentication') || error.message.includes('unauthorized')) {
           troubleshooting = 'Authentication failed. Please check your API key or credentials.';
         } else if (error.message.includes('already exists')) {
-          troubleshooting = 'Collection already exists. Please use a different name.';
+          troubleshooting = 'Collection already exists in vector store. This might be a sync issue - please check the collection list.';
         } else if (error.message.includes('invalid') || error.message.includes('validation')) {
           troubleshooting = 'Invalid parameters. Please check your input values.';
         }
@@ -161,6 +213,7 @@ export async function POST(request: NextRequest) {
       isActive: true,
     });
 
+    await store.disconnect();
     return NextResponse.json({ collection: result[0] });
   } catch (error) {
     console.error('Failed to create collection:', error);

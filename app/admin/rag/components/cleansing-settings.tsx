@@ -10,6 +10,7 @@ import { Plus, Edit, Trash2, Star, Bot } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 
 interface CleansingConfig {
   id: number;
@@ -29,6 +30,8 @@ export function CleansingSettings() {
   const router = useRouter();
   const [configs, setConfigs] = useState<CleansingConfig[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [configToDelete, setConfigToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     fetchConfigs();
@@ -47,11 +50,16 @@ export function CleansingSettings() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm(lang('confirmDelete'))) return;
+  const handleDelete = (id: number) => {
+    setConfigToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteConfig = async () => {
+    if (!configToDelete) return;
 
     try {
-      const response = await fetch(`/api/rag/cleansing-configs/${id}`, {
+      const response = await fetch(`/api/rag/cleansing-configs/${configToDelete}`, {
         method: 'DELETE',
       });
 
@@ -61,6 +69,9 @@ export function CleansingSettings() {
       fetchConfigs();
     } catch (error) {
       toast.error(lang('errors.deleteFailed'));
+    } finally {
+      setDeleteDialogOpen(false);
+      setConfigToDelete(null);
     }
   };
 
@@ -75,8 +86,9 @@ export function CleansingSettings() {
 
 
   return (
-    <Card>
-      <CardHeader>
+    <>
+      <Card>
+        <CardHeader>
         <div className="flex items-center justify-end">
           <Button size="sm" disabled={loading} onClick={handleAdd}>
             <Plus className="h-4 w-4 mr-2" />
@@ -184,5 +196,13 @@ export function CleansingSettings() {
         </Table>
       </CardContent>
     </Card>
+
+    <DeleteConfirmDialog
+      open={deleteDialogOpen}
+      onOpenChange={setDeleteDialogOpen}
+      onConfirm={confirmDeleteConfig}
+      translationKey="admin.rag"
+    />
+    </>
   );
 }

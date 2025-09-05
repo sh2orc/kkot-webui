@@ -10,6 +10,7 @@ import { Plus, Edit, Trash2, CheckCircle, XCircle } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 
 interface VectorStore {
   id: number;
@@ -26,6 +27,8 @@ export function VectorStoreManagement() {
   const { lang } = useTranslation('admin.rag');
   const [vectorStores, setVectorStores] = useState<VectorStore[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [vectorStoreToDelete, setVectorStoreToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     fetchVectorStores();
@@ -44,11 +47,16 @@ export function VectorStoreManagement() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm(lang('confirmDelete'))) return;
+  const handleDelete = (id: number) => {
+    setVectorStoreToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteVectorStore = async () => {
+    if (!vectorStoreToDelete) return;
 
     try {
-      const response = await fetch(`/api/rag/vector-stores/${id}`, {
+      const response = await fetch(`/api/rag/vector-stores/${vectorStoreToDelete}`, {
         method: 'DELETE',
       });
 
@@ -58,6 +66,9 @@ export function VectorStoreManagement() {
       fetchVectorStores();
     } catch (error) {
       toast.error(lang('errors.deleteFailed'));
+    } finally {
+      setDeleteDialogOpen(false);
+      setVectorStoreToDelete(null);
     }
   };
 
@@ -193,7 +204,12 @@ export function VectorStoreManagement() {
         </CardContent>
       </Card>
 
-
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={confirmDeleteVectorStore}
+        translationKey="admin.rag"
+      />
     </>
   );
 }

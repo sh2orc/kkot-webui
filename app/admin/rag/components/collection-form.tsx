@@ -262,20 +262,45 @@ export function CollectionForm({ collection, vectorStores: initialVectorStores }
         // Display specific error message from server
         let errorMessage = errorData.error || 'Failed to save collection';
         
-        // Add troubleshooting info if available
-        if (errorData.troubleshooting) {
-          errorMessage += ` (${errorData.troubleshooting})`;
+        // Handle specific status codes
+        if (response.status === 409) {
+          // Conflict - collection already exists
+          errorMessage = lang('errors.collectionAlreadyExists');
+          toast.error(errorMessage);
+        } else if (response.status === 400 && errorData.error?.includes('already exists in vector store')) {
+          // Collection exists in vector store but might need sync
+          toast.error(
+            lang('errors.syncRequired') + 
+            (errorData.troubleshooting ? ` (${errorData.troubleshooting})` : '')
+          );
+        } else {
+          // Add troubleshooting info if available
+          if (errorData.troubleshooting) {
+            errorMessage += ` (${errorData.troubleshooting})`;
+          }
+          
+          toast.error(errorMessage);
         }
-        
-        toast.error(errorMessage);
         return;
       }
 
-      toast.success(
-        collection
-          ? lang('collections.success.updated')
-          : lang('collections.success.created')
-      );
+      const result = await response.json();
+      
+      // Show different success message if collection was synced
+      if (result.message && result.message.includes('synced')) {
+        toast.success(
+          collection
+            ? lang('collections.success.updated')
+            : lang('collections.success.synced')
+        );
+      } else {
+        toast.success(
+          collection
+            ? lang('collections.success.updated')
+            : lang('collections.success.created')
+        );
+      }
+
       
       // Redirect to collections list
       router.push('/admin/rag/collections');

@@ -6,7 +6,9 @@ import {
   ragCollectionRepository,
   ragChunkingStrategyRepository,
   ragCleansingConfigRepository,
-  ragVectorStoreRepository
+  ragVectorStoreRepository,
+  llmModelRepository,
+  llmServerRepository
 } from '@/lib/db/repository';
 // Remove this import - we'll process inline like the upload API
 
@@ -100,6 +102,7 @@ export async function POST(
     }
 
     // Create new document entry
+    console.log('Creating new document with title:', document.title);
     const newDocument = await ragDocumentRepository.create({
       collectionId,
       title: document.title,
@@ -117,6 +120,8 @@ export async function POST(
         }
       })
     });
+    
+    console.log('New document created:', newDocument);
 
     // Delete original document if requested
     if (deleteOriginal) {
@@ -126,9 +131,16 @@ export async function POST(
       await ragDocumentRepository.delete(parseInt(documentId));
     }
 
+    // Get the document ID from the result (handle both array and single object)
+    const newDocumentId = Array.isArray(newDocument) ? newDocument[0].id : newDocument.id;
+    
+    if (!newDocumentId) {
+      throw new Error('Failed to create new document - no ID returned');
+    }
+    
     // Queue document for processing (simplified version - in production use job queue)
     processDocumentAsync(
-      newDocument[0].id,
+      newDocumentId,
       documentContent,
       chunkingStrategy,
       cleansingConfig
@@ -138,13 +150,25 @@ export async function POST(
 
     return NextResponse.json({ 
       success: true, 
-      documentId: newDocument[0].id,
+      documentId: newDocumentId,
       message: 'Document regeneration started' 
     });
   } catch (error) {
     console.error('Failed to regenerate document:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred';
+    const errorStack = error instanceof Error ? error.stack : '';
+    
+    console.error('Error details:', {
+      message: errorMessage,
+      stack: errorStack,
+      error: error
+    });
+    
     return NextResponse.json(
-      { error: 'Failed to regenerate document' },
+      { 
+        error: 'Failed to regenerate document',
+        details: errorMessage 
+      },
       { status: 500 }
     );
   }
@@ -165,14 +189,28 @@ async function processDocumentAsync(
 
     // Get document and collection info
     const document = await ragDocumentRepository.findById(documentId);
-    if (!document) return;
+    if (!document) {
+      console.error(`Document not found for ID: ${documentId}`);
+      return;
+    }
 
+    console.log(`Processing document ${documentId} for collection ${document.collectionId}`);
     const collectionWithStore = await ragCollectionRepository.findByIdWithVectorStore(document.collectionId);
-    if (!collectionWithStore) return;
+    if (!collectionWithStore) {
+      console.error(`Collection with store not found for collection ID: ${document.collectionId}`);
+      return;
+    }
+    
+    console.log('Collection with store data:', collectionWithStore);
     
     // Extract collection and vector store from join result
     const collection = collectionWithStore.ragCollections;
     const vectorStore = collectionWithStore.ragVectorStores;
+    
+    if (!collection || !vectorStore) {
+      console.error('Collection or vector store data is missing');
+      return;
+    }
     
     // Import necessary modules
     const { ChunkingStrategyFactory } = await import('@/lib/rag/document');
@@ -217,10 +255,49 @@ async function processDocumentAsync(
       }));
     }
 
+    // Find the embedding model and its server
+    const embeddingModelName = collection.embeddingModel || 'text-embedding-ada-002';
+    console.log(`Looking for embedding model: ${embeddingModelName}`);
+    
+    const allEmbeddingModels = await llmModelRepository.findPublicEmbeddingModels();
+    console.log(`Found ${allEmbeddingModels.length} embedding models`);
+    
+    const embeddingModel = allEmbeddingModels.find((m: any) => m.modelId === embeddingModelName);
+    
+    let embeddingApiKey = process.env.EMBEDDING_API_KEY || process.env.OPENAI_API_KEY;
+    let embeddingProvider = 'openai';
+    let embeddingBaseUrl: string | undefined;
+    
+    if (embeddingModel) {
+      console.log(`Found embedding model with serverId: ${embeddingModel.serverId}`);
+      const server = await llmServerRepository.findById(embeddingModel.serverId);
+      
+      if (server && server.length > 0) {
+        embeddingApiKey = server[0].apiKey || embeddingApiKey;
+        embeddingProvider = server[0].provider;
+        embeddingBaseUrl = server[0].baseUrl;
+        console.log(`Using embedding model ${embeddingModelName} from server ${server[0].name}`);
+      } else {
+        console.warn(`Server not found for serverId: ${embeddingModel.serverId}`);
+      }
+    } else {
+      console.warn(`Embedding model ${embeddingModelName} not found in registered models, using default API key`);
+    }
+    
+    // Check if API key is available
+    if (!embeddingApiKey) {
+      throw new Error(
+        `${embeddingProvider} embedding API key is required. ` +
+        `Please configure the API key for the embedding model "${embeddingModelName}" in the LLM server settings.`
+      );
+    }
+    
     // Generate embeddings
     const embeddingProviderInstance = EmbeddingProviderFactory.create({
-      provider: 'openai',
-      model: collection.embeddingModel || 'text-embedding-ada-002',
+      provider: embeddingProvider as 'openai' | 'gemini' | 'ollama' | 'custom',
+      model: embeddingModelName,
+      apiKey: embeddingApiKey,
+      baseUrl: embeddingBaseUrl,
     });
 
     const textsToEmbed = chunks.map((chunk: any) => chunk.cleanedContent || chunk.content);
@@ -273,11 +350,20 @@ async function processDocumentAsync(
 
   } catch (error) {
     console.error('Document processing failed:', error);
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+    const errorStack = error instanceof Error ? error.stack : '';
+    
+    console.error('Processing error details:', {
+      documentId,
+      message: errorMessage,
+      stack: errorStack,
+      error: error
+    });
     
     // Update document with error
     await ragDocumentRepository.update(documentId, {
       processingStatus: 'failed',
-      errorMessage: error instanceof Error ? error.message : 'Unknown error'
+      errorMessage: errorMessage
     });
   }
 }

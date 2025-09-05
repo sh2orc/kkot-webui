@@ -10,6 +10,7 @@ import { Plus, Edit, Trash2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useRouter } from "next/navigation";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 
 interface RerankingStrategy {
   id: number;
@@ -29,6 +30,8 @@ export function RerankingSettings() {
   const router = useRouter();
   const [strategies, setStrategies] = useState<RerankingStrategy[]>([]);
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [strategyToDelete, setStrategyToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     fetchStrategies();
@@ -47,11 +50,16 @@ export function RerankingSettings() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm(lang('confirmDelete'))) return;
+  const handleDelete = (id: number) => {
+    setStrategyToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteStrategy = async () => {
+    if (!strategyToDelete) return;
 
     try {
-      const response = await fetch(`/api/rag/reranking-strategies/${id}`, {
+      const response = await fetch(`/api/rag/reranking-strategies/${strategyToDelete}`, {
         method: 'DELETE',
       });
 
@@ -61,6 +69,9 @@ export function RerankingSettings() {
       fetchStrategies();
     } catch (error) {
       toast.error(lang('errors.deleteFailed'));
+    } finally {
+      setDeleteDialogOpen(false);
+      setStrategyToDelete(null);
     }
   };
 
@@ -88,8 +99,9 @@ export function RerankingSettings() {
   };
 
   return (
-    <Card>
-      <CardHeader>
+    <>
+      <Card>
+        <CardHeader>
         <CardTitle>{lang('reranking.title')}</CardTitle>
         <CardDescription>{lang('reranking.description')}</CardDescription>
         <div className="flex items-center justify-end">
@@ -204,5 +216,13 @@ export function RerankingSettings() {
         </Table>
       </CardContent>
     </Card>
+
+    <DeleteConfirmDialog
+      open={deleteDialogOpen}
+      onOpenChange={setDeleteDialogOpen}
+      onConfirm={confirmDeleteStrategy}
+      translationKey="admin.rag"
+    />
+    </>
   );
 }

@@ -15,6 +15,7 @@ import { CollectionCopyDialog } from "./collection-copy-dialog";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 
 interface Document {
   id: number;
@@ -52,6 +53,8 @@ export function DocumentManagement() {
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [searchMode, setSearchMode] = useState(false);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [documentToDelete, setDocumentToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     fetchCollections();
@@ -106,11 +109,16 @@ export function DocumentManagement() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm(lang('confirmDelete'))) return;
+  const handleDelete = (id: number) => {
+    setDocumentToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteDocument = async () => {
+    if (!documentToDelete) return;
 
     try {
-      const response = await fetch(`/api/rag/documents/${id}`, {
+      const response = await fetch(`/api/rag/documents/${documentToDelete}`, {
         method: 'DELETE',
       });
 
@@ -120,6 +128,9 @@ export function DocumentManagement() {
       fetchDocuments();
     } catch (error) {
       toast.error(lang('errors.deleteFailed'));
+    } finally {
+      setDeleteDialogOpen(false);
+      setDocumentToDelete(null);
     }
   };
 
@@ -520,6 +531,13 @@ export function DocumentManagement() {
         onOpenChange={setCollectionCopyDialogOpen}
         collections={collections}
         onCopyComplete={handleCollectionCopyComplete}
+      />
+
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={confirmDeleteDocument}
+        translationKey="admin.rag"
       />
     </>
   );

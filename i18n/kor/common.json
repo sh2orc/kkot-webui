@@ -94,6 +94,9 @@
   "loading": "로딩 중...",
   "saving": "저장 중...",
   "delete": "삭제",
+  "deleting": "삭제 중...",
+  "confirmDelete": "정말로 삭제하시겠습니까? 이 작업은 되돌릴 수 없습니다.",
+  "cancel": "취소",
   "chat": "채팅",
   "goToChat": "채팅하기",
   "admin": {

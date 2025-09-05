@@ -2,6 +2,8 @@
   "title": "RAG Knowledge Base",
   "description": "Enhance AI response quality by storing and retrieving documents from vector databases.",
   "loading": "Loading...",
+  "delete": "Delete",
+  "deleting": "Deleting...",
   "confirmDelete": "Are you sure you want to delete this?",
   "save": "Save",
   "saving": "Saving...",
@@ -30,7 +32,9 @@
     "methodNotAllowed": "Request method not allowed.",
     "fetchEmbeddingModelsFailed": "Failed to fetch embedding models.",
     "selectEmbeddingModel": "Please select an embedding model.",
-    "refreshAndRetry": "Invalid request method. Please refresh and try again."
+    "refreshAndRetry": "Invalid request method. Please refresh and try again.",
+    "collectionAlreadyExists": "A collection with this name already exists. Please use a different name or edit the existing collection.",
+    "syncRequired": "Collection exists in vector store but needs to be synced with database. Please run synchronization."
   },
   "warnings": {
     "noEmbeddingModels": "No embedding models available.",
@@ -138,7 +142,8 @@
     "manage": "Manage Collections",
     "success": {
       "created": "Collection created successfully.",
-      "updated": "Collection updated successfully."
+      "updated": "Collection updated successfully.",
+      "synced": "Existing collection has been synced to database."
     },
     "copy": "Copy Collection",
     "copySuccess": "Collection copied successfully.",

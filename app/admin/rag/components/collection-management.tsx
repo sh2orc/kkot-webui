@@ -11,6 +11,7 @@ import { Plus, Edit, Trash2, FolderOpen, Database } from "lucide-react";
 import { toast } from "sonner";
 import { Skeleton } from "@/components/ui/skeleton";
 import Link from "next/link";
+import { DeleteConfirmDialog } from "@/components/ui/delete-confirm-dialog";
 
 interface Collection {
   id: number;
@@ -49,6 +50,8 @@ export function CollectionManagement() {
   const [vectorStores, setVectorStores] = useState<VectorStore[]>([]);
   const [selectedVectorStore, setSelectedVectorStore] = useState<string>('all');
   const [loading, setLoading] = useState(true);
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [collectionToDelete, setCollectionToDelete] = useState<number | null>(null);
 
   useEffect(() => {
     fetchVectorStores();
@@ -88,11 +91,16 @@ export function CollectionManagement() {
     }
   };
 
-  const handleDelete = async (id: number) => {
-    if (!confirm(lang('confirmDelete'))) return;
+  const handleDelete = (id: number) => {
+    setCollectionToDelete(id);
+    setDeleteDialogOpen(true);
+  };
+
+  const confirmDeleteCollection = async () => {
+    if (!collectionToDelete) return;
 
     try {
-      const response = await fetch(`/api/rag/collections/${id}`, {
+      const response = await fetch(`/api/rag/collections/${collectionToDelete}`, {
         method: 'DELETE',
       });
 
@@ -102,6 +110,9 @@ export function CollectionManagement() {
       fetchCollections();
     } catch (error) {
       toast.error(lang('errors.deleteFailed'));
+    } finally {
+      setDeleteDialogOpen(false);
+      setCollectionToDelete(null);
     }
   };
 
@@ -275,7 +286,12 @@ export function CollectionManagement() {
         </CardContent>
       </Card>
 
-
+      <DeleteConfirmDialog
+        open={deleteDialogOpen}
+        onOpenChange={setDeleteDialogOpen}
+        onConfirm={confirmDeleteCollection}
+        translationKey="admin.rag"
+      />
     </>
   );
 }

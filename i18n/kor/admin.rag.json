@@ -2,6 +2,8 @@
   "title": "RAG 지식베이스",
   "description": "문서를 벡터 데이터베이스에 저장하고 검색하여 AI의 응답 품질을 향상시킵니다.",
   "loading": "로딩 중...",
+  "delete": "삭제",
+  "deleting": "삭제 중...",
   "confirmDelete": "정말로 삭제하시겠습니까?",
   "save": "저장",
   "saving": "저장 중...",
@@ -30,7 +32,9 @@
     "methodNotAllowed": "요청 방법이 올바르지 않습니다.",
     "fetchEmbeddingModelsFailed": "임베딩 모델을 가져오는데 실패했습니다.",
     "selectEmbeddingModel": "임베딩 모델을 선택해주세요.",
-    "refreshAndRetry": "요청 방법이 올바르지 않습니다. 새로고침 후 다시 시도해주세요."
+    "refreshAndRetry": "요청 방법이 올바르지 않습니다. 새로고침 후 다시 시도해주세요.",
+    "collectionAlreadyExists": "같은 이름의 컬렉션이 이미 존재합니다. 다른 이름을 사용하거나 기존 컬렉션을 수정해주세요.",
+    "syncRequired": "벡터 스토어에는 컬렉션이 존재하지만 데이터베이스와 동기화가 필요합니다. 동기화를 실행해주세요."
   },
   "warnings": {
     "noEmbeddingModels": "사용 가능한 임베딩 모델이 없습니다.",
@@ -138,7 +142,8 @@
     "manage": "컬렉션 관리",
     "success": {
       "created": "컬렉션이 생성되었습니다.",
-      "updated": "컬렉션이 수정되었습니다."
+      "updated": "컬렉션이 수정되었습니다.",
+      "synced": "기존 컬렉션이 데이터베이스에 동기화되었습니다."
     },
     "copy": "컬렉션 복사",
     "copySuccess": "컬렉션이 복사되었습니다.",
