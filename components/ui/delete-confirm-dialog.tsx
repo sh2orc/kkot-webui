@@ -56,7 +56,7 @@ export function DeleteConfirmDialog({
           <DialogDescription>
             {description || lang("confirmDelete")}
           </DialogDescription>
-        </DialogHeader>
+        </DialogHeader>ㅞㅡ
         <DialogFooter>
           <Button 
             variant="outline"

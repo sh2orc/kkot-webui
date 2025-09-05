@@ -10,6 +10,7 @@ import { Edit, Trash2, UserPlus, Search, Filter, Eye, MoreHorizontal, Download, 
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Checkbox } from "@/components/ui/checkbox"
+import { Switch } from "@/components/ui/switch"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog"
 import { useTranslation } from "@/lib/i18n"
@@ -225,6 +226,36 @@ export default function UsersPageClient({
     }
   }
 
+  const handleStatusToggle = async (userId: string, currentStatus: string) => {
+    const newStatus = currentStatus === 'active' ? 'inactive' : 'active'
+    
+    // Optimistic update - immediate UI update
+    const previousUsers = [...users]
+    setUsers(prevUsers => 
+      prevUsers.map(user => 
+        user.id === userId ? { ...user, status: newStatus } : user
+      )
+    )
+
+    try {
+      const response = await fetch(`/api/users/${userId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ status: newStatus })
+      })
+
+      if (!response.ok) throw new Error('Failed to update status')
+      
+      toast.success(t('statusChangeSuccess'))
+    } catch (error) {
+      // Rollback on failure
+      setUsers(previousUsers)
+      toast.error(t('statusChangeFailed'))
+    }
+  }
+
   const filteredUsers = users.filter(user => {
     // Search filter
     const searchLower = searchTerm.toLowerCase()
@@ -430,9 +461,14 @@ export default function UsersPageClient({
                       </Select>
                     </TableCell>
                     <TableCell>
-                      <Badge variant={getStatusBadgeVariant(user.status || 'active')}>
-                        {t(`status.${user.status || 'active'}`)}
-                      </Badge>
+                      {user.status === 'suspended' ? (
+                        <Badge variant="destructive">{t(`status.suspended`)}</Badge>
+                      ) : (
+                        <Switch
+                          checked={user.status === 'active'}
+                          onCheckedChange={() => handleStatusToggle(user.id, user.status || 'active')}
+                        />
+                      )}
                     </TableCell>
                     <TableCell>
                       {user.oauth_provider ? (
@@ -515,14 +551,15 @@ export default function UsersPageClient({
                         return t('dateError');
                       }
                       
-                      // Format date based on UTC settings
-                      return formatDate(date, 'ko-KR', { 
-                        year: 'numeric', 
-                        month: '2-digit', 
-                        day: '2-digit',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      });
+                      // Format date as YYMMDD HH:MM:SS
+                      const year = date.getFullYear().toString(); // YYYY
+                      const month = (date.getMonth() + 1).toString().padStart(2, '0'); // MM
+                      const day = date.getDate().toString().padStart(2, '0'); // DD
+                      const hours = date.getHours().toString().padStart(2, '0'); // HH
+                      const minutes = date.getMinutes().toString().padStart(2, '0'); // MM
+                      const seconds = date.getSeconds().toString().padStart(2, '0'); // SS
+                      
+                      return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
                     } catch (error) {
                       console.error('Date parsing error:', error);
                       return t('dateError');

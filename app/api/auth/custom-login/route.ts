@@ -55,7 +55,7 @@ export async function POST(request: Request) {
     });
 
     // Cookie setup
-    const cookieStore = cookies();
+    const cookieStore = await cookies();
     const url = new URL(request.url);
     const isLocalhost = url.hostname === 'localhost' || url.hostname === '127.0.0.1';
     const isProduction = process.env.NODE_ENV === 'production';

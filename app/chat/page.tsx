@@ -15,14 +15,11 @@ export default async function Page() {
   const authOptions = await getAuthOptions()
   const session = await getServerSession(authOptions)
   
-  // 세션이 없으면 즉시 /auth로 리다이렉트
-  if (!session) {
+  // 미들웨어에서 이미 인증 및 권한 검증을 완료했으므로
+  // 여기서는 session이 존재한다고 가정할 수 있음
+  if (!session || !session.user?.email) {
+    console.error('[Chat Page] Unexpected: session is null after middleware')
     redirect('/auth')
-  }
-  
-  // 게스트 사용자는 안내 페이지로 리다이렉트
-  if (session.user.role === 'guest') {
-    redirect('/auth/pending')
   }
   
   // Extract language information from Accept-Language header (default: 'kor')

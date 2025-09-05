@@ -4,9 +4,9 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { groupRepository } from "@/lib/db/repository";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 // GET /api/groups/[id] - 그룹 상세 조회
@@ -21,7 +21,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const group = await groupRepository.findById(params.id);
+    const { id } = await params;
+    const group = await groupRepository.findById(id);
     if (!group) {
       return NextResponse.json(
         { error: "Group not found" },
@@ -30,10 +31,10 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     }
 
     // Get users in this group
-    const users = await groupRepository.getUsers(params.id);
+    const users = await groupRepository.getUsers(id);
     
     // Get resource permissions
-    const permissions = await groupRepository.getResourcePermissions(params.id);
+    const permissions = await groupRepository.getResourcePermissions(id);
 
     return NextResponse.json({
       ...group,
@@ -64,7 +65,8 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     const data = await req.json();
     const { name, description, isActive } = data;
 
-    const group = await groupRepository.findById(params.id);
+    const { id } = await params;
+    const group = await groupRepository.findById(id);
     if (!group) {
       return NextResponse.json(
         { error: "Group not found" },
@@ -73,7 +75,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
     }
 
     // Update group
-    const updatedGroup = await groupRepository.update(params.id, {
+    const updatedGroup = await groupRepository.update(id, {
       ...(name !== undefined && { name }),
       ...(description !== undefined && { description }),
       ...(isActive !== undefined && { isActive })
@@ -110,7 +112,8 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const group = await groupRepository.findById(params.id);
+    const { id } = await params;
+    const group = await groupRepository.findById(id);
     if (!group) {
       return NextResponse.json(
         { error: "Group not found" },
@@ -125,7 +128,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await groupRepository.delete(params.id);
+    await groupRepository.delete(id);
 
     return NextResponse.json({ success: true });
   } catch (error) {

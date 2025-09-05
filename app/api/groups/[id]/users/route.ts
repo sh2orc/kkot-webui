@@ -4,12 +4,12 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { groupRepository } from "@/lib/db/repository";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
-// GET /api/groups/[id]/users - 그룹의 사용자 목록 조회
+// GET /api/groups/[id]/users
 export async function GET(req: NextRequest, { params }: RouteParams) {
   try {
     // Check authentication
@@ -21,7 +21,8 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    const users = await groupRepository.getUsers(params.id);
+    const { id } = await params;
+    const users = await groupRepository.getUsers(id);
     return NextResponse.json(users);
   } catch (error) {
     console.error("Error fetching group users:", error);
@@ -32,7 +33,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
   }
 }
 
-// POST /api/groups/[id]/users - 그룹에 사용자 추가
+// POST /api/groups/[id]/users
 export async function POST(req: NextRequest, { params }: RouteParams) {
   try {
     // Check authentication
@@ -55,7 +56,8 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     // Add user to group
-    await groupRepository.addUser(params.id, userId, session.user.id);
+    const { id } = await params;
+    await groupRepository.addUser(id, userId, session.user.id);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {
@@ -98,7 +100,8 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await groupRepository.removeUser(params.id, userId);
+    const { id } = await params;
+    await groupRepository.removeUser(id, userId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

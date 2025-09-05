@@ -16,7 +16,6 @@ const nextConfig = {
   experimental: {
     optimisticClientCache: false,
     serverMinification: false,
-    instrumentationHook: true,
   },
   // Handle external packages in server components
   serverExternalPackages: ['better-sqlite3', 'drizzle-orm'],

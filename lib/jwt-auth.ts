@@ -10,6 +10,7 @@ export interface JWTPayload {
   iat?: number
   exp?: number
   sub?: string
+  status?: string // DB에서 확인한 사용자 상태
 }
 
 // MSA 공통 JWT 설정
@@ -149,10 +150,47 @@ export async function authenticateRequest(request: NextRequest): Promise<JWTPayl
   }
 
   const payload = await verifyJWTToken(token)
-  if (payload) {
-    console.log('[JWT] Authentication successful for user:', payload.email)
-  } else {
+  if (!payload) {
     console.log('[JWT] Authentication failed')
+    return null
+  }
+
+  // DB에서 사용자 유효성 확인 (서버 환경에서만)
+  if (typeof window === 'undefined') {
+    try {
+      const { userRepository } = await import('@/lib/db/repository')
+      const user = await userRepository.findById(payload.id)
+      
+      if (!user) {
+        console.log('[JWT] User not found in DB:', payload.email)
+        return null
+      }
+
+      // 사용자 상태 추가
+      payload.status = user.status
+
+      if (user.status !== 'active') {
+        console.log('[JWT] User account is not active:', payload.email, 'Status:', user.status)
+        // pending 상태는 payload를 반환하여 특별 처리
+        if (user.status === 'pending') {
+          return payload
+        }
+        // inactive, suspended 등은 null 반환
+        return null
+      }
+
+      // 토큰의 권한과 DB의 권한이 일치하는지 확인
+      if (user.role !== payload.role) {
+        console.log('[JWT] Role mismatch - Token:', payload.role, 'DB:', user.role)
+        // DB의 권한을 우선시
+        payload.role = user.role
+      }
+
+      console.log('[JWT] Authentication successful for user:', payload.email)
+    } catch (error) {
+      console.error('[JWT] DB check failed:', error)
+      // DB 체크 실패시에도 일단 통과 (DB 연결 문제 등)
+    }
   }
 
   return payload

@@ -48,6 +48,7 @@
     "@radix-ui/react-toggle-group": "1.1.1",
     "@radix-ui/react-tooltip": "1.1.6",
     "@tailwindcss/typography": "^0.5.16",
+    "reactflow": "^11.11.3",
     "@types/bcryptjs": "^2.4.6",
     "@types/jsonwebtoken": "^9.0.10",
     "autoprefixer": "^10.4.20",

@@ -65,9 +65,10 @@ export async function POST(request: Request) {
       role: userRole
     });
 
-    // If user is admin, add to admin group
-    if (userRole === 'admin') {
-      try {
+    // Add user to appropriate group based on role
+    try {
+      if (userRole === 'admin') {
+        // Add admin users to admin group
         const adminGroup = await groupRepository.findByName('admin');
         if (adminGroup) {
           await groupRepository.addUser(adminGroup.id, newUser.id, 'system');
@@ -76,7 +77,8 @@ export async function POST(request: Request) {
           console.log('Admin group not found, creating one...');
           // Create admin group if it doesn't exist
           const [createdGroup] = await groupRepository.create({
-            name: 'admin',
+            id: 'admin',
+            name: 'Administrator',
             description: 'System administrators with full access',
             isSystem: true,
             isActive: true
@@ -84,10 +86,29 @@ export async function POST(request: Request) {
           await groupRepository.addUser(createdGroup.id, newUser.id, 'system');
           console.log(`Created admin group and added user ${newUser.email}`);
         }
-      } catch (error) {
-        console.error('Failed to add user to admin group:', error);
-        // Don't fail the registration if group assignment fails
+      } else if (userRole === 'user') {
+        // Add regular users to default group
+        const defaultGroup = await groupRepository.findById('default');
+        if (defaultGroup) {
+          await groupRepository.addUser(defaultGroup.id, newUser.id, 'system');
+          console.log(`Added user ${newUser.email} to default group`);
+        } else {
+          console.log('Default group not found, creating one...');
+          // Create default group if it doesn't exist
+          const [createdGroup] = await groupRepository.create({
+            id: 'default',
+            name: 'Default User',
+            description: 'Default group for all users',
+            isSystem: true,
+            isActive: true
+          });
+          await groupRepository.addUser(createdGroup.id, newUser.id, 'system');
+          console.log(`Created default group and added user ${newUser.email}`);
+        }
       }
+    } catch (error) {
+      console.error('Failed to add user to group:', error);
+      // Don't fail the registration if group assignment fails
     }
 
     return NextResponse.json({

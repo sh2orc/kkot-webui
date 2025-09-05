@@ -1,0 +1,45 @@
+{
+  "title": "워크플로우",
+  "description": "AI 워크플로우를 시각적으로 설계하고 관리합니다",
+  "newWorkflow": "새 워크플로우",
+  "import": "가져오기",
+  "export": "내보내기",
+  "editor": "에디터",
+  "myWorkflows": "내 워크플로우",
+  "templates": "템플릿",
+  "save": "저장",
+  "test": "테스트",
+  "run": "실행",
+  "editorDescription": "노드를 드래그하여 워크플로우를 구성하세요",
+  "nodeLibrary": "노드 라이브러리",
+  "nodeConfig": "노드 설정",
+  "workflowList": "워크플로우 목록",
+  "recentExecutions": "최근 실행 내역",
+  "status": {
+    "pending": "대기중",
+    "running": "실행중",
+    "completed": "완료",
+    "failed": "실패",
+    "cancelled": "취소됨"
+  },
+  "nodeTypes": {
+    "input": "입력",
+    "processing": "처리",
+    "transform": "변환",
+    "control": "제어",
+    "output": "출력"
+  },
+  "actions": {
+    "edit": "편집",
+    "duplicate": "복제",
+    "delete": "삭제",
+    "publish": "게시",
+    "unpublish": "게시 취소"
+  },
+  "messages": {
+    "saveSuccess": "워크플로우가 저장되었습니다",
+    "saveFailed": "워크플로우 저장에 실패했습니다",
+    "deleteConfirm": "이 워크플로우를 삭제하시겠습니까?",
+    "publishConfirm": "이 워크플로우를 게시하시겠습니까?"
+  }
+}

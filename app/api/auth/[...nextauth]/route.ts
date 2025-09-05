@@ -2,7 +2,7 @@ import NextAuth from 'next-auth';
 import type { NextAuthOptions } from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 // GoogleProvider는 제거됨 - 커스텀 Google OAuth 핸들러 사용
-import { userRepository, adminSettingsRepository } from '@/lib/db/repository';
+import { userRepository, adminSettingsRepository, groupRepository } from '@/lib/db/repository';
 import { hashPassword, verifyPassword } from '@/lib/auth';
 import { cookies } from 'next/headers';
 
@@ -149,7 +149,7 @@ export async function createAuthOptions(): Promise<NextAuthOptions> {
               // Create 새 사용자
               const newUser = await userRepository.create({
                 email: userEmail,
-                name: user.name || userEmail.split('@')[0],
+                username: user.name || userEmail.split('@')[0],
                 password: await hashPassword(Math.random().toString(36).slice(-8)), // 랜덤 비밀번호
                 role: 'user',
               });
@@ -167,24 +167,50 @@ export async function createAuthOptions(): Promise<NextAuthOptions> {
         
         return true;
       },
-      async jwt({ token, user }) {
-        if (user) {
-          token.id = user.id;
-          token.email = user.email;
-          token.name = user.name;
-          token.role = user.role;
+      async jwt({ token, user, trigger }) {
+        // 로그인 시 또는 강제 업데이트 시
+        if (user || trigger === 'update') {
+          if (user) {
+            token.id = user.id;
+            token.email = user.email;
+            token.name = user.name;
+            token.role = user.role;
+            token.status = user.status || 'active';
+          }
+          token.lastUpdated = Date.now(); // 마지막 업데이트 시간 기록
         } else if (token.email) {
-          // Refresh user data from database to get latest role
-          try {
-            const dbUser = await userRepository.findByEmail(token.email as string);
-            if (dbUser) {
-              token.id = dbUser.id;
-              token.email = dbUser.email;
-              token.name = dbUser.username;
-              token.role = dbUser.role;
+          // 토큰이 5분 이상 오래됐을 때만 DB에서 최신 정보 조회
+          const tokenAge = Date.now() - (typeof token.lastUpdated === 'number' ? token.lastUpdated : 0);
+          const maxAge = 5 * 60 * 1000; // 5분
+          
+          if (tokenAge > maxAge) {
+            try {
+              console.log('Token is old, refreshing user data from DB');
+              const dbUser = await userRepository.findByEmail(token.email as string);
+              if (dbUser) {
+                // 권한이 변경됐는지 확인
+                const roleChanged = token.role !== dbUser.role;
+                const statusChanged = token.status !== dbUser.status;
+                
+                if (roleChanged || statusChanged) {
+                  console.log('User permissions changed:', {
+                    oldRole: token.role,
+                    newRole: dbUser.role,
+                    oldStatus: token.status,
+                    newStatus: dbUser.status
+                  });
+                }
+                
+                token.id = dbUser.id;
+                token.email = dbUser.email;
+                token.name = dbUser.username;
+                token.role = dbUser.role;
+                token.status = dbUser.status;
+                token.lastUpdated = Date.now();
+              }
+            } catch (error) {
+              console.error('Error refreshing user data in JWT callback:', error);
             }
-          } catch (error) {
-            console.error('Error refreshing user data in JWT callback:', error);
           }
         }
         return token;
@@ -194,19 +220,8 @@ export async function createAuthOptions(): Promise<NextAuthOptions> {
           session.user.id = token.id as string;
           session.user.email = token.email as string;
           session.user.name = token.name as string;
-          
-          // 실시간 권한 체크: 매번 DB에서 최신 권한 정보 가져오기
-          try {
-            const user = await userRepository.findByEmail(token.email as string);
-            if (user) {
-              session.user.role = user.role; // DB에서 가져온 최신 권한 사용
-            } else {
-              session.user.role = token.role as string; // 사용자가 없으면 토큰의 권한 사용
-            }
-          } catch (error) {
-            console.error('Error fetching user role from DB:', error);
-            session.user.role = token.role as string; // 에러 시 토큰의 권한 사용
-          }
+          session.user.role = token.role as string; // JWT 토큰의 권한 사용 (이미 최신화됨)
+          session.user.status = token.status as string; // 상태 정보도 추가
         }
         return session;
       },
@@ -273,7 +288,7 @@ export const authOptions: NextAuthOptions = {
         
         if (!credentials?.email || !credentials?.password) {
           return null;
-        } you 
+        }
 
         try {
           // Find user by email
@@ -367,6 +382,49 @@ export const authOptions: NextAuthOptions = {
               user.id = newUser[0].id;
               user.name = newUser[0].username;
               user.role = newUser[0].role;
+              
+              // Add user to appropriate group based on role
+              try {
+                if (userRole === 'admin') {
+                  // Add admin users to admin group
+                  const adminGroup = await groupRepository.findByName('admin');
+                  if (adminGroup) {
+                    await groupRepository.addUser(adminGroup.id, newUser[0].id, 'system');
+                    console.log(`Added OAuth admin user ${user.email} to admin group`);
+                  } else {
+                    // Create admin group if it doesn't exist
+                    const [createdGroup] = await groupRepository.create({
+                      name: 'admin',
+                      description: 'System administrators with full access',
+                      isSystem: true,
+                      isActive: true
+                    });
+                    await groupRepository.addUser(createdGroup.id, newUser[0].id, 'system');
+                    console.log(`Created admin group and added OAuth user ${user.email}`);
+                  }
+                } else if (userRole === 'user' && signupEnabled) {
+                  // Add regular users to default group when signup is enabled
+                  const defaultGroup = await groupRepository.findByName('default');
+                  if (defaultGroup) {
+                    await groupRepository.addUser(defaultGroup.id, newUser[0].id, 'system');
+                    console.log(`Added OAuth user ${user.email} to default group`);
+                  } else {
+                    // Create default group if it doesn't exist
+                    const [createdGroup] = await groupRepository.create({
+                      name: 'default',
+                      description: 'Default group for all users',
+                      isSystem: true,
+                      isActive: true
+                    });
+                    await groupRepository.addUser(createdGroup.id, newUser[0].id, 'system');
+                    console.log(`Created default group and added OAuth user ${user.email}`);
+                  }
+                }
+              } catch (error) {
+                console.error('Failed to add OAuth user to group:', error);
+                // Don't fail the registration if group assignment fails
+              }
+              
               return true;
             } else {
               console.error('Failed to create new user');
@@ -381,24 +439,50 @@ export const authOptions: NextAuthOptions = {
       
       return true;
     },
-    async jwt({ token, user }) {
-      if (user) {
-        token.id = user.id;
-        token.email = user.email;
-        token.name = user.name;
-        token.role = user.role;
+    async jwt({ token, user, trigger }) {
+      // 로그인 시 또는 강제 업데이트 시
+      if (user || trigger === 'update') {
+        if (user) {
+          token.id = user.id;
+          token.email = user.email;
+          token.name = user.name;
+          token.role = user.role;
+          token.status = user.status || 'active';
+        }
+        token.lastUpdated = Date.now(); // 마지막 업데이트 시간 기록
       } else if (token.email) {
-        // Refresh user data from database to get latest role
-        try {
-          const dbUser = await userRepository.findByEmail(token.email as string);
-          if (dbUser) {
-            token.id = dbUser.id;
-            token.email = dbUser.email;
-            token.name = dbUser.username;
-            token.role = dbUser.role;
+        // 토큰이 5분 이상 오래됐을 때만 DB에서 최신 정보 조회
+        const tokenAge = Date.now() - (typeof token.lastUpdated === 'number' ? token.lastUpdated : 0);
+        const maxAge = 5 * 60 * 1000; // 5분
+        
+        if (tokenAge > maxAge) {
+          try {
+            console.log('Token is old, refreshing user data from DB');
+            const dbUser = await userRepository.findByEmail(token.email as string);
+            if (dbUser) {
+              // 권한이 변경됐는지 확인
+              const roleChanged = token.role !== dbUser.role;
+              const statusChanged = token.status !== dbUser.status;
+              
+              if (roleChanged || statusChanged) {
+                console.log('User permissions changed:', {
+                  oldRole: token.role,
+                  newRole: dbUser.role,
+                  oldStatus: token.status,
+                  newStatus: dbUser.status
+                });
+              }
+              
+              token.id = dbUser.id;
+              token.email = dbUser.email;
+              token.name = dbUser.username;
+              token.role = dbUser.role;
+              token.status = dbUser.status;
+              token.lastUpdated = Date.now();
+            }
+          } catch (error) {
+            console.error('Error refreshing user data in JWT callback:', error);
           }
-        } catch (error) {
-          console.error('Error refreshing user data in JWT callback:', error);
         }
       }
       return token;
@@ -408,9 +492,9 @@ export const authOptions: NextAuthOptions = {
         session.user.id = token.id as string;
         session.user.email = token.email as string;
         session.user.name = token.name as string;
-        session.user.role = token.role as string;
+        session.user.role = token.role as string; // JWT 토큰의 권한 사용 (이미 최신화됨)
+        session.user.status = token.status as string; // 상태 정보도 추가
       }
-      console.log('Final session:', session);
       return session;
     },
   },

@@ -45,7 +45,7 @@ export default function AuthPage() {
   const { t, lang, language } = useTranslation('auth');
   const [oauthError, setOauthError] = useState('');
 
-  // OAuth 제공자 가져오기 (DB에서 활성화된 것만)
+  // Fetch OAuth providers (only active ones from DB)
   useEffect(() => {
     const fetchOAuthProviders = async () => {
       try {
@@ -66,7 +66,7 @@ export default function AuthPage() {
   useEffect(() => {
     console.log('Auth Page - Session Status:', status);
     
-    // URL에서 에러 파라미터 확인
+    // Check error parameter from URL
     const urlParams = new URLSearchParams(window.location.search);
     const error = urlParams.get('error');
     
@@ -76,37 +76,37 @@ export default function AuthPage() {
       
       switch(error) {
         case 'OAuthSignin':
-          errorMessage = 'OAuth 로그인 시작 중 An error occurred.';
+          errorMessage = lang('oauth.errors.signin');
           break;
         case 'OAuthCallback':
-          errorMessage = 'OAuth 콜백 처리 중 An error occurred. Google Console에서 콜백 URL을 확인하세요.';
+          errorMessage = lang('oauth.errors.callback');
           break;
         case 'OAuthCreateAccount':
-          errorMessage = 'OAuth 계정 생성 중 An error occurred.';
+          errorMessage = lang('oauth.errors.createAccount');
           break;
         case 'EmailCreateAccount':
-          errorMessage = '이메일 계정 생성 중 An error occurred.';
+          errorMessage = lang('oauth.errors.emailCreateAccount');
           break;
         case 'Callback':
-          errorMessage = 'OAuth 인증 콜백 An error occurred.';
+          errorMessage = lang('oauth.errors.callbackGeneral');
           break;
         case 'OAuthAccountNotLinked':
-          errorMessage = '이미 다른 방법으로 가입된 이메일입니다.';
+          errorMessage = lang('oauth.errors.accountNotLinked');
           break;
         case 'AccessDenied':
-          errorMessage = '접근이 거부되었습니다.';
+          errorMessage = lang('oauth.errors.accessDenied');
           break;
         case 'google':
-          errorMessage = 'Google OAuth 설정 오류. Authorized redirect URIs를 확인하세요: http://localhost:3000/api/auth/callback/google';
+          errorMessage = lang('oauth.errors.googleConfig');
           break;
         case 'email_required':
-          errorMessage = '카카오 로그인을 위해서는 이메일 동의가 is required. 카카오 개발자 콘솔에서 account_email 동의항목을 설정해주세요.';
+          errorMessage = lang('oauth.errors.emailRequired');
           break;
         case 'kakao_oauth':
-          errorMessage = '카카오 OAuth 인증 중 An error occurred. 카카오 개발자 콘솔 설정을 확인해주세요.';
+          errorMessage = lang('oauth.errors.kakaoOauth');
           break;
         default:
-          errorMessage = `인증 오류: ${error}`;
+          errorMessage = `${lang('oauth.errors.general')}: ${error}`;
       }
       
       setOauthError(errorMessage);
@@ -116,7 +116,7 @@ export default function AuthPage() {
 
   // Redirect to chat page if already logged in (once only)
   useEffect(() => {
-    // logout 파라미터가 있으면 리다이렉트하지 않음
+    // Don't redirect if logout parameter exists
     const urlParams = new URLSearchParams(window.location.search);
     const isLoggingOut = urlParams.get('logout') === 'true';
     
@@ -127,7 +127,7 @@ export default function AuthPage() {
       router.replace('/chat');
     }
     
-    // logout 파라미터 제거
+    // Remove logout parameter
     if (isLoggingOut) {
       window.history.replaceState({}, '', '/auth');
     }
@@ -149,7 +149,7 @@ export default function AuthPage() {
     return translated === key ? fallback : translated;
   };
 
-  // OAuth 로그인 처리
+  // Handle OAuth login
   const handleOAuthLogin = async (providerId: string) => {
     console.log('OAuth login attempt for provider:', providerId);
     console.log('Available providers:', oauthProviders);
@@ -157,10 +157,10 @@ export default function AuthPage() {
     
     try {
       if (providerId === 'google') {
-        // 직접 구현한 구글 OAuth로 리다이렉트 (NextAuth 표준 URL 사용)
+        // Redirect to direct Google OAuth implementation (using NextAuth standard URL)
         console.log('🚀 Redirecting to direct Google OAuth...');
         
-        // OAuth providers에서 Google Client ID 찾기
+        // Find Google Client ID from OAuth providers
         const googleProvider = oauthProviders.find(provider => provider.id === 'google');
         if (!googleProvider?.clientId) {
           console.error('Google Client ID not found in OAuth providers');
@@ -168,7 +168,7 @@ export default function AuthPage() {
           return;
         }
         
-        // 동적으로 현재 도메인 가져오기
+        // Get current domain dynamically
         const baseUrl = window.location.origin;
         const redirectUri = `${baseUrl}/api/auth/callback/google`;
         
@@ -192,10 +192,10 @@ export default function AuthPage() {
       }
 
       if (providerId === 'kakao') {
-        // 직접 구현한 카카오 OAuth로 리다이렉트
+        // Redirect to direct Kakao OAuth implementation
         console.log('🚀 Redirecting to direct Kakao OAuth...');
         
-        // OAuth providers에서 Kakao Client ID 찾기
+        // Find Kakao Client ID from OAuth providers
         const kakaoProvider = oauthProviders.find(provider => provider.id === 'kakao');
         if (!kakaoProvider?.clientId) {
           console.error('Kakao Client ID not found in OAuth providers');
@@ -203,7 +203,7 @@ export default function AuthPage() {
           return;
         }
         
-        // 동적으로 현재 도메인 가져오기
+        // Get current domain dynamically
         const baseUrl = window.location.origin;
         const redirectUri = `${baseUrl}/api/auth/callback/kakao`;
         
@@ -224,7 +224,7 @@ export default function AuthPage() {
         return;
       }
       
-      // 기존 방식 (다른 provider용)
+      // Existing method (for other providers)
       const result = await signIn(providerId, { 
         callbackUrl: '/chat',
         redirect: false
@@ -247,7 +247,7 @@ export default function AuthPage() {
     }
   };
 
-  // OAuth 제공자 아이콘
+  // OAuth provider icons
   const getProviderIcon = (providerId: string) => {
     switch (providerId) {
       case 'google':
@@ -304,7 +304,7 @@ export default function AuthPage() {
         data = text ? JSON.parse(text) : {};
       } catch (parseError) {
         console.error('Failed to parse login response:', parseError);
-        toast.error('서버 응답 파싱 failed');
+        toast.error(lang('parsing.serverResponseFailed'));
         setIsLoading(false);
         setLoadingMessage('');
         return;
@@ -315,14 +315,13 @@ export default function AuthPage() {
         const errorMessage = data.error || await t('messages.loginFailed');
         setLoginError(errorMessage);
         toast.error(errorMessage);
-        setIsLoading(false);  // 버튼 활성화
-        setLoadingMessage('');  // Initialize 로딩 메시지
+        setIsLoading(false);  // Enable button
+        setLoadingMessage('');  // Clear loading message
         return;
       }
 
-      // Step 2: Show success message first
-      toast.success(data.message || '로그인 검증 successful!');
-      setLoadingMessage('세션 생성 중...');
+      // Step 2: Set loading message
+      setLoadingMessage(lang('oauth.loading.creatingSession'));
       
       // Step 3: Create session using custom API
       console.log('Creating session...');
@@ -347,7 +346,7 @@ export default function AuthPage() {
             sessionData = text ? JSON.parse(text) : {};
           } catch (parseError) {
             console.error('Failed to parse session response:', parseError);
-            toast.error('세션 응답 파싱 failed');
+            toast.error(lang('parsing.sessionResponseFailed'));
             setIsLoading(false);
             setLoadingMessage('');
             return;
@@ -355,16 +354,16 @@ export default function AuthPage() {
           console.log('Session creation response:', sessionData);
 
           if (!sessionData.success) {
-            const errorMessage = sessionData.error || '세션 생성에 failed했습니다.';
+            const errorMessage = sessionData.error || lang('oauth.loading.sessionError');
             setLoginError(errorMessage);
             toast.error(errorMessage);
-            setIsLoading(false);  // 버튼 활성화
-            setLoadingMessage('');  // Initialize 로딩 메시지
+            setIsLoading(false);  // Enable button
+            setLoadingMessage('');  // Clear loading message
             return;
           }
 
-          toast.success('로그인 successful! 리다이렉트 중...');
-          setLoadingMessage('페이지 이동 중...');
+          toast.success(lang('oauth.loading.redirecting'));
+          setLoadingMessage(lang('oauth.loading.movingPage'));
           
           // Verify session is created
           const verifyResponse = await fetch('/api/auth/session');
@@ -394,12 +393,12 @@ export default function AuthPage() {
           
         } catch (sessionError) {
           console.error('Session creation error:', sessionError);
-          toast.error('세션 생성 중 An error occurred.');
+          toast.error(lang('oauth.loading.sessionError'));
         } finally {
           setIsLoading(false);
           setLoadingMessage('');
         }
-      }, 1000); // 1초 후 세션 생성 시도
+      }, 1000); // Try session creation after 1 second
       
     } catch (error) {
       const errorMessage = await t('messages.loginError');
@@ -460,7 +459,7 @@ export default function AuthPage() {
         data = text ? JSON.parse(text) : {};
       } catch (parseError) {
         console.error('Failed to parse register response:', parseError);
-        toast.error('서버 응답 파싱 failed');
+        toast.error(lang('parsing.serverResponseFailed'));
         setIsLoading(false);
         return;
       }
@@ -478,7 +477,7 @@ export default function AuthPage() {
       
       // If guest account, redirect to pending page
       if (data.user?.role === 'guest') {
-        toast.success('계정이 생성되었습니다. 관리자 승인을 기다려주세요.');
+        toast.success(lang('account.created'));
         
         // Auto login as guest and redirect to pending page
         const signInResult = await signIn('credentials', {
@@ -610,7 +609,7 @@ export default function AuthPage() {
                           <Separator className="w-full" />
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                          <span className="bg-white dark:bg-gray-900 px-2 text-muted-foreground">또는</span>
+                          <span className="bg-white dark:bg-gray-900 px-2 text-muted-foreground">{lang('ui.or')}</span>
                         </div>
                       </div>
                       
@@ -629,7 +628,7 @@ export default function AuthPage() {
                             ) : (
                               <span className="mr-2">{getProviderIcon(provider.id)}</span>
                             )}
-                            {provider.name}로 로그인
+                            {provider.name}{lang('oauth.loginWith')}
                           </Button>
                         ))}
                       </div>
@@ -713,7 +712,7 @@ export default function AuthPage() {
                           <Separator className="w-full" />
                         </div>
                         <div className="relative flex justify-center text-xs uppercase">
-                          <span className="bg-white dark:bg-gray-900 px-2 text-muted-foreground">또는</span>
+                          <span className="bg-white dark:bg-gray-900 px-2 text-muted-foreground">{lang('ui.or')}</span>
                         </div>
                       </div>
                       
@@ -732,7 +731,7 @@ export default function AuthPage() {
                             ) : (
                               <span className="mr-2">{getProviderIcon(provider.id)}</span>
                             )}
-                            {provider.name}로 가입
+                            {provider.name}{lang('oauth.signupWith')}
                           </Button>
                         ))}
                       </div>

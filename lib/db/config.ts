@@ -59,10 +59,15 @@ function saveMigrationVersion(version: number) {
   fs.writeFileSync(MIGRATION_VERSION_FILE, JSON.stringify(data, null, 2));
 }
 
+// Get DB type
+export function getDbType(): DbType {
+  return (process.env.DB_TYPE || 'sqlite') as DbType;
+}
+
 // DB configuration function
 export function getDbConfig() {
   return {
-    type: (process.env.DB_TYPE || 'sqlite') as DbType,
+    type: getDbType(),
     url: process.env.DATABASE_URL || 'file:./data.db',
     migrationsFolder: resolve(__dirname, './migrations')
   };

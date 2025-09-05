@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { v4 as uuidv4 } from 'uuid'
-import { chatMessageRepository, chatSessionRepository, agentManageRepository, llmModelRepository, llmServerRepository } from '@/lib/db/server'
+import { chatMessageRepository, chatSessionRepository, agentManageRepository, llmModelRepository, llmServerRepository, userRepository } from '@/lib/db/server'
 import { LLMFactory } from '@/lib/llm'
 import { getServerSession } from 'next-auth'
 import { authOptions } from '@/app/api/auth/[...nextauth]/route'
@@ -54,7 +54,10 @@ export async function POST(request: NextRequest, { params }: { params: Promise<{
   try {
     const session = await getServerSession(authOptions)
     
+    // 미들웨어에서 이미 인증 및 계정 유효성 검증을 완료
+    // 추가 안전장치로 세션 체크만 유지
     if (!session?.user?.email) {
+      console.error('[Chat API] Unexpected: session is null after middleware')
       return NextResponse.json({ error: 'User authentication required' }, { status: 401 })
     }
     

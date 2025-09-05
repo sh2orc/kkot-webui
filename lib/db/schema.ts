@@ -5,11 +5,7 @@ import { sqliteTable, text, integer, blob, primaryKey } from 'drizzle-orm/sqlite
 import { pgTable, serial, varchar, boolean, timestamp, text as pgText, numeric } from 'drizzle-orm/pg-core';
 import { sql } from 'drizzle-orm';
 import { DbType } from './types';
-
-// Function to determine DB type
-function getDbType(): DbType {
-  return (process.env.DB_TYPE || 'sqlite') as DbType;
-}
+import { getDbType } from './config';
 
 // SQLite tables
 // Users table
@@ -21,6 +17,12 @@ export const users = getDbType() === 'sqlite'
       password: text('password').notNull(),
       role: text('role', { enum: ['user', 'admin', 'guest'] }).default('guest'),
       profileImage: text('profile_image'),
+      department: text('department'),
+      phoneNumber: text('phone_number'),
+      status: text('status', { enum: ['active', 'inactive', 'suspended'] }).default('active'),
+      emailVerified: integer('email_verified', { mode: 'boolean' }).default(false),
+      failedLoginAttempts: integer('failed_login_attempts').default(0),
+      lockedUntil: integer('locked_until', { mode: 'timestamp' }),
       // OAuth fields
       googleId: text('google_id'),
       oauthProvider: text('oauth_provider'),
@@ -38,6 +40,12 @@ export const users = getDbType() === 'sqlite'
       password: varchar('password', { length: 255 }).notNull(),
       role: varchar('role', { length: 50 }).default('user'),
       profileImage: text('profile_image'),
+      department: varchar('department', { length: 255 }),
+      phoneNumber: varchar('phone_number', { length: 50 }),
+      status: varchar('status', { length: 20 }).default('active'),
+      emailVerified: boolean('email_verified').default(false),
+      failedLoginAttempts: numeric('failed_login_attempts').default('0'),
+      lockedUntil: timestamp('locked_until'),
       // OAuth fields
       googleId: text('google_id'),
       oauthProvider: varchar('oauth_provider', { length: 50 }),
@@ -757,4 +765,6 @@ export const activityLogs = getDbType() === 'sqlite'
 export type ActivityLog = typeof activityLogs.$inferSelect;
 export type NewActivityLog = typeof activityLogs.$inferInsert;
 
+// Export workflow tables
+export * from './schema-workflow'
  

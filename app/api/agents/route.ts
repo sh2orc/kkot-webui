@@ -21,13 +21,7 @@ export async function GET() {
     
     // Convert image data to base64 and return
     const processedAgents = agents.map((agent: any) => {
-      console.log(`Agent ${agent.name} image data processing:`, {
-        hasImageData: !!agent.imageData,
-        imageDataType: typeof agent.imageData,
-        isUint8Array: agent.imageData instanceof Uint8Array,
-        length: agent.imageData?.length
-      })
-      
+
       // Check for image data existence (more flexible)
       const hasImageData = agent.imageData && (
         (agent.imageData instanceof Uint8Array && agent.imageData.length > 0) ||
@@ -39,7 +33,6 @@ export async function GET() {
       // Load image data if available
       if (hasImageData) {
         try {
-          console.log(`Agent ${agent.name} image conversion started`)
           
           if (agent.imageData instanceof Uint8Array) {
             // For Uint8Array type
@@ -56,7 +49,6 @@ export async function GET() {
             }
           }
           
-          console.log(`Agent ${agent.name} image conversion completed:`, imageData?.substring(0, 50))
         } catch (error) {
           console.error('Image conversion error:', error);
         }
@@ -75,35 +67,16 @@ export async function GET() {
         compressImage: agent.compressImage
       }
     })
-    
-    console.log("Agent list:", processedAgents.map((a: any) => ({ id: a.id, name: a.name })));
-    
+        
     // 2. Fetch all models (both public and private)
     const allModels = await llmModelRepository.findAllChatModelsWithServer()
-    
-    console.log("=== Model Debug Info ===");
-    console.log("All models from DB:", allModels.length);
-    console.log("Models details:", allModels.map((m: any) => ({ 
-      id: m.id, 
-      modelId: m.modelId, 
-      isPublic: m.isPublic,
-      enabled: m.enabled,
-      provider: m.provider
-    })));
-    
-    // Parse capabilities JSON for all models
+        // Parse capabilities JSON for all models
     const parsedModels = allModels.map((model: any) => ({
       ...model,
       capabilities: model.capabilities ? JSON.parse(model.capabilities) : null,
       type: 'model', // Field added for type distinction
       supportsMultimodal: model.supportsMultimodal // Include multimodal support info
     }))
-    
-    // Debug: Check if models are enabled
-    console.log("=== Model Enabled Status ===");
-    parsedModels.forEach((model: any) => {
-      console.log(`Model ${model.modelId}: enabled=${model.enabled}, isPublic=${model.isPublic}`);
-    });
     
     // Filter accessible agents (similar to models, check isPublic)
     const accessibleAgents = await filterResourcesByPermission(
@@ -116,15 +89,9 @@ export async function GET() {
     const filteredAgents = accessibleAgents.filter((agent: any) => {
       const isEnabled = agent.enabled === true || agent.enabled === 1;
       if (!isEnabled) {
-        console.log(`Agent ${agent.name} filtered out: enabled=${agent.enabled}`);
+        // console.log(`Agent ${agent.name} filtered out: enabled=${agent.enabled}`);
       }
       return isEnabled;
-    });
-    
-    console.log("User info:", {
-      id: session.user.id,
-      role: session.user.role,
-      email: session.user.email
     });
     
     // Filter accessible models (includes public models + group permitted private models)
@@ -137,21 +104,9 @@ export async function GET() {
     // Filter by enabled status - only show active models
     const filteredModels = accessibleModels.filter((model: any) => {
       const isEnabled = model.enabled === true || model.enabled === 1;
-      if (!isEnabled) {
-        console.log(`Model ${model.modelId} filtered out: enabled=${model.enabled}`);
-      }
       return isEnabled;
     });
-    
-    console.log("Filtered models after permission check:", filteredModels.length);
-    console.log("Filtered models details:", filteredModels.map((m: any) => ({
-      id: m.id,
-      modelId: m.modelId,
-      isPublic: m.isPublic
-    })));
-    console.log("=== End Debug Info ===");
-
-    // Return agents and accessible models combined (agents have priority)
+        // Return agents and accessible models combined (agents have priority)
     return NextResponse.json({
       agents: filteredAgents,
       publicModels: filteredModels // Keep the same name for backward compatibility

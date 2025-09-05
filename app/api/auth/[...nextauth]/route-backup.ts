@@ -6,7 +6,7 @@ import GitHubProvider from 'next-auth/providers/github';
 import AzureADProvider from 'next-auth/providers/azure-ad';
 import { KakaoProvider } from '@/lib/oauth-providers';
 import { NaverProvider } from '@/lib/oauth-providers';
-import { userRepository } from '@/lib/db/repository';
+import { userRepository, groupRepository } from '@/lib/db/repository';
 import { hashPassword, verifyPassword, generateUserId } from '@/lib/auth';
 import { getServerTranslation, defaultLanguage, type Language } from '@/lib/i18n-server';
 import { getOAuthConfig } from '@/lib/oauth-config';
@@ -75,6 +75,48 @@ async function createAuthOptions(): Promise<NextAuthOptions> {
               });
               newUser = result[0];
               console.log('User created successfully:', newUser);
+              
+              // Add user to appropriate group based on role
+              try {
+                if (userRole === 'admin') {
+                  // Add admin users to admin group
+                  const adminGroup = await groupRepository.findByName('admin');
+                  if (adminGroup) {
+                    await groupRepository.addUser(adminGroup.id, newUser.id, 'system');
+                    console.log(`Added admin user ${email} to admin group`);
+                  } else {
+                    // Create admin group if it doesn't exist
+                    const [createdGroup] = await groupRepository.create({
+                      name: 'admin',
+                      description: 'System administrators with full access',
+                      isSystem: true,
+                      isActive: true
+                    });
+                    await groupRepository.addUser(createdGroup.id, newUser.id, 'system');
+                    console.log(`Created admin group and added user ${email}`);
+                  }
+                } else if (userRole === 'user') {
+                  // Add regular users to default group
+                  const defaultGroup = await groupRepository.findByName('default');
+                  if (defaultGroup) {
+                    await groupRepository.addUser(defaultGroup.id, newUser.id, 'system');
+                    console.log(`Added user ${email} to default group`);
+                  } else {
+                    // Create default group if it doesn't exist
+                    const [createdGroup] = await groupRepository.create({
+                      name: 'default',
+                      description: 'Default group for all users',
+                      isSystem: true,
+                      isActive: true
+                    });
+                    await groupRepository.addUser(createdGroup.id, newUser.id, 'system');
+                    console.log(`Created default group and added user ${email}`);
+                  }
+                }
+              } catch (error) {
+                console.error('Failed to add user to group:', error);
+                // Don't fail the registration if group assignment fails
+              }
             } catch (createError) {
               console.error('Error creating user:', createError);
               throw createError;

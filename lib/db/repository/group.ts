@@ -43,12 +43,11 @@ export const groupRepository = {
   /**
    * Create a new group
    */
-  create: async (groupData: { name: string; description?: string; isSystem?: boolean; isActive?: boolean }) => {
-    const id = generateId();
+  create: async (groupData: { id: string, name: string; description?: string; isSystem?: boolean; isActive?: boolean }) => {
     const now = new Date();
     
     return await db.insert(schema.groups).values({
-      id: id as any,
+      id: groupData.id,
       name: groupData.name,
       description: groupData.description,
       isSystem: groupData.isSystem || false as any,
@@ -101,8 +100,8 @@ export const groupRepository = {
    */
   addUser: async (groupId: string, userId: string, assignedBy?: string) => {
     return await db.insert(schema.userGroups).values({
-      groupId: groupId as any,
-      userId: userId as any,
+      groupId: groupId,
+      userId: userId,
       assignedBy: assignedBy as any,
       assignedAt: new Date() as any
     }).returning();

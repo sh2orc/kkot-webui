@@ -4,9 +4,9 @@ import { authOptions } from "@/app/api/auth/[...nextauth]/route";
 import { groupRepository } from "@/lib/db/repository";
 
 interface RouteParams {
-  params: {
+  params: Promise<{
     id: string;
-  };
+  }>;
 }
 
 // GET /api/groups/[id]/permissions - 그룹의 리소스 권한 조회
@@ -21,11 +21,12 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    const { id } = await params;
     const searchParams = req.nextUrl.searchParams;
     const resourceType = searchParams.get('resourceType');
 
     const permissions = await groupRepository.getResourcePermissions(
-      params.id,
+      id,
       resourceType || undefined
     );
 
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest, { params }: RouteParams) {
     }, {});
 
     return NextResponse.json({
-      groupId: params.id,
+      groupId: id,
       permissions: groupedPermissions
     });
   } catch (error) {
@@ -66,8 +67,10 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    const { id } = await params;
+
     // Prevent modifying admin group permissions
-    if (params.id === 'admin') {
+    if (id === 'admin') {
       return NextResponse.json(
         { error: "Cannot modify admin group permissions" },
         { status: 403 }
@@ -103,7 +106,7 @@ export async function POST(req: NextRequest, { params }: RouteParams) {
     }
 
     await groupRepository.setResourcePermission(
-      params.id,
+      id,
       resourceType as any,
       resourceId,
       permissions
@@ -131,8 +134,10 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    const { id } = await params;
+
     // Prevent modifying admin group permissions
-    if (params.id === 'admin') {
+    if (id === 'admin') {
       return NextResponse.json(
         { error: "Cannot modify admin group permissions" },
         { status: 403 }
@@ -176,7 +181,7 @@ export async function PUT(req: NextRequest, { params }: RouteParams) {
       }
     }
 
-    await groupRepository.bulkSetResourcePermissions(params.id, permissions);
+    await groupRepository.bulkSetResourcePermissions(id, permissions);
 
     return NextResponse.json({ success: true });
   } catch (error) {
@@ -200,8 +205,10 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
+    const { id } = await params;
+
     // Prevent modifying admin group permissions
-    if (params.id === 'admin') {
+    if (id === 'admin') {
       return NextResponse.json(
         { error: "Cannot modify admin group permissions" },
         { status: 403 }
@@ -219,7 +226,7 @@ export async function DELETE(req: NextRequest, { params }: RouteParams) {
       );
     }
 
-    await groupRepository.removeResourcePermission(params.id, resourceType, resourceId);
+    await groupRepository.removeResourcePermission(id, resourceType, resourceId);
 
     return NextResponse.json({ success: true });
   } catch (error) {

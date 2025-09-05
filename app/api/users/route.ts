@@ -98,35 +98,35 @@ export async function POST(req: NextRequest) {
     // Assign groups if provided
     if (groups.length > 0) {
       await groupRepository.setUserGroups(newUser[0].id, groups, session.user.id)
-    }
-
-    // If user is admin, add to admin group automatically
-    if (role === 'admin') {
+    } else {
+      // If no groups provided, add to default group based on role
       try {
-        const adminGroup = await groupRepository.findByName('admin');
-        if (adminGroup) {
-          // Check if admin group is already in the groups list
-          if (!groups.includes(adminGroup.id)) {
-            await groupRepository.addUser(adminGroup.id, newUser[0].id, session.user.id);
-            console.log(`Added admin user ${newUser[0].email} to admin group`);
+        if (role === 'admin') {
+          const adminGroup = await groupRepository.findById('admin')
+          if (adminGroup) {
+            await groupRepository.addUser(adminGroup.id, newUser[0].id, session.user.id)
           }
-        } else {
-          console.log('Admin group not found, creating one...');
-          // Create admin group if it doesn't exist
-          const [createdGroup] = await groupRepository.create({
-            name: 'admin',
-            description: 'System administrators with full access',
-            isSystem: true,
-            isActive: true
-          });
-          await groupRepository.addUser(createdGroup.id, newUser[0].id, session.user.id);
-          console.log(`Created admin group and added user ${newUser[0].email}`);
+        } else if (role === 'user') {
+          const defaultGroup = await groupRepository.findById('default')
+          if (defaultGroup) {
+            await groupRepository.addUser(defaultGroup.id, newUser[0].id, session.user.id)
+          } else {
+            // Create default group if it doesn't exist
+            const [createdGroup] = await groupRepository.create({
+              id: 'default',
+              name: 'Default User',
+              description: 'Default group for all users',
+              isSystem: true,
+              isActive: true
+            })
+            await groupRepository.addUser(createdGroup.id, newUser[0].id, session.user.id)
+          }
         }
       } catch (error) {
-        console.error('Failed to add user to admin group:', error);
-        // Don't fail the user creation if group assignment fails
+        console.error('Failed to add user to default group:', error)
       }
     }
+
 
     return NextResponse.json({
       id: newUser[0].id,
