@@ -1185,6 +1185,7 @@ components/            # Reusable components
 │   └── model-provider.tsx # Model selection state
 ├── sidebar/           # Sidebar components
 └── ui/                # Base UI components (Radix UI based)
+    ├── data-pagination.tsx # Reusable pagination component with search integration
 
 lib/                   # Utilities and configuration
 ├── auth.ts            # Authentication utilities (hashing, verification)
@@ -1258,6 +1259,76 @@ scripts/               # Utility scripts (migrations, etc.)
 - **Feature Components**: `components/{feature}/`
 - **UI Components**: `components/ui/` (Radix UI wrappers)
 - **Form Components**: `-form.tsx` suffix within feature directories
+- **Pagination Components**: Reusable pagination UI components
+
+#### DataPagination Component (`components/ui/data-pagination.tsx`)
+- **Purpose**: Reusable pagination UI component with comprehensive pagination controls
+- **Features**: Page navigation, item count display, ellipsis handling, responsive design
+- **Integration**: Works seamlessly with `usePagination` hook for complete pagination solution
+- **Props**:
+  - `currentPage`: Current active page number
+  - `totalPages`: Total number of pages
+  - `startIndex`: Start index for current page items
+  - `endIndex`: End index for current page items
+  - `totalItems`: Total number of items
+  - `onPageChange`: Callback function for page changes
+  - `showInfo`: Boolean to show/hide item count information
+  - `showItemsText`: Template string for item count display
+
+```typescript
+// DataPagination usage example
+import { DataPagination } from "@/components/ui/data-pagination";
+import { usePagination } from "@/hooks/use-pagination";
+
+function MyListComponent({ items }: { items: any[] }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  const pagination = usePagination({
+    items,
+    itemsPerPage: 10,
+    searchTerm,
+    searchFields: ['name', 'description']
+  });
+
+  return (
+    <div>
+      {/* Search input */}
+      <input 
+        value={searchTerm}
+        onChange={(e) => setSearchTerm(e.target.value)}
+        placeholder="Search..."
+      />
+      
+      {/* Items display */}
+      <div>
+        {pagination.paginatedItems.map(item => (
+          <div key={item.id}>{item.name}</div>
+        ))}
+      </div>
+      
+      {/* Pagination component */}
+      <DataPagination
+        currentPage={pagination.currentPage}
+        totalPages={pagination.totalPages}
+        startIndex={pagination.startIndex}
+        endIndex={pagination.endIndex}
+        totalItems={pagination.totalItems}
+        onPageChange={pagination.goToPage}
+        showItemsText="Showing {{start}} to {{end}} of {{total}} items"
+      />
+    </div>
+  );
+}
+```
+
+#### Pagination Implementation Rules
+- **Hook-Component Pattern**: Always use `usePagination` hook with `DataPagination` component for consistent behavior
+- **Search Integration**: Automatic page reset when search term changes
+- **State Management**: Centralized pagination state in the hook, UI rendering in the component
+- **Responsiveness**: Pagination component handles responsive design and ellipsis display
+- **Accessibility**: Built-in ARIA labels and keyboard navigation support
+- **Performance**: Optimized re-rendering with proper memoization
+- **Internationalization**: Support for custom item count text templates
 
 ### 3. API Route Rules
 - **RESTful Structure**: `app/api/{resource}/route.ts`
@@ -1316,6 +1387,45 @@ const logoUrl = branding.logoUrl // '/images/logo.svg'
 - **DB Hook**: Database state management via `use-db.ts`
 - **Mobile Detection**: Responsive handling via `use-mobile.tsx`
 - **Toast**: Notification management via `use-toast.ts`
+- **Pagination Hook**: Data pagination management via `use-pagination.ts`
+
+#### usePagination Hook (`hooks/use-pagination.ts`)
+- **Purpose**: Reusable hook for data pagination with search integration
+- **Features**: Filtering, pagination, and search functionality in a single hook
+- **Props**:
+  - `items`: Array of items to paginate
+  - `itemsPerPage`: Number of items per page
+  - `searchTerm`: Optional search term for filtering
+  - `searchFields`: Array of field names to search in
+- **Return Values**:
+  - `currentPage`: Current page number
+  - `totalPages`: Total number of pages
+  - `paginatedItems`: Items for current page
+  - `filteredItems`: All filtered items
+  - `totalItems`: Total filtered items count
+  - `startIndex`: Start index for current page (1-based)
+  - `endIndex`: End index for current page
+  - `goToPage`: Function to navigate to specific page
+  - `goToNextPage`: Function to navigate to next page
+  - `goToPreviousPage`: Function to navigate to previous page
+  - `resetPage`: Function to reset to page 1
+
+```typescript
+// usePagination usage example
+const pagination = usePagination({
+  items: dataArray,
+  itemsPerPage: 10,
+  searchTerm: searchValue,
+  searchFields: ['name', 'description']
+});
+
+// Access pagination state
+const { paginatedItems, currentPage, totalPages } = pagination;
+
+// Navigate pages
+pagination.goToPage(2);
+pagination.goToNextPage();
+```
 
 ### 6. Layout Architecture Rules
 - **Global Layout**: `components/layout/global-layout.tsx` handles route-based layout switching
@@ -1366,6 +1476,72 @@ const GlobalLayout = ({ children }: { children: React.ReactNode }) => {
 - **Real-time Updates**: Immediate reflection of setting changes
 - **Permission Management**: Admin permission verification logic
 - **Modular Separation**: Subdirectory structure by feature
+- **Pagination**: Use common pagination components (`usePagination` + `DataPagination`) for data lists
+- **Search Integration**: Implement search functionality with automatic pagination reset
+
+#### Admin Panel Pagination Guidelines
+- **Consistent UI**: Use `DataPagination` component for all admin tables and lists
+- **Performance**: Implement pagination for data sets with 10+ items
+- **Search Integration**: Combine search functionality with pagination using `usePagination` hook
+- **Responsive Design**: Ensure pagination works across different screen sizes
+- **User Experience**: Maintain consistent items-per-page count across admin sections
+
+```typescript
+// Admin component with pagination example
+import { usePagination } from "@/hooks/use-pagination";
+import { DataPagination } from "@/components/ui/data-pagination";
+
+function AdminResourceList({ resources }: { resources: Resource[] }) {
+  const [searchTerm, setSearchTerm] = useState("");
+  
+  const pagination = usePagination({
+    items: resources,
+    itemsPerPage: 10,
+    searchTerm,
+    searchFields: ['name', 'description', 'type']
+  });
+
+  return (
+    <Card>
+      <CardHeader>
+        <div className="flex justify-between items-center">
+          <CardTitle>Resource Management</CardTitle>
+          <div className="flex items-center gap-2">
+            <Search className="h-4 w-4 text-gray-400" />
+            <Input
+              placeholder="Search resources..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-80"
+            />
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent>
+        {/* Resource list/table */}
+        <div className="space-y-4">
+          {pagination.paginatedItems.map(resource => (
+            <ResourceItem key={resource.id} resource={resource} />
+          ))}
+        </div>
+        
+        {/* Pagination component */}
+        <div className="mt-4">
+          <DataPagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            startIndex={pagination.startIndex}
+            endIndex={pagination.endIndex}
+            totalItems={pagination.totalItems}
+            onPageChange={pagination.goToPage}
+            showItemsText={lang('showingItems')}
+          />
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+```
 
 ### 2. Chat Interface (`app/chat/`, `components/chat/`)
 - **Streaming**: Real-time AI response streaming with abort functionality

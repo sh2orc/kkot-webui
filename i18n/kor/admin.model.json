@@ -30,6 +30,7 @@
     "enabled": "활성화",
     "public": "공개",
     "multimodal": "이미지 인식",
+    "imageGeneration": "이미지 생성",
     "embedding": "임베딩 모델",
     "reranking": "리랭킹 모델",
     "updatedAt": "갱신일"
@@ -38,8 +39,16 @@
   "noSearchResults": "검색 결과가 없습니다.",
   "noEnabledServers": "활성화된 서버가 없습니다.",
   "saveChanges": "변경사항 저장",
+  "showingItems": "{{start}} - {{end}} / 총 {{total}}개",
   "switch": {
     "on": "ON",
     "off": "OFF"
+  },
+  "filters": {
+    "all": "전체",
+    "on": "ON",
+    "off": "OFF",
+    "applied": "필터 적용됨",
+    "reset": "필터 초기화"
   }
 } 

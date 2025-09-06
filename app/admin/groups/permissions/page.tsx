@@ -14,14 +14,19 @@ import { useTranslation, preloadTranslationModule } from "@/lib/i18n"
 import { toast } from "sonner"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Input } from "@/components/ui/input"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-  PaginationLink,
-  PaginationNext,
-  PaginationPrevious,
-} from "@/components/ui/pagination"
+import { DataPagination } from "@/components/ui/data-pagination"
+import { usePagination } from "@/hooks/use-pagination"
+
+interface PaginationResult {
+  currentPage: number
+  totalPages: number
+  paginatedItems: Resource[]
+  filteredItems: Resource[]
+  totalItems: number
+  startIndex: number
+  endIndex: number
+  goToPage: (page: number) => void
+}
 
 interface Group {
   id: string
@@ -45,6 +50,7 @@ export default function GroupPermissionsPage() {
   const router = useRouter()
   const searchParams = useSearchParams()
   const { lang, language } = useTranslation('admin.groups')
+  const { lang: commonLang } = useTranslation('common')
   
   const groupId = searchParams.get('id')
   
@@ -80,20 +86,36 @@ export default function GroupPermissionsPage() {
     vector_store: ''
   })
   
-  // Pagination states for each resource type
-  const [currentPages, setCurrentPages] = useState<{
-    agent: number
-    model: number
-    rag_collection: number
-    vector_store: number
-  }>({
-    agent: 1,
-    model: 1,
-    rag_collection: 1,
-    vector_store: 1
-  })
-  
   const ITEMS_PER_PAGE = 10
+
+  // Pagination hooks for each resource type - must be at component top level
+  const agentPagination = usePagination({
+    items: agents,
+    itemsPerPage: ITEMS_PER_PAGE,
+    searchTerm: searchTerms.agent,
+    searchFields: ['name', 'description']
+  })
+
+  const modelPagination = usePagination({
+    items: models,
+    itemsPerPage: ITEMS_PER_PAGE,
+    searchTerm: searchTerms.model,
+    searchFields: ['name', 'description']
+  })
+
+  const collectionPagination = usePagination({
+    items: collections,
+    itemsPerPage: ITEMS_PER_PAGE,
+    searchTerm: searchTerms.rag_collection,
+    searchFields: ['name', 'description']
+  })
+
+  const vectorStorePagination = usePagination({
+    items: vectorStores,
+    itemsPerPage: ITEMS_PER_PAGE,
+    searchTerm: searchTerms.vector_store,
+    searchFields: ['name', 'description']
+  })
 
   // Preload translation module
   useEffect(() => {
@@ -110,15 +132,6 @@ export default function GroupPermissionsPage() {
     }
   }, [groupId])
 
-  // Reset to page 1 when search terms change
-  useEffect(() => {
-    setCurrentPages({
-      agent: 1,
-      model: 1,
-      rag_collection: 1,
-      vector_store: 1
-    })
-  }, [searchTerms])
 
   const fetchGroup = async () => {
     try {
@@ -311,26 +324,9 @@ export default function GroupPermissionsPage() {
   const renderResourcePermissions = (
     resources: Resource[],
     resourceType: keyof typeof permissions,
-    icon: React.ReactNode
+    icon: React.ReactNode,
+    pagination: PaginationResult
   ) => {
-    // Filter resources based on search term
-    const searchTerm = searchTerms[resourceType]
-    const filteredResources = resources.filter(resource => 
-      resource.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      resource.description?.toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    
-    // Calculate pagination
-    const currentPage = currentPages[resourceType]
-    const totalPages = Math.ceil(filteredResources.length / ITEMS_PER_PAGE)
-    const startIndex = (currentPage - 1) * ITEMS_PER_PAGE
-    const endIndex = startIndex + ITEMS_PER_PAGE
-    const paginatedResources = filteredResources.slice(startIndex, endIndex)
-    
-    const handlePageChange = (page: number) => {
-      setCurrentPages(prev => ({ ...prev, [resourceType]: page }))
-    }
-    
     return (
     <Card>
       <CardHeader>
@@ -344,7 +340,7 @@ export default function GroupPermissionsPage() {
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <div className="mb-4">
+        <div className="mb-4 pr-4">
           <div className="relative">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-500" />
             <Input
@@ -357,12 +353,12 @@ export default function GroupPermissionsPage() {
         </div>
         <ScrollArea className="h-[450px] pr-4">
           <div className="space-y-4">
-            {filteredResources.length === 0 ? (
+            {pagination.filteredItems.length === 0 ? (
               <div className="text-center text-muted-foreground py-8">
                 {lang('noSearchResults')}
               </div>
             ) : (
-              paginatedResources.map(resource => (
+              pagination.paginatedItems.map(resource => (
               <div key={resource.id} className="border rounded-lg p-4 flex items-center gap-4">
                 <div className="relative">
                   <Switch
@@ -390,62 +386,19 @@ export default function GroupPermissionsPage() {
           </div>
         </ScrollArea>
         
-        {totalPages > 1 && (
-          <div className="mt-4">
-            <Pagination>
-              <PaginationContent>
-                <PaginationItem>
-                  <PaginationPrevious 
-                    onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
-                    className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                  />
-                </PaginationItem>
-                
-                {[...Array(totalPages)].map((_, index) => {
-                  const pageNumber = index + 1
-                  // Show first page, last page, current page, and pages around current page
-                  if (
-                    pageNumber === 1 ||
-                    pageNumber === totalPages ||
-                    (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
-                  ) {
-                    return (
-                      <PaginationItem key={pageNumber}>
-                        <PaginationLink
-                          onClick={() => handlePageChange(pageNumber)}
-                          isActive={currentPage === pageNumber}
-                          className="cursor-pointer"
-                        >
-                          {pageNumber}
-                        </PaginationLink>
-                      </PaginationItem>
-                    )
-                  } else if (
-                    pageNumber === currentPage - 2 ||
-                    pageNumber === currentPage + 2
-                  ) {
-                    return <PaginationItem key={pageNumber}>...</PaginationItem>
-                  }
-                  return null
-                })}
-                
-                <PaginationItem>
-                  <PaginationNext 
-                    onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
-                    className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
-                  />
-                </PaginationItem>
-              </PaginationContent>
-            </Pagination>
-            
-            <div className="text-center text-sm text-muted-foreground mt-2">
-              {lang('showingItems')
-                .replace('{{start}}', String(startIndex + 1))
-                .replace('{{end}}', String(Math.min(endIndex, filteredResources.length)))
-                .replace('{{total}}', String(filteredResources.length))}
-            </div>
-          </div>
-        )}
+        <div className="mt-4">
+          <DataPagination
+            currentPage={pagination.currentPage}
+            totalPages={pagination.totalPages}
+            startIndex={pagination.startIndex}
+            endIndex={pagination.endIndex}
+            totalItems={pagination.totalItems}
+            onPageChange={pagination.goToPage}
+            showItemsText={lang('showingItems')}
+            previousText={commonLang('pagination.previous')}
+            nextText={commonLang('pagination.next')}
+          />
+        </div>
       </CardContent>
     </Card>
     )
@@ -541,19 +494,19 @@ export default function GroupPermissionsPage() {
         </TabsList>
         
         <TabsContent value="agent">
-          {renderResourcePermissions(agents, 'agent', <Bot className="h-4 w-4" />)}
+          {renderResourcePermissions(agents, 'agent', <Bot className="h-4 w-4" />, agentPagination)}
         </TabsContent>
         
         <TabsContent value="model">
-          {renderResourcePermissions(models, 'model', <Brain className="h-4 w-4" />)}
+          {renderResourcePermissions(models, 'model', <Brain className="h-4 w-4" />, modelPagination)}
         </TabsContent>
         
         <TabsContent value="rag_collection">
-          {renderResourcePermissions(collections, 'rag_collection', <Database className="h-4 w-4" />)}
+          {renderResourcePermissions(collections, 'rag_collection', <Database className="h-4 w-4" />, collectionPagination)}
         </TabsContent>
         
         <TabsContent value="vector_store">
-          {renderResourcePermissions(vectorStores, 'vector_store', <HardDrive className="h-4 w-4" />)}
+          {renderResourcePermissions(vectorStores, 'vector_store', <HardDrive className="h-4 w-4" />, vectorStorePagination)}
         </TabsContent>
       </Tabs>
 

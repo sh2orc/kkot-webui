@@ -104,5 +104,9 @@
     "console": "System Console",
     "controlCenter": "Control Center",
     "settings": "Admin Settings"
+  },
+  "pagination": {
+    "previous": "Previous",
+    "next": "Next"
   }
 } 

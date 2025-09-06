@@ -30,6 +30,7 @@
     "enabled": "Enabled",
     "public": "Public",
     "multimodal": "Vision",
+    "imageGeneration": "Image Gen",
     "embedding": "Embedding Model",
     "reranking": "Reranking Model",
     "updatedAt": "Updated"
@@ -38,8 +39,16 @@
   "noSearchResults": "No search results found.",
   "noEnabledServers": "No enabled servers.",
   "saveChanges": "Save Changes",
+  "showingItems": "Showing {{start}} to {{end}} of {{total}} items",
   "switch": {
     "on": "ON",
     "off": "OFF"
+  },
+  "filters": {
+    "all": "All",
+    "on": "ON",
+    "off": "OFF",
+    "applied": "Filters Applied",
+    "reset": "Reset Filters"
   }
 } 

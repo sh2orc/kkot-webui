@@ -132,7 +132,7 @@ export default function GroupsPage() {
                 placeholder={lang('searchPlaceholder')}
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="max-w-sm"
+                className="w-80"
               />
             </div>
           </div>
